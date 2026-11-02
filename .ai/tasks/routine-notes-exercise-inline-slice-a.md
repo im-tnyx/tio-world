@@ -21,14 +21,14 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `eeca2995d3079977a0c934e776c8953c1d8bd111`
-**Observed working-tree state:** Authorized local fixes are uncommitted; generated Android registrant remains unrelated and excluded
-**Observed uncommitted/dirty files:** `apps/features/workout/lib/src/presentation/library/routines/exercise_notes_inline.dart`, `routine_composer_screen.dart`, `routine_notes_controller.dart`, and `test/presentation/routine_notes_controller_test.dart`; Flutter tooling also reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change
+**HEAD SHA:** `043e52716f9d4a27fc01d8953779c8ba5bf2bd5b`
+**Observed working-tree state:** Focused remediation is committed and pushed; generated Android registrant remains unrelated and excluded
+**Observed uncommitted/dirty files:** Flutter tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer now mounts the inline Exercise Notes surface; the existing Routine Notes contract is generalized by injected scope without a new data source
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
 **Validation completed locally:** Elevated Flutter SDK validation passed for the Exercise Notes/controller/composer tests, the 320dp dark Edit regression, the full `edit_routine_page_test.dart` suite, `apps/features/workout` analyze, `apps/app` analyze, and the Core visual-ownership regression. Dart formatting and `git diff --check` were also run.
-**Validation remaining:** Routine Create/Edit save integration for committing temporary drafts, exact-head CI after publication of these local fixes, independent review, and physical Android/iOS QA
+**Validation remaining:** Routine Create/Edit save integration for committing temporary drafts, exact-head CI for `043e52716f9d4a27fc01d8953779c8ba5bf2bd5b`, independent review, and physical Android/iOS QA
 **Current blocker:** The existing Routine aggregate save contracts have no Notes payload. This slice intentionally does not perform a hidden secondary Notes write or invent a second aggregate contract; a bounded parent-save bridge is required before the owner’s “Routine save commits Note” behavior is complete. Hosted Notes objects are not deployed and physical device QA has not been performed.
 **Open review finding IDs:** Local fixes address the unknown-outcome refresh affordance, session callback identity, transfer-failure state preservation, scope-aware delete copy, ready-state quota warning, and compact-width overflow. Duplicate canonical Exercise controller sharing and the parent-save bridge remain open because they require an explicit parent composition seam.
 **Next exact action:** Keep PR #725 unmerged; publish only after the focused diff is reviewed, then verify CI on the exact new PR HEAD and request independent review.
@@ -129,7 +129,7 @@ PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub`
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test --no-pub test/theme/final_enforcement_visual_ownership_test.dart --reporter compact` in `apps/core`
 PASS: `G:\dev\flutter-sdk\bin\dart.bat format apps/features/workout/lib/src/presentation/library/routines/exercise_notes_inline.dart apps/features/workout/lib/src/presentation/library/routines/routine_notes_controller.dart apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart` — formatting completed
 PASS: `git -c core.fsmonitor=false diff --check`
-FAIL/OPEN: Existing exact-head PR run `41396186498` at `eeca2995d3079977a0c934e776c8953c1d8bd111` failed `Analyze and test`, `Test Flutter (core-wear)`, and `Test Flutter (app-workout)`; local reruns now pass after the fixes, but CI has not rerun on this unpushed working tree.
+FAIL/OPEN: Previous exact-head PR run `41396186498` at `eeca2995d3079977a0c934e776c8953c1d8bd111` failed `Analyze and test`, `Test Flutter (core-wear)`, and `Test Flutter (app-workout)`; local reruns now pass. New exact-head run `41398852353` for `043e52716f9d4a27fc01d8953779c8ba5bf2bd5b` is currently in progress.
 NOT RUN: parent Routine-save/Notes integration, physical Android/iOS keyboard and gesture QA, hosted Notes deployment, and independent review
 ```
 
@@ -137,7 +137,7 @@ NOT RUN: parent Routine-save/Notes integration, physical Android/iOS keyboard an
 
 **Review source / link:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`)
 **Reviewer / relation to implementer:** Independent reviewer requested: `im-tio`
-**Diff or commit SHA actually reviewed:** PR HEAD `eeca2995d3079977a0c934e776c8953c1d8bd111`; independent review remains pending
+**Diff or commit SHA actually reviewed:** PR HEAD `043e52716f9d4a27fc01d8953779c8ba5bf2bd5b`; independent review remains pending
 **Review result and finding dispositions:** Review comments were reconciled against current source. The standalone Routine Detail Notes-section comment is superseded by the owner correction and remains intentionally removed. The valid local findings listed in Active Handoff are fixed in the unpushed working tree; duplicate canonical Exercise controller sharing and the parent-save bridge remain open.
 **Independent review?** Requested / pending
 **Limitations and unmet required gates:** Hosted Notes deployment remains intentionally blocked; physical Android/iOS QA, exact-head CI and independent review remain open.
