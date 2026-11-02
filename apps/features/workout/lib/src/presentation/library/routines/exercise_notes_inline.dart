@@ -17,10 +17,13 @@ final _canonicalOwnerId = RegExp(
 const _maxInlineNotes = 4;
 
 final class _ExerciseNoteDraft {
-  _ExerciseNoteDraft({required this.id, required this.onChanged})
-      : controller = TextEditingController(),
-        focusNode = FocusNode(),
-        type = RoutineNoteType.pinnedExercise {
+  _ExerciseNoteDraft({
+    required this.id,
+    required this.onChanged,
+    String text = '',
+    this.type = RoutineNoteType.pinnedExercise,
+  })  : controller = TextEditingController(text: text),
+        focusNode = FocusNode() {
     controller.addListener(onChanged);
   }
 
@@ -52,6 +55,7 @@ final class ExerciseNotesInline extends StatefulWidget {
     required this.isSessionCurrent,
     required this.enabled,
     this.draftKey,
+    this.initialDrafts = const [],
     this.onDraftsChanged,
     this.controllerRegistry,
     super.key,
@@ -65,6 +69,7 @@ final class ExerciseNotesInline extends StatefulWidget {
   final RoutineNotesSessionIsCurrent? isSessionCurrent;
   final bool enabled;
   final String? draftKey;
+  final List<ExerciseNoteDraftSnapshot> initialDrafts;
   final ValueChanged<List<ExerciseNoteDraftSnapshot>>? onDraftsChanged;
   final RoutineNotesControllerRegistry? controllerRegistry;
 
@@ -97,6 +102,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
   void initState() {
     super.initState();
     _scope = RoutineNoteScope.exercise(widget.exerciseRef);
+    _restoreDrafts();
     _bind();
   }
 
@@ -111,6 +117,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
         (oldWidget.isSessionCurrent == null) !=
             (widget.isSessionCurrent == null)) {
       _disposeDrafts();
+      _restoreDrafts();
       _publishDrafts();
       _scope = RoutineNoteScope.exercise(widget.exerciseRef);
       _bind();
@@ -162,7 +169,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     callback([
       for (final draft in _drafts)
         ExerciseNoteDraftSnapshot(
-          draftId: '${widget.draftKey ?? widget.exerciseRef.value}:${draft.id}',
+          draftId: _publishedDraftId(draft.id),
           exerciseRef: widget.exerciseRef,
           type: draft.type,
           body: draft.controller.text,
@@ -234,10 +241,13 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     }
     final savedCount = controller?.state.notes.length ?? 0;
     if (savedCount + _drafts.length >= _maxInlineNotes) return;
-    final draft = _ExerciseNoteDraft(
-      id: '${_draftSequence++}',
-      onChanged: _publishDrafts,
-    );
+    var id = '$_draftSequence';
+    while (_drafts.any((draft) => draft.id == id)) {
+      _draftSequence++;
+      id = '$_draftSequence';
+    }
+    _draftSequence++;
+    final draft = _ExerciseNoteDraft(id: id, onChanged: _publishDrafts);
     _drafts.add(draft);
     setState(() {});
     _publishDrafts();
@@ -384,6 +394,25 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
         const SizedBox(height: TioSpacing.sm),
       ],
     );
+  }
+
+  String _publishedDraftId(String id) {
+    final prefix = '${widget.draftKey ?? widget.exerciseRef.value}:';
+    return id.startsWith(prefix) ? id : '$prefix$id';
+  }
+
+  void _restoreDrafts() {
+    for (final snapshot in widget.initialDrafts) {
+      _drafts.add(
+        _ExerciseNoteDraft(
+          id: snapshot.draftId,
+          text: snapshot.body,
+          type: snapshot.type,
+          onChanged: _publishDrafts,
+        ),
+      );
+    }
+    _draftSequence = _drafts.length;
   }
 
   String _draftInputKey(int index) => index == 0

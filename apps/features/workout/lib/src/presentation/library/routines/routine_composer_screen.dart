@@ -228,6 +228,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
     this.routineNotesOwnerId,
     this.isRoutineNotesSessionCurrent,
     this.onNoteDraftsChanged,
+    this.initialNoteDrafts = const [],
+    this.notesEnabled,
     this.controllerRegistry,
     super.key,
   });
@@ -255,6 +257,8 @@ class RoutineComposerExerciseCard extends StatelessWidget {
   final String? routineNotesOwnerId;
   final RoutineNotesSessionIsCurrent? isRoutineNotesSessionCurrent;
   final ValueChanged<List<ExerciseNoteDraftSnapshot>>? onNoteDraftsChanged;
+  final List<ExerciseNoteDraftSnapshot> initialNoteDrafts;
+  final bool? notesEnabled;
   final RoutineNotesControllerRegistry? controllerRegistry;
 
   @override
@@ -332,8 +336,9 @@ class RoutineComposerExerciseCard extends StatelessWidget {
             repository: routineNotesRepository,
             ownerId: routineNotesOwnerId,
             isSessionCurrent: isRoutineNotesSessionCurrent,
-            enabled: enabled,
+            enabled: notesEnabled ?? enabled,
             draftKey: entry.id,
+            initialDrafts: initialNoteDrafts,
             onDraftsChanged: onNoteDraftsChanged,
             controllerRegistry: controllerRegistry,
             restControl: Padding(

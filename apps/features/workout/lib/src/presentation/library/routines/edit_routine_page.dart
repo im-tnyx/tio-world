@@ -87,6 +87,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   String? _notesBridgeOwnerId;
   RoutineNotesControllerRegistry? _notesRegistry;
   bool _notesCommitPending = false;
+  bool _notesExitBlocked = false;
   String? _notesMessage;
 
   @override
@@ -127,6 +128,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     _notesBridgeRepository = null;
     _notesBridgeOwnerId = null;
     _notesCommitPending = false;
+    _notesExitBlocked = false;
     _notesMessage = null;
     _editor
       ?..removeListener(_changed)
@@ -567,6 +569,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       if (mounted) {
         setState(() {
           _notesCommitPending = false;
+          _notesExitBlocked = false;
           _notesMessage = null;
         });
       }
@@ -577,6 +580,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       if (mounted) {
         setState(() {
           _notesCommitPending = true;
+          _notesExitBlocked = true;
           _notesMessage =
               'Routine was updated, but Notes persistence is unavailable.';
         });
@@ -587,6 +591,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (!mounted) return false;
     setState(() {
       _notesCommitPending = !result.isSuccess;
+      _notesExitBlocked = !result.isSuccess &&
+          (result.status == RoutineNotesSaveStatus.unknown ||
+              result.status == RoutineNotesSaveStatus.unavailable ||
+              result.status == RoutineNotesSaveStatus.unauthorized);
       _notesMessage = result.message;
     });
     return result.isSuccess;
@@ -607,13 +615,13 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     final status = _editor?.state.status;
     final saving = status == RoutineEditorStatus.saving;
     return PopScope(
-      canPop: !saving && !_notesCommitPending,
+      canPop: !saving && !_notesExitBlocked,
       child: RoutineComposerScreen(
         key: const ValueKey('routine-composer-screen'),
         mode: RoutineComposerMode.edit,
         pageKey: const ValueKey('edit-routine-page'),
         cancelKey: const ValueKey('edit-routine-cancel'),
-        cancelEnabled: !saving && !_notesCommitPending,
+        cancelEnabled: !saving && !_notesExitBlocked,
         cancel: () => Navigator.of(context).pop<bool>(false),
         submitKey:
             (status == RoutineEditorStatus.ready || _notesCommitPending) &&
@@ -699,7 +707,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           ),
         );
       case RoutineEditorStatus.saved:
-        return const _Message(message: 'Routine updated.');
+        return _notesCommitPending
+            ? _list(state)
+            : const _Message(message: 'Routine updated.');
       case RoutineEditorStatus.ready:
         return _list(state);
     }
@@ -867,6 +877,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       routineNotesOwnerId: widget.routineNotesOwnerId,
       isRoutineNotesSessionCurrent: widget.isRoutineNotesSessionCurrent,
       controllerRegistry: _notesRegistry,
+      notesEnabled: _canEdit || _notesCommitPending,
+      initialNoteDrafts: _inlineNoteDrafts[entry.id] ?? const [],
       onNoteDraftsChanged: (drafts) =>
           _captureInlineNoteDrafts(entry.id, drafts),
     );

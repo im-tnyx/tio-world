@@ -127,6 +127,29 @@ void main() {
     expect(repository.createCalls, 0);
   });
 
+  test('removed quota-rejected draft can be discarded before retry', () async {
+    final scope = RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise));
+    final repository = _FakeRoutineNotesRepository(
+      notes: List.generate(
+        routineNotesMaximumCount,
+        (index) => _existingNote(scope, index),
+      ),
+    );
+    final bridge = RoutineNotesSaveBridge(
+      repository: repository,
+      ownerId: _owner,
+      isSessionCurrent: () => true,
+      newUuid: () => _note,
+    );
+
+    final rejected = await bridge.save(drafts: [_draft()], routineId: null);
+    final discarded = await bridge.save(drafts: const [], routineId: null);
+
+    expect(rejected.status, RoutineNotesSaveStatus.quota);
+    expect(discarded.status, RoutineNotesSaveStatus.saved);
+    expect(repository.createCalls, 0);
+  });
+
   test('rejects blank and over-limit drafts before persistence', () async {
     final repository = _FakeRoutineNotesRepository();
     final bridge = RoutineNotesSaveBridge(

@@ -32,6 +32,7 @@ Future<void> _pump(
   _FakeRoutineNotesRepository repository, {
   RoutineId? routineId,
   Widget restControl = const SizedBox(key: ValueKey('rest-control')),
+  List<ExerciseNoteDraftSnapshot> initialDrafts = const [],
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -49,6 +50,7 @@ Future<void> _pump(
             ownerId: _owner,
             isSessionCurrent: () => true,
             enabled: true,
+            initialDrafts: initialDrafts,
           ),
         ),
       ),
@@ -265,6 +267,27 @@ void main() {
     expect(repository.createCommand, isNull);
     expect(tester.widget<TextField>(input).controller!.text,
         '  Keep elbows tucked  ');
+  });
+
+  testWidgets('captured drafts restore after the exercise card remounts',
+      (tester) async {
+    await _pump(
+      tester,
+      _FakeRoutineNotesRepository(),
+      initialDrafts: [
+        ExerciseNoteDraftSnapshot(
+          draftId: 'entry-1:0',
+          exerciseRef: ExerciseRef.catalog(_exercise),
+          type: RoutineNoteType.pinnedExercise,
+          body: 'Restore this draft',
+        ),
+      ],
+    );
+
+    final input = find.byKey(const ValueKey('exercise-note-input-$_exercise'));
+    expect(input, findsOneWidget);
+    expect(tester.widget<TextField>(input).controller!.text,
+        'Restore this draft');
   });
 
   testWidgets('right swipe opens type sheet and offers Routine type in Edit',

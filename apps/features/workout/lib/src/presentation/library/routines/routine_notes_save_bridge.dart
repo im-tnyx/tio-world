@@ -77,7 +77,16 @@ final class RoutineNotesSaveBridge {
       );
     }
 
-    final snapshots = drafts.where((draft) => draft.body.trim().isNotEmpty);
+    final snapshots = drafts
+        .where((draft) => draft.body.trim().isNotEmpty)
+        .toList(growable: false);
+    final activeDraftIds = snapshots.map((draft) => draft.draftId).toSet();
+    _pending.removeWhere(
+      (draftId, pending) =>
+          !activeDraftIds.contains(draftId) &&
+          !pending.confirmed &&
+          !pending.unknown,
+    );
     for (final draft in snapshots) {
       final scope = draft.type == RoutineNoteType.pinnedRoutine
           ? routineId == null
