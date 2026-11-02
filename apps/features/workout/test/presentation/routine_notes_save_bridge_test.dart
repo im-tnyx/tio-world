@@ -11,7 +11,8 @@ ExerciseNoteDraftSnapshot _draft({
   String draftId = 'entry-1:0',
   RoutineNoteType type = RoutineNoteType.pinnedExercise,
   String body = 'Keep shoulders down',
-}) => ExerciseNoteDraftSnapshot(
+}) =>
+    ExerciseNoteDraftSnapshot(
       draftId: draftId,
       exerciseRef: ExerciseRef.catalog(_exercise),
       type: type,
@@ -33,7 +34,8 @@ RoutineNote _savedNote(RoutineNoteCreate command) {
 }
 
 void main() {
-  test('uses canonical Exercise scope and stable command IDs on retry', () async {
+  test('uses canonical Exercise scope and stable command IDs on retry',
+      () async {
     final repository = _FakeRoutineNotesRepository(
       createErrors: [
         const RoutineNoteException(RoutineNoteFailureKind.unavailable),
@@ -100,7 +102,6 @@ void main() {
 
     repository.notes = [_savedNote(repository.commands.single)];
     final second = await bridge.save(drafts: [_draft()], routineId: null);
-
     expect(second.status, RoutineNotesSaveStatus.saved);
     expect(repository.createCalls, 1);
     expect(repository.readCalls, greaterThanOrEqualTo(3));
@@ -150,6 +151,59 @@ void main() {
     expect(repository.createCalls, 0);
   });
 
+  test('undispatched quota rejection permits a corrected draft retry',
+      () async {
+    final scope = RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise));
+    final repository = _FakeRoutineNotesRepository(
+      notes: List.generate(
+        routineNotesMaximumCount,
+        (index) => _existingNote(scope, index),
+      ),
+    );
+    final bridge = RoutineNotesSaveBridge(
+      repository: repository,
+      ownerId: _owner,
+      isSessionCurrent: () => true,
+      newUuid: () => _note,
+    );
+
+    final rejected = await bridge.save(
+      drafts: [_draft(body: 'Original draft')],
+      routineId: null,
+    );
+    repository.notes = repository.notes.sublist(1);
+    final retried = await bridge.save(
+      drafts: [_draft(body: 'Corrected draft')],
+      routineId: null,
+    );
+
+    expect(rejected.status, RoutineNotesSaveStatus.quota);
+    expect(retried.status, RoutineNotesSaveStatus.saved);
+    expect(repository.commands.single.body, 'Corrected draft');
+  });
+
+  test('confirmed draft cannot be edited into an unpersisted Note', () async {
+    final repository = _FakeRoutineNotesRepository();
+    final bridge = RoutineNotesSaveBridge(
+      repository: repository,
+      ownerId: _owner,
+      isSessionCurrent: () => true,
+      newUuid: () => _note,
+    );
+
+    expect(
+      (await bridge.save(drafts: [_draft()], routineId: null)).status,
+      RoutineNotesSaveStatus.saved,
+    );
+    final changed = await bridge.save(
+      drafts: [_draft(body: 'Changed after save')],
+      routineId: null,
+    );
+
+    expect(changed.status, RoutineNotesSaveStatus.invalid);
+    expect(repository.createCalls, 1);
+  });
+
   test('rejects blank and over-limit drafts before persistence', () async {
     final repository = _FakeRoutineNotesRepository();
     final bridge = RoutineNotesSaveBridge(
@@ -168,7 +222,8 @@ void main() {
       (await bridge.save(
         drafts: [_draft(body: 'x' * 501)],
         routineId: null,
-      )).status,
+      ))
+          .status,
       RoutineNotesSaveStatus.invalid,
     );
     expect(repository.createCalls, 0);

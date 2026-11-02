@@ -286,8 +286,8 @@ void main() {
 
     final input = find.byKey(const ValueKey('exercise-note-input-$_exercise'));
     expect(input, findsOneWidget);
-    expect(tester.widget<TextField>(input).controller!.text,
-        'Restore this draft');
+    expect(
+        tester.widget<TextField>(input).controller!.text, 'Restore this draft');
   });
 
   testWidgets('right swipe opens type sheet and offers Routine type in Edit',

@@ -161,7 +161,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   String? _notesBridgeOwnerId;
   RoutineNotesControllerRegistry? _notesRegistry;
   bool _notesCommitPending = false;
+  bool _notesSaving = false;
   bool _notesExitBlocked = false;
+  final Set<String> _confirmedNoteDraftIds = {};
   String? _notesMessage;
 
   @override
@@ -198,7 +200,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _notesRegistry?.dispose();
       _notesRegistry = null;
       _notesCommitPending = false;
+      _notesSaving = false;
       _notesExitBlocked = false;
+      _confirmedNoteDraftIds.clear();
       _notesMessage = null;
       _bind();
     }
@@ -212,7 +216,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     _notesBridgeRepository = null;
     _notesBridgeOwnerId = null;
     _notesCommitPending = false;
+    _notesSaving = false;
     _notesExitBlocked = false;
+    _confirmedNoteDraftIds.clear();
     _notesMessage = null;
     _name = TextEditingController(text: widget.initialName);
     _draft = widget.program == null
@@ -566,6 +572,11 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     String entryId,
     List<ExerciseNoteDraftSnapshot> drafts,
   ) {
+    final activeIds = drafts.map((draft) => draft.draftId).toSet();
+    _confirmedNoteDraftIds.removeWhere(
+      (draftId) =>
+          draftId.startsWith('$entryId:') && !activeIds.contains(draftId),
+    );
     if (drafts.isEmpty) {
       _inlineNoteDrafts.remove(entryId);
     } else {
@@ -629,9 +640,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       }
       return false;
     }
+    if (mounted) setState(() => _notesSaving = true);
     final result = await bridge.save(drafts: drafts, routineId: routineId);
     if (!mounted) return false;
     setState(() {
+      _notesSaving = false;
+      _confirmedNoteDraftIds.addAll(result.confirmedDraftIds);
       _notesCommitPending = !result.isSuccess;
       _notesExitBlocked = !result.isSuccess &&
           (result.status == RoutineNotesSaveStatus.unknown ||
@@ -704,9 +718,10 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         _draft.state.canSave &&
         _invalidSetIds.isEmpty &&
         _rangeCanSave;
-    final canSubmit = canSave || _notesCommitPending;
+    final canSubmit = !_notesSaving && (canSave || _notesCommitPending);
     return PopScope(
       canPop: !locked &&
+          !_notesSaving &&
           status != RoutineCreateStatus.outcomeUnknown &&
           !_notesExitBlocked,
       onPopInvokedWithResult: (didPop, _) {
@@ -719,7 +734,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         mode: RoutineComposerMode.create,
         pageKey: const ValueKey('create-routine-page'),
         cancelKey: const ValueKey('create-routine-cancel'),
-        cancelEnabled: !locked && !_notesExitBlocked,
+        cancelEnabled: !locked && !_notesSaving && !_notesExitBlocked,
         cancel: status == RoutineCreateStatus.outcomeUnknown
             ? _confirmUnknownExit
             : () => Navigator.of(context).pop<bool>(false),
@@ -927,8 +942,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       routineNotesOwnerId: widget.routineNotesOwnerId,
       isRoutineNotesSessionCurrent: widget.isRoutineNotesSessionCurrent,
       controllerRegistry: _notesRegistry,
-      notesEnabled: _enabled || _notesCommitPending,
+      notesEnabled: (_enabled || _notesCommitPending) && !_notesSaving,
       initialNoteDrafts: _inlineNoteDrafts[entry.id] ?? const [],
+      readOnlyNoteDraftIds: _confirmedNoteDraftIds,
       onNoteDraftsChanged: (drafts) =>
           _captureInlineNoteDrafts(entry.id, drafts),
       addSet: () => _addSet(entry),

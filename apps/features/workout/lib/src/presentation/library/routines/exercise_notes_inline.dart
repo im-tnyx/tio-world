@@ -56,6 +56,7 @@ final class ExerciseNotesInline extends StatefulWidget {
     required this.enabled,
     this.draftKey,
     this.initialDrafts = const [],
+    this.readOnlyDraftIds = const {},
     this.onDraftsChanged,
     this.controllerRegistry,
     super.key,
@@ -70,6 +71,7 @@ final class ExerciseNotesInline extends StatefulWidget {
   final bool enabled;
   final String? draftKey;
   final List<ExerciseNoteDraftSnapshot> initialDrafts;
+  final Set<String> readOnlyDraftIds;
   final ValueChanged<List<ExerciseNoteDraftSnapshot>>? onDraftsChanged;
   final RoutineNotesControllerRegistry? controllerRegistry;
 
@@ -242,7 +244,8 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     final savedCount = controller?.state.notes.length ?? 0;
     if (savedCount + _drafts.length >= _maxInlineNotes) return;
     var id = '$_draftSequence';
-    while (_drafts.any((draft) => draft.id == id)) {
+    while (_drafts
+        .any((draft) => _publishedDraftId(draft.id) == _publishedDraftId(id))) {
       _draftSequence++;
       id = '$_draftSequence';
     }
@@ -371,9 +374,15 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
                 controller: _drafts[index].controller,
                 focusNode: _drafts[index].focusNode,
                 enabled: canEditDraft,
+                readOnly: widget.readOnlyDraftIds
+                    .contains(_publishedDraftId(_drafts[index].id)),
                 noteType: _drafts[index].type,
-                onTypeChange:
-                    canEditDraft ? () => _changeDraftType(index) : null,
+                onTypeChange: canEditDraft &&
+                        !widget.readOnlyDraftIds.contains(
+                          _publishedDraftId(_drafts[index].id),
+                        )
+                    ? () => _changeDraftType(index)
+                    : null,
               ),
             ),
           ],
@@ -436,6 +445,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.enabled,
+    required this.readOnly,
     required this.noteType,
     required this.onTypeChange,
   });
@@ -446,6 +456,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool enabled;
+  final bool readOnly;
   final RoutineNoteType noteType;
   final VoidCallback? onTypeChange;
 
@@ -485,7 +496,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
                 key: fieldKey,
                 controller: controller,
                 focusNode: focusNode,
-                enabled: enabled,
+                enabled: enabled && !readOnly,
                 keyboardType: TextInputType.multiline,
                 maxLines: 4,
                 minLines: 1,

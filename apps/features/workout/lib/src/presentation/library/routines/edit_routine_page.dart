@@ -87,7 +87,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   String? _notesBridgeOwnerId;
   RoutineNotesControllerRegistry? _notesRegistry;
   bool _notesCommitPending = false;
+  bool _notesSaving = false;
   bool _notesExitBlocked = false;
+  final Set<String> _confirmedNoteDraftIds = {};
   String? _notesMessage;
 
   @override
@@ -128,7 +130,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     _notesBridgeRepository = null;
     _notesBridgeOwnerId = null;
     _notesCommitPending = false;
+    _notesSaving = false;
     _notesExitBlocked = false;
+    _confirmedNoteDraftIds.clear();
     _notesMessage = null;
     _editor
       ?..removeListener(_changed)
@@ -459,6 +463,12 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     _invalidSetIds.clear();
     _blankSetIds.clear();
     _openSetId = null;
+    _inlineNoteDrafts.clear();
+    _confirmedNoteDraftIds.clear();
+    _notesCommitPending = false;
+    _notesSaving = false;
+    _notesExitBlocked = false;
+    _notesMessage = null;
     _editor?.load();
   }
 
@@ -522,6 +532,11 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     String entryId,
     List<ExerciseNoteDraftSnapshot> drafts,
   ) {
+    final activeIds = drafts.map((draft) => draft.draftId).toSet();
+    _confirmedNoteDraftIds.removeWhere(
+      (draftId) =>
+          draftId.startsWith('$entryId:') && !activeIds.contains(draftId),
+    );
     if (drafts.isEmpty) {
       _inlineNoteDrafts.remove(entryId);
     } else {
@@ -587,9 +602,12 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       }
       return false;
     }
+    if (mounted) setState(() => _notesSaving = true);
     final result = await bridge.save(drafts: drafts, routineId: routineId);
     if (!mounted) return false;
     setState(() {
+      _notesSaving = false;
+      _confirmedNoteDraftIds.addAll(result.confirmedDraftIds);
       _notesCommitPending = !result.isSuccess;
       _notesExitBlocked = !result.isSuccess &&
           (result.status == RoutineNotesSaveStatus.unknown ||
@@ -615,20 +633,21 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     final status = _editor?.state.status;
     final saving = status == RoutineEditorStatus.saving;
     return PopScope(
-      canPop: !saving && !_notesExitBlocked,
+      canPop: !saving && !_notesSaving && !_notesExitBlocked,
       child: RoutineComposerScreen(
         key: const ValueKey('routine-composer-screen'),
         mode: RoutineComposerMode.edit,
         pageKey: const ValueKey('edit-routine-page'),
         cancelKey: const ValueKey('edit-routine-cancel'),
-        cancelEnabled: !saving && !_notesExitBlocked,
+        cancelEnabled: !saving && !_notesSaving && !_notesExitBlocked,
         cancel: () => Navigator.of(context).pop<bool>(false),
-        submitKey:
-            (status == RoutineEditorStatus.ready || _notesCommitPending) &&
-                    widget.weightUnit != null
-                ? const ValueKey('edit-routine-update')
-                : null,
-        onSubmit: _canUpdate || _notesCommitPending ? _save : null,
+        submitKey: !_notesSaving &&
+                (status == RoutineEditorStatus.ready || _notesCommitPending) &&
+                widget.weightUnit != null
+            ? const ValueKey('edit-routine-update')
+            : null,
+        onSubmit:
+            !_notesSaving && (_canUpdate || _notesCommitPending) ? _save : null,
         content: _body(),
       ),
     );
@@ -877,8 +896,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       routineNotesOwnerId: widget.routineNotesOwnerId,
       isRoutineNotesSessionCurrent: widget.isRoutineNotesSessionCurrent,
       controllerRegistry: _notesRegistry,
-      notesEnabled: _canEdit || _notesCommitPending,
+      notesEnabled: (_canEdit || _notesCommitPending) && !_notesSaving,
       initialNoteDrafts: _inlineNoteDrafts[entry.id] ?? const [],
+      readOnlyNoteDraftIds: _confirmedNoteDraftIds,
       onNoteDraftsChanged: (drafts) =>
           _captureInlineNoteDrafts(entry.id, drafts),
     );

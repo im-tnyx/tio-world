@@ -32,10 +32,15 @@ enum RoutineNotesSaveStatus {
 }
 
 final class RoutineNotesSaveResult {
-  const RoutineNotesSaveResult(this.status, [this.message]);
+  const RoutineNotesSaveResult(
+    this.status, [
+    this.message,
+    this.confirmedDraftIds = const [],
+  ]);
 
   final RoutineNotesSaveStatus status;
   final String? message;
+  final List<String> confirmedDraftIds;
 
   bool get isSuccess => status == RoutineNotesSaveStatus.saved;
 }
@@ -80,6 +85,7 @@ final class RoutineNotesSaveBridge {
     final snapshots = drafts
         .where((draft) => draft.body.trim().isNotEmpty)
         .toList(growable: false);
+    final confirmedDraftIds = <String>{};
     final activeDraftIds = snapshots.map((draft) => draft.draftId).toSet();
     _pending.removeWhere(
       (draftId, pending) =>
@@ -116,11 +122,26 @@ final class RoutineNotesSaveBridge {
             mutationId: _newUuid(),
           ),
         );
-      } else if (!current.confirmed &&
+      } else if (current.confirmed &&
           (current.command.scope != scope || current.command.body != body)) {
+        return const RoutineNotesSaveResult(
+          RoutineNotesSaveStatus.invalid,
+          'A saved Note cannot be edited from this draft.',
+        );
+      } else if (current.confirmed) {
+        confirmedDraftIds.add(draft.draftId);
+      } else if (current.dispatched && !current.unknown) {
         return const RoutineNotesSaveResult(
           RoutineNotesSaveStatus.unknown,
           'A previous Note result is unconfirmed. Refresh before editing it again.',
+        );
+      } else if (current.command.scope != scope ||
+          current.command.body != body) {
+        current.command = RoutineNoteCreate(
+          id: current.command.id,
+          scope: scope,
+          body: body,
+          mutationId: current.command.mutationId,
         );
       }
     }
@@ -130,64 +151,91 @@ final class RoutineNotesSaveBridge {
 
     for (final pending in _pending.values) {
       if (pending.confirmed) continue;
+      final draftId = _pending.entries
+          .firstWhere((entry) => identical(entry.value, pending))
+          .key;
       if (!_current()) {
-        return const RoutineNotesSaveResult(
+        pending.unknown = true;
+        return RoutineNotesSaveResult(
           RoutineNotesSaveStatus.unauthorized,
           'Session changed. Routine was saved, but Notes need verification.',
+          confirmedDraftIds.toList(growable: false),
         );
       }
       if (pending.unknown) {
         final confirmed = await _reconcile(pending.command);
         if (!confirmed) {
-          return const RoutineNotesSaveResult(
+          return RoutineNotesSaveResult(
             RoutineNotesSaveStatus.unknown,
             'Note save could not be confirmed. Press Save/Update again to refresh.',
+            confirmedDraftIds.toList(growable: false),
           );
         }
         pending.confirmed = true;
+        confirmedDraftIds.add(draftId);
         continue;
       }
       try {
+        pending.dispatched = true;
         final created = await _repository.create(pending.command);
         if (!_current()) {
-          return const RoutineNotesSaveResult(
+          pending.unknown = true;
+          return RoutineNotesSaveResult(
             RoutineNotesSaveStatus.unauthorized,
             'Session changed. Routine was saved, but Notes need verification.',
+            confirmedDraftIds.toList(growable: false),
           );
         }
         if (created.userId != _ownerId ||
             created.id != pending.command.id ||
             created.scope != pending.command.scope ||
             created.body != pending.command.body) {
-          return const RoutineNotesSaveResult(
+          pending.unknown = true;
+          return RoutineNotesSaveResult(
             RoutineNotesSaveStatus.unknown,
             'Note save returned unverified data. Press Save/Update again to refresh.',
+            confirmedDraftIds.toList(growable: false),
           );
         }
         pending.confirmed = true;
+        confirmedDraftIds.add(draftId);
       } on RoutineNoteOutcomeUnknown {
         pending.unknown = true;
         if (await _reconcile(pending.command)) {
           pending.confirmed = true;
+          confirmedDraftIds.add(draftId);
           continue;
         }
-        return const RoutineNotesSaveResult(
+        return RoutineNotesSaveResult(
           RoutineNotesSaveStatus.unknown,
           'Note save could not be confirmed. Press Save/Update again to refresh.',
+          confirmedDraftIds.toList(growable: false),
         );
       } on RoutineNoteException catch (error) {
+        // The repository returned a definite failure, so this command was
+        // not committed. Keep its identity and make it eligible for a later
+        // retry; unknown outcomes are handled by the separate reconciliation
+        // path above.
+        pending.dispatched = false;
         return RoutineNotesSaveResult(
           _status(error.kind),
           _message(error.kind),
+          confirmedDraftIds.toList(growable: false),
         );
       } catch (_) {
-        return const RoutineNotesSaveResult(
+        pending.unknown = true;
+        return RoutineNotesSaveResult(
           RoutineNotesSaveStatus.unavailable,
           'Routine was saved, but Notes could not be saved. Press Save/Update to retry.',
+          confirmedDraftIds.toList(growable: false),
         );
       }
     }
-    return const RoutineNotesSaveResult(RoutineNotesSaveStatus.saved);
+    return RoutineNotesSaveResult(
+      RoutineNotesSaveStatus.saved,
+      null,
+      confirmedDraftIds.toList(growable: false),
+    );
   }
 
   Future<RoutineNotesSaveResult?> _checkQuota() async {
@@ -290,7 +338,8 @@ final class RoutineNotesSaveBridge {
 final class _PendingInlineNote {
   _PendingInlineNote({required this.command});
 
-  final RoutineNoteCreate command;
+  RoutineNoteCreate command;
+  var dispatched = false;
   var unknown = false;
   var confirmed = false;
 }
