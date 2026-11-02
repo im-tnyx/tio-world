@@ -60,10 +60,14 @@ final class ExerciseNotesInline extends StatefulWidget {
   State<ExerciseNotesInline> createState() => _ExerciseNotesInlineState();
 }
 
-final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
+final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
+    with AutomaticKeepAliveClientMixin<ExerciseNotesInline> {
   RoutineNotesController? _controller;
   final List<_ExerciseNoteDraft> _drafts = [];
   late RoutineNoteScope _scope;
+
+  @override
+  bool get wantKeepAlive => true;
 
   bool get _available =>
       widget.repository != null &&
@@ -88,11 +92,17 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     if (oldWidget.exerciseRef != widget.exerciseRef ||
         !identical(oldWidget.repository, widget.repository) ||
         oldWidget.ownerId != widget.ownerId ||
-        oldWidget.routineId != widget.routineId ||
-        oldWidget.isSessionCurrent != widget.isSessionCurrent) {
+        (oldWidget.isSessionCurrent == null) !=
+            (widget.isSessionCurrent == null)) {
       _disposeDrafts();
       _scope = RoutineNoteScope.exercise(widget.exerciseRef);
       _bind();
+    } else if (!identical(
+        oldWidget.isSessionCurrent, widget.isSessionCurrent)) {
+      final callback = widget.isSessionCurrent;
+      if (callback != null) {
+        _controller?.updateSessionIsCurrent(callback);
+      }
     }
   }
 
@@ -200,17 +210,27 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
         !isCurrent()) {
       return false;
     }
+    final isRoutine = note.type == RoutineNoteType.pinnedRoutine;
     final confirmed = await showTioConfirmationBottomSheet(
       context: context,
-      title: 'Delete Exercise Note?',
-      message:
-          'This note will be removed from this Exercise everywhere in your Routines.',
+      title: isRoutine ? 'Delete Routine Note?' : 'Delete Exercise Note?',
+      message: isRoutine
+          ? 'This note will be removed from this Routine.'
+          : 'This note will be removed from this Exercise everywhere in your Routines.',
       confirmLabel: 'Delete Note',
       cancelLabel: 'Cancel',
       intent: TioConfirmationIntent.destructive,
     );
     if (confirmed != true || !mounted || !isCurrent()) return false;
     return controller.delete(note);
+  }
+
+  Future<void> _refresh() async {
+    final controller = _controller;
+    final isCurrent = widget.isSessionCurrent;
+    if (controller == null || controller.isBusy || isCurrent == null) return;
+    if (!isCurrent()) return;
+    await controller.load();
   }
 
   @override
@@ -231,6 +251,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final controller = _controller;
     final state = controller?.state;
     final notes = state?.notes ?? const <RoutineNote>[];
@@ -248,7 +269,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            widget.restControl,
+            Flexible(child: widget.restControl),
             const SizedBox(width: TioSpacing.sm),
             _ExerciseNoteAction(
               key: ValueKey('exercise-note-action-${widget.exerciseRef.value}'),
@@ -296,12 +317,16 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
               ),
             ),
           ],
-          if (actionNotice != null) _ExerciseNotesNotice(text: actionNotice),
-          if (notes.isEmpty && !canCreate)
+          if (actionNotice != null)
+            _ExerciseNotesNotice(
+              text: actionNotice,
+              onRefresh: controller == null ? null : _refresh,
+            ),
+          if (state?.isReady == true && notes.length >= _maxInlineNotes)
             Padding(
               padding: const EdgeInsets.only(top: TioSpacing.xs),
               child: Text(
-                'Maximum 5 active Exercise Notes reached.',
+                'Maximum $_maxInlineNotes active Notes reached.',
                 style: TextStyle(color: context.tioColors.textSecondary),
               ),
             ),
@@ -402,7 +427,6 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
                   focusedBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   filled: false,
-                  fillColor: Colors.transparent,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   counterText: '',
@@ -476,15 +500,30 @@ final class _ExerciseNoteAction extends StatelessWidget {
 }
 
 final class _ExerciseNotesNotice extends StatelessWidget {
-  const _ExerciseNotesNotice({required this.text});
+  const _ExerciseNotesNotice({required this.text, this.onRefresh});
 
   final String text;
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(top: TioSpacing.xs),
-        child: Text(text,
-            style: TextStyle(color: context.tioColors.textSecondary)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(text,
+                style: TextStyle(color: context.tioColors.textSecondary)),
+            if (onRefresh != null)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton(
+                  key: const ValueKey('exercise-notes-refresh'),
+                  onPressed: () => onRefresh!(),
+                  child: const Text('Refresh'),
+                ),
+              ),
+          ],
+        ),
       );
 }
 
@@ -540,7 +579,7 @@ final class _ExerciseNoteCardContent extends StatelessWidget {
               key: ValueKey('exercise-note-type-${note.id}'),
               tooltip: 'Change note type',
               onPressed: enabled ? onTypeChange : null,
-              icon: const Icon(Icons.push_pin_outlined),
+              icon: Icon(_noteTypeIcon(note.type)),
             ),
             const SizedBox(width: TioSpacing.sm),
             Expanded(

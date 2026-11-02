@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `69aee718` (`fix(workout): preserve detail constructor compatibility`)
-**Observed working-tree state:** Clean for authorized files; generated Android registrant has no content diff and is excluded
-**Observed uncommitted/dirty files:** Flutter test tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
+**HEAD SHA:** `eeca2995d3079977a0c934e776c8953c1d8bd111`
+**Observed working-tree state:** Authorized local fixes are uncommitted; generated Android registrant remains unrelated and excluded
+**Observed uncommitted/dirty files:** `apps/features/workout/lib/src/presentation/library/routines/exercise_notes_inline.dart`, `routine_composer_screen.dart`, `routine_notes_controller.dart`, and `test/presentation/routine_notes_controller_test.dart`; Flutter tooling also reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer now mounts the inline Exercise Notes surface; the existing Routine Notes contract is generalized by injected scope without a new data source
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed at SHA:** Local Flutter `3.44.6` focused Exercise Notes/Routine Detail suites passed (18 Notes tests, 42 Workout Routine Detail tests, and 89 app route tests) through the elevated SDK-root path; `flutter analyze --no-pub` passed for both `apps/features/workout` and `apps/app`; Dart formatting completed for focused files; `git -c core.fsmonitor=false diff --check` passed. Initial PR CI findings for owner-ID compatibility and Core visual duration were fixed; exact-head CI for the latest compatibility commit remains queued/pending.
-**Validation remaining:** Routine Create/Edit save integration for committing the temporary draft, exact-head CI for `69aee718`, independent review, and physical Android/iOS QA
-**Current blocker:** The existing Routine aggregate save contract has no Notes payload. This slice intentionally does not perform a separate Notes write or invent a second aggregate contract; a bounded parent-save bridge is required before the owner’s “Routine save commits Note” behavior is complete. Hosted Notes objects are not deployed and physical device QA has not been performed.
-**Open review finding IDs:** None
-**Next exact action:** Verify CI on exact PR HEAD `69aee718`, then address independent review findings without merging.
+**Validation completed locally:** Elevated Flutter SDK validation passed for the Exercise Notes/controller/composer tests, the 320dp dark Edit regression, the full `edit_routine_page_test.dart` suite, `apps/features/workout` analyze, `apps/app` analyze, and the Core visual-ownership regression. Dart formatting and `git diff --check` were also run.
+**Validation remaining:** Routine Create/Edit save integration for committing temporary drafts, exact-head CI after publication of these local fixes, independent review, and physical Android/iOS QA
+**Current blocker:** The existing Routine aggregate save contracts have no Notes payload. This slice intentionally does not perform a hidden secondary Notes write or invent a second aggregate contract; a bounded parent-save bridge is required before the owner’s “Routine save commits Note” behavior is complete. Hosted Notes objects are not deployed and physical device QA has not been performed.
+**Open review finding IDs:** Local fixes address the unknown-outcome refresh affordance, session callback identity, transfer-failure state preservation, scope-aware delete copy, ready-state quota warning, and compact-width overflow. Duplicate canonical Exercise controller sharing and the parent-save bridge remain open because they require an explicit parent composition seam.
+**Next exact action:** Keep PR #725 unmerged; publish only after the focused diff is reviewed, then verify CI on the exact new PR HEAD and request independent review.
 
 ## 1. Discovery
 
@@ -110,6 +110,7 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 - [x] Preserve the existing Rest/Set/Add Set geometry and behavior in the shared composer.
 - [x] Add focused tests and run local validation; Flutter tests require elevated SDK-root access on this machine, but pass there.
 - [x] Resolve the PR CI findings without backend/schema changes: governed motion token and invalid-owner fail-closed compatibility.
+- [x] Resolve the current local review/CI regressions without backend/schema changes: unknown-save refresh, callback-identity preservation, transfer-failure note preservation, scope-aware deletion copy, ready-state quota messaging, and compact-width action-row overflow.
 - [x] Remove the Notes-specific `Try again` recovery action from Routine Detail; a failed Notes read is now silent because Notes follow the surrounding Routine save contract.
 - [x] Remove the separate Routine Notes section and its Detail-route repository/session wiring; Detail now remains exercise-only.
 - [x] Retain the former optional Detail Notes constructor inputs as compatibility-only fields so a stale running caller cannot crash after the UI removal; they do not mount or fetch Notes.
@@ -120,25 +121,24 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 ### Validation Run
 
 ```text
-PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/presentation/exercise_notes_inline_test.dart test/presentation/routine_notes_controller_test.dart test/presentation/routine_notes_section_test.dart --reporter compact` — all tests passed
-PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/presentation/routine_composer_screen_test.dart test/presentation/create_routine_page_test.dart test/presentation/edit_routine_page_test.dart --reporter compact` — all tests passed
-PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/app/workout_exercises_route_test.dart --reporter compact` in `apps/app` — 89 tests passed
-PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/theme/final_enforcement_visual_ownership_test.dart --reporter compact` in `apps/core`
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test --no-pub test/presentation/exercise_notes_inline_test.dart test/presentation/routine_notes_controller_test.dart test/presentation/routine_composer_screen_test.dart --reporter compact` in `apps/features/workout`
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test --no-pub test/presentation/edit_routine_page_test.dart --plain-name "320dp dark Edit table retains Previous and range inputs" --reporter expanded` in `apps/features/workout`
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test --no-pub test/presentation/edit_routine_page_test.dart --reporter compact` in `apps/features/workout`
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub` in `apps/features/workout`
-PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/presentation/routine_notes_section_test.dart test/presentation/exercise_notes_inline_test.dart --reporter compact` in `apps/features/workout` — 18 tests passed after removing the Routine Detail Notes retry action
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub` in `apps/app`
-PASS: Dart formatting check on 9 changed Dart files — `0 changed`
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test --no-pub test/theme/final_enforcement_visual_ownership_test.dart --reporter compact` in `apps/core`
+PASS: `G:\dev\flutter-sdk\bin\dart.bat format apps/features/workout/lib/src/presentation/library/routines/exercise_notes_inline.dart apps/features/workout/lib/src/presentation/library/routines/routine_notes_controller.dart apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart` — formatting completed
 PASS: `git -c core.fsmonitor=false diff --check`
-CI initial PR HEAD `3702fb0a`: analysis, docs hygiene and attribution passed; app-workout failed on existing route compatibility after the Notes injection (`ownerId: test-user`), and core failed the visual-ownership contract on the new inline focus duration. Both findings are fixed locally. Exact-head CI for `fd390b40` is pending.
-NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compact-layout QA
+FAIL/OPEN: Existing exact-head PR run `41396186498` at `eeca2995d3079977a0c934e776c8953c1d8bd111` failed `Analyze and test`, `Test Flutter (core-wear)`, and `Test Flutter (app-workout)`; local reruns now pass after the fixes, but CI has not rerun on this unpushed working tree.
+NOT RUN: parent Routine-save/Notes integration, physical Android/iOS keyboard and gesture QA, hosted Notes deployment, and independent review
 ```
 
 ### Review Provenance
 
 **Review source / link:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`)
 **Reviewer / relation to implementer:** Independent reviewer requested: `im-tio`
-**Diff or commit SHA actually reviewed:** PR HEAD `a383416905fbd58cf5f99d735cc851519a2c57c7`; independent review pending
-**Review result and finding IDs/dispositions:** No review findings yet; PR remains `REVIEW_REQUIRED`
+**Diff or commit SHA actually reviewed:** PR HEAD `eeca2995d3079977a0c934e776c8953c1d8bd111`; independent review remains pending
+**Review result and finding dispositions:** Review comments were reconciled against current source. The standalone Routine Detail Notes-section comment is superseded by the owner correction and remains intentionally removed. The valid local findings listed in Active Handoff are fixed in the unpushed working tree; duplicate canonical Exercise controller sharing and the parent-save bridge remain open.
 **Independent review?** Requested / pending
 **Limitations and unmet required gates:** Hosted Notes deployment remains intentionally blocked; physical Android/iOS QA, exact-head CI and independent review remain open.
 
@@ -188,7 +188,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 1. **Create/Edit Routine:** The Exercise row shows only `Rest` and `Note` in one aligned action row. The note field is hidden initially.
 2. **Tap `Note`:** A compact, borderless, multiline draft field appears inline below the actions and above Sets. The keyboard opens and the draft remains local while the widget rebuilds.
 3. **Draft actions:** There are no inline `Save Note`, `Cancel`, `Retry`, or Notes-specific error controls. The pin icon opens the approved type sheet; tapping `Note` again adds another temporary draft, capped at four UI slots.
-4. **Routine save:** Notes are intended to commit together with the surrounding Routine save. The current aggregate Routine save command still has no Notes payload, so that parent-save bridge remains pending; this slice does not autosave or write on every keystroke.
+4. **Routine save:** Notes are intended to commit together with the surrounding Routine save. The current aggregate Routine save command still has no Notes payload, so the parent-save bridge remains an explicit blocker; this slice does not autosave, write on every keystroke, or claim Notes saved when only the Routine save is confirmed.
 5. **Routine Detail:** No separate `Routine Notes` heading, section, repository read, or retry action is mounted. The Detail constructor keeps deprecated optional Notes inputs only to avoid runtime constructor incompatibility with stale callers; they are ignored.
 6. **Scope and safety:** Existing Exercise Notes use canonical `ExerciseRef`, owner/session guards, existing quota/length contracts, and existing swipe/type/delete behavior where the saved-note path is available. No Supabase schema, migration, grant, RLS, or hosted configuration changed.
 
@@ -198,4 +198,4 @@ Hosted Notes migrations are not applied; this does not authorize production acti
 
 ### Final Status
 
-`REVIEW`
+`PARTIAL`

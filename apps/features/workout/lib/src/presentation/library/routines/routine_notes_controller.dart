@@ -79,7 +79,7 @@ final class RoutineNotesController extends ChangeNotifier {
   final RoutineNoteScope _scope;
   final RoutineNotesRepository _repository;
   final String _ownerId;
-  final RoutineNotesSessionIsCurrent _isSessionCurrent;
+  RoutineNotesSessionIsCurrent _isSessionCurrent;
   final String Function() _newUuid;
 
   RoutineNotesState _state = const RoutineNotesState.loading();
@@ -363,6 +363,13 @@ final class RoutineNotesController extends ChangeNotifier {
   }
 
   bool get isBusy => _busy;
+
+  /// Provider rebuilds may recreate the callback closure without changing the
+  /// authenticated owner or canonical Note scope. Keep the live guard current
+  /// without discarding the controller and its draft lifecycle.
+  void updateSessionIsCurrent(RoutineNotesSessionIsCurrent callback) {
+    _isSessionCurrent = callback;
+  }
   bool get canCreate =>
       !_busy &&
       _pendingCreate == null &&
@@ -414,7 +421,14 @@ final class RoutineNotesController extends ChangeNotifier {
   void _fail(RoutineNoteFailureKind failure) {
     if (_disposed) return;
     _version++;
-    _emit(RoutineNotesState.failed(_safeFailure(failure)));
+    if (_state.isReady) {
+      _emit(_ready(
+        _state.notes,
+        failure: _safeFailure(failure),
+      ));
+    } else {
+      _emit(RoutineNotesState.failed(_safeFailure(failure)));
+    }
   }
 
   void _finishBusy() {

@@ -138,6 +138,8 @@ void main() {
     );
     expect(repository.notes.single.scope,
         RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise)));
+    expect(controller.state.status, RoutineNotesStatus.ready);
+    expect(controller.state.notes.single.id, _note1);
     expect(controller.state.failure, RoutineNoteFailureKind.quotaExceeded);
   });
 

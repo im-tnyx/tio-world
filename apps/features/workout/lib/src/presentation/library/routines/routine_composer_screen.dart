@@ -359,37 +359,41 @@ class RoutineComposerExerciseCard extends StatelessWidget {
                               color: colors.textSecondary,
                             ),
                             const SizedBox(width: TioSpacing.xs),
-                            Text.rich(
-                              TextSpan(
-                                style: TextStyle(
-                                  fontSize: TioFontSize.size13,
-                                  fontWeight: TioFontWeight.w600,
-                                  color: colors.textPrimary,
-                                ),
-                                children: [
-                                  TextSpan(
-                                    text: restPreset.normalRestSeconds != null
-                                        ? 'Rest: ${RoutineRestTimerFormatter.formatSeconds(restPreset.normalRestSeconds!)}'
-                                        : restPreset.warmUpRestSeconds != null
-                                            ? 'Rest: '
-                                            : 'Rest: OFF',
+                            Flexible(
+                              child: Text.rich(
+                                TextSpan(
+                                  style: TextStyle(
+                                    fontSize: TioFontSize.size13,
+                                    fontWeight: TioFontWeight.w600,
+                                    color: colors.textPrimary,
                                   ),
-                                  if (restPreset.warmUpRestSeconds != null) ...[
-                                    if (restPreset.normalRestSeconds != null)
-                                      const TextSpan(text: ' '),
+                                  children: [
                                     TextSpan(
-                                      text:
-                                          '(${RoutineRestTimerFormatter.formatSeconds(restPreset.warmUpRestSeconds!)})',
-                                      style: TextStyle(
-                                        color: entry.sets.any((s) =>
-                                                s.prescription.setType ==
-                                                RoutineSetType.warmUp)
-                                            ? colors.warning
-                                            : colors.textMuted,
-                                      ),
+                                      text: restPreset.normalRestSeconds != null
+                                          ? 'Rest: ${RoutineRestTimerFormatter.formatSeconds(restPreset.normalRestSeconds!)}'
+                                          : restPreset.warmUpRestSeconds != null
+                                              ? 'Rest: '
+                                              : 'Rest: OFF',
                                     ),
+                                    if (restPreset.warmUpRestSeconds != null) ...[
+                                      if (restPreset.normalRestSeconds != null)
+                                        const TextSpan(text: ' '),
+                                      TextSpan(
+                                        text:
+                                            '(${RoutineRestTimerFormatter.formatSeconds(restPreset.warmUpRestSeconds!)})',
+                                        style: TextStyle(
+                                          color: entry.sets.any((s) =>
+                                                  s.prescription.setType ==
+                                                  RoutineSetType.warmUp)
+                                              ? colors.warning
+                                              : colors.textMuted,
+                                        ),
+                                      ),
+                                    ],
                                   ],
-                                ],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
