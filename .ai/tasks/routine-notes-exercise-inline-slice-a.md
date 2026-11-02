@@ -21,14 +21,14 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `bc54d4cf9f2f9b47cb8944e99f11bf4a72aa4f5d`
+**HEAD SHA:** `a383416905fbd58cf5f99d735cc851519a2c57c7`
 **Observed working-tree state:** Clean for authorized files; generated Android registrant has no content diff and is excluded
 **Observed uncommitted/dirty files:** Flutter test tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer now mounts the inline Exercise Notes surface; the existing Routine Notes contract is generalized by injected scope without a new data source
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed at SHA:** Local Flutter `3.44.6` initialization through the elevated SDK-root path; focused Notes/controller/Routine and shared composer/Create/Edit suites; app `workout_exercises_route_test.dart` (89 tests); Core visual-ownership test; `flutter analyze --no-pub` for `apps/features/workout` and `apps/app`; read-only Dart formatting check; `git -c core.fsmonitor=false diff --check`; Note-right-of-Rest compact layout test; hidden-until-Note-tap visibility test; no-Retry UI assertion; exact Rest-card geometry and same-row top-alignment assertions. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; PR #725 exact-head CI for `c42e3604` is pending after push.
-**Validation remaining:** Exact-head CI for `bc54d4cf`, independent review, and physical Android/iOS QA
+**Validation completed at SHA:** Local Flutter `3.44.6` initialization through the elevated SDK-root path; focused Notes/controller/Routine and shared composer/Create/Edit suites; app `workout_exercises_route_test.dart` (89 tests); Core visual-ownership test; `flutter analyze --no-pub` for `apps/features/workout` and `apps/app`; read-only Dart formatting check; `git -c core.fsmonitor=false diff --check`; Note-right-of-Rest compact layout test; hidden-until-Note-tap visibility test; no-Retry UI assertion; exact Rest-card geometry and same-row top-alignment assertions; debug-only preview test confirms field/text UI without repository write. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; PR #725 exact-head CI for `a3834169` is pending after push.
+**Validation remaining:** Exact-head CI for `a3834169`, independent review, and physical Android/iOS QA
 **Current blocker:** No source-level blocker remains after local fixes; hosted Notes objects are not deployed and physical device QA has not been performed. This source slice does not activate production Notes.
 **Open review finding IDs:** None
 **Next exact action:** Verify CI on PR #725 HEAD `1d107b23`, then address independent review findings without merging.
@@ -132,7 +132,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 
 **Review source / link:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`)
 **Reviewer / relation to implementer:** Independent reviewer requested: `im-tio`
-**Diff or commit SHA actually reviewed:** PR HEAD `bc54d4cf9f2f9b47cb8944e99f11bf4a72aa4f5d`; independent review pending
+**Diff or commit SHA actually reviewed:** PR HEAD `a383416905fbd58cf5f99d735cc851519a2c57c7`; independent review pending
 **Review result and finding IDs/dispositions:** No review findings yet; PR remains `REVIEW_REQUIRED`
 **Independent review?** Requested / pending
 **Limitations and unmet required gates:** Hosted Notes deployment remains intentionally blocked; physical Android/iOS QA, exact-head CI and independent review remain open.
@@ -158,6 +158,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 - `Note` uses the same local `Material`/`InkWell` capsule geometry as the existing Rest action—surface, radius, padding, icon size, typography and height—while retaining Note-specific semantics and focus behavior.
 - The first Exercise render shows only the action row and Set surface; `Save Note`/`Cancel` and the text field appear after `Note` is tapped, then hide after `Cancel` or a confirmed save.
 - The inline Exercise Notes error state shows only its message/notice; no `Retry` button is rendered.
+- In `debug` builds only, when Notes persistence is unavailable, the Note field can be previewed and typed into without issuing a repository/Supabase write; release builds remain fail-closed.
 - Draft text is held by the stateful inline widget while keyboard/rebuild events occur; `Scrollable.ensureVisible` requests the focused field into view.
 - Saved Notes render inline with existing Core input/card/theme patterns, five-note quota, 500-character validation, owner/session guards and delete confirmation.
 - Tapping the pin icon opens the approved `Notes type` sheet. A saved Note can also open it through right swipe; Create mode exposes only Exercise scope, while Edit mode can transfer to the current Routine through the existing atomic repository contract.
