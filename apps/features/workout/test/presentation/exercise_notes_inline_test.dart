@@ -66,7 +66,7 @@ void main() {
       restControl: const SizedBox(
         key: ValueKey('rest-control'),
         width: 140,
-        height: 48,
+        height: 31,
       ),
     );
 
@@ -77,14 +77,6 @@ void main() {
     expect(note.left, greaterThan(rest.right));
     expect(note.left - rest.right, closeTo(TioSpacing.sm, 0.01));
     expect(note.height, closeTo(rest.height, 0.01));
-    expect(
-      tester
-          .widget<TioButton>(
-            find.byKey(const ValueKey('exercise-note-action-$_exercise')),
-          )
-          .variant,
-      TioButtonVariant.supporting,
-    );
     expect(
       find.byKey(const ValueKey('exercise-note-input-$_exercise')),
       findsNothing,

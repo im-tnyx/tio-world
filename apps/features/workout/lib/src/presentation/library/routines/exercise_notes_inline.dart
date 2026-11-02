@@ -224,10 +224,8 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
           children: [
             widget.restControl,
             const SizedBox(width: TioSpacing.sm),
-            TioButton.supporting(
+            _ExerciseNoteAction(
               key: ValueKey('exercise-note-action-${widget.exerciseRef.value}'),
-              label: 'Note',
-              leading: const Icon(Icons.note_add_outlined),
               enabled: canCreate,
               onPressed: _focusDraft,
             ),
@@ -360,6 +358,60 @@ final class _ExerciseNotesPlaceholder extends StatelessWidget {
             ),
         ],
       );
+}
+
+final class _ExerciseNoteAction extends StatelessWidget {
+  const _ExerciseNoteAction({
+    required this.enabled,
+    required this.onPressed,
+    super.key,
+  });
+
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: 'Note',
+      child: Material(
+        color: colors.surfaceVariant,
+        borderRadius: BorderRadius.circular(TioRadius.full),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(TioRadius.full),
+          onTap: enabled ? onPressed : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: TioSpacing.md,
+              vertical: TioSpacing.xs + 2,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.note_add_outlined,
+                  size: TioSize.dp16,
+                  color: colors.textSecondary,
+                ),
+                const SizedBox(width: TioSpacing.xs),
+                Text(
+                  'Note',
+                  style: TextStyle(
+                    fontSize: TioFontSize.size13,
+                    fontWeight: TioFontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 final class _ExerciseNotesFailure extends StatelessWidget {

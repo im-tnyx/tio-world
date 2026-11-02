@@ -21,7 +21,7 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `c672a69b954f4d3b34bcbc129e53e051ea560734`
+**HEAD SHA:** `e9d1cfb798aa4d676b75c655efc47d0c9d84f162` before the pending exact Rest-card follow-up
 **Observed working-tree state:** Clean for authorized files; generated Android registrant has no content diff and is excluded
 **Observed uncommitted/dirty files:** Flutter test tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
@@ -155,7 +155,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 
 - `Note` remains beside Rest and focuses the inline multiline Exercise Note input; creation uses explicit `Save Note`/`Cancel` and does not open an editor sheet.
 - `Rest` and `Note` remain in one governed action row; `Rest` stays left and `Note` sits immediately to its right with equal governed control height, without moving to the screen edge or wrapping below Rest at the approved compact width.
-- `Note` uses the existing Core `TioButton.supporting` filled capsule variant so its surface/chassis matches the Rest action instead of rendering as an outlined button.
+- `Note` uses the same local `Material`/`InkWell` capsule geometry as the existing Rest action—surface, radius, padding, icon size, typography and height—while retaining Note-specific semantics and focus behavior.
 - The first Exercise render shows only the action row and Set surface; `Save Note`/`Cancel` and the text field appear after `Note` is tapped, then hide after `Cancel` or a confirmed save.
 - The inline Exercise Notes error state shows only its message/notice; no `Retry` button is rendered.
 - Draft text is held by the stateful inline widget while keyboard/rebuild events occur; `Scrollable.ensureVisible` requests the focused field into view.
