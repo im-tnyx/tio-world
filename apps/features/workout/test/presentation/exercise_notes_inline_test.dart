@@ -130,6 +130,29 @@ void main() {
         find.byKey(const ValueKey('exercise-note-type-sheet')), findsNothing);
   });
 
+  testWidgets('draft icon follows the selected note type', (tester) async {
+    await _pump(tester, _FakeRoutineNotesRepository(),
+        routineId: RoutineId(_routine));
+
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-action-$_exercise')),
+    );
+    await tester.pump();
+    final icon = find.byKey(
+      const ValueKey('exercise-note-draft-type-icon'),
+    );
+    expect(tester.widget<Icon>(icon).icon, Icons.push_pin_outlined);
+
+    await tester.tap(find.byKey(const ValueKey('exercise-note-draft-type')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-type-routine')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<Icon>(icon).icon, Icons.assignment_outlined);
+  });
+
   testWidgets('draft type sheet exposes Delete Note and clears the draft',
       (tester) async {
     await _pump(tester, _FakeRoutineNotesRepository());

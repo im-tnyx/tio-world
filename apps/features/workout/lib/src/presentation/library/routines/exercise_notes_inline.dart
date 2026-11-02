@@ -277,6 +277,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
               controller: _draft,
               focusNode: _focusNode,
               enabled: canCreate,
+              noteType: _scope.type,
               onTypeChange: canCreate ? _changeDraftType : null,
             ),
           ],
@@ -302,6 +303,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.enabled,
+    required this.noteType,
     required this.onTypeChange,
   });
 
@@ -309,6 +311,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool enabled;
+  final RoutineNoteType noteType;
   final VoidCallback? onTypeChange;
 
   @override
@@ -334,7 +337,8 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
                   width: TioSize.dp24,
                   height: TioSize.dp24,
                   child: Icon(
-                    Icons.push_pin_outlined,
+                    _noteTypeIcon(noteType),
+                    key: const ValueKey('exercise-note-draft-type-icon'),
                     color: colors.textSecondary,
                   ),
                 ),
@@ -380,6 +384,11 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
     );
   }
 }
+
+IconData _noteTypeIcon(RoutineNoteType type) => switch (type) {
+      RoutineNoteType.pinnedExercise => Icons.push_pin_outlined,
+      RoutineNoteType.pinnedRoutine => Icons.assignment_outlined,
+    };
 
 final class _ExerciseNotesPlaceholder extends StatelessWidget {
   const _ExerciseNotesPlaceholder({required this.loading, super.key});
