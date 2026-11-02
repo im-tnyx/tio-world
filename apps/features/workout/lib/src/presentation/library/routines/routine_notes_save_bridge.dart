@@ -67,6 +67,11 @@ final class RoutineNotesSaveBridge {
 
   bool get hasPending => _pending.values.any((item) => !item.confirmed);
 
+  /// An unknown write remains an exit-safety barrier until the exact command
+  /// is reconciled or the owner explicitly refreshes the editor state.
+  bool get hasUnknown =>
+      _pending.values.any((item) => item.unknown && !item.confirmed);
+
   void updateSessionIsCurrent(RoutineNotesSessionIsCurrent callback) {
     _isSessionCurrent = callback;
   }

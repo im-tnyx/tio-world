@@ -1135,6 +1135,17 @@ List<RouteBase> _shellBranchChildRoutes(
                           loginCycle: openingCycle,
                           command: command,
                         );
+                        // The Routine is already visible to the server even
+                        // when the later Notes bridge returns a definite
+                        // rejection. Refresh the still-mounted parent now so
+                        // cancelling the Create editor cannot leave a stale
+                        // Program/Routine list. This invalidation is only a
+                        // read hint; it does not claim Notes succeeded.
+                        moveRefresh.request(
+                          ownerId: openingOwner,
+                          loginCycleId: openingCycle,
+                          programsMayHaveChanged: false,
+                        );
                       },
                       onDefiniteFailure: (command) {
                         // A definite rejected RPC is safe

@@ -98,11 +98,13 @@ void main() {
 
     final first = await bridge.save(drafts: [_draft()], routineId: null);
     expect(first.status, RoutineNotesSaveStatus.unknown);
+    expect(bridge.hasUnknown, isTrue);
     expect(repository.createCalls, 1);
 
     repository.notes = [_savedNote(repository.commands.single)];
     final second = await bridge.save(drafts: [_draft()], routineId: null);
     expect(second.status, RoutineNotesSaveStatus.saved);
+    expect(bridge.hasUnknown, isFalse);
     expect(repository.createCalls, 1);
     expect(repository.readCalls, greaterThanOrEqualTo(3));
   });
@@ -124,6 +126,28 @@ void main() {
 
     expect(first.status, RoutineNotesSaveStatus.unknown);
     expect(changed.status, RoutineNotesSaveStatus.unknown);
+    expect(repository.createCalls, 1);
+  });
+
+  test('unknown mutation remains an exit barrier after validation failure',
+      () async {
+    final repository = _FakeRoutineNotesRepository(unknownCreate: true);
+    final bridge = RoutineNotesSaveBridge(
+      repository: repository,
+      ownerId: _owner,
+      isSessionCurrent: () => true,
+      newUuid: () => _note,
+    );
+
+    final first = await bridge.save(drafts: [_draft()], routineId: null);
+    final invalid = await bridge.save(
+      drafts: [_draft(body: 'x' * 501)],
+      routineId: null,
+    );
+
+    expect(first.status, RoutineNotesSaveStatus.unknown);
+    expect(invalid.status, RoutineNotesSaveStatus.invalid);
+    expect(bridge.hasUnknown, isTrue);
     expect(repository.createCalls, 1);
   });
 

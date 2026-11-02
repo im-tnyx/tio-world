@@ -337,7 +337,7 @@ final routineMoveFlowProvider = Provider<RoutineMoveFlow>(
   (ref) => RoutineMoveFlow(),
 );
 
-/// Read-only cross-surface Program/Routine invalidation after a Move attempt.
+/// Read-only cross-surface Program/Routine invalidation after a Routine/Move attempt.
 /// One owner/login-cycle event; never proof of a committed Move or a retry.
 final routineMoveRefreshSignalProvider = Provider<RoutineMoveRefreshSignal>((ref) {
   final signal = RoutineMoveRefreshSignal();

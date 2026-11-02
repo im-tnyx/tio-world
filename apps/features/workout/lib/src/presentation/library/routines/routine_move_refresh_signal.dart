@@ -24,7 +24,7 @@ final class RoutineMoveRefreshSignal extends ChangeNotifier {
       loginCycleId != null && loginCycleId.isNotEmpty &&
       _ownerId == ownerId && _loginCycleId == loginCycleId;
 
-  /// Call only after a Move write has been attempted and the *live* app
+/// Call only after a Routine or Move write has been attempted and the *live* app
   /// session still matches the frozen owner and login cycle. The signal
   /// invalidates readers; the server-backed read determines what exists.
   void request({

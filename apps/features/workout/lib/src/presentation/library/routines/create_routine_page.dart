@@ -649,10 +649,11 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _notesSaving = false;
       _confirmedNoteDraftIds.addAll(result.confirmedDraftIds);
       _notesCommitPending = !result.isSuccess;
-      _notesExitBlocked = !result.isSuccess &&
-          (result.status == RoutineNotesSaveStatus.unknown ||
-              result.status == RoutineNotesSaveStatus.unavailable ||
-              result.status == RoutineNotesSaveStatus.unauthorized);
+      _notesExitBlocked = bridge.hasUnknown ||
+          (!result.isSuccess &&
+              (result.status == RoutineNotesSaveStatus.unknown ||
+                  result.status == RoutineNotesSaveStatus.unavailable ||
+                  result.status == RoutineNotesSaveStatus.unauthorized));
       _notesMessage = result.message;
     });
     return result.isSuccess;
