@@ -8,6 +8,10 @@ import 'package:tio_shared/shared.dart';
 import '../../../domain/repositories/routine_notes_repository.dart';
 import 'routine_notes_controller.dart';
 
+final _canonicalOwnerId = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+);
+
 /// Inline Exercise Notes surface shared by the Create and Edit Routine cards.
 ///
 /// The draft is local until the explicit inline Save action is pressed. The
@@ -48,6 +52,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
   bool get _available =>
       widget.repository != null &&
       widget.ownerId != null &&
+      _canonicalOwnerId.hasMatch(widget.ownerId!) &&
       widget.isSessionCurrent != null;
 
   @override
@@ -140,7 +145,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
       Scrollable.ensureVisible(
         context,
         alignment: 0.25,
-        duration: const Duration(milliseconds: 180),
+        duration: context.tioMotion.fast,
         curve: Curves.easeOut,
       );
     });
@@ -223,10 +228,9 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: TioSpacing.sm,
-          runSpacing: TioSpacing.sm,
-          crossAxisAlignment: WrapCrossAlignment.center,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             widget.restControl,
             TioButton.secondary(

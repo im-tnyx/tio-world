@@ -31,6 +31,7 @@ Future<void> _pump(
   WidgetTester tester,
   _FakeRoutineNotesRepository repository, {
   RoutineId? routineId,
+  Widget restControl = const SizedBox(key: ValueKey('rest-control')),
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -43,7 +44,7 @@ Future<void> _pump(
           child: ExerciseNotesInline(
             exerciseRef: ExerciseRef.catalog(_exercise),
             routineId: routineId,
-            restControl: const SizedBox(key: ValueKey('rest-control')),
+            restControl: restControl,
             repository: repository,
             ownerId: _owner,
             isSessionCurrent: () => true,
@@ -57,6 +58,25 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('Note stays on the right of Rest in the action row',
+      (tester) async {
+    await _pump(
+      tester,
+      _FakeRoutineNotesRepository(),
+      restControl: const SizedBox(
+        key: ValueKey('rest-control'),
+        width: 140,
+        height: 48,
+      ),
+    );
+
+    final rest = tester.getRect(find.byKey(const ValueKey('rest-control')));
+    final note = tester.getRect(
+      find.byKey(const ValueKey('exercise-note-action-$_exercise')),
+    );
+    expect(note.left, greaterThan(rest.right));
+  });
+
   testWidgets('Note focuses the inline input without opening a sheet',
       (tester) async {
     await _pump(tester, _FakeRoutineNotesRepository());

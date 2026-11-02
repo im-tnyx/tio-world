@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `ad30782f77da02b6fc141a426f8905d8b969c1ae`
-**Observed working-tree state:** Clean before task brief creation
-**Observed uncommitted/dirty files:** None before this task brief
-**PR / tracker:** Existing GitHub #716 and Linear `TNYX-81`; no separate child issue available in the current Linear workspace limit
+**HEAD SHA:** `3702fb0adc6af245d1fa34be0cea000a890bedf1` before the follow-up validation fix
+**Observed working-tree state:** Focused follow-up fix is uncommitted; generated Android registrant has no content diff and is excluded
+**Observed uncommitted/dirty files:** `apps/features/workout/lib/src/presentation/library/routines/exercise_notes_inline.dart`; Flutter test tooling also reported a metadata-only generated registrant change
+**PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer now mounts the inline Exercise Notes surface; the existing Routine Notes contract is generalized by injected scope without a new data source
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed at SHA:** Working tree based on `ad30782f`; elevated local Flutter `3.44.6` initialization; focused Notes/controller/Routine regression tests; shared composer/Create/Edit regression tests; `flutter analyze --no-pub` for `apps/features/workout` and `apps/app`; read-only Dart formatting check; `git -c core.fsmonitor=false diff --check`
-**Validation remaining:** Physical Android/iOS QA, exact-head CI and independent review
-**Current blocker:** Hosted Notes objects are not deployed and physical device QA has not been performed; this source slice does not activate production Notes
+**Validation completed at SHA:** Local Flutter `3.44.6` initialization through the elevated SDK-root path; focused Notes/controller/Routine and shared composer/Create/Edit suites; app `workout_exercises_route_test.dart` (89 tests); Core visual-ownership test; `flutter analyze --no-pub` for `apps/features/workout` and `apps/app`; read-only Dart formatting check; `git -c core.fsmonitor=false diff --check`. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; the new exact-head CI is pending after push.
+**Validation remaining:** Exact-head CI for the follow-up commit, independent review, and physical Android/iOS QA
+**Current blocker:** No source-level blocker remains after local fixes; hosted Notes objects are not deployed and physical device QA has not been performed. This source slice does not activate production Notes.
 **Open review finding IDs:** None
-**Next exact action:** Commit only the audited files, push this branch, open the focused PR, then verify exact-head CI and request independent review.
+**Next exact action:** Commit only the audited task/source fix, push the branch, verify CI on the new PR HEAD, then address independent review findings without merging.
 
 ## 1. Discovery
 
@@ -108,6 +108,7 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 - [x] Wire authenticated repository and session callback through app Create/Edit routes.
 - [x] Preserve the existing Rest/Set/Add Set geometry and behavior in the shared composer.
 - [x] Add focused tests and run local validation; Flutter tests require elevated SDK-root access on this machine, but pass there.
+- [x] Resolve the PR CI findings without backend/schema changes: governed motion token and invalid-owner fail-closed compatibility.
 
 ## 6. Quality Review
 
@@ -116,20 +117,23 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 ```text
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/presentation/exercise_notes_inline_test.dart test/presentation/routine_notes_controller_test.dart test/presentation/routine_notes_section_test.dart --reporter compact` — all tests passed
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/presentation/routine_composer_screen_test.dart test/presentation/create_routine_page_test.dart test/presentation/edit_routine_page_test.dart --reporter compact` — all tests passed
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/app/workout_exercises_route_test.dart --reporter compact` in `apps/app` — 89 tests passed
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/theme/final_enforcement_visual_ownership_test.dart --reporter compact` in `apps/core`
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub` in `apps/features/workout`
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub` in `apps/app`
 PASS: Dart formatting check on 9 changed Dart files — `0 changed`
 PASS: `git -c core.fsmonitor=false diff --check`
+CI initial PR HEAD `3702fb0a`: analysis, docs hygiene and attribution passed; app-workout failed on existing route compatibility after the Notes injection (`ownerId: test-user`), and core failed the visual-ownership contract on the new inline focus duration. Both findings are fixed locally; exact-head rerun is pending.
 NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compact-layout QA
 ```
 
 ### Review Provenance
 
-**Review source / link:** Not available before PR
-**Reviewer / relation to implementer:** Not available
-**Diff or commit SHA actually reviewed:** Not available
-**Review result and finding IDs/dispositions:** Not available
-**Independent review?** Unknown / unavailable
+**Review source / link:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`)
+**Reviewer / relation to implementer:** Independent reviewer requested: `im-tio`
+**Diff or commit SHA actually reviewed:** PR HEAD `3702fb0adc6af245d1fa34be0cea000a890bedf1` before the follow-up fix; new HEAD pending
+**Review result and finding IDs/dispositions:** No review findings yet; PR remains `REVIEW_REQUIRED`
+**Independent review?** Requested / pending
 **Limitations and unmet required gates:** Hosted Notes deployment remains intentionally blocked; physical Android/iOS QA, exact-head CI and independent review remain open.
 
 ## 7. Final Handoff
@@ -149,6 +153,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 ### Actual Behavior
 
 - `Note` remains beside Rest and focuses the inline multiline Exercise Note input; creation uses explicit `Save Note`/`Cancel` and does not open an editor sheet.
+- `Rest` and `Note` remain in one governed action row; `Rest` stays left and `Note` is right-aligned so it does not wrap below Rest at the approved compact width.
 - Draft text is held by the stateful inline widget while keyboard/rebuild events occur; `Scrollable.ensureVisible` requests the focused field into view.
 - Saved Notes render inline with existing Core input/card/theme patterns, five-note quota, 500-character validation, owner/session guards and delete confirmation.
 - Tapping the pin icon opens the approved `Notes type` sheet. A saved Note can also open it through right swipe; Create mode exposes only Exercise scope, while Edit mode can transfer to the current Routine through the existing atomic repository contract.
@@ -157,7 +162,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 
 ### Known Limitations
 
-Hosted Notes migrations are not applied; this does not authorize production activation. Existing body edit/copy/share behavior remains out of scope.
+Hosted Notes migrations are not applied; this does not authorize production activation. Existing body edit/copy/share behavior remains out of scope. Physical Android/iOS gesture and keyboard QA remains pending.
 
 ### Final Status
 
