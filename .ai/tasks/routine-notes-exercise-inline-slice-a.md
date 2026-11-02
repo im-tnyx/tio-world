@@ -112,6 +112,7 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 - [x] Resolve the PR CI findings without backend/schema changes: governed motion token and invalid-owner fail-closed compatibility.
 - [x] Remove the Notes-specific `Try again` recovery action from Routine Detail; a failed Notes read is now silent because Notes follow the surrounding Routine save contract.
 - [x] Remove the separate Routine Notes section and its Detail-route repository/session wiring; Detail now remains exercise-only.
+- [x] Retain the former optional Detail Notes constructor inputs as compatibility-only fields so a stale running caller cannot crash after the UI removal; they do not mount or fetch Notes.
 - [ ] Add the separately scoped parent Routine-save bridge that commits temporary Exercise Note drafts without changing the backend contract.
 
 ## 6. Quality Review
@@ -180,6 +181,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 - Existing Routine-level Notes continue using the compatibility constructor and unchanged Routine scope.
 - Routine Detail no longer renders a Notes-specific failure message or `Try again` action; Notes do not create a separate recovery flow.
 - Routine Detail no longer mounts the separate `Routine Notes` section; Notes remain available only in the approved Exercise/ Routine-save composition path.
+- `RoutineDetailPage` retains deprecated optional Notes constructor inputs only for runtime/source compatibility; they are ignored and cannot render a separate Notes surface.
 
 ### Known Limitations
 

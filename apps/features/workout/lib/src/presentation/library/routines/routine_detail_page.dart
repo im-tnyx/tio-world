@@ -10,8 +10,10 @@ import '../exercises/widgets/exercise_list_row.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
+import '../../../domain/repositories/routine_notes_repository.dart';
 import 'routine_detail_controller.dart';
 import '../../../domain/models/routine_rest_timer_preset.dart';
+import 'routine_notes_controller.dart';
 
 
 /// A read-only preview of durable Routine content under its owning Program.
@@ -27,6 +29,10 @@ class RoutineDetailPage extends StatefulWidget {
     this.viewerMediaGender,
     this.weightUnit = WeightUnit.kg,
     this.onEditPressed,
+    // Compatibility-only: Detail no longer renders a separate Notes section.
+    this.routineNotesRepository,
+    this.routineNotesOwnerId,
+    this.isRoutineNotesSessionCurrent,
     super.key,
   });
 
@@ -40,6 +46,16 @@ class RoutineDetailPage extends StatefulWidget {
   final ExerciseMediaGender? viewerMediaGender;
   /// Null means the authenticated account's display unit has not resolved.
   final WeightUnit? weightUnit;
+
+  /// Deprecated compatibility inputs retained for callers compiled against
+  /// the previous Detail constructor. They must not create a separate Notes
+  /// surface; Notes belong to the Routine save/composition flow.
+  @Deprecated('Routine Detail no longer renders a separate Notes section.')
+  final RoutineNotesRepository? routineNotesRepository;
+  @Deprecated('Routine Detail no longer renders a separate Notes section.')
+  final String? routineNotesOwnerId;
+  @Deprecated('Routine Detail no longer renders a separate Notes section.')
+  final RoutineNotesSessionIsCurrent? isRoutineNotesSessionCurrent;
 
   /// App-provided, account-verified navigation. True only on confirmed save.
   /// No edit capability is inferred from a read-only Detail repository.
