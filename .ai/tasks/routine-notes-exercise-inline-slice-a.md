@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA:** `daed671eb7bef0e806a38cedaa8a8163ace97845`
+**HEAD SHA:** `69aee718` (`fix(workout): preserve detail constructor compatibility`)
 **Observed working-tree state:** Clean for authorized files; generated Android registrant has no content diff and is excluded
 **Observed uncommitted/dirty files:** Flutter test tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer now mounts the inline Exercise Notes surface; the existing Routine Notes contract is generalized by injected scope without a new data source
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed at SHA:** Local Flutter `3.44.6` focused Exercise Notes suite (12 tests passed) through the elevated SDK-root path; the suite covers borderless compact field geometry, Note focus, multiple inline drafts with preserved first text, four-slot UI cap, selected Exercise/Routine icon switching, no inline Save/Cancel, draft type-sheet Delete action, type transfer sheet, icon/title first-line alignment with full-width subtitle, saved type-sheet Delete action, left-swipe confirmation and cancel-preserves-note; `flutter analyze --no-pub` for `apps/features/workout`; Dart formatting command completed after formatting the focused files; `git -c core.fsmonitor=false diff --check`. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; PR #725 exact-head CI remains to be refreshed after this change.
-**Validation remaining:** Routine Create/Edit save integration for committing the temporary draft, exact-head CI, independent review, and physical Android/iOS QA
+**Validation completed at SHA:** Local Flutter `3.44.6` focused Exercise Notes/Routine Detail suites passed (18 Notes tests, 42 Workout Routine Detail tests, and 89 app route tests) through the elevated SDK-root path; `flutter analyze --no-pub` passed for both `apps/features/workout` and `apps/app`; Dart formatting completed for focused files; `git -c core.fsmonitor=false diff --check` passed. Initial PR CI findings for owner-ID compatibility and Core visual duration were fixed; exact-head CI for the latest compatibility commit remains queued/pending.
+**Validation remaining:** Routine Create/Edit save integration for committing the temporary draft, exact-head CI for `69aee718`, independent review, and physical Android/iOS QA
 **Current blocker:** The existing Routine aggregate save contract has no Notes payload. This slice intentionally does not perform a separate Notes write or invent a second aggregate contract; a bounded parent-save bridge is required before the owner’s “Routine save commits Note” behavior is complete. Hosted Notes objects are not deployed and physical device QA has not been performed.
 **Open review finding IDs:** None
-**Next exact action:** Push `daed671e`, verify CI on the exact PR HEAD, then address independent review findings without merging.
+**Next exact action:** Verify CI on exact PR HEAD `69aee718`, then address independent review findings without merging.
 
 ## 1. Discovery
 
@@ -178,10 +178,19 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 - The inline UI cap is four active slots (saved Notes plus drafts); the existing backend five-note safety contract is unchanged.
 - The type-sheet option layout keeps each icon and title on the first line, with the explanatory subtitle on a full-width line below, matching the owner screenshot.
 - Left swipe reveals the red `Delete` action; delete occurs only after tapping the revealed action and confirming.
-- Existing Routine-level Notes continue using the compatibility constructor and unchanged Routine scope.
+- The existing Routine Notes controller/repository contract remains available for the approved Create/Edit flow, but Routine Detail no longer mounts a separate Routine Notes surface.
 - Routine Detail no longer renders a Notes-specific failure message or `Try again` action; Notes do not create a separate recovery flow.
 - Routine Detail no longer mounts the separate `Routine Notes` section; Notes remain available only in the approved Exercise/ Routine-save composition path.
 - `RoutineDetailPage` retains deprecated optional Notes constructor inputs only for runtime/source compatibility; they are ignored and cannot render a separate Notes surface.
+
+### Notes Flow
+
+1. **Create/Edit Routine:** The Exercise row shows only `Rest` and `Note` in one aligned action row. The note field is hidden initially.
+2. **Tap `Note`:** A compact, borderless, multiline draft field appears inline below the actions and above Sets. The keyboard opens and the draft remains local while the widget rebuilds.
+3. **Draft actions:** There are no inline `Save Note`, `Cancel`, `Retry`, or Notes-specific error controls. The pin icon opens the approved type sheet; tapping `Note` again adds another temporary draft, capped at four UI slots.
+4. **Routine save:** Notes are intended to commit together with the surrounding Routine save. The current aggregate Routine save command still has no Notes payload, so that parent-save bridge remains pending; this slice does not autosave or write on every keystroke.
+5. **Routine Detail:** No separate `Routine Notes` heading, section, repository read, or retry action is mounted. The Detail constructor keeps deprecated optional Notes inputs only to avoid runtime constructor incompatibility with stale callers; they are ignored.
+6. **Scope and safety:** Existing Exercise Notes use canonical `ExerciseRef`, owner/session guards, existing quota/length contracts, and existing swipe/type/delete behavior where the saved-note path is available. No Supabase schema, migration, grant, RLS, or hosted configuration changed.
 
 ### Known Limitations
 
