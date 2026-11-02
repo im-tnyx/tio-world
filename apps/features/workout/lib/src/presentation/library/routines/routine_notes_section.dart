@@ -279,11 +279,10 @@ final class _RoutineNotesSectionState extends State<RoutineNotesSection>
               ),
             )
           else if (state.status == RoutineNotesStatus.failed)
-            _FailureView(
-              key: const ValueKey('routine-notes-failed'),
-              message: _failureMessage(state.failure),
-              onRetry: controller!.isBusy ? null : () => controller.load(),
-            )
+            // Notes do not have an independent recovery action on Routine
+            // Detail. They are part of the Routine save flow, so a failed
+            // Notes read must not expose a misleading Notes-level retry.
+            const SizedBox.shrink()
           else ...[
             if (state.actionNotice != null)
               _NoticeText(
@@ -408,62 +407,10 @@ final class _NoticeText extends StatelessWidget {
       );
 }
 
-final class _FailureView extends StatelessWidget {
-  const _FailureView({
-    required this.message,
-    required this.onRetry,
-    super.key,
-  });
-
-  final String message;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            message,
-            key: const ValueKey('routine-notes-failure-message'),
-            style: TextStyle(
-              color: context.tioColors.textSecondary,
-              fontSize: TioFontSize.size13,
-            ),
-          ),
-          const SizedBox(height: TioSpacing.xs),
-          TioButton.secondary(
-            key: const ValueKey('routine-notes-retry'),
-            label: 'Try again',
-            onPressed: onRetry,
-          ),
-        ],
-      );
-}
-
 bool _validBody(String value) {
   final body = value.trim();
   return body.isNotEmpty && body.runes.length <= 500;
 }
-
-String _failureMessage(RoutineNoteFailureKind? failure) => switch (failure) {
-      RoutineNoteFailureKind.unauthorized ||
-      RoutineNoteFailureKind.forbidden =>
-        'Notes are unavailable for this account session.',
-      RoutineNoteFailureKind.quotaExceeded =>
-        'This Routine already has the maximum of five notes.',
-      RoutineNoteFailureKind.invalidRequest =>
-        'Enter a note between 1 and 500 characters.',
-      RoutineNoteFailureKind.revisionConflict ||
-      RoutineNoteFailureKind.mutationConflict =>
-        'The note changed elsewhere. Refresh and try again.',
-      RoutineNoteFailureKind.malformedData =>
-        'Notes data is unavailable right now.',
-      RoutineNoteFailureKind.notFound => 'This Routine is no longer available.',
-      RoutineNoteFailureKind.expired ||
-      RoutineNoteFailureKind.unavailable ||
-      null =>
-        'Could not load Routine Notes. Please try again.',
-    };
 
 String _actionError(RoutineNoteFailureKind? failure) => switch (failure) {
       RoutineNoteFailureKind.quotaExceeded =>

@@ -110,6 +110,7 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 - [x] Preserve the existing Rest/Set/Add Set geometry and behavior in the shared composer.
 - [x] Add focused tests and run local validation; Flutter tests require elevated SDK-root access on this machine, but pass there.
 - [x] Resolve the PR CI findings without backend/schema changes: governed motion token and invalid-owner fail-closed compatibility.
+- [x] Remove the Notes-specific `Try again` recovery action from Routine Detail; a failed Notes read is now silent because Notes follow the surrounding Routine save contract.
 - [ ] Add the separately scoped parent Routine-save bridge that commits temporary Exercise Note drafts without changing the backend contract.
 
 ## 6. Quality Review
@@ -122,6 +123,7 @@ PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/present
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/app/workout_exercises_route_test.dart --reporter compact` in `apps/app` — 89 tests passed
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/theme/final_enforcement_visual_ownership_test.dart --reporter compact` in `apps/core`
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub` in `apps/features/workout`
+PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics test test/presentation/routine_notes_section_test.dart test/presentation/exercise_notes_inline_test.dart --reporter compact` in `apps/features/workout` — 18 tests passed after removing the Routine Detail Notes retry action
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat --suppress-analytics analyze --no-pub` in `apps/app`
 PASS: Dart formatting check on 9 changed Dart files — `0 changed`
 PASS: `git -c core.fsmonitor=false diff --check`
@@ -143,11 +145,13 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 ### Changed Files
 
 - `apps/features/workout/lib/src/presentation/library/routines/exercise_notes_inline.dart`
+- `apps/features/workout/lib/src/presentation/library/routines/routine_notes_section.dart`
 - `apps/features/workout/lib/src/presentation/library/routines/routine_notes_controller.dart`
 - `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
 - `apps/features/workout/lib/src/presentation/library/routines/create_routine_page.dart`
 - `apps/features/workout/lib/src/presentation/library/routines/edit_routine_page.dart`
 - `apps/features/workout/test/presentation/exercise_notes_inline_test.dart`
+- `apps/features/workout/test/presentation/routine_notes_section_test.dart`
 - `apps/features/workout/test/presentation/routine_notes_controller_test.dart`
 - `apps/features/workout/lib/src/presentation/library/library.dart`
 - `apps/app/lib/app/routing/shell/shell_route.dart`
@@ -158,7 +162,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 - `Rest` and `Note` remain in one governed action row; `Rest` stays left and `Note` sits immediately to its right with equal governed control height, without moving to the screen edge or wrapping below Rest at the approved compact width.
 - `Note` uses the same local `Material`/`InkWell` capsule geometry as the existing Rest action—surface, radius, padding, icon size, typography and height—while retaining Note-specific semantics and focus behavior.
 - The first Exercise render shows only the action row and Set surface; the compact borderless text field appears only after `Note` is tapped and remains a local draft until the parent-save bridge exists.
-- The inline Exercise Notes error state shows only its message/notice; no `Retry` button is rendered.
+- The Create/Edit inline Exercise Notes surface does not render a Notes-specific loading, error, or `Retry` state; the surrounding Routine save flow owns persistence feedback.
 - In `debug` builds only, when Notes persistence is unavailable, the Note field can be previewed and typed into without issuing a repository/Supabase write; release builds remain fail-closed.
 - Draft text is held by the stateful inline widget while keyboard/rebuild events occur; `Scrollable.ensureVisible` requests the focused field into view.
 - Saved Notes render inline with existing Core input/card/theme patterns, five-note quota, 500-character validation, owner/session guards and delete confirmation.
@@ -171,6 +175,7 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 - The type-sheet option layout keeps each icon and title on the first line, with the explanatory subtitle on a full-width line below, matching the owner screenshot.
 - Left swipe reveals the red `Delete` action; delete occurs only after tapping the revealed action and confirming.
 - Existing Routine-level Notes continue using the compatibility constructor and unchanged Routine scope.
+- Routine Detail no longer renders a Notes-specific failure message or `Try again` action; Notes do not create a separate recovery flow.
 
 ### Known Limitations
 

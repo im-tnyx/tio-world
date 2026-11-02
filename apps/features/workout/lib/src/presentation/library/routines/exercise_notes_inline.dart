@@ -231,10 +231,8 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_available && !_previewOnly) return widget.restControl;
     final controller = _controller;
     final state = controller?.state;
-    final failureState = state;
     final notes = state?.notes ?? const <RoutineNote>[];
     final actionNotice = state?.actionNotice;
     final canCreate =
@@ -260,19 +258,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
           ],
         ),
         const SizedBox(height: TioSpacing.sm),
-        if (!_previewOnly && (state == null || state.isLoading))
-          const _ExerciseNotesPlaceholder(
-            key: ValueKey('exercise-notes-loading'),
-            loading: true,
-          )
-        else if (!_previewOnly &&
-            failureState?.status == RoutineNotesStatus.failed)
-          _ExerciseNotesFailure(
-            key: const ValueKey('exercise-notes-failed'),
-            message: _failureMessage(failureState?.failure),
-            notice: failureState?.actionNotice,
-          )
-        else ...[
+        ...[
           if (notes.isNotEmpty)
             for (final note in notes)
               Padding(
@@ -435,33 +421,6 @@ IconData _noteTypeIcon(RoutineNoteType type) => switch (type) {
       RoutineNoteType.pinnedRoutine => Icons.assignment_outlined,
     };
 
-final class _ExerciseNotesPlaceholder extends StatelessWidget {
-  const _ExerciseNotesPlaceholder({required this.loading, super.key});
-
-  final bool loading;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Icon(Icons.push_pin_outlined,
-              size: TioSize.dp20, color: context.tioColors.textSecondary),
-          const SizedBox(width: TioSpacing.sm),
-          Expanded(
-            child: Text(
-              'Add a pinned exercise note',
-              style: TextStyle(color: context.tioColors.textSecondary),
-            ),
-          ),
-          if (loading)
-            const SizedBox(
-              width: TioSize.dp16,
-              height: TioSize.dp16,
-              child: CircularProgressIndicator(strokeWidth: TioStroke.width2),
-            ),
-        ],
-      );
-}
-
 final class _ExerciseNoteAction extends StatelessWidget {
   const _ExerciseNoteAction({
     required this.enabled,
@@ -514,28 +473,6 @@ final class _ExerciseNoteAction extends StatelessWidget {
       ),
     );
   }
-}
-
-final class _ExerciseNotesFailure extends StatelessWidget {
-  const _ExerciseNotesFailure({
-    required this.message,
-    required this.notice,
-    super.key,
-  });
-
-  final String message;
-  final String? notice;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(message, style: TextStyle(color: context.tioColors.danger)),
-          if (notice != null)
-            Text(notice!,
-                style: TextStyle(color: context.tioColors.textSecondary)),
-        ],
-      );
 }
 
 final class _ExerciseNotesNotice extends StatelessWidget {
@@ -853,15 +790,3 @@ final class _ExerciseNoteTypeOption extends StatelessWidget {
         ),
       );
 }
-
-String _failureMessage(RoutineNoteFailureKind? failure) => switch (failure) {
-      RoutineNoteFailureKind.unauthorized =>
-        'Notes are unavailable for this session.',
-      RoutineNoteFailureKind.forbidden => 'You cannot access these Notes.',
-      RoutineNoteFailureKind.quotaExceeded =>
-        'Maximum 5 active Exercise Notes reached.',
-      RoutineNoteFailureKind.invalidRequest => 'Enter 1-500 characters.',
-      RoutineNoteFailureKind.malformedData =>
-        'Notes data could not be verified.',
-      _ => 'Exercise Notes are temporarily unavailable.',
-    };
