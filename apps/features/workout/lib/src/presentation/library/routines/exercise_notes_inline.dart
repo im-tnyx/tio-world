@@ -15,9 +15,9 @@ final _canonicalOwnerId = RegExp(
 
 /// Inline Exercise Notes surface shared by the Create and Edit Routine cards.
 ///
-/// The draft is local until the explicit inline Save action is pressed. The
-/// Exercise scope is canonical and therefore reusable across the owner's
-/// Routines without copying a Routine identity into the Note.
+/// The draft is local until the surrounding Routine is saved. The Exercise
+/// scope is canonical and therefore reusable across the owner's Routines
+/// without copying a Routine identity into the Note.
 final class ExerciseNotesInline extends StatefulWidget {
   const ExerciseNotesInline({
     required this.exerciseRef,
@@ -47,7 +47,6 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
   late final TextEditingController _draft;
   late final FocusNode _focusNode;
   late RoutineNoteScope _scope;
-  String? _errorText;
   bool _showDraftInput = false;
 
   bool get _available =>
@@ -78,7 +77,6 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
         oldWidget.routineId != widget.routineId ||
         oldWidget.isSessionCurrent != widget.isSessionCurrent) {
       _draft.clear();
-      _errorText = null;
       _showDraftInput = false;
       _focusNode.unfocus();
       _scope = RoutineNoteScope.exercise(widget.exerciseRef);
@@ -106,24 +104,34 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
 
   Future<void> _changeDraftType() async {
     final type = await _chooseType(context, _scope.type, widget.routineId);
-    if (!mounted || type == null || type == _scope.type) return;
+    if (!mounted || type is! RoutineNoteType || type == _scope.type) return;
     final routineId = widget.routineId;
     if (type == RoutineNoteType.pinnedRoutine && routineId == null) return;
     final next = type == RoutineNoteType.pinnedRoutine
         ? RoutineNoteScope.routine(routineId!)
         : RoutineNoteScope.exercise(widget.exerciseRef);
     _bind(scope: next);
-    setState(() {
-      _errorText = null;
-    });
+    setState(() {});
   }
 
   Future<void> _changeSavedType(RoutineNote note) async {
-    final type = await _chooseType(context, note.type, widget.routineId);
-    if (!mounted || type == null || type == note.type) return;
+    final selection = await _chooseType(
+      context,
+      note.type,
+      widget.routineId,
+      allowDelete: true,
+    );
+    if (!mounted || selection == null) return;
+    if (selection is _DeleteNoteSelection) {
+      await _delete(note);
+      return;
+    }
+    if (selection is! RoutineNoteType || selection == note.type) return;
     final routineId = widget.routineId;
-    if (type == RoutineNoteType.pinnedRoutine && routineId == null) return;
-    final destination = type == RoutineNoteType.pinnedRoutine
+    if (selection == RoutineNoteType.pinnedRoutine && routineId == null) {
+      return;
+    }
+    final destination = selection == RoutineNoteType.pinnedRoutine
         ? RoutineNoteScope.routine(routineId!)
         : RoutineNoteScope.exercise(widget.exerciseRef);
     await _controller?.transfer(note, destination);
@@ -150,45 +158,6 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
         curve: Curves.easeOut,
       );
     });
-  }
-
-  void _cancelDraft() {
-    _draft.clear();
-    _focusNode.unfocus();
-    setState(() {
-      _errorText = null;
-      _showDraftInput = false;
-    });
-  }
-
-  Future<void> _saveDraft() async {
-    final controller = _controller;
-    if (_previewOnly) {
-      setState(() => _errorText = _validBody(_draft.text)
-          ? 'Preview only: note is not saved.'
-          : 'Enter a note before saving.');
-      return;
-    }
-    if (controller == null ||
-        !controller.canCreate ||
-        !_validBody(_draft.text)) {
-      setState(() => _errorText = _validBody(_draft.text)
-          ? _actionError(controller?.state.failure)
-          : 'Enter a note before saving.');
-      return;
-    }
-    setState(() => _errorText = null);
-    final saved = await controller.create(_draft.text);
-    if (!mounted) return;
-    if (saved) {
-      _draft.clear();
-      _focusNode.unfocus();
-      setState(() => _showDraftInput = false);
-      return;
-    }
-    if (!controller.hasPendingMutation) {
-      setState(() => _errorText = _actionError(controller.state.failure));
-    }
   }
 
   Future<bool> _delete(RoutineNote note) async {
@@ -285,31 +254,16 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
                 ),
               ),
           if (_showDraftInput) ...[
-            TioInput.multiline(
-              key: ValueKey('exercise-note-input-${widget.exerciseRef.value}'),
+            _ExerciseNoteDraftField(
+              fieldKey:
+                  ValueKey('exercise-note-input-${widget.exerciseRef.value}'),
               controller: _draft,
               focusNode: _focusNode,
-              leading: GestureDetector(
-                key: const ValueKey('exercise-note-draft-type'),
-                onTap: canCreate ? _changeDraftType : null,
-                child: Icon(Icons.push_pin_outlined,
-                    color: context.tioColors.textSecondary),
-              ),
-              hint: 'Add a pinned exercise note',
-              minLines: 1,
-              maxLines: 4,
-              maxLength: 500,
-              errorText: _errorText,
               enabled: canCreate,
-              onChanged: (_) {
-                setState(() {
-                  if (_errorText != null) _errorText = null;
-                });
-              },
+              onTypeChange: canCreate ? _changeDraftType : null,
             ),
           ],
-          if (actionNotice != null)
-            _ExerciseNotesNotice(text: actionNotice),
+          if (actionNotice != null) _ExerciseNotesNotice(text: actionNotice),
           if (notes.isEmpty && !canCreate)
             Padding(
               padding: const EdgeInsets.only(top: TioSpacing.xs),
@@ -318,35 +272,93 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline> {
                 style: TextStyle(color: context.tioColors.textSecondary),
               ),
             ),
-          if (_showDraftInput)
-            Padding(
-              padding: const EdgeInsets.only(top: TioSpacing.sm),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TioButton.secondary(
-                      key: const ValueKey('exercise-note-cancel'),
-                      label: 'Cancel',
-                      enabled: controller?.isBusy != true,
-                      onPressed: _cancelDraft,
-                    ),
-                  ),
-                  const SizedBox(width: TioSpacing.sm),
-                  Expanded(
-                    child: TioButton.primary(
-                      key: const ValueKey('exercise-note-save'),
-                      label: 'Save Note',
-                      enabled: canCreate && _validBody(_draft.text),
-                      loading: controller?.isBusy == true,
-                      loadingLabel: 'Saving...',
-                      onPressed: _saveDraft,
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
         const SizedBox(height: TioSpacing.sm),
+      ],
+    );
+  }
+}
+
+final class _ExerciseNoteDraftField extends StatelessWidget {
+  const _ExerciseNoteDraftField({
+    required this.fieldKey,
+    required this.controller,
+    required this.focusNode,
+    required this.enabled,
+    required this.onTypeChange,
+  });
+
+  final Key fieldKey;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool enabled;
+  final VoidCallback? onTypeChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              button: true,
+              enabled: onTypeChange != null,
+              label: 'Change note type',
+              child: InkWell(
+                key: const ValueKey('exercise-note-draft-type'),
+                borderRadius: BorderRadius.circular(TioRadius.full),
+                onTap: onTypeChange,
+                child: SizedBox(
+                  width: TioSize.dp24,
+                  height: TioSize.dp24,
+                  child: Icon(
+                    Icons.push_pin_outlined,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: TioSpacing.sm),
+            Expanded(
+              child: TextField(
+                key: fieldKey,
+                controller: controller,
+                focusNode: focusNode,
+                enabled: enabled,
+                keyboardType: TextInputType.multiline,
+                maxLines: 4,
+                minLines: 1,
+                maxLength: 500,
+                textCapitalization: TextCapitalization.sentences,
+                textAlignVertical: TextAlignVertical.top,
+                style: textTheme.bodyLarge?.copyWith(
+                  color: colors.textPrimary,
+                ),
+                cursorColor: colors.primary,
+                decoration: InputDecoration(
+                  hintText: 'Add a pinned exercise note',
+                  hintStyle: textTheme.bodyLarge?.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  filled: false,
+                  fillColor: Colors.transparent,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  counterText: '',
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -637,17 +649,22 @@ final class _ExerciseNoteSwipeRowState extends State<_ExerciseNoteSwipeRow> {
       );
 }
 
-Future<RoutineNoteType?> _chooseType(
-  BuildContext context,
-  RoutineNoteType current,
-  RoutineId? routineId,
-) =>
-    showTioEditorSheet<RoutineNoteType>(
+final class _DeleteNoteSelection {
+  const _DeleteNoteSelection();
+}
+
+const _deleteNoteSelection = _DeleteNoteSelection();
+
+Future<Object?> _chooseType(
+        BuildContext context, RoutineNoteType current, RoutineId? routineId,
+        {bool allowDelete = false}) =>
+    showTioEditorSheet<Object?>(
       context: context,
       useSafeArea: true,
       builder: (_) => _ExerciseNoteTypeSheet(
         current: current,
         routineId: routineId,
+        allowDelete: allowDelete,
       ),
     );
 
@@ -655,10 +672,12 @@ final class _ExerciseNoteTypeSheet extends StatelessWidget {
   const _ExerciseNoteTypeSheet({
     required this.current,
     required this.routineId,
+    required this.allowDelete,
   });
 
   final RoutineNoteType current;
   final RoutineId? routineId;
+  final bool allowDelete;
 
   @override
   Widget build(BuildContext context) => TioEditorSheet(
@@ -690,6 +709,28 @@ final class _ExerciseNoteTypeSheet extends StatelessWidget {
                     Navigator.of(context).pop(RoutineNoteType.pinnedRoutine),
               ),
             ],
+            if (allowDelete) ...[
+              const SizedBox(height: TioSpacing.sm),
+              TioCard(
+                key: const ValueKey('exercise-note-delete'),
+                variant: TioCardVariant.outlined,
+                onTap: () => Navigator.of(context).pop(_deleteNoteSelection),
+                padding: const EdgeInsets.all(TioSpacing.md),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      color: context.tioColors.danger,
+                    ),
+                    const SizedBox(width: TioSpacing.md),
+                    Text(
+                      'Delete Note',
+                      style: TextStyle(color: context.tioColors.danger),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -717,6 +758,7 @@ final class _ExerciseNoteTypeOption extends StatelessWidget {
         onTap: onTap,
         padding: const EdgeInsets.all(TioSpacing.md),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon),
             const SizedBox(width: TioSpacing.md),
@@ -737,15 +779,6 @@ final class _ExerciseNoteTypeOption extends StatelessWidget {
       );
 }
 
-bool _validBody(String value) {
-  try {
-    RoutineNote.normalizeBody(value);
-    return true;
-  } on ArgumentError {
-    return false;
-  }
-}
-
 String _failureMessage(RoutineNoteFailureKind? failure) => switch (failure) {
       RoutineNoteFailureKind.unauthorized =>
         'Notes are unavailable for this session.',
@@ -757,6 +790,3 @@ String _failureMessage(RoutineNoteFailureKind? failure) => switch (failure) {
         'Notes data could not be verified.',
       _ => 'Exercise Notes are temporarily unavailable.',
     };
-
-String _actionError(RoutineNoteFailureKind? failure) =>
-    _failureMessage(failure);

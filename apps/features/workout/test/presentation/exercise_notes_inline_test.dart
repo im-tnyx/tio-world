@@ -120,12 +120,17 @@ void main() {
       find.byKey(const ValueKey('exercise-note-input-$_exercise')),
       findsOneWidget,
     );
+    final input = find.byKey(const ValueKey('exercise-note-input-$_exercise'));
+    final inputWidget = tester.widget<TextField>(input);
+    expect(inputWidget.decoration!.border, same(InputBorder.none));
+    expect(inputWidget.decoration!.enabledBorder, same(InputBorder.none));
+    expect(tester.getRect(input).height, lessThan(TioSize.dp52));
     expect(FocusManager.instance.primaryFocus, isNotNull);
     expect(
         find.byKey(const ValueKey('exercise-note-type-sheet')), findsNothing);
   });
 
-  testWidgets('debug preview shows the field without persisting a note',
+  testWidgets('debug preview shows a temporary field without note buttons',
       (tester) async {
     await _pumpPreview(tester);
 
@@ -137,13 +142,12 @@ void main() {
       find.byKey(const ValueKey('exercise-note-input-$_exercise')),
       'Preview note',
     );
-    await tester.tap(find.byKey(const ValueKey('exercise-note-save')));
-    await tester.pump();
-
     expect(find.text('Preview note'), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-save')), findsNothing);
+    expect(find.byKey(const ValueKey('exercise-note-cancel')), findsNothing);
   });
 
-  testWidgets('draft survives rebuild and saves in canonical Exercise scope',
+  testWidgets('draft survives rebuild without an inline save action',
       (tester) async {
     final repository = _FakeRoutineNotesRepository();
     await _pump(tester, repository);
@@ -155,23 +159,13 @@ void main() {
     await tester.enterText(input, '  Keep elbows tucked  ');
     await tester.pump();
 
-    expect(tester.widget<TioInput>(input).controller!.text,
+    expect(tester.widget<TextField>(input).controller!.text,
         '  Keep elbows tucked  ');
-    final save = find.byKey(const ValueKey('exercise-note-save'));
-    expect(tester.widget<TioButton>(save).enabled, isTrue);
-    final saveButton = find.descendant(
-      of: save,
-      matching: find.byType(FilledButton),
-    );
-    expect(tester.widget<FilledButton>(saveButton).onPressed, isNotNull);
-    await tester.ensureVisible(save);
-    await tester.tap(save);
-    await tester.pumpAndSettle();
-
-    expect(repository.createCommand?.scope,
-        RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise)));
-    expect(repository.createCommand?.body, 'Keep elbows tucked');
-    expect(find.text('Keep elbows tucked'), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-save')), findsNothing);
+    expect(find.byKey(const ValueKey('exercise-note-cancel')), findsNothing);
+    expect(repository.createCommand, isNull);
+    expect(tester.widget<TextField>(input).controller!.text,
+        '  Keep elbows tucked  ');
   });
 
   testWidgets('right swipe opens type sheet and offers Routine type in Edit',
@@ -187,6 +181,35 @@ void main() {
         find.byKey(const ValueKey('exercise-note-type-sheet')), findsOneWidget);
     expect(find.byKey(const ValueKey('exercise-note-type-routine')),
         findsOneWidget);
+    final exerciseOption =
+        find.byKey(const ValueKey('exercise-note-type-exercise'));
+    final exerciseIcon = find.descendant(
+      of: exerciseOption,
+      matching: find.byIcon(Icons.push_pin_outlined),
+    );
+    final exerciseTitle = find.descendant(
+      of: exerciseOption,
+      matching: find.text('Pinned Exercise Note'),
+    );
+    expect(tester.getRect(exerciseIcon).top,
+        closeTo(tester.getRect(exerciseTitle).top, 0.01));
+  });
+
+  testWidgets('type sheet exposes Delete Note before confirmation',
+      (tester) async {
+    final repository = _FakeRoutineNotesRepository(notes: [_note()]);
+    await _pump(tester, repository, routineId: RoutineId(_routine));
+
+    final row = find.byKey(const ValueKey('exercise-note-swipe-$_noteId'));
+    await tester.drag(row, const Offset(220, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('exercise-note-delete')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-note-delete')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete Exercise Note?'), findsOneWidget);
+    expect(repository.deleteCommand, isNull);
   });
 
   testWidgets('left swipe reveals Delete and confirmation performs delete',

@@ -9,7 +9,7 @@
 **Trigger:** New independently scoped product slice / product-visible UI
 **Approval status:** Approved
 **Approval evidence:** Owner instruction `Tio-world — Exercise Notes Inline UI Implementation` received 2026-11-02, with the attached screenshot as the visual and interaction reference.
-**Approved product/UI/data-shape boundaries:** Add Exercise-scoped Notes inline inside the existing Create/Edit Routine Exercise card, directly below Rest/Note actions and above the Set table. Use `RoutineNoteScope.exercise(ExerciseRef)`, the existing `RoutineNotesRepository`, existing authenticated provider/session guards, explicit inline `Save Note`/`Cancel`, existing five-note and 500-character limits, and existing delete/mutation-safety behavior. Owner clarification received 2026-11-02 also approves tapping the left pin icon or right-swiping a saved Note to change Note type and left-swiping a saved Note to reveal Delete. Type transfer uses the existing atomic repository contract; `Pinned Routine` is enabled only when an existing Routine identity is available (Edit), while Create remains Exercise-scoped until the Routine has a durable identity.
+**Approved product/UI/data-shape boundaries:** Add Exercise-scoped Notes inline inside the existing Create/Edit Routine Exercise card, directly below Rest/Note actions and above the Set table. Use `RoutineNoteScope.exercise(ExerciseRef)`, the existing `RoutineNotesRepository`, existing authenticated provider/session guards, existing five-note and 500-character limits, and existing delete/mutation-safety behavior. Owner clarification received 2026-11-02 supersedes the earlier inline `Save Note`/`Cancel` decision: the Note field is a temporary inline draft and has no separate Save or Cancel buttons; the owner expects the surrounding Routine save flow to commit it. The current slice does not invent a new aggregate Notes payload or write separately on keystroke. The owner also approves tapping the left pin icon or right-swiping a saved Note to change Note type, left-swiping a saved Note to reveal Delete, and showing `Delete Note` in the type sheet before the existing confirmation. Type transfer uses the existing atomic repository contract; `Pinned Routine` is enabled only when an existing Routine identity is available (Edit), while Create remains Exercise-scoped until the Routine has a durable identity.
 **Explicit non-changes:** No sheet/dialog/navigation page for creating or editing the Note, no autosave or per-keystroke write, no copy/share, new repository/model/table/migration/RLS/grant, hosted deployment, Rest Timer redesign, Set/table redesign, Routine-level Notes change, WorkoutSession/history/post behavior, or physical-device acceptance claim. The type chooser is limited to the explicitly approved type-change action and does not become a general Note editor.
 
 ## Active Handoff
@@ -27,9 +27,9 @@
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer now mounts the inline Exercise Notes surface; the existing Routine Notes contract is generalized by injected scope without a new data source
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed at SHA:** Local Flutter `3.44.6` initialization through the elevated SDK-root path; focused Notes/controller/Routine and shared composer/Create/Edit suites; app `workout_exercises_route_test.dart` (89 tests); Core visual-ownership test; `flutter analyze --no-pub` for `apps/features/workout` and `apps/app`; read-only Dart formatting check; `git -c core.fsmonitor=false diff --check`; Note-right-of-Rest compact layout test; hidden-until-Note-tap visibility test; no-Retry UI assertion; exact Rest-card geometry and same-row top-alignment assertions; debug-only preview test confirms field/text UI without repository write. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; PR #725 exact-head CI for `a3834169` is pending after push.
-**Validation remaining:** Exact-head CI for `a3834169`, independent review, and physical Android/iOS QA
-**Current blocker:** No source-level blocker remains after local fixes; hosted Notes objects are not deployed and physical device QA has not been performed. This source slice does not activate production Notes.
+**Validation completed at SHA:** Local Flutter `3.44.6` focused Exercise Notes suite (8 tests passed) through the elevated SDK-root path; the suite covers borderless compact field geometry, Note focus, no inline Save/Cancel, type transfer sheet, type-sheet Delete action, left-swipe confirmation and cancel-preserves-note; `flutter analyze --no-pub` for `apps/features/workout`; `git -c core.fsmonitor=false diff --check`. Initial PR CI found and locally fixed the owner-ID compatibility and Core visual-duration findings; PR #725 exact-head CI remains to be refreshed after this change.
+**Validation remaining:** Routine Create/Edit save integration for committing the temporary draft, exact-head CI, independent review, and physical Android/iOS QA
+**Current blocker:** The existing Routine aggregate save contract has no Notes payload. This slice intentionally does not perform a separate Notes write or invent a second aggregate contract; a bounded parent-save bridge is required before the owner’s “Routine save commits Note” behavior is complete. Hosted Notes objects are not deployed and physical device QA has not been performed.
 **Open review finding IDs:** None
 **Next exact action:** Verify CI on PR #725 HEAD `1d107b23`, then address independent review findings without merging.
 
@@ -44,7 +44,7 @@ Users can create and view private Exercise Notes inline while building or editin
 - The existing `Note` action focuses an inline multiline field and opens the normal keyboard.
 - The inline Note field is hidden on first render and appears only after the user taps `Note`.
 - Draft text survives rebuilds and keyboard inset changes.
-- Persistence happens only from an explicit inline `Save Note` action.
+- The draft has no inline Save/Cancel controls; parent Routine-save persistence is a remaining bridge gate.
 - Exercise Notes use canonical `ExerciseRef` identity and existing owner/session guards.
 - Read/create/delete, quota, validation and uncertain-save states are covered.
 - Existing Rest Timer, Set table, Add Set and Routine-level Notes behavior remain unchanged.
@@ -61,21 +61,21 @@ Editing existing note bodies, copy/share, pinned presentation redesign, schema/d
 
 ### Verified Evidence
 
-- `RoutineNotesRepository` already exposes `read/create/update/transfer/delete`.
+- `RoutineNotesRepository` already exposes `read/create/update/transfer/delete`; the current Routine aggregate save command does not carry a Notes payload.
 - `RoutineNotesController` already owns 5-note quota, 500-rune normalization, owner/scope validation, session checks and unknown create reconciliation; it will be generalized to accept an existing `RoutineNoteScope` without changing Routine behavior.
 - `RoutineComposerExerciseCard` is the shared Create/Edit Exercise header, Rest control, Set header/table and Add Set surface.
 - `routineNotesRepositoryProvider` is authenticated and login-cycle bound in `apps/app`.
-- `TioInput.multiline`, `TioButton`, `TioCard` and `showTioConfirmationBottomSheet` are the existing governed Core patterns.
+- `TioCard` and `showTioConfirmationBottomSheet` are reused for saved-note actions. Core `TioInput.multiline` is intentionally not used for the draft because its current contract is outlined with a 52dp minimum; the feature uses a governed borderless `TextField` with Core tokens for this screenshot-specific inline row.
 
 ## 3. Clarification
 
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| Inline commit behavior | Made | Existing Routine Notes uses explicit `Save Note`; multiline input must not write per keystroke. | Product/implementation audit |
+| Inline commit behavior | Superseded | Owner’s latest direction removes inline `Save Note`/`Cancel`; the draft remains temporary until a parent Routine-save bridge is approved and implemented. | Owner follow-up |
 | Existing note edit behavior | Deferred | Body editing remains out of scope; type transfer is separately approved by the 2026-11-02 follow-up. | Owner scope |
 | Note type change | Made | Left pin icon opens the existing option-sheet pattern; transfer calls the existing atomic `transfer` contract. Create cannot target a Routine before Save. | Owner follow-up |
 | Delete gesture | Made | Saved Notes use the existing swipe-to-reveal destructive action pattern plus the established confirmation; no mutation on partial drag. | Owner follow-up |
-| Create Routine persistence timing | Made | Exercise Notes use independent canonical Exercise scope and may persist before Routine Save; no Routine ID is required. | Existing data contract |
+| Create/Edit Routine persistence timing | Pending bridge | Existing Routine aggregate save has no Notes payload. This UI slice does not silently persist the draft independently; parent-save integration remains a separate bounded task. | Existing data contract / owner direction |
 
 ## 4. Architecture Design
 
@@ -105,11 +105,12 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 ## 5. Implementation Plan
 
 - [x] Generalize the existing controller to accept Routine or Exercise scope.
-- [x] Add the inline Exercise Notes widget with explicit Save/Cancel, type chooser and swipe-to-reveal delete.
+- [x] Add the inline Exercise Notes widget with temporary draft input, type chooser, type-sheet Delete action and swipe-to-reveal delete.
 - [x] Wire authenticated repository and session callback through app Create/Edit routes.
 - [x] Preserve the existing Rest/Set/Add Set geometry and behavior in the shared composer.
 - [x] Add focused tests and run local validation; Flutter tests require elevated SDK-root access on this machine, but pass there.
 - [x] Resolve the PR CI findings without backend/schema changes: governed motion token and invalid-owner fail-closed compatibility.
+- [ ] Add the separately scoped parent Routine-save bridge that commits temporary Exercise Note drafts without changing the backend contract.
 
 ## 6. Quality Review
 
@@ -153,15 +154,16 @@ NOT RUN: physical Android/iOS keyboard, gesture, theme, accessibility and compac
 
 ### Actual Behavior
 
-- `Note` remains beside Rest and focuses the inline multiline Exercise Note input; creation uses explicit `Save Note`/`Cancel` and does not open an editor sheet.
+- `Note` remains beside Rest and focuses the compact borderless inline Exercise Note input; no inline Save/Cancel controls or editor sheet are used.
 - `Rest` and `Note` remain in one governed action row; `Rest` stays left and `Note` sits immediately to its right with equal governed control height, without moving to the screen edge or wrapping below Rest at the approved compact width.
 - `Note` uses the same local `Material`/`InkWell` capsule geometry as the existing Rest action—surface, radius, padding, icon size, typography and height—while retaining Note-specific semantics and focus behavior.
-- The first Exercise render shows only the action row and Set surface; `Save Note`/`Cancel` and the text field appear after `Note` is tapped, then hide after `Cancel` or a confirmed save.
+- The first Exercise render shows only the action row and Set surface; the compact borderless text field appears only after `Note` is tapped and remains a local draft until the parent-save bridge exists.
 - The inline Exercise Notes error state shows only its message/notice; no `Retry` button is rendered.
 - In `debug` builds only, when Notes persistence is unavailable, the Note field can be previewed and typed into without issuing a repository/Supabase write; release builds remain fail-closed.
 - Draft text is held by the stateful inline widget while keyboard/rebuild events occur; `Scrollable.ensureVisible` requests the focused field into view.
 - Saved Notes render inline with existing Core input/card/theme patterns, five-note quota, 500-character validation, owner/session guards and delete confirmation.
 - Tapping the pin icon opens the approved `Notes type` sheet. A saved Note can also open it through right swipe; Create mode exposes only Exercise scope, while Edit mode can transfer to the current Routine through the existing atomic repository contract.
+- The saved-note `Notes type` sheet now includes a red `Delete Note` action; selecting it closes the sheet and opens the existing confirmation before any delete mutation.
 - Left swipe reveals the red `Delete` action; delete occurs only after tapping the revealed action and confirming.
 - Existing Routine-level Notes continue using the compatibility constructor and unchanged Routine scope.
 
