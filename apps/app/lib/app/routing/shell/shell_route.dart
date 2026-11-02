@@ -22,31 +22,36 @@ Widget _guardRoutineOptionsSheet({
   required Widget content,
   required String? ownerId,
   required String? loginCycleId,
-}) => Consumer(
-  builder: (sheetContext, sheetRef, _) {
-    final boot = sheetRef.watch(appSessionBootstrapControllerProvider).state;
-    final authValue = sheetRef.watch(authSessionStateProvider);
-    final auth = authValue.isLoading || authValue.hasError
-        ? null : authValue.valueOrNull;
-    final valid = ownerId != null && loginCycleId != null &&
-        boot is AppSessionBootstrapReady && boot.userId == ownerId &&
-        auth is AuthSessionAuthenticated &&
-        auth.session.userId == ownerId &&
-        auth.session.loginCycleId == loginCycleId;
-    if (valid) return content;
+}) =>
+    Consumer(
+      builder: (sheetContext, sheetRef, _) {
+        final boot =
+            sheetRef.watch(appSessionBootstrapControllerProvider).state;
+        final authValue = sheetRef.watch(authSessionStateProvider);
+        final auth = authValue.isLoading || authValue.hasError
+            ? null
+            : authValue.valueOrNull;
+        final valid = ownerId != null &&
+            loginCycleId != null &&
+            boot is AppSessionBootstrapReady &&
+            boot.userId == ownerId &&
+            auth is AuthSessionAuthenticated &&
+            auth.session.userId == ownerId &&
+            auth.session.loginCycleId == loginCycleId;
+        if (valid) return content;
 
-    // Do not render the former account's name/actions for one more frame.
-    // Dismiss exactly this sheet's route, never a newer owner route.
-    final route = ModalRoute.of(sheetContext);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!sheetContext.mounted || route == null || !route.isActive) {
-        return;
-      }
-      Navigator.of(sheetContext).removeRoute(route);
-    });
-    return const SizedBox.shrink();
-  },
-);
+        // Do not render the former account's name/actions for one more frame.
+        // Dismiss exactly this sheet's route, never a newer owner route.
+        final route = ModalRoute.of(sheetContext);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!sheetContext.mounted || route == null || !route.isActive) {
+            return;
+          }
+          Navigator.of(sheetContext).removeRoute(route);
+        });
+        return const SizedBox.shrink();
+      },
+    );
 TioShellPlaceholder _page(TioRouteContract route) {
   return TioShellPlaceholder(
       title: route.title, description: route.description);
@@ -95,34 +100,35 @@ void _pushCanonicalExerciseDetail({
 Widget _exerciseDetailRoutePage(
   BuildContext context,
   GoRouterState state,
-) => Consumer(
-  builder: (context, ref, _) {
-    final rawRef = state.pathParameters['exerciseId'];
-    if (rawRef == null) return _page(AppRoutes.workoutExerciseDetail);
+) =>
+    Consumer(
+      builder: (context, ref, _) {
+        final rawRef = state.pathParameters['exerciseId'];
+        if (rawRef == null) return _page(AppRoutes.workoutExerciseDetail);
 
-    ExerciseRef exerciseRef;
-    try {
-      exerciseRef = ExerciseRef.parse(rawRef);
-    } on FormatException {
-      return _page(AppRoutes.workoutExerciseDetail);
-    }
+        ExerciseRef exerciseRef;
+        try {
+          exerciseRef = ExerciseRef.parse(rawRef);
+        } on FormatException {
+          return _page(AppRoutes.workoutExerciseDetail);
+        }
 
-    ref.watch(authSessionStateProvider);
-    final args = state.extra is ExerciseDetailRouteArguments
-        ? state.extra! as ExerciseDetailRouteArguments
-        : null;
-    return ExerciseDetailPage(
-      exerciseRef: exerciseRef,
-      catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
-      userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
-      viewerMediaGender: ref.watch(exerciseViewerMediaGenderProvider),
-      expectedOwnerId: args?.ownerId,
-      expectedLoginCycleId: args?.loginCycleId,
-      currentUserId: () => _currentAuthUserId(ref),
-      currentLoginCycleId: () => _currentAuthLoginCycleId(ref),
+        ref.watch(authSessionStateProvider);
+        final args = state.extra is ExerciseDetailRouteArguments
+            ? state.extra! as ExerciseDetailRouteArguments
+            : null;
+        return ExerciseDetailPage(
+          exerciseRef: exerciseRef,
+          catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
+          userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
+          viewerMediaGender: ref.watch(exerciseViewerMediaGenderProvider),
+          expectedOwnerId: args?.ownerId,
+          expectedLoginCycleId: args?.loginCycleId,
+          currentUserId: () => _currentAuthUserId(ref),
+          currentLoginCycleId: () => _currentAuthLoginCycleId(ref),
+        );
+      },
     );
-  },
-);
 
 Widget _shellBranchPage(ShellBranchDefinition branch) {
   if (branch.tab == ShellTab.home) {
@@ -176,9 +182,8 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
             child: Text('Weight is temporarily unavailable.'),
           );
         }
-        final cycle = auth is AuthSessionAuthenticated
-            ? auth.session.loginCycleId
-            : null;
+        final cycle =
+            auth is AuthSessionAuthenticated ? auth.session.loginCycleId : null;
         if (auth is! AuthSessionAuthenticated ||
             bootstrap is! AppSessionBootstrapReady ||
             cycle == null ||
@@ -217,7 +222,8 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
           );
         }
         if (unit == null) {
-          return const Center(child: Text('Weight preferences are unavailable.'));
+          return const Center(
+              child: Text('Weight preferences are unavailable.'));
         }
         return ProgressWeightPage(
           key: ValueKey(cycle),
@@ -265,7 +271,7 @@ List<RouteBase> _shellBranchChildRoutes(
               ref.watch(myProgramRoutineCreateRepositoryProvider);
           final myProgramCreateEnabled =
               ref.watch(myProgramRoutineCreateReleaseEnabledProvider) ||
-              ref.watch(myProgramRoutineCreateQaEnabledProvider);
+                  ref.watch(myProgramRoutineCreateQaEnabledProvider);
           final deleteRepository = ref.watch(routineDeleteRepositoryProvider);
           final deleteFlow = ref.read(routineDeleteFlowProvider);
           final programDeleteRepository =
@@ -274,7 +280,8 @@ List<RouteBase> _shellBranchChildRoutes(
           // Reuse the feature-owned Move flow and the same existing/New Program
           // adapter instance. The release capability remains OFF until M3D3
           // coordination, hosted RPC/grants and device QA are approved.
-          final moveReleaseEnabled = ref.watch(routineMoveReleaseEnabledProvider);
+          final moveReleaseEnabled =
+              ref.watch(routineMoveReleaseEnabledProvider);
           final movePreviewEnabled =
               ref.watch(routineMoveUiPreviewEnabledProvider);
           final moveQaEnabled = ref.watch(routineMoveQaEnabledProvider);
@@ -288,10 +295,13 @@ List<RouteBase> _shellBranchChildRoutes(
           final catalog = ref.watch(exerciseCatalogRepositoryProvider);
           final userExerciseRepository =
               ref.watch(userExerciseRepositoryProvider);
+
           /// One session-guarded full Routine editor shared by Detail and the
           /// existing Routine-card options popup. Never use metadata Rename.
-          Future<bool> editRoutine(Program program, Routine ownedRoutine) async {
-            if (routineRepository == null || compositions == null ||
+          Future<bool> editRoutine(
+              Program program, Routine ownedRoutine) async {
+            if (routineRepository == null ||
+                compositions == null ||
                 userExerciseRepository == null ||
                 ownedRoutine.programId != program.id) {
               return false;
@@ -299,185 +309,204 @@ List<RouteBase> _shellBranchChildRoutes(
             final openingSession =
                 ref.read(appSessionBootstrapControllerProvider).state;
             final startingOwner = openingSession is AppSessionBootstrapReady
-                ? openingSession.userId : null;
+                ? openingSession.userId
+                : null;
             final openingAuthAsync = ref.read(authSessionStateProvider);
-            final openingAuth = openingAuthAsync.isLoading ||
-                    openingAuthAsync.hasError
-                ? null : openingAuthAsync.valueOrNull;
+            final openingAuth =
+                openingAuthAsync.isLoading || openingAuthAsync.hasError
+                    ? null
+                    : openingAuthAsync.valueOrNull;
             final startingAuth = openingAuth is AuthSessionAuthenticated
-                ? openingAuth.session.userId : null;
+                ? openingAuth.session.userId
+                : null;
             final startingCycleId = openingAuth is AuthSessionAuthenticated
-                ? openingAuth.session.loginCycleId : null;
+                ? openingAuth.session.loginCycleId
+                : null;
             final openingProfile = ref.read(profileDataProvider);
-            if (startingOwner == null || startingOwner != startingAuth ||
-                startingCycleId == null || openingProfile.isLoading ||
+            if (startingOwner == null ||
+                startingOwner != startingAuth ||
+                startingCycleId == null ||
+                openingProfile.isLoading ||
                 openingProfile.hasError ||
-                openingProfile.valueOrNull?.unitPreferences.weightUnit == null) {
+                openingProfile.valueOrNull?.unitPreferences.weightUnit ==
+                    null) {
               return false;
             }
-                              var revoked = false;
-                              final confirmed = await Navigator.of(context).push<bool>(
-                                MaterialPageRoute(
-                                  builder: (_) => Consumer(
-                                    builder: (context, ref, _) {
-                                      // Re-evaluate all account capabilities
-                                      // in the destination itself, not only
-                                      // when the navigation action was tapped.
-                                      final session = ref
-                                          .watch(
-                                            appSessionBootstrapControllerProvider,
-                                          )
-                                          .state;
-                                      final currentOwner =
-                                          session is AppSessionBootstrapReady
-                                              ? session.userId
-                                              : null;
-                                      final authAsync =
-                                          ref.watch(authSessionStateProvider);
-                                      final auth = authAsync.isLoading ||
-                                              authAsync.hasError
-                                          ? null
-                                          : authAsync.valueOrNull;
-                                      final currentAuth =
-                                          auth is AuthSessionAuthenticated
-                                              ? auth.session.userId
-                                              : null;
-                                      final currentCycleId =
-                                          auth is AuthSessionAuthenticated
-                                              ? auth.session.loginCycleId
-                                              : null;
-                                      final authorized =
-                                          currentOwner == startingOwner &&
-                                          currentAuth == startingOwner &&
-                                          currentCycleId == startingCycleId;
-                                      // The editor may be covered by a
-                                      // picker or Set modal on this Navigator.
-                                      // A changed Auth/bootstrap owner must
-                                      // dismiss those routes too: disposing
-                                      // the underlying keyed editor alone
-                                      // does not clear an overlay's private
-                                      // Custom Exercise/Set draft.
-                                      if (!authorized && !revoked) {
-                                        revoked = true;
-                                        final editorRoute =
-                                            ModalRoute.of(context);
-                                        WidgetsBinding.instance
-                                            .addPostFrameCallback((_) {
-                                          if (!context.mounted ||
-                                              editorRoute == null ||
-                                              !editorRoute.isActive) {
-                                            return;
-                                          }
-                                          final navigator =
-                                              Navigator.of(context);
-                                          navigator.popUntil(
-                                            (route) =>
-                                                identical(route, editorRoute),
-                                          );
-                                          // A pending RPC deliberately
-                                          // blocks normal back via PopScope.
-                                          // On auth/cycle revocation that
-                                          // protection must NOT keep the old
-                                          // account's editor mounted. Force
-                                          // removal bypasses canPop; the
-                                          // disposed controller ignores any
-                                          // eventual old-cycle save response.
-                                          // Revoked navigation resolves
-                                          // with null (never a save success).
-                                          navigator.removeRoute(editorRoute);
-                                        });
-                                      }
-                                      final profileAsync =
-                                          ref.watch(profileDataProvider);
-                                      final unit = authorized &&
-                                              !profileAsync.isLoading &&
-                                              !profileAsync.hasError
-                                          ? profileAsync
-                                              .valueOrNull
-                                              ?.unitPreferences
-                                              .weightUnit
-                                          : null;
-                                      return EditRoutinePage(
-                                        key: ValueKey(
-                                          'edit-routine-owner-${currentOwner ?? 'none'}-auth-${currentAuth ?? 'none'}-cycle-${currentCycleId ?? 'none'}',
-                                        ),
-                                        program: program,
-                                        routine: ownedRoutine,
-                                        routineRepository: authorized
-                                            ? ref.watch(routineRepositoryProvider)
-                                            : null,
-                                        compositionRepository: authorized
-                                            ? ref.watch(
-                                                routineCompositionRepositoryProvider,
-                                              )
-                                            : null,
-                                        catalogRepository: ref.watch(
-                                          exerciseCatalogRepositoryProvider,
-                                        ),
-                                        userExerciseRepository: authorized
-                                            ? ref.watch(
-                                                userExerciseRepositoryProvider,
-                                              )
-                                            : null,
-                                        viewerMediaGender: authorized && unit != null
-                                            ? ref.watch(exerciseViewerMediaGenderProvider)
-                                            : null,
-                                        onExerciseInfoPressed: (exercise) =>
-                                            _pushCanonicalExerciseDetail(
-                                          context: context,
-                                          ref: ref,
-                                          exercise: exercise,
-                                          catalogRepository: ref.read(
-                                            exerciseCatalogRepositoryProvider,
-                                          ),
-                                          userExerciseRepository: authorized
-                                              ? ref.read(
-                                                  userExerciseRepositoryProvider,
-                                                )
-                                              : null,
-                                          viewerMediaGender: authorized && unit != null
-                                              ? ref.read(
-                                                  exerciseViewerMediaGenderProvider,
-                                                )
-                                              : null,
-                                          expectedOwnerId: startingOwner,
-                                          expectedLoginCycleId: startingCycleId,
-                                        ),
-                                        weightUnit: unit,
-                                        // Recheck the live opening login cycle
-                                        // synchronously immediately before an
-                                        // RPC, not only after the route rebuilds.
-                                        canWrite: () {
-                                          try {
-                                            final liveBoot = ref
-                                                .read(
-                                                  appSessionBootstrapControllerProvider,
-                                                )
-                                                .state;
-                                            final liveAuthAsync =
-                                                ref.read(authSessionStateProvider);
-                                            final liveAuth = liveAuthAsync.isLoading ||
-                                                    liveAuthAsync.hasError
-                                                ? null
-                                                : liveAuthAsync.valueOrNull;
-                                            return liveBoot is AppSessionBootstrapReady &&
-                                                liveBoot.userId == startingOwner &&
-                                                liveAuth is AuthSessionAuthenticated &&
-                                                liveAuth.session.userId ==
-                                                    startingOwner &&
-                                                liveAuth.session.loginCycleId ==
-                                                    startingCycleId;
-                                          } catch (_) {
-                                            // A disposed Consumer cannot retain
-                                            // a capability for the old session.
-                                            return false;
-                                          }
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ),
-                              );
+            var revoked = false;
+            final confirmed = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => Consumer(
+                  builder: (context, ref, _) {
+                    // Re-evaluate all account capabilities
+                    // in the destination itself, not only
+                    // when the navigation action was tapped.
+                    final session = ref
+                        .watch(
+                          appSessionBootstrapControllerProvider,
+                        )
+                        .state;
+                    final currentOwner = session is AppSessionBootstrapReady
+                        ? session.userId
+                        : null;
+                    final authAsync = ref.watch(authSessionStateProvider);
+                    final auth = authAsync.isLoading || authAsync.hasError
+                        ? null
+                        : authAsync.valueOrNull;
+                    final currentAuth = auth is AuthSessionAuthenticated
+                        ? auth.session.userId
+                        : null;
+                    final currentCycleId = auth is AuthSessionAuthenticated
+                        ? auth.session.loginCycleId
+                        : null;
+                    final authorized = currentOwner == startingOwner &&
+                        currentAuth == startingOwner &&
+                        currentCycleId == startingCycleId;
+                    // The editor may be covered by a
+                    // picker or Set modal on this Navigator.
+                    // A changed Auth/bootstrap owner must
+                    // dismiss those routes too: disposing
+                    // the underlying keyed editor alone
+                    // does not clear an overlay's private
+                    // Custom Exercise/Set draft.
+                    if (!authorized && !revoked) {
+                      revoked = true;
+                      final editorRoute = ModalRoute.of(context);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!context.mounted ||
+                            editorRoute == null ||
+                            !editorRoute.isActive) {
+                          return;
+                        }
+                        final navigator = Navigator.of(context);
+                        navigator.popUntil(
+                          (route) => identical(route, editorRoute),
+                        );
+                        // A pending RPC deliberately
+                        // blocks normal back via PopScope.
+                        // On auth/cycle revocation that
+                        // protection must NOT keep the old
+                        // account's editor mounted. Force
+                        // removal bypasses canPop; the
+                        // disposed controller ignores any
+                        // eventual old-cycle save response.
+                        // Revoked navigation resolves
+                        // with null (never a save success).
+                        navigator.removeRoute(editorRoute);
+                      });
+                    }
+                    final profileAsync = ref.watch(profileDataProvider);
+                    final unit = authorized &&
+                            !profileAsync.isLoading &&
+                            !profileAsync.hasError
+                        ? profileAsync.valueOrNull?.unitPreferences.weightUnit
+                        : null;
+                    return EditRoutinePage(
+                      key: ValueKey(
+                        'edit-routine-owner-${currentOwner ?? 'none'}-auth-${currentAuth ?? 'none'}-cycle-${currentCycleId ?? 'none'}',
+                      ),
+                      program: program,
+                      routine: ownedRoutine,
+                      routineRepository: authorized
+                          ? ref.watch(routineRepositoryProvider)
+                          : null,
+                      compositionRepository: authorized
+                          ? ref.watch(
+                              routineCompositionRepositoryProvider,
+                            )
+                          : null,
+                      routineNotesRepository: authorized
+                          ? ref.watch(
+                              routineNotesRepositoryProvider,
+                            )
+                          : null,
+                      routineNotesOwnerId: authorized ? startingOwner : null,
+                      isRoutineNotesSessionCurrent: () {
+                        try {
+                          final liveBoot = ref
+                              .read(
+                                appSessionBootstrapControllerProvider,
+                              )
+                              .state;
+                          final liveAuthAsync =
+                              ref.read(authSessionStateProvider);
+                          final liveAuth =
+                              liveAuthAsync.isLoading || liveAuthAsync.hasError
+                                  ? null
+                                  : liveAuthAsync.valueOrNull;
+                          return liveBoot is AppSessionBootstrapReady &&
+                              liveBoot.userId == startingOwner &&
+                              liveAuth is AuthSessionAuthenticated &&
+                              liveAuth.session.userId == startingOwner &&
+                              liveAuth.session.loginCycleId == startingCycleId;
+                        } catch (_) {
+                          return false;
+                        }
+                      },
+                      catalogRepository: ref.watch(
+                        exerciseCatalogRepositoryProvider,
+                      ),
+                      userExerciseRepository: authorized
+                          ? ref.watch(
+                              userExerciseRepositoryProvider,
+                            )
+                          : null,
+                      viewerMediaGender: authorized && unit != null
+                          ? ref.watch(exerciseViewerMediaGenderProvider)
+                          : null,
+                      onExerciseInfoPressed: (exercise) =>
+                          _pushCanonicalExerciseDetail(
+                        context: context,
+                        ref: ref,
+                        exercise: exercise,
+                        catalogRepository: ref.read(
+                          exerciseCatalogRepositoryProvider,
+                        ),
+                        userExerciseRepository: authorized
+                            ? ref.read(
+                                userExerciseRepositoryProvider,
+                              )
+                            : null,
+                        viewerMediaGender: authorized && unit != null
+                            ? ref.read(
+                                exerciseViewerMediaGenderProvider,
+                              )
+                            : null,
+                        expectedOwnerId: startingOwner,
+                        expectedLoginCycleId: startingCycleId,
+                      ),
+                      weightUnit: unit,
+                      // Recheck the live opening login cycle
+                      // synchronously immediately before an
+                      // RPC, not only after the route rebuilds.
+                      canWrite: () {
+                        try {
+                          final liveBoot = ref
+                              .read(
+                                appSessionBootstrapControllerProvider,
+                              )
+                              .state;
+                          final liveAuthAsync =
+                              ref.read(authSessionStateProvider);
+                          final liveAuth =
+                              liveAuthAsync.isLoading || liveAuthAsync.hasError
+                                  ? null
+                                  : liveAuthAsync.valueOrNull;
+                          return liveBoot is AppSessionBootstrapReady &&
+                              liveBoot.userId == startingOwner &&
+                              liveAuth is AuthSessionAuthenticated &&
+                              liveAuth.session.userId == startingOwner &&
+                              liveAuth.session.loginCycleId == startingCycleId;
+                        } catch (_) {
+                          // A disposed Consumer cannot retain
+                          // a capability for the old session.
+                          return false;
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+            );
             return confirmed ?? false;
           }
 
@@ -486,49 +515,63 @@ List<RouteBase> _shellBranchChildRoutes(
           /// supplies a live bootstrap/Auth-cycle capability check.
           Future<bool> deleteRoutine(Program program, Routine routine) async {
             final repository = deleteRepository;
-            if (repository == null || routineRepository == null ||
+            if (repository == null ||
+                routineRepository == null ||
                 routine.programId != program.id) {
               return false;
             }
             final openingBoot =
                 ref.read(appSessionBootstrapControllerProvider).state;
             final owner = openingBoot is AppSessionBootstrapReady
-                ? openingBoot.userId : null;
+                ? openingBoot.userId
+                : null;
             final openingValue = ref.read(authSessionStateProvider);
             final openingAuth = openingValue.isLoading || openingValue.hasError
-                ? null : openingValue.valueOrNull;
+                ? null
+                : openingValue.valueOrNull;
             final cycle = openingAuth is AuthSessionAuthenticated &&
                     openingAuth.session.userId == owner
-                ? openingAuth.session.loginCycleId : null;
+                ? openingAuth.session.loginCycleId
+                : null;
             if (owner == null || cycle == null) return false;
 
             bool sameSession() {
               try {
-                final boot = ref.read(appSessionBootstrapControllerProvider).state;
+                final boot =
+                    ref.read(appSessionBootstrapControllerProvider).state;
                 final value = ref.read(authSessionStateProvider);
                 final auth = value.isLoading || value.hasError
-                    ? null : value.valueOrNull;
+                    ? null
+                    : value.valueOrNull;
                 return boot is AppSessionBootstrapReady &&
                     boot.userId == owner &&
                     auth is AuthSessionAuthenticated &&
                     auth.session.userId == owner &&
                     auth.session.loginCycleId == cycle &&
-                    ref.read(supabaseClientProvider)?.auth.currentUser?.id == owner;
+                    ref.read(supabaseClientProvider)?.auth.currentUser?.id ==
+                        owner;
               } catch (_) {
                 return false;
               }
             }
+
             if (!sameSession()) return false;
             return deleteFlow.run(
-              context: context, program: program, routine: routine,
-              repository: repository, canWrite: sameSession,
+              context: context,
+              program: program,
+              routine: routine,
+              repository: repository,
+              canWrite: sameSession,
               confirmationGuard: (dialogContext, content) => Consumer(
                 builder: (guardContext, guardRef, _) {
                   final currentBoot = guardRef
-                      .watch(appSessionBootstrapControllerProvider).state;
+                      .watch(appSessionBootstrapControllerProvider)
+                      .state;
                   final currentAuth = guardRef.watch(authSessionStateProvider);
-                  final currentState = currentAuth.isLoading || currentAuth.hasError
-                      ? null : currentAuth.valueOrNull;
+                  final currentState =
+                      currentAuth.isLoading || currentAuth.hasError
+                          ? null
+                          : currentAuth.valueOrNull;
                   final stillOwner = currentBoot is AppSessionBootstrapReady &&
                       currentBoot.userId == owner &&
                       currentState is AuthSessionAuthenticated &&
@@ -541,7 +584,8 @@ List<RouteBase> _shellBranchChildRoutes(
                     // synchronously removed from the rendered widget tree.
                     final staleRoute = ModalRoute.of(guardContext);
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!guardContext.mounted || staleRoute == null ||
+                      if (!guardContext.mounted ||
+                          staleRoute == null ||
                           !staleRoute.isActive) {
                         return;
                       }
@@ -564,31 +608,38 @@ List<RouteBase> _shellBranchChildRoutes(
             final openingBoot =
                 ref.read(appSessionBootstrapControllerProvider).state;
             final owner = openingBoot is AppSessionBootstrapReady
-                ? openingBoot.userId : null;
+                ? openingBoot.userId
+                : null;
             final openingValue = ref.read(authSessionStateProvider);
             final openingAuth = openingValue.isLoading || openingValue.hasError
-                ? null : openingValue.valueOrNull;
+                ? null
+                : openingValue.valueOrNull;
             final cycle = openingAuth is AuthSessionAuthenticated &&
                     openingAuth.session.userId == owner
-                ? openingAuth.session.loginCycleId : null;
+                ? openingAuth.session.loginCycleId
+                : null;
             if (owner == null || cycle == null) return false;
 
             bool sameSession() {
               try {
-                final boot = ref.read(appSessionBootstrapControllerProvider).state;
+                final boot =
+                    ref.read(appSessionBootstrapControllerProvider).state;
                 final value = ref.read(authSessionStateProvider);
                 final auth = value.isLoading || value.hasError
-                    ? null : value.valueOrNull;
+                    ? null
+                    : value.valueOrNull;
                 return boot is AppSessionBootstrapReady &&
                     boot.userId == owner &&
                     auth is AuthSessionAuthenticated &&
                     auth.session.userId == owner &&
                     auth.session.loginCycleId == cycle &&
-                    ref.read(supabaseClientProvider)?.auth.currentUser?.id == owner;
+                    ref.read(supabaseClientProvider)?.auth.currentUser?.id ==
+                        owner;
               } catch (_) {
                 return false;
               }
             }
+
             if (!sameSession()) return false;
             final subscription = ref.listenManual<ProgramDeleteController?>(
               programDeleteControllerProvider(program.id),
@@ -607,20 +658,26 @@ List<RouteBase> _shellBranchChildRoutes(
                 confirmationGuard: (dialogContext, content) => Consumer(
                   builder: (guardContext, guardRef, _) {
                     final currentBoot = guardRef
-                        .watch(appSessionBootstrapControllerProvider).state;
-                    final currentAuth = guardRef.watch(authSessionStateProvider);
-                    final currentState = currentAuth.isLoading || currentAuth.hasError
-                        ? null : currentAuth.valueOrNull;
-                    final stillOwner = currentBoot is AppSessionBootstrapReady &&
-                        currentBoot.userId == owner &&
-                        currentState is AuthSessionAuthenticated &&
-                        currentState.session.userId == owner &&
-                        currentState.session.loginCycleId == cycle &&
-                        sameSession();
+                        .watch(appSessionBootstrapControllerProvider)
+                        .state;
+                    final currentAuth =
+                        guardRef.watch(authSessionStateProvider);
+                    final currentState =
+                        currentAuth.isLoading || currentAuth.hasError
+                            ? null
+                            : currentAuth.valueOrNull;
+                    final stillOwner =
+                        currentBoot is AppSessionBootstrapReady &&
+                            currentBoot.userId == owner &&
+                            currentState is AuthSessionAuthenticated &&
+                            currentState.session.userId == owner &&
+                            currentState.session.loginCycleId == cycle &&
+                            sameSession();
                     if (!stillOwner) {
                       final staleRoute = ModalRoute.of(guardContext);
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!guardContext.mounted || staleRoute == null ||
+                        if (!guardContext.mounted ||
+                            staleRoute == null ||
                             !staleRoute.isActive) {
                           return;
                         }
@@ -645,22 +702,29 @@ List<RouteBase> _shellBranchChildRoutes(
             final programs = programRepository;
             final moves = moveRepository;
             final atomicMoves = createMoveRepository;
-            if (!moveActionEnabled || programs == null || moves == null ||
-                atomicMoves == null || !identical(moves, atomicMoves) ||
-                routineRepository == null || routine.programId != program.id) {
+            if (!moveActionEnabled ||
+                programs == null ||
+                moves == null ||
+                atomicMoves == null ||
+                !identical(moves, atomicMoves) ||
+                routineRepository == null ||
+                routine.programId != program.id) {
               return false;
             }
 
             final openingBoot =
                 ref.read(appSessionBootstrapControllerProvider).state;
             final owner = openingBoot is AppSessionBootstrapReady
-                ? openingBoot.userId : null;
+                ? openingBoot.userId
+                : null;
             final authValue = ref.read(authSessionStateProvider);
             final auth = authValue.isLoading || authValue.hasError
-                ? null : authValue.valueOrNull;
-            final cycle = auth is AuthSessionAuthenticated &&
-                    auth.session.userId == owner
-                ? auth.session.loginCycleId : null;
+                ? null
+                : authValue.valueOrNull;
+            final cycle =
+                auth is AuthSessionAuthenticated && auth.session.userId == owner
+                    ? auth.session.loginCycleId
+                    : null;
             if (owner == null || cycle == null || cycle.trim().isEmpty) {
               return false;
             }
@@ -676,7 +740,8 @@ List<RouteBase> _shellBranchChildRoutes(
                     ref.read(appSessionBootstrapControllerProvider).state;
                 final value = ref.read(authSessionStateProvider);
                 final live = value.isLoading || value.hasError
-                    ? null : value.valueOrNull;
+                    ? null
+                    : value.valueOrNull;
                 return boot is AppSessionBootstrapReady &&
                     boot.userId == owner &&
                     live is AuthSessionAuthenticated &&
@@ -698,8 +763,10 @@ List<RouteBase> _shellBranchChildRoutes(
                         ref.read(routineMoveUiPreviewEnabledProvider) ||
                         ref.read(routineMoveQaEnabledProvider)) &&
                     !ref.read(routinePendingCreateGateProvider).hasPending(
-                      owner: owner, loginCycle: cycle, programId: program.id,
-                    );
+                          owner: owner,
+                          loginCycle: cycle,
+                          programId: program.id,
+                        );
               } catch (_) {
                 return false;
               }
@@ -734,9 +801,10 @@ List<RouteBase> _shellBranchChildRoutes(
                   mutationId: mutationId,
                 );
               },
-              modalGuard: (dialogContext, content) =>
-                  _guardRoutineOptionsSheet(
-                content: content, ownerId: owner, loginCycleId: cycle,
+              modalGuard: (dialogContext, content) => _guardRoutineOptionsSheet(
+                content: content,
+                ownerId: owner,
+                loginCycleId: cycle,
               ),
               onUndoWriteAttempted: () {
                 if (sameAuthenticatedOwner()) {
@@ -747,15 +815,15 @@ List<RouteBase> _shellBranchChildRoutes(
                   );
                 }
               },
-                onCreateMoveUndoWriteAttempted: () {
-                  if (sameAuthenticatedOwner()) {
-                    moveRefresh.request(
-                      ownerId: owner,
-                      loginCycleId: cycle,
-                      programsMayHaveChanged: true,
-                    );
-                  }
-                },
+              onCreateMoveUndoWriteAttempted: () {
+                if (sameAuthenticatedOwner()) {
+                  moveRefresh.request(
+                    ownerId: owner,
+                    loginCycleId: cycle,
+                    programsMayHaveChanged: true,
+                  );
+                }
+              },
             );
             // An attempted write (including UNKNOWN or a late rejection)
             // invalidates live owner-scoped readers. The flow's boolean is
@@ -787,9 +855,8 @@ List<RouteBase> _shellBranchChildRoutes(
                     // Key the preview by the canonical session user so a
                     // sign-out/account switch disposes its private read state
                     // immediately, even while catalog resolution is in flight.
-                    final session = ref
-                        .watch(appSessionBootstrapControllerProvider)
-                        .state;
+                    final session =
+                        ref.watch(appSessionBootstrapControllerProvider).state;
                     final ownerId = session is AppSessionBootstrapReady
                         ? session.userId
                         : null;
@@ -827,21 +894,27 @@ List<RouteBase> _shellBranchChildRoutes(
                         : null;
                     bool notesSessionIsCurrent() {
                       try {
-                        final liveAuthAsync = ref.read(authSessionStateProvider);
-                        final liveAuth = liveAuthAsync.isLoading ||
-                                liveAuthAsync.hasError
-                            ? null
-                            : liveAuthAsync.valueOrNull;
+                        final liveAuthAsync =
+                            ref.read(authSessionStateProvider);
+                        final liveAuth =
+                            liveAuthAsync.isLoading || liveAuthAsync.hasError
+                                ? null
+                                : liveAuthAsync.valueOrNull;
                         return verifiedOwner &&
                             liveAuth is AuthSessionAuthenticated &&
                             liveAuth.session.userId == authUserId &&
                             liveAuth.session.loginCycleId == authCycleId &&
-                            ref.read(supabaseClientProvider)?.auth.currentUser?.id ==
+                            ref
+                                    .read(supabaseClientProvider)
+                                    ?.auth
+                                    .currentUser
+                                    ?.id ==
                                 authUserId;
                       } catch (_) {
                         return false;
                       }
                     }
+
                     final mayEdit = verifiedOwner &&
                         weightUnit != null &&
                         userExerciseRepository != null;
@@ -894,35 +967,39 @@ List<RouteBase> _shellBranchChildRoutes(
                 ? openingBoot.userId
                 : null;
             final openingAuthAsync = ref.read(authSessionStateProvider);
-            final openingAuth = openingAuthAsync.isLoading ||
-                    openingAuthAsync.hasError
-                ? null
-                : openingAuthAsync.valueOrNull;
-            final openingCycle =
-                openingAuth is AuthSessionAuthenticated &&
-                        openingAuth.session.userId == openingOwner
-                    ? openingAuth.session.loginCycleId
-                    : null;
+            final openingAuth =
+                openingAuthAsync.isLoading || openingAuthAsync.hasError
+                    ? null
+                    : openingAuthAsync.valueOrNull;
+            final openingCycle = openingAuth is AuthSessionAuthenticated &&
+                    openingAuth.session.userId == openingOwner
+                ? openingAuth.session.loginCycleId
+                : null;
             final pendingGate = ref.read(routinePendingCreateGateProvider);
             if (openingOwner != null && openingCycle != null) {
               pendingGate.bindSession(
-                owner: openingOwner, loginCycle: openingCycle);
+                  owner: openingOwner, loginCycle: openingCycle);
             }
             bool openingSessionValid() {
               try {
-                final boot = ref.read(
-                    appSessionBootstrapControllerProvider).state;
+                final boot =
+                    ref.read(appSessionBootstrapControllerProvider).state;
                 final value = ref.read(authSessionStateProvider);
                 final auth = value.isLoading || value.hasError
-                    ? null : value.valueOrNull;
-                return openingOwner != null && openingCycle != null &&
+                    ? null
+                    : value.valueOrNull;
+                return openingOwner != null &&
+                    openingCycle != null &&
                     boot is AppSessionBootstrapReady &&
                     boot.userId == openingOwner &&
                     auth is AuthSessionAuthenticated &&
                     auth.session.userId == openingOwner &&
                     auth.session.loginCycleId == openingCycle;
-              } catch (_) { return false; }
+              } catch (_) {
+                return false;
+              }
             }
+
             // Canonical guarded atomic Create, shared by Program Detail and
             // direct Library Add. No metadata-only or duplicate persistence.
             Future<bool> createRoutine(String suggestedName,
@@ -938,25 +1015,20 @@ List<RouteBase> _shellBranchChildRoutes(
                   )) {
                 return false;
               }
-              final boot = ref
-                  .read(appSessionBootstrapControllerProvider)
-                  .state;
-              final initialOwner = boot is AppSessionBootstrapReady
-                  ? boot.userId
-                  : null;
+              final boot =
+                  ref.read(appSessionBootstrapControllerProvider).state;
+              final initialOwner =
+                  boot is AppSessionBootstrapReady ? boot.userId : null;
               final authValue = ref.read(authSessionStateProvider);
-              final initialAuth = authValue.isLoading ||
-                      authValue.hasError
+              final initialAuth = authValue.isLoading || authValue.hasError
                   ? null
                   : authValue.valueOrNull;
-              final initialAuthOwner =
-                  initialAuth is AuthSessionAuthenticated
-                      ? initialAuth.session.userId
-                      : null;
-              final initialCycle =
-                  initialAuth is AuthSessionAuthenticated
-                      ? initialAuth.session.loginCycleId
-                      : null;
+              final initialAuthOwner = initialAuth is AuthSessionAuthenticated
+                  ? initialAuth.session.userId
+                  : null;
+              final initialCycle = initialAuth is AuthSessionAuthenticated
+                  ? initialAuth.session.loginCycleId
+                  : null;
               if (initialOwner != openingOwner ||
                   initialAuthOwner != openingOwner ||
                   initialCycle != openingCycle) {
@@ -968,40 +1040,31 @@ List<RouteBase> _shellBranchChildRoutes(
               // Transient Profile errors must not replace
               // this route's unsaved Create controller.
               WeightUnit? lastVerifiedUnit;
-              final confirmed = await Navigator.of(context)
-                  .push<bool>(MaterialPageRoute(
+              final confirmed =
+                  await Navigator.of(context).push<bool>(MaterialPageRoute(
                 builder: (_) => Consumer(
                   builder: (context, ref, _) {
-                    final boot = ref
-                        .watch(appSessionBootstrapControllerProvider)
-                        .state;
-                    final owner = boot is AppSessionBootstrapReady
-                        ? boot.userId
-                        : null;
-                    final authAsync =
-                        ref.watch(authSessionStateProvider);
-                    final auth = authAsync.isLoading ||
-                            authAsync.hasError
+                    final boot =
+                        ref.watch(appSessionBootstrapControllerProvider).state;
+                    final owner =
+                        boot is AppSessionBootstrapReady ? boot.userId : null;
+                    final authAsync = ref.watch(authSessionStateProvider);
+                    final auth = authAsync.isLoading || authAsync.hasError
                         ? null
                         : authAsync.valueOrNull;
-                    final authOwner =
-                        auth is AuthSessionAuthenticated
-                            ? auth.session.userId
-                            : null;
-                    final cycle =
-                        auth is AuthSessionAuthenticated
-                            ? auth.session.loginCycleId
-                            : null;
-                    final authorized =
-                        owner == initialOwner &&
+                    final authOwner = auth is AuthSessionAuthenticated
+                        ? auth.session.userId
+                        : null;
+                    final cycle = auth is AuthSessionAuthenticated
+                        ? auth.session.loginCycleId
+                        : null;
+                    final authorized = owner == initialOwner &&
                         authOwner == initialOwner &&
                         cycle == initialCycle;
                     if (!authorized && !revoked) {
                       revoked = true;
-                      final privateRoute =
-                          ModalRoute.of(context);
-                      WidgetsBinding.instance
-                          .addPostFrameCallback((_) {
+                      final privateRoute = ModalRoute.of(context);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (!context.mounted ||
                             privateRoute == null ||
                             !privateRoute.isActive) {
@@ -1014,28 +1077,23 @@ List<RouteBase> _shellBranchChildRoutes(
                         // before removing the revoked
                         // session's underlying route.
                         final navigator = Navigator.of(context);
-                        navigator.popUntil((route) =>
-                            identical(route, privateRoute));
+                        navigator.popUntil(
+                            (route) => identical(route, privateRoute));
                         // RemoveRoute bypasses a pending
                         // save's PopScope; revoked content
                         // must not survive the login cycle.
                         navigator.removeRoute(privateRoute);
                       });
                     }
-                    final profile =
-                        ref.watch(profileDataProvider);
-                    final resolvedUnit = authorized &&
-                            !profile.isLoading &&
-                            !profile.hasError
-                        ? profile.valueOrNull
-                            ?.unitPreferences.weightUnit
-                        : null;
+                    final profile = ref.watch(profileDataProvider);
+                    final resolvedUnit =
+                        authorized && !profile.isLoading && !profile.hasError
+                            ? profile.valueOrNull?.unitPreferences.weightUnit
+                            : null;
                     if (resolvedUnit != null) {
                       lastVerifiedUnit = resolvedUnit;
                     }
-                    final unit = authorized
-                        ? lastVerifiedUnit
-                        : null;
+                    final unit = authorized ? lastVerifiedUnit : null;
                     if (!authorized || unit == null) {
                       return const Scaffold(
                         body: Center(
@@ -1054,19 +1112,21 @@ List<RouteBase> _shellBranchChildRoutes(
                       returnToLibrary: launchedFromLibrary,
                       createRepository: createRepository,
                       catalogRepository: catalog,
-                      userExerciseRepository:
-                          userExerciseRepository,
+                      userExerciseRepository: userExerciseRepository,
                       routineRepository: routineRepository,
                       compositionRepository: compositions,
+                      routineNotesRepository:
+                          ref.watch(routineNotesRepositoryProvider),
+                      routineNotesOwnerId: openingOwner,
+                      isRoutineNotesSessionCurrent: openingSessionValid,
                       onExerciseInfoPressed: (exercise) =>
                           _pushCanonicalExerciseDetail(
                         context: context,
                         ref: ref,
                         exercise: exercise,
                         catalogRepository: catalog,
-                        userExerciseRepository: authorized
-                            ? userExerciseRepository
-                            : null,
+                        userExerciseRepository:
+                            authorized ? userExerciseRepository : null,
                         viewerMediaGender: authorized
                             ? ref.read(exerciseViewerMediaGenderProvider)
                             : null,
@@ -1127,17 +1187,14 @@ List<RouteBase> _shellBranchChildRoutes(
                           final current = ref
                               .read(appSessionBootstrapControllerProvider)
                               .state;
-                          final a = ref
-                              .read(authSessionStateProvider);
-                          final auth = a.isLoading || a.hasError
-                              ? null
-                              : a.valueOrNull;
+                          final a = ref.read(authSessionStateProvider);
+                          final auth =
+                              a.isLoading || a.hasError ? null : a.valueOrNull;
                           return current is AppSessionBootstrapReady &&
                               current.userId == initialOwner &&
                               auth is AuthSessionAuthenticated &&
                               auth.session.userId == initialOwner &&
-                              auth.session.loginCycleId ==
-                                  initialCycle;
+                              auth.session.loginCycleId == initialCycle;
                         } catch (_) {
                           return false;
                         }
@@ -1206,10 +1263,12 @@ List<RouteBase> _shellBranchChildRoutes(
                     // Revoke its loaded owner data and destructive callbacks
                     // on bootstrap or Auth-cycle change, even mid-dialog.
                     final bootState = routeRef
-                        .watch(appSessionBootstrapControllerProvider).state;
+                        .watch(appSessionBootstrapControllerProvider)
+                        .state;
                     final authAsync = routeRef.watch(authSessionStateProvider);
                     final authState = authAsync.isLoading || authAsync.hasError
-                        ? null : authAsync.valueOrNull;
+                        ? null
+                        : authAsync.valueOrNull;
                     final authorized = openingOwner != null &&
                         openingCycle != null &&
                         bootState is AppSessionBootstrapReady &&
@@ -1223,11 +1282,13 @@ List<RouteBase> _shellBranchChildRoutes(
                     // the page/nav alive but dispose its owner-bound reader.
                     final revoked = openingCycle != null && !authorized;
                     return ProgramDetailPage(
-                      key: ValueKey('program-detail-$openingOwner-$openingCycle'),
+                      key: ValueKey(
+                          'program-detail-$openingOwner-$openingCycle'),
                       // A mounted old owner route must not retain its
                       // private Program title when its auth cycle is revoked.
                       program: revoked
-                          ? Program(id: program.id, name: 'Routines unavailable')
+                          ? Program(
+                              id: program.id, name: 'Routines unavailable')
                           : program,
                       routineRepository: revoked ? null : routineRepository,
                       moveRefreshSignal: revoked ? null : moveRefresh,
@@ -1235,50 +1296,58 @@ List<RouteBase> _shellBranchChildRoutes(
                       moveRefreshLoginCycleId: revoked ? null : openingCycle,
                       actionSheetGuard: (sheetContext, sheet) =>
                           _guardRoutineOptionsSheet(
-                            content: sheet, ownerId: openingOwner,
-                            loginCycleId: openingCycle,
+                        content: sheet,
+                        ownerId: openingOwner,
+                        loginCycleId: openingCycle,
+                      ),
+                      pendingCreateChanges: pendingGate,
+                      onRoutinePressed: revoked || compositions == null
+                          ? null
+                          : (routine) => openRoutine(program, routine),
+                      onEditRoutine: revoked ||
+                              compositions == null ||
+                              userExerciseRepository == null
+                          ? null
+                          : (routine) => editRoutine(program, routine),
+                      onMoveRoutine: !moveActionEnabled ||
+                              revoked ||
+                              moveRepository == null ||
+                              createMoveRepository == null ||
+                              programRepository == null ||
+                              !openingSessionValid()
+                          ? null
+                          : (routine) => moveRoutine(program, routine),
+                      onDeleteRoutine: revoked ||
+                              deleteRepository == null ||
+                              !openingSessionValid()
+                          ? null
+                          : (routine) => deleteRoutine(program, routine),
+                      hasUnconfirmedCreate: () =>
+                          !revoked &&
+                          openingOwner != null &&
+                          openingCycle != null &&
+                          pendingGate.hasPending(
+                            owner: openingOwner,
+                            loginCycle: openingCycle,
+                            programId: program.id,
                           ),
-                  pendingCreateChanges: pendingGate,
-                  onRoutinePressed: revoked || compositions == null
-                      ? null
-                      : (routine) => openRoutine(program, routine),
-                  onEditRoutine: revoked || compositions == null ||
-                          userExerciseRepository == null
-                      ? null
-                      : (routine) => editRoutine(program, routine),
-                  onMoveRoutine: !moveActionEnabled || revoked ||
-                          moveRepository == null ||
-                          createMoveRepository == null ||
-                          programRepository == null ||
-                          !openingSessionValid()
-                      ? null
-                      : (routine) => moveRoutine(program, routine),
-                  onDeleteRoutine: revoked || deleteRepository == null ||
-                          !openingSessionValid()
-                      ? null
-                      : (routine) => deleteRoutine(program, routine),
-                  hasUnconfirmedCreate: () =>
-                      !revoked && openingOwner != null && openingCycle != null &&
-                      pendingGate.hasPending(
-                        owner: openingOwner,
-                        loginCycle: openingCycle,
-                        programId: program.id,
-                      ),
-                  onVerifyUnconfirmedCreate: revoked || compositions == null ||
-                          openingOwner == null || openingCycle == null
-                      ? null
-                      : () => pendingGate.verify(
-                        owner: openingOwner,
-                        loginCycle: openingCycle,
-                        programId: program.id,
-                        routines: routineRepository,
-                        compositions: compositions,
-                        canWrite: openingSessionValid,
-                      ),
-                  // Always supply the Create action to keep
-                  // the legacy metadata-only sheet unreachable in
-                  // production, including if RPC dependencies fail.
-                  onCreateRoutine: createRoutine,
+                      onVerifyUnconfirmedCreate: revoked ||
+                              compositions == null ||
+                              openingOwner == null ||
+                              openingCycle == null
+                          ? null
+                          : () => pendingGate.verify(
+                                owner: openingOwner,
+                                loginCycle: openingCycle,
+                                programId: program.id,
+                                routines: routineRepository,
+                                compositions: compositions,
+                                canWrite: openingSessionValid,
+                              ),
+                      // Always supply the Create action to keep
+                      // the legacy metadata-only sheet unreachable in
+                      // production, including if RPC dependencies fail.
+                      onCreateRoutine: createRoutine,
                     );
                   },
                 ),
@@ -1314,7 +1383,8 @@ List<RouteBase> _shellBranchChildRoutes(
                   ref.read(appSessionBootstrapControllerProvider).state;
               final session = ref.read(authSessionStateProvider);
               final liveAuth = session.isLoading || session.hasError
-                  ? null : session.valueOrNull;
+                  ? null
+                  : session.valueOrNull;
               final sdkOwner =
                   ref.read(supabaseClientProvider)?.auth.currentUser?.id;
               return liveBoot is AppSessionBootstrapReady &&
@@ -1339,11 +1409,15 @@ List<RouteBase> _shellBranchChildRoutes(
             final exerciseRepo = userExerciseRepository;
             final compositionRepo = compositions;
             final libraryRoute = ModalRoute.of(context);
-            if (owner == null || cycle == null ||
-                myCreate == null || programs == null ||
-                routines == null || exerciseRepo == null ||
+            if (owner == null ||
+                cycle == null ||
+                myCreate == null ||
+                programs == null ||
+                routines == null ||
+                exerciseRepo == null ||
                 compositionRepo == null ||
-                libraryRoute == null || !libraryRoute.isCurrent ||
+                libraryRoute == null ||
+                !libraryRoute.isCurrent ||
                 !firstRoutineSessionValid(owner, cycle) ||
                 pendingCreates.hasPendingMyProgramForOwner(owner: owner)) {
               return;
@@ -1354,12 +1428,12 @@ List<RouteBase> _shellBranchChildRoutes(
             var suggestedName = 'Routine 1';
             try {
               final savedPrograms = await programs.list();
-              if (!context.mounted || !libraryRoute.isCurrent ||
+              if (!context.mounted ||
+                  !libraryRoute.isCurrent ||
                   !firstRoutineSessionValid(owner, cycle)) {
                 return;
               }
-              final defaults =
-                  savedPrograms.where((p) => p.isDefault).toList();
+              final defaults = savedPrograms.where((p) => p.isDefault).toList();
               if (defaults.length > 1) {
                 return;
               }
@@ -1370,10 +1444,11 @@ List<RouteBase> _shellBranchChildRoutes(
                   return;
                 }
                 final naming = ProgramRoutinesController(
-                  program: defaultProgram, repository: routines);
+                    program: defaultProgram, repository: routines);
                 try {
                   await naming.load();
-                  if (!context.mounted || !libraryRoute.isCurrent ||
+                  if (!context.mounted ||
+                      !libraryRoute.isCurrent ||
                       !firstRoutineSessionValid(owner, cycle) ||
                       naming.state.status != ProgramRoutinesStatus.ready) {
                     return;
@@ -1400,12 +1475,13 @@ List<RouteBase> _shellBranchChildRoutes(
                 builder: (_) => Consumer(
                   builder: (createContext, createRef, _) {
                     final liveBoot = createRef
-                        .watch(appSessionBootstrapControllerProvider).state;
+                        .watch(appSessionBootstrapControllerProvider)
+                        .state;
                     final session = createRef.watch(authSessionStateProvider);
                     final liveAuth = session.isLoading || session.hasError
-                        ? null : session.valueOrNull;
-                    final authorized =
-                        liveBoot is AppSessionBootstrapReady &&
+                        ? null
+                        : session.valueOrNull;
+                    final authorized = liveBoot is AppSessionBootstrapReady &&
                         liveBoot.userId == owner &&
                         liveAuth is AuthSessionAuthenticated &&
                         liveAuth.session.userId == owner &&
@@ -1416,7 +1492,8 @@ List<RouteBase> _shellBranchChildRoutes(
                       final privateRoute = ModalRoute.of(createContext);
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (!createContext.mounted ||
-                            privateRoute == null || !privateRoute.isActive) {
+                            privateRoute == null ||
+                            !privateRoute.isActive) {
                           return;
                         }
                         final navigator = Navigator.of(createContext);
@@ -1426,10 +1503,10 @@ List<RouteBase> _shellBranchChildRoutes(
                       });
                     }
                     final profile = createRef.watch(profileDataProvider);
-                    final verifiedUnit = authorized &&
-                            !profile.isLoading && !profile.hasError
-                        ? profile.valueOrNull?.unitPreferences.weightUnit
-                        : null;
+                    final verifiedUnit =
+                        authorized && !profile.isLoading && !profile.hasError
+                            ? profile.valueOrNull?.unitPreferences.weightUnit
+                            : null;
                     if (verifiedUnit != null) {
                       lastVerifiedUnit = verifiedUnit;
                     }
@@ -1449,15 +1526,21 @@ List<RouteBase> _shellBranchChildRoutes(
                       userExerciseRepository: exerciseRepo,
                       routineRepository: routines,
                       compositionRepository: compositionRepo,
-                      viewerMediaGender: createRef
-                          .watch(exerciseViewerMediaGenderProvider),
+                      routineNotesRepository:
+                          createRef.watch(routineNotesRepositoryProvider),
+                      routineNotesOwnerId: owner,
+                      isRoutineNotesSessionCurrent: () =>
+                          firstRoutineSessionValid(owner, cycle),
+                      viewerMediaGender:
+                          createRef.watch(exerciseViewerMediaGenderProvider),
                       onExerciseInfoPressed: (exercise) =>
                           _pushCanonicalExerciseDetail(
                         context: createContext,
                         ref: createRef,
                         exercise: exercise,
                         catalogRepository: catalog,
-                        userExerciseRepository: authorized ? exerciseRepo : null,
+                        userExerciseRepository:
+                            authorized ? exerciseRepo : null,
                         viewerMediaGender: authorized
                             ? createRef.read(exerciseViewerMediaGenderProvider)
                             : null,
@@ -1471,17 +1554,19 @@ List<RouteBase> _shellBranchChildRoutes(
                           throw StateError('First Routine session revoked.');
                         }
                         pendingCreates.retainMyProgram(
-                          owner: owner, loginCycle: cycle, command: command);
+                            owner: owner, loginCycle: cycle, command: command);
                       },
                       onMyProgramWriteResolved: (command) {
                         if (firstRoutineSessionValid(owner, cycle)) {
                           pendingCreates.releaseMyProgram(
-                            owner: owner, loginCycle: cycle, command: command);
+                              owner: owner,
+                              loginCycle: cycle,
+                              command: command);
                         }
                       },
                       onMyProgramDefiniteFailure: (command) {
                         pendingCreates.releaseDefiniteMyProgramForOwner(
-                          owner: owner, command: command);
+                            owner: owner, command: command);
                       },
                       onMyProgramUnconfirmedExit: (command) {
                         if (!firstRoutineSessionValid(owner, cycle)) {
@@ -1495,11 +1580,14 @@ List<RouteBase> _shellBranchChildRoutes(
                 ),
               ),
             );
-            if (context.mounted && libraryRoute.isCurrent &&
+            if (context.mounted &&
+                libraryRoute.isCurrent &&
                 firstRoutineSessionValid(owner, cycle) &&
                 (confirmed == true || exitedUnconfirmed)) {
               // UNKNOWN causes only a read-refresh, never a claimed ACK.
-              moveRefresh.request(ownerId: owner, loginCycleId: cycle,
+              moveRefresh.request(
+                  ownerId: owner,
+                  loginCycleId: cycle,
                   programsMayHaveChanged: true);
             }
           }
@@ -1510,21 +1598,29 @@ List<RouteBase> _shellBranchChildRoutes(
             final programs = programRepository;
             final routines = routineRepository;
             final snapshots = compositions;
-            if (owner == null || cycle == null ||
-                programs == null || routines == null || snapshots == null ||
+            if (owner == null ||
+                cycle == null ||
+                programs == null ||
+                routines == null ||
+                snapshots == null ||
                 !firstRoutineSessionValid(owner, cycle)) {
               return;
             }
             final verified = await pendingCreates.verifyMyProgram(
-              owner: owner, loginCycle: cycle, programs: programs,
-              routines: routines, compositions: snapshots,
+              owner: owner,
+              loginCycle: cycle,
+              programs: programs,
+              routines: routines,
+              compositions: snapshots,
               canWrite: () => firstRoutineSessionValid(owner, cycle),
             );
             if (!context.mounted || !firstRoutineSessionValid(owner, cycle)) {
               return;
             }
             if (verified) {
-              moveRefresh.request(ownerId: owner, loginCycleId: cycle,
+              moveRefresh.request(
+                  ownerId: owner,
+                  loginCycleId: cycle,
                   programsMayHaveChanged: true);
             }
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -1541,95 +1637,115 @@ List<RouteBase> _shellBranchChildRoutes(
             builder: (bound) => ListenableBuilder(
               listenable: pendingCreates,
               builder: (context, _) => LibraryPage(
-            programRepository: programRepository,
-            routineRepository: routineRepository,
-            onProgramPressed: routineRepository == null
-                ? null
-                : (program) => openProgram(program),
-            onCreateRoutinePressed: !bound || !myProgramCreateEnabled ||
-                    !canCreateForSession || currentOwner == null ||
-                    pendingCreates.hasPendingMyProgramForOwner(
-                        owner: currentOwner) ||
-                    myProgramCreateRepository == null ||
-                    programRepository == null || routineRepository == null ||
-                    compositions == null || userExerciseRepository == null
-                ? null : createFirstRoutine,
-            onVerifyPendingRoutine: bound && myProgramCreateEnabled &&
-                    canCreateForSession && currentOwner != null &&
-                    pendingCreates.hasPendingMyProgramForOwner(
-                        owner: currentOwner) &&
-                    programRepository != null && routineRepository != null &&
-                    compositions != null
-                ? verifyFirstRoutine : null,
-            onAddRoutinePressed: !bound ||
-                    !canCreateForSession ||
-                    routineRepository == null ||
-                    createRepository == null ||
-                    compositions == null ||
-                    userExerciseRepository == null
-                ? null
-                : (program) => openProgram(program, launchCreate: true),
-            pendingCreateChanges: pendingCreates,
-            moveRefreshSignal: bound ? moveRefresh : null,
-            moveRefreshOwnerId: bound ? currentOwner : null,
-            moveRefreshLoginCycleId: bound ? currentCycle : null,
-            hasUnconfirmedCreate: (program) =>
-                bound && currentOwner != null && currentCycle != null &&
-                pendingCreates.hasPending(
-                  owner: currentOwner,
-                  loginCycle: currentCycle,
-                  programId: program.id,
-                ),
-            onRoutinePressed: compositions == null || routineRepository == null
-                ? null
-                : openRoutine,
-            onEditRoutine: !bound || !canCreateForSession ||
-                    routineRepository == null || compositions == null ||
-                    userExerciseRepository == null
-                ? null
-                : editRoutine,
-            onMoveRoutine: !moveActionEnabled || !bound ||
-                    !canCreateForSession || programRepository == null ||
-                    routineRepository == null || moveRepository == null ||
-                    createMoveRepository == null
-                ? null
-                : moveRoutine,
-            actionSheetGuard: (sheetContext, sheet) =>
-                _guardRoutineOptionsSheet(
+                programRepository: programRepository,
+                routineRepository: routineRepository,
+                onProgramPressed: routineRepository == null
+                    ? null
+                    : (program) => openProgram(program),
+                onCreateRoutinePressed: !bound ||
+                        !myProgramCreateEnabled ||
+                        !canCreateForSession ||
+                        currentOwner == null ||
+                        pendingCreates.hasPendingMyProgramForOwner(
+                            owner: currentOwner) ||
+                        myProgramCreateRepository == null ||
+                        programRepository == null ||
+                        routineRepository == null ||
+                        compositions == null ||
+                        userExerciseRepository == null
+                    ? null
+                    : createFirstRoutine,
+                onVerifyPendingRoutine: bound &&
+                        myProgramCreateEnabled &&
+                        canCreateForSession &&
+                        currentOwner != null &&
+                        pendingCreates.hasPendingMyProgramForOwner(
+                            owner: currentOwner) &&
+                        programRepository != null &&
+                        routineRepository != null &&
+                        compositions != null
+                    ? verifyFirstRoutine
+                    : null,
+                onAddRoutinePressed: !bound ||
+                        !canCreateForSession ||
+                        routineRepository == null ||
+                        createRepository == null ||
+                        compositions == null ||
+                        userExerciseRepository == null
+                    ? null
+                    : (program) => openProgram(program, launchCreate: true),
+                pendingCreateChanges: pendingCreates,
+                moveRefreshSignal: bound ? moveRefresh : null,
+                moveRefreshOwnerId: bound ? currentOwner : null,
+                moveRefreshLoginCycleId: bound ? currentCycle : null,
+                hasUnconfirmedCreate: (program) =>
+                    bound &&
+                    currentOwner != null &&
+                    currentCycle != null &&
+                    pendingCreates.hasPending(
+                      owner: currentOwner,
+                      loginCycle: currentCycle,
+                      programId: program.id,
+                    ),
+                onRoutinePressed:
+                    compositions == null || routineRepository == null
+                        ? null
+                        : openRoutine,
+                onEditRoutine: !bound ||
+                        !canCreateForSession ||
+                        routineRepository == null ||
+                        compositions == null ||
+                        userExerciseRepository == null
+                    ? null
+                    : editRoutine,
+                onMoveRoutine: !moveActionEnabled ||
+                        !bound ||
+                        !canCreateForSession ||
+                        programRepository == null ||
+                        routineRepository == null ||
+                        moveRepository == null ||
+                        createMoveRepository == null
+                    ? null
+                    : moveRoutine,
+                actionSheetGuard: (sheetContext, sheet) =>
+                    _guardRoutineOptionsSheet(
                   content: sheet,
                   ownerId: bound ? currentOwner : null,
                   loginCycleId: bound ? currentCycle : null,
                 ),
-            onDeleteRoutine: !bound || !canCreateForSession ||
-                    routineRepository == null || deleteRepository == null
-                ? null
-                : deleteRoutine,
-            onDeleteProgram: !bound || !canCreateForSession ||
-                    programDeleteRepository == null
-                ? null
-                : deleteProgram,
-            onProgramsManagePressed: () =>
-                context.push(AppRoutes.workoutPrograms.path),
-            onExercisesPressed: () =>
-                context.push(AppRoutes.workoutExercises.path),
-            onCreateExercisePressed: () {
-              final repository = userExerciseRepository;
-              if (repository == null) return;
-              Navigator.of(context).push<void>(
-                MaterialPageRoute(
-                  builder: (_) => CreateExercisePage(
-                    repository: repository,
-                  ),
+                onDeleteRoutine: !bound ||
+                        !canCreateForSession ||
+                        routineRepository == null ||
+                        deleteRepository == null
+                    ? null
+                    : deleteRoutine,
+                onDeleteProgram: !bound ||
+                        !canCreateForSession ||
+                        programDeleteRepository == null
+                    ? null
+                    : deleteProgram,
+                onProgramsManagePressed: () =>
+                    context.push(AppRoutes.workoutPrograms.path),
+                onExercisesPressed: () =>
+                    context.push(AppRoutes.workoutExercises.path),
+                onCreateExercisePressed: () {
+                  final repository = userExerciseRepository;
+                  if (repository == null) return;
+                  Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => CreateExercisePage(
+                        repository: repository,
+                      ),
+                    ),
+                  );
+                },
+                canCreateExercise: userExerciseRepository != null,
+                onSearchPressed: () => context.push(
+                  Uri(
+                    path: AppRoutes.workoutExercises.path,
+                    queryParameters: const {_exercisesSearchParameter: 'true'},
+                  ).toString(),
                 ),
-              );
-            },
-            canCreateExercise: userExerciseRepository != null,
-            onSearchPressed: () => context.push(
-              Uri(
-                path: AppRoutes.workoutExercises.path,
-                queryParameters: const {_exercisesSearchParameter: 'true'},
-              ).toString(),
-            ),
               ),
             ),
           );
@@ -1711,8 +1827,7 @@ Widget _calendarVisibleMonthLabel(
   // ellipsis at every width, which is a worse outcome than a button whose
   // padding a centred label passes under without touching its icon.
   const paintedClusterWidth = TioSize.dp48 * 2 + TioSize.dp12;
-  final available =
-      MediaQuery.sizeOf(context).width - paintedClusterWidth * 2;
+  final available = MediaQuery.sizeOf(context).width - paintedClusterWidth * 2;
 
   return ConstrainedBox(
     constraints: BoxConstraints(maxWidth: available > 0 ? available : 0),
@@ -1761,130 +1876,128 @@ StatefulShellRoute buildAppShellRoute({
   required GoRouter Function() router,
 }) {
   return StatefulShellRoute.indexedStack(
-          builder: (context, state, navigationShell) {
-            final chromePolicy = chromePolicyForPath(state.uri.path);
+    builder: (context, state, navigationShell) {
+      final chromePolicy = chromePolicyForPath(state.uri.path);
 
-            return Consumer(
-              builder: (context, ref, child) {
-                final modeState = ref.watch(appModeControllerProvider);
-                final selectedMode = modeState.selectedMode;
-                final visibleTabs = selectedMode == null
-                    ? (isOnboardingCompleted()
-                        ? missingModeCompatibilityShellTabs
-                        : const [ShellTab.home])
-                    : shellTabsForDestinations(
-                        modeState.activeDestinations ??
-                            selectedMode.guidedDestinations,
-                      );
-
-                final profileAsync = ref.watch(profileDataProvider);
-                final profileData = profileAsync.valueOrNull;
-
-                final planTier = switch (profileData?.plan.toLowerCase()) {
-                  'plus' => ShellPlanTier.plus,
-                  'pro' || 'premium' => ShellPlanTier.premium,
-                  _ => ShellPlanTier.free,
-                };
-                final selectedTab =
-                    ShellTab.fromBranchIndex(navigationShell.currentIndex);
-                final workoutDates = selectedTab == ShellTab.workout
-                    ? ref.watch(workoutDateControllerProvider)
-                    : null;
-                final mealDiaryDates = selectedTab == ShellTab.nutrition
-                    ? ref.watch(mealDiaryDateControllerProvider)
-                    : null;
-
-                return TioShell(
-                  key: ValueKey(
-                      'shell-${profileData?.avatarUrl}-${profileData?.plan}'),
-                  state: ShellUiState(
-                    selectedTab: selectedTab,
-                    visibleTabs: visibleTabs,
-                    isBottomNavVisible: chromePolicy.showsBottomNav,
-                    isRootTopBarVisible: chromePolicy.showsRootTopBar,
-                    userName: profileData?.name ?? profileData?.username,
-                    avatarUrl: profileData?.avatarUrl,
-                    planTier: planTier,
-                  ),
-                  onAction: (action) =>
-                      _handleShellAction(router(), navigationShell, action),
-                  // The tab is Nutrition; the screen inside it is the Meal
-                  // Diary, and its own compact name is what the top bar shows.
-                  statusTopBarTitle:
-                      selectedTab == ShellTab.nutrition ? 'Diary' : null,
-                  // Where the reader currently is in the calendar, which is not
-                  // the same question as what they have selected.
-                  statusTopBarCenter: workoutDates != null
-                      ? _calendarVisibleMonthLabel(
-                          context,
-                          visibleMonth: workoutDates.visibleMonth,
-                          labelKey: const ValueKey('workout-visible-month'),
-                        )
-                      : mealDiaryDates != null
-                          ? _calendarVisibleMonthLabel(
-                              context,
-                              visibleMonth: mealDiaryDates.visibleMonth,
-                              labelKey:
-                                  const ValueKey('meal-diary-visible-month'),
-                            )
-                          : null,
-                  // Calendar surfaces share the same return-to-Today affordance.
-                  // Workout currently has [Today?] [streak]; Meal Diary keeps
-                  // its owner-locked [Today?] [streak] [More] order.
-                  statusTopBarLeadingAction: workoutDates != null &&
-                          workoutDates.shouldShowTodayAction
-                      ? IconButton(
-                          key: const ValueKey('workout-today-action'),
-                          tooltip: _calendarTodayTooltip(
-                            context,
-                            workoutDates.selectedDate,
-                            isOnToday: workoutDates.isOnToday,
-                          ),
-                          onPressed: workoutDates.selectToday,
-                          icon: MealDiaryTodayGlyph(
-                            localToday: workoutDates.localToday,
-                          ),
-                        )
-                      : mealDiaryDates != null &&
-                              mealDiaryDates.shouldShowTodayAction
-                          ? IconButton(
-                              key: const ValueKey('meal-diary-today-action'),
-                              tooltip: _calendarTodayTooltip(
-                                context,
-                                mealDiaryDates.selectedDate,
-                                isOnToday: mealDiaryDates.isOnToday,
-                              ),
-                              onPressed: mealDiaryDates.selectToday,
-                              icon: MealDiaryTodayGlyph(
-                                localToday: mealDiaryDates.localToday,
-                              ),
-                            )
-                          : null,
-                  statusTopBarTrailingAction: mealDiaryDates == null
-                      ? null
-                      : MealDiaryMoreMenu(
-                          onMealDiarySettingsPressed: () => context.push(
-                            AppRoutes.mealDiarySettings.path,
-                          ),
-                        ),
-                  child: child!,
+      return Consumer(
+        builder: (context, ref, child) {
+          final modeState = ref.watch(appModeControllerProvider);
+          final selectedMode = modeState.selectedMode;
+          final visibleTabs = selectedMode == null
+              ? (isOnboardingCompleted()
+                  ? missingModeCompatibilityShellTabs
+                  : const [ShellTab.home])
+              : shellTabsForDestinations(
+                  modeState.activeDestinations ??
+                      selectedMode.guidedDestinations,
                 );
-              },
-              child: navigationShell,
-            );
-          },
-          branches: shellBranchRegistry.map((branch) {
-            return StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: branch.route.path,
-                  builder: (context, state) => _shellBranchPage(branch),
-                  routes: _shellBranchChildRoutes(branch, rootNavigatorKey),
-                ),
-              ],
-            );
-          }).toList(growable: false),
-        );
+
+          final profileAsync = ref.watch(profileDataProvider);
+          final profileData = profileAsync.valueOrNull;
+
+          final planTier = switch (profileData?.plan.toLowerCase()) {
+            'plus' => ShellPlanTier.plus,
+            'pro' || 'premium' => ShellPlanTier.premium,
+            _ => ShellPlanTier.free,
+          };
+          final selectedTab =
+              ShellTab.fromBranchIndex(navigationShell.currentIndex);
+          final workoutDates = selectedTab == ShellTab.workout
+              ? ref.watch(workoutDateControllerProvider)
+              : null;
+          final mealDiaryDates = selectedTab == ShellTab.nutrition
+              ? ref.watch(mealDiaryDateControllerProvider)
+              : null;
+
+          return TioShell(
+            key: ValueKey(
+                'shell-${profileData?.avatarUrl}-${profileData?.plan}'),
+            state: ShellUiState(
+              selectedTab: selectedTab,
+              visibleTabs: visibleTabs,
+              isBottomNavVisible: chromePolicy.showsBottomNav,
+              isRootTopBarVisible: chromePolicy.showsRootTopBar,
+              userName: profileData?.name ?? profileData?.username,
+              avatarUrl: profileData?.avatarUrl,
+              planTier: planTier,
+            ),
+            onAction: (action) =>
+                _handleShellAction(router(), navigationShell, action),
+            // The tab is Nutrition; the screen inside it is the Meal
+            // Diary, and its own compact name is what the top bar shows.
+            statusTopBarTitle:
+                selectedTab == ShellTab.nutrition ? 'Diary' : null,
+            // Where the reader currently is in the calendar, which is not
+            // the same question as what they have selected.
+            statusTopBarCenter: workoutDates != null
+                ? _calendarVisibleMonthLabel(
+                    context,
+                    visibleMonth: workoutDates.visibleMonth,
+                    labelKey: const ValueKey('workout-visible-month'),
+                  )
+                : mealDiaryDates != null
+                    ? _calendarVisibleMonthLabel(
+                        context,
+                        visibleMonth: mealDiaryDates.visibleMonth,
+                        labelKey: const ValueKey('meal-diary-visible-month'),
+                      )
+                    : null,
+            // Calendar surfaces share the same return-to-Today affordance.
+            // Workout currently has [Today?] [streak]; Meal Diary keeps
+            // its owner-locked [Today?] [streak] [More] order.
+            statusTopBarLeadingAction: workoutDates != null &&
+                    workoutDates.shouldShowTodayAction
+                ? IconButton(
+                    key: const ValueKey('workout-today-action'),
+                    tooltip: _calendarTodayTooltip(
+                      context,
+                      workoutDates.selectedDate,
+                      isOnToday: workoutDates.isOnToday,
+                    ),
+                    onPressed: workoutDates.selectToday,
+                    icon: MealDiaryTodayGlyph(
+                      localToday: workoutDates.localToday,
+                    ),
+                  )
+                : mealDiaryDates != null && mealDiaryDates.shouldShowTodayAction
+                    ? IconButton(
+                        key: const ValueKey('meal-diary-today-action'),
+                        tooltip: _calendarTodayTooltip(
+                          context,
+                          mealDiaryDates.selectedDate,
+                          isOnToday: mealDiaryDates.isOnToday,
+                        ),
+                        onPressed: mealDiaryDates.selectToday,
+                        icon: MealDiaryTodayGlyph(
+                          localToday: mealDiaryDates.localToday,
+                        ),
+                      )
+                    : null,
+            statusTopBarTrailingAction: mealDiaryDates == null
+                ? null
+                : MealDiaryMoreMenu(
+                    onMealDiarySettingsPressed: () => context.push(
+                      AppRoutes.mealDiarySettings.path,
+                    ),
+                  ),
+            child: child!,
+          );
+        },
+        child: navigationShell,
+      );
+    },
+    branches: shellBranchRegistry.map((branch) {
+      return StatefulShellBranch(
+        routes: [
+          GoRoute(
+            path: branch.route.path,
+            builder: (context, state) => _shellBranchPage(branch),
+            routes: _shellBranchChildRoutes(branch, rootNavigatorKey),
+          ),
+        ],
+      );
+    }).toList(growable: false),
+  );
 }
 
 /// App-only gate: reconcile the verified Library owner/login-cycle *before*
@@ -1950,4 +2063,3 @@ class _VerifiedLibraryCreateSessionState
   @override
   Widget build(BuildContext context) => widget.builder(_bound);
 }
-

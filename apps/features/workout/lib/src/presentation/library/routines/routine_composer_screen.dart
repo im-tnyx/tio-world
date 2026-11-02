@@ -10,6 +10,9 @@ import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/models/routine_rest_timer_preset.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../exercises/widgets/exercise_list_row.dart';
+import 'exercise_notes_inline.dart';
+import 'routine_notes_controller.dart';
+import '../../../domain/repositories/routine_notes_repository.dart';
 
 /// One rendered Routine composition screen for Create and Edit.
 /// Persistence, navigation and auth gates remain with the owning controller.
@@ -219,6 +222,10 @@ class RoutineComposerExerciseCard extends StatelessWidget {
     required this.addSet,
     this.restPreset = const RoutineRestTimerPreset(),
     this.onConfigureRestTimer,
+    this.routineId,
+    this.routineNotesRepository,
+    this.routineNotesOwnerId,
+    this.isRoutineNotesSessionCurrent,
     super.key,
   });
 
@@ -240,6 +247,10 @@ class RoutineComposerExerciseCard extends StatelessWidget {
   final VoidCallback addSet;
   final RoutineRestTimerPreset restPreset;
   final VoidCallback? onConfigureRestTimer;
+  final RoutineId? routineId;
+  final RoutineNotesRepository? routineNotesRepository;
+  final String? routineNotesOwnerId;
+  final RoutineNotesSessionIsCurrent? isRoutineNotesSessionCurrent;
 
   @override
   Widget build(BuildContext context) {
@@ -247,8 +258,7 @@ class RoutineComposerExerciseCard extends StatelessWidget {
     final isEdit = mode == RoutineComposerMode.edit;
     final prefix = isEdit ? 'edit-routine' : 'create-routine';
     final range = showRangeDraft ||
-        (entry.sets.isNotEmpty &&
-            entry.sets.first.prescription.isRepRange);
+        (entry.sets.isNotEmpty && entry.sets.first.prescription.isRepRange);
     return Padding(
       padding: const EdgeInsets.only(bottom: TioSpacing.xl),
       child: Column(
@@ -256,8 +266,7 @@ class RoutineComposerExerciseCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              if (thumbnailUrl != null)
-                ExerciseThumbnail(url: thumbnailUrl!),
+              if (thumbnailUrl != null) ExerciseThumbnail(url: thumbnailUrl!),
               Expanded(
                 child: Semantics(
                   key: ValueKey('$prefix-reorder-semantics-${entry.id}'),
@@ -311,68 +320,80 @@ class RoutineComposerExerciseCard extends StatelessWidget {
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: TioSpacing.xs),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Semantics(
-                button: true,
-                label: RoutineRestTimerFormatter.formatSemantics(
-                  normalSeconds: restPreset.normalRestSeconds,
-                  warmUpSeconds: restPreset.warmUpRestSeconds,
-                ),
-                child: Material(
-                  color: colors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(TioRadius.full),
-                  child: InkWell(
-                    key: ValueKey('$prefix-rest-timer-${entry.id}'),
+          ExerciseNotesInline(
+            key: ValueKey('$prefix-exercise-notes-${entry.id}'),
+            exerciseRef: entry.exercise,
+            routineId: routineId,
+            repository: routineNotesRepository,
+            ownerId: routineNotesOwnerId,
+            isSessionCurrent: isRoutineNotesSessionCurrent,
+            enabled: enabled,
+            restControl: Padding(
+              padding: const EdgeInsets.only(top: TioSpacing.xs),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Semantics(
+                  button: true,
+                  label: RoutineRestTimerFormatter.formatSemantics(
+                    normalSeconds: restPreset.normalRestSeconds,
+                    warmUpSeconds: restPreset.warmUpRestSeconds,
+                  ),
+                  child: Material(
+                    color: colors.surfaceVariant,
                     borderRadius: BorderRadius.circular(TioRadius.full),
-                    onTap: enabled ? onConfigureRestTimer : null,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: TioSpacing.md,
-                        vertical: TioSpacing.xs + 2,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.timer_outlined,
-                            size: TioSize.dp16,
-                            color: colors.textSecondary,
-                          ),
-                          const SizedBox(width: TioSpacing.xs),
-                          Text.rich(
-                            TextSpan(
-                              style: TextStyle(
-                                fontSize: TioFontSize.size13,
-                                fontWeight: TioFontWeight.w600,
-                                color: colors.textPrimary,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: restPreset.normalRestSeconds != null
-                                      ? 'Rest: ${RoutineRestTimerFormatter.formatSeconds(restPreset.normalRestSeconds!)}'
-                                      : restPreset.warmUpRestSeconds != null
-                                          ? 'Rest: '
-                                          : 'Rest: OFF',
-                                ),
-                                if (restPreset.warmUpRestSeconds != null) ...[
-                                  if (restPreset.normalRestSeconds != null)
-                                    const TextSpan(text: ' '),
-                                  TextSpan(
-                                    text: '(${RoutineRestTimerFormatter.formatSeconds(restPreset.warmUpRestSeconds!)})',
-                                    style: TextStyle(
-                                      color: entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp)
-                                          ? colors.warning
-                                          : colors.textMuted,
-                                    ),
-                                  ),
-                                ],
-                              ],
+                    child: InkWell(
+                      key: ValueKey('$prefix-rest-timer-${entry.id}'),
+                      borderRadius: BorderRadius.circular(TioRadius.full),
+                      onTap: enabled ? onConfigureRestTimer : null,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: TioSpacing.md,
+                          vertical: TioSpacing.xs + 2,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.timer_outlined,
+                              size: TioSize.dp16,
+                              color: colors.textSecondary,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: TioSpacing.xs),
+                            Text.rich(
+                              TextSpan(
+                                style: TextStyle(
+                                  fontSize: TioFontSize.size13,
+                                  fontWeight: TioFontWeight.w600,
+                                  color: colors.textPrimary,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: restPreset.normalRestSeconds != null
+                                        ? 'Rest: ${RoutineRestTimerFormatter.formatSeconds(restPreset.normalRestSeconds!)}'
+                                        : restPreset.warmUpRestSeconds != null
+                                            ? 'Rest: '
+                                            : 'Rest: OFF',
+                                  ),
+                                  if (restPreset.warmUpRestSeconds != null) ...[
+                                    if (restPreset.normalRestSeconds != null)
+                                      const TextSpan(text: ' '),
+                                    TextSpan(
+                                      text:
+                                          '(${RoutineRestTimerFormatter.formatSeconds(restPreset.warmUpRestSeconds!)})',
+                                      style: TextStyle(
+                                        color: entry.sets.any((s) =>
+                                                s.prescription.setType ==
+                                                RoutineSetType.warmUp)
+                                            ? colors.warning
+                                            : colors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -380,7 +401,6 @@ class RoutineComposerExerciseCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: TioSpacing.sm),
           Row(
             children: [
               const SizedBox(
@@ -476,10 +496,10 @@ class RoutineComposerExerciseCard extends StatelessWidget {
             label: 'Add Set',
             leading: const Icon(Icons.add),
             expand: true,
-            semanticLabel: entry.sets.length >=
-                    RoutineCompositionLimits.maxSetsPerExercise
-                ? 'Add Set: maximum 8 Sets per Exercise reached'
-                : null,
+            semanticLabel:
+                entry.sets.length >= RoutineCompositionLimits.maxSetsPerExercise
+                    ? 'Add Set: maximum 8 Sets per Exercise reached'
+                    : null,
             onPressed: enabled &&
                     entry.sets.length <
                         RoutineCompositionLimits.maxSetsPerExercise

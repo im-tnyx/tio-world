@@ -7,6 +7,7 @@ import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
+import '../../../domain/repositories/routine_notes_repository.dart';
 import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_state.dart';
 import 'routine_editor_controller.dart';
@@ -34,6 +35,9 @@ class EditRoutinePage extends StatefulWidget {
     this.userExerciseRepository,
     this.viewerMediaGender,
     this.onExerciseInfoPressed,
+    this.routineNotesRepository,
+    this.routineNotesOwnerId,
+    this.isRoutineNotesSessionCurrent,
     this.canWrite,
     this.newUuid,
     super.key,
@@ -45,10 +49,16 @@ class EditRoutinePage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+
   /// Opens canonical Exercise About without changing the current composition.
   final ValueChanged<Exercise>? onExerciseInfoPressed;
+  final RoutineNotesRepository? routineNotesRepository;
+  final String? routineNotesOwnerId;
+  final bool Function()? isRoutineNotesSessionCurrent;
+
   /// Profile-resolved by the app; null uses catalog's default media gender.
   final ExerciseMediaGender? viewerMediaGender;
+
   /// Live opening-session capability, not a cached authorization snapshot.
   final bool Function()? canWrite;
   final WeightUnit? weightUnit;
@@ -82,8 +92,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (oldWidget.program.id != widget.program.id ||
         oldWidget.routine.id != widget.routine.id ||
         !identical(oldWidget.routineRepository, widget.routineRepository) ||
-        !identical(oldWidget.compositionRepository,
-            widget.compositionRepository) ||
+        !identical(
+            oldWidget.compositionRepository, widget.compositionRepository) ||
         !identical(oldWidget.catalogRepository, widget.catalogRepository) ||
         !identical(
             oldWidget.userExerciseRepository, widget.userExerciseRepository)) {
@@ -172,9 +182,12 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   /// Any composition change retains its strict source, target and Set gates.
   bool get _canUpdate {
     final editor = _editor;
-    if (editor == null || !editor.state.canEdit ||
-        widget.weightUnit == null || !_nameHydrated ||
-        _name.text.trim().isEmpty || editor.updateExceedsSetLimit ||
+    if (editor == null ||
+        !editor.state.canEdit ||
+        widget.weightUnit == null ||
+        !_nameHydrated ||
+        _name.text.trim().isEmpty ||
+        editor.updateExceedsSetLimit ||
         editor.updateHasInvalidSetOrder) {
       return false;
     }
@@ -221,14 +234,15 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         !identical(editor, _editor) ||
         !_canEdit ||
         unit != widget.weightUnit ||
-        chosen == null || chosen.isEmpty) {
+        chosen == null ||
+        chosen.isEmpty) {
       return;
     }
     if (replacing != null) {
       final exercise = chosen.single;
       if (exercise.status != ExerciseStatus.active) return;
-      final oldEntries = editor.state.entries
-          .where((entry) => entry.id == replacing.id);
+      final oldEntries =
+          editor.state.entries.where((entry) => entry.id == replacing.id);
       if (oldEntries.length != 1) return;
       final old = oldEntries.single;
       final newId = editor.replacePickedExercise(old.id, exercise);
@@ -286,8 +300,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (!_canEdit) return;
     final openingEditor = _editor;
     final action = await showRoutineExerciseOptionsSheet(context);
-    if (!mounted || !identical(openingEditor, _editor) ||
-        !_canEdit || action == null) {
+    if (!mounted ||
+        !identical(openingEditor, _editor) ||
+        !_canEdit ||
+        action == null) {
       return;
     }
     if (openingEditor == null ||
@@ -344,7 +360,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   }
 
   Future<void> _selectSetType(
-    RoutineCompositionEntry entry, RoutineCompositionSet set,
+    RoutineCompositionEntry entry,
+    RoutineCompositionSet set,
   ) async {
     if (!_canEdit) return;
     final type = await showTioEditorSheet<Object>(
@@ -357,8 +374,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
             RoutineSetTypeOption(
               key: ValueKey('edit-routine-type-${kind.wireValue}'),
               type: kind,
-              normalNumber:
-                  routineNormalNumberForSelection(entry.sets, set.id),
+              normalNumber: routineNormalNumberForSelection(entry.sets, set.id),
               selected: kind == set.prescription.setType,
               useEditSetNumberColor: true,
               onTap: () => Navigator.of(sheetContext).pop<Object>(kind),
@@ -489,10 +505,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         cancelKey: const ValueKey('edit-routine-cancel'),
         cancelEnabled: !saving,
         cancel: () => Navigator.of(context).pop<bool>(false),
-        submitKey: status == RoutineEditorStatus.ready &&
-                widget.weightUnit != null
-            ? const ValueKey('edit-routine-update')
-            : null,
+        submitKey:
+            status == RoutineEditorStatus.ready && widget.weightUnit != null
+                ? const ValueKey('edit-routine-update')
+                : null,
         onSubmit: _canUpdate ? _save : null,
         content: _body(),
       ),
@@ -504,7 +520,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (state == null || widget.weightUnit == null) {
       return const _Message(
         key: ValueKey('edit-routine-unavailable'),
-        message: 'Routine editing is unavailable until your account and units are ready.',
+        message:
+            'Routine editing is unavailable until your account and units are ready.',
       );
     }
     switch (state.status) {
@@ -612,8 +629,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
                   : null,
             ),
           if (widget.userExerciseRepository == null &&
-              state.entries.any((e) =>
-                  e.exercise is UserCreatedExerciseRef))
+              state.entries.any((e) => e.exercise is UserCreatedExerciseRef))
             const _Message(
               message: 'Custom Exercises are unavailable for this account.',
             ),
@@ -627,7 +643,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
           if (_editor?.hasInvalidSetOrder ?? false)
             const _Message(
               key: ValueKey('edit-routine-invalid-set-order'),
-              message: 'Warm-up Sets must appear at the beginning of each Exercise. '
+              message:
+                  'Warm-up Sets must appear at the beginning of each Exercise. '
                   'Change Set types or reorder Sets before updating composition; '
                   'renaming alone is still available.',
             ),
@@ -718,22 +735,26 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       moveDown: () => _editor?.moveExercise(position, position + 1),
       showOptions: () => _showExerciseOptions(entry),
       selectRepetitionMode: () => _selectRepetitionMode(entry),
-      buildSetRow: (set, index) =>
-          _setRow(entry, set, index, exerciseType),
+      buildSetRow: (set, index) => _setRow(entry, set, index, exerciseType),
       addSet: () => _addSetInline(entry),
       restPreset: _editor?.getExerciseRestPreset(entry.id) ??
           const RoutineRestTimerPreset(),
       onConfigureRestTimer: () => _configureRestTimer(entry),
+      routineId: widget.routine.id,
+      routineNotesRepository: widget.routineNotesRepository,
+      routineNotesOwnerId: widget.routineNotesOwnerId,
+      isRoutineNotesSessionCurrent: widget.isRoutineNotesSessionCurrent,
     );
   }
 
-  Widget _setRow(RoutineCompositionEntry entry,
-      RoutineCompositionSet set, int index, ExerciseType? exerciseType) =>
+  Widget _setRow(RoutineCompositionEntry entry, RoutineCompositionSet set,
+          int index, ExerciseType? exerciseType) =>
       RoutineSetInputRow(
         key: ValueKey('edit-routine-set-${set.id}'),
         set: set,
         index: index,
-        normalNumber: entry.sets.take(index + 1)
+        normalNumber: entry.sets
+            .take(index + 1)
             .where((s) => s.prescription.setType == RoutineSetType.normal)
             .length,
         unit: widget.weightUnit!,
@@ -756,7 +777,6 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         onValidityChanged: (valid) => _validityChanged(set.id, valid),
         onRemove: () => _removeSet(entry, set),
       );
-
 }
 
 class _Message extends StatelessWidget {

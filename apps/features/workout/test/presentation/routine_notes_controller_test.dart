@@ -10,6 +10,7 @@ const _note1 = '33333333-3333-4333-8333-333333333333';
 const _note2 = '44444444-4444-4444-8444-444444444444';
 const _mutation1 = '55555555-5555-4555-8555-555555555555';
 const _mutation2 = '66666666-6666-4666-8666-666666666666';
+const _exercise = 'ex_barbell_bench_press';
 
 RoutineNote _note({
   String id = _note1,
@@ -26,6 +27,19 @@ RoutineNote _note({
     createdAt: created,
     updatedAt: created,
     revision: revision,
+  );
+}
+
+RoutineNote _exerciseNote({String body = 'Exercise cue'}) {
+  final created = DateTime.utc(2026, 11, 1);
+  return RoutineNote(
+    id: _note1,
+    userId: _owner,
+    scope: RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise)),
+    body: body,
+    createdAt: created,
+    updatedAt: created,
+    revision: 2,
   );
 }
 
@@ -67,6 +81,64 @@ void main() {
         RoutineNoteScope.routine(RoutineId(_routine)));
     expect(repository.createCommand?.body, 'saved');
     expect(controller.state.notes.single.id, _note2);
+  });
+
+  test('Exercise scope uses canonical identity and transfers atomically',
+      () async {
+    final repository = _FakeRoutineNotesRepository(
+      notes: [_exerciseNote()],
+      transferResult: _note(),
+    );
+    final controller = _controller(
+      repository,
+      scope: RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise)),
+      uuids: [_mutation2],
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+    expect(repository.readScope,
+        RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise)));
+
+    expect(
+      await controller.transfer(
+        controller.state.notes.single,
+        RoutineNoteScope.routine(RoutineId(_routine)),
+      ),
+      isTrue,
+    );
+    expect(repository.transferCommand?.id, _note1);
+    expect(repository.transferCommand?.expectedRevision, 2);
+    expect(repository.transferCommand?.destination,
+        RoutineNoteScope.routine(RoutineId(_routine)));
+    expect(controller.state.notes, isEmpty);
+  });
+
+  test('keeps the source note when transfer destination quota is rejected',
+      () async {
+    final repository = _FakeRoutineNotesRepository(
+      notes: [_exerciseNote()],
+      transferError:
+          const RoutineNoteException(RoutineNoteFailureKind.quotaExceeded),
+    );
+    final controller = _controller(
+      repository,
+      scope: RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise)),
+      uuids: [_mutation2],
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+    expect(
+      await controller.transfer(
+        controller.state.notes.single,
+        RoutineNoteScope.routine(RoutineId(_routine)),
+      ),
+      isFalse,
+    );
+    expect(repository.notes.single.scope,
+        RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise)));
+    expect(controller.state.failure, RoutineNoteFailureKind.quotaExceeded);
   });
 
   test('rejects a sixth note without calling the repository', () async {
@@ -234,15 +306,24 @@ RoutineNotesController _controller(
   _FakeRoutineNotesRepository repository, {
   List<String> uuids = const [_note2, _mutation1],
   bool Function()? isCurrent,
+  RoutineNoteScope? scope,
 }) {
   final values = [...uuids];
-  return RoutineNotesController(
-    routineId: RoutineId(_routine),
-    repository: repository,
-    ownerId: _owner,
-    isSessionCurrent: isCurrent ?? () => true,
-    newUuid: () => values.removeAt(0),
-  );
+  return scope == null
+      ? RoutineNotesController(
+          routineId: RoutineId(_routine),
+          repository: repository,
+          ownerId: _owner,
+          isSessionCurrent: isCurrent ?? () => true,
+          newUuid: () => values.removeAt(0),
+        )
+      : RoutineNotesController.forScope(
+          scope: scope,
+          repository: repository,
+          ownerId: _owner,
+          isSessionCurrent: isCurrent ?? () => true,
+          newUuid: () => values.removeAt(0),
+        );
 }
 
 final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
@@ -254,6 +335,8 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
     this.notesAfterUnknown,
     this.readCompleter,
     this.readResults = const [],
+    this.transferResult,
+    this.transferError,
   });
 
   List<RoutineNote> notes;
@@ -263,11 +346,15 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
   final List<RoutineNote>? notesAfterUnknown;
   final Completer<List<RoutineNote>>? readCompleter;
   final List<List<RoutineNote>> readResults;
+  final RoutineNote? transferResult;
+  final Object? transferError;
   RoutineNoteScope? readScope;
   RoutineNoteCreate? createCommand;
   RoutineNoteDelete? deleteCommand;
+  RoutineNoteTransfer? transferCommand;
   var readCalls = 0;
   var createCalls = 0;
+  var transferCalls = 0;
 
   @override
   Future<List<RoutineNote>> read(RoutineNoteScope scope) async {
@@ -297,8 +384,13 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
       throw UnimplementedError();
 
   @override
-  Future<RoutineNote> transfer(RoutineNoteTransfer command) async =>
-      throw UnimplementedError();
+  Future<RoutineNote> transfer(RoutineNoteTransfer command) async {
+    transferCalls++;
+    transferCommand = command;
+    final error = transferError;
+    if (error != null) throw error;
+    return transferResult!;
+  }
 
   @override
   Future<void> delete(RoutineNoteDelete command) async {

@@ -52,7 +52,21 @@ final class RoutineNotesController extends ChangeNotifier {
     required String ownerId,
     required RoutineNotesSessionIsCurrent isSessionCurrent,
     String Function()? newUuid,
-  })  : _scope = RoutineNoteScope.routine(routineId),
+  }) : this.forScope(
+          scope: RoutineNoteScope.routine(routineId),
+          repository: repository,
+          ownerId: ownerId,
+          isSessionCurrent: isSessionCurrent,
+          newUuid: newUuid,
+        );
+
+  RoutineNotesController.forScope({
+    required RoutineNoteScope scope,
+    required RoutineNotesRepository repository,
+    required String ownerId,
+    required RoutineNotesSessionIsCurrent isSessionCurrent,
+    String Function()? newUuid,
+  })  : _scope = scope,
         _repository = repository,
         _ownerId = ownerId.trim().toLowerCase(),
         _isSessionCurrent = isSessionCurrent,
@@ -88,25 +102,49 @@ final class RoutineNotesController extends ChangeNotifier {
       final notes = await _repository.read(_scope);
       if (!_active(version)) return;
       final next = _ready(notes, actionNotice: actionNotice);
-      final pending = _pendingCreate;
-      if (!next.isReady || pending == null) {
+      if (!next.isReady) {
         _emit(next);
         return;
       }
-      final confirmed = next.notes.any(
-        (note) => note.id == pending.noteId && note.body == pending.body,
-      );
-      if (confirmed) {
-        _pendingCreate = null;
-        _emit(_ready(notes, actionNotice: 'Note save confirmed.'));
-      } else {
-        _emit(_ready(
-          notes,
-          actionNotice: actionNotice ??
-              'A previous save is still unconfirmed. Refresh before retrying.',
-          failure: RoutineNoteFailureKind.unavailable,
-        ));
+      final pendingCreate = _pendingCreate;
+      if (pendingCreate != null) {
+        final confirmed = next.notes.any(
+          (note) =>
+              note.id == pendingCreate.noteId &&
+              note.body == pendingCreate.body,
+        );
+        if (confirmed) {
+          _pendingCreate = null;
+          _emit(_ready(notes, actionNotice: 'Note save confirmed.'));
+        } else {
+          _emit(_ready(
+            notes,
+            actionNotice: actionNotice ??
+                'A previous save is still unconfirmed. Refresh before retrying.',
+            failure: RoutineNoteFailureKind.unavailable,
+          ));
+        }
+        return;
       }
+      final pendingTransfer = _pendingTransfer;
+      if (pendingTransfer != null) {
+        final stillPresent = next.notes.any(
+          (note) => note.id == pendingTransfer.noteId,
+        );
+        if (!stillPresent) {
+          _pendingTransfer = null;
+          _emit(_ready(notes, actionNotice: 'Note type change confirmed.'));
+        } else {
+          _emit(_ready(
+            notes,
+            actionNotice: actionNotice ??
+                'A previous Note type change is still unconfirmed. Refresh before retrying.',
+            failure: RoutineNoteFailureKind.unavailable,
+          ));
+        }
+        return;
+      }
+      _emit(next);
     } on RoutineNoteException catch (error) {
       if (!_active(version)) return;
       _emit(RoutineNotesState.failed(_safeFailure(error.kind)));
@@ -125,7 +163,7 @@ final class RoutineNotesController extends ChangeNotifier {
   }
 
   Future<bool> create(String body) async {
-    if (_busy || !_sessionIsCurrent()) {
+    if (_busy || _pendingTransfer != null || !_sessionIsCurrent()) {
       _fail(RoutineNoteFailureKind.unauthorized);
       return false;
     }
@@ -202,8 +240,79 @@ final class RoutineNotesController extends ChangeNotifier {
     }
   }
 
+  Future<bool> transfer(
+    RoutineNote note,
+    RoutineNoteScope destination,
+  ) async {
+    if (_busy ||
+        _pendingCreate != null ||
+        _pendingTransfer != null ||
+        !_sessionIsCurrent()) {
+      _fail(RoutineNoteFailureKind.unauthorized);
+      return false;
+    }
+    if (!_state.isReady ||
+        note.userId != _ownerId ||
+        note.scope != _scope ||
+        destination == _scope ||
+        !_state.notes.any((current) => current.id == note.id)) {
+      _fail(RoutineNoteFailureKind.unauthorized);
+      return false;
+    }
+
+    final mutationId = _newUuid();
+    final version = ++_version;
+    _busy = true;
+    notifyListeners();
+    try {
+      final transferred = await _repository.transfer(
+        RoutineNoteTransfer(
+          id: note.id,
+          destination: destination,
+          expectedRevision: note.revision,
+          mutationId: mutationId,
+        ),
+      );
+      if (!_active(version)) return false;
+      if (transferred.userId != _ownerId ||
+          transferred.id != note.id ||
+          transferred.scope != destination) {
+        _emit(const RoutineNotesState.failed(
+          RoutineNoteFailureKind.malformedData,
+        ));
+        return false;
+      }
+      _emit(_ready(
+        _state.notes.where((current) => current.id != note.id).toList(),
+      ));
+      return true;
+    } on RoutineNoteOutcomeUnknown {
+      if (!_active(version)) return false;
+      _pendingTransfer = _PendingTransfer(
+        noteId: note.id,
+        mutationId: mutationId,
+        destination: destination,
+      );
+      await load(
+        actionNotice:
+            'The Note type change could not be confirmed. Refresh to verify.',
+      );
+      return _pendingTransfer == null;
+    } on RoutineNoteException catch (error) {
+      if (!_active(version)) return false;
+      _fail(_safeFailure(error.kind));
+      return false;
+    } catch (_) {
+      if (!_active(version)) return false;
+      _fail(RoutineNoteFailureKind.unavailable);
+      return false;
+    } finally {
+      _finishBusy();
+    }
+  }
+
   Future<bool> delete(RoutineNote note) async {
-    if (_busy || !_sessionIsCurrent()) {
+    if (_busy || _pendingTransfer != null || !_sessionIsCurrent()) {
       _fail(RoutineNoteFailureKind.unauthorized);
       return false;
     }
@@ -257,11 +366,14 @@ final class RoutineNotesController extends ChangeNotifier {
   bool get canCreate =>
       !_busy &&
       _pendingCreate == null &&
+      _pendingTransfer == null &&
       _state.canCreate &&
       _sessionIsCurrent();
-  bool get hasPendingMutation => _pendingCreate != null;
+  bool get hasPendingMutation =>
+      _pendingCreate != null || _pendingTransfer != null;
 
   _PendingCreate? _pendingCreate;
+  _PendingTransfer? _pendingTransfer;
 
   RoutineNotesState _ready(
     List<RoutineNote> notes, {
@@ -352,4 +464,16 @@ final class _PendingCreate {
   final String noteId;
   final String mutationId;
   final String body;
+}
+
+final class _PendingTransfer {
+  const _PendingTransfer({
+    required this.noteId,
+    required this.mutationId,
+    required this.destination,
+  });
+
+  final String noteId;
+  final String mutationId;
+  final RoutineNoteScope destination;
 }

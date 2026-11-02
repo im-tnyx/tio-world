@@ -10,6 +10,7 @@ export 'routines/routine_move_destination_controller.dart';
 export 'routines/routine_move_flow.dart';
 export 'routines/routine_move_refresh_signal.dart';
 export 'routines/create_routine_page.dart';
+export 'routines/exercise_notes_inline.dart';
 export 'routines/edit_routine_page.dart';
 export 'routines/routine_set_editor_sheet.dart';
 export 'routines/routine_exercise_picker_controller.dart';
