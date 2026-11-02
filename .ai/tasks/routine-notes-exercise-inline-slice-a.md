@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-02
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA at last source/CI audit:** `e87c419b73a68e09d5aef45ef362343070819423`
-**Observed working-tree state:** Review-remediation commit is local and ready to push; exact-head CI for this commit is pending; generated Android registrant remains unrelated and excluded
+**HEAD SHA at last source/CI audit:** `1b40c1813812f4b0b89e360b555a3d7155c5d9bb`
+**Observed working-tree state:** Review-remediation source and evidence commits are pushed; exact-head CI passes; generated Android registrant remains unrelated and excluded
 **Observed uncommitted/dirty files:** Flutter tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer mounts inline Exercise Notes and captures drafts for the surrounding Routine Save/Update. After the Routine mutation is confirmed, the existing `RoutineNotesRepository` receives canonical Exercise/Routine commands through a stable-ID bridge; quota/validation rejection leaves the draft editable or discardable, while unknown/unavailable outcomes keep the exit safety block. Failed Edit updates restore captured draft text after the saved-state rebuild; no new data source or backend contract is introduced.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
 **Validation completed locally:** Elevated Flutter SDK access allowed the current focused Notes/parent-refresh suite (`73/73`), Create/Edit Routine suite (`55/55`), full `apps/features/workout` suite (`1136/1136`), `apps/features/workout` analysis, and `apps/app` analysis to pass. The new bridge regression covers an unknown mutation that remains an exit barrier after a later validation failure. Dart formatting completed; `git diff --check` completed with only the existing generated-file, CRLF and fsmonitor warnings. The initial sandbox timeout was a machine-local SDK cache permission limitation, not a repository or Git source failure; no SDK reinstall or global Git configuration change was performed.
-**Validation remaining:** Independent review and physical Android/iOS QA
+**Validation remaining:** Fresh independent approval and physical Android/iOS QA
 **Current blocker:** No local source/toolchain blocker remains after running Flutter with the required SDK cache access. Hosted Notes objects are not deployed and physical device QA has not been performed.
-**Open review finding IDs:** The unknown-exit safety finding (`4441608542`) is addressed in `e87c419b` by retaining the bridge-level unknown barrier after later validation/quota results. The parent-refresh finding (`4441608549`) is addressed by owner-scoped Program/Routine invalidation immediately after confirmed Routine persistence, without claiming Notes success. Earlier valid findings (`4441096026`, `4441096041`, `4441136215`, `4439303249`, `4439139964`) remain addressed. The standalone Routine Detail Notes refresh finding (`4439233820`) is superseded by the owner-approved removal of the separate Routine Notes section. Exact-head CI and fresh independent approval remain open.
-**Next exact action:** Push `e87c419b`, refresh `im-tio` review on that exact HEAD, reconcile all 24 review threads, and keep PR #725 unmerged until zero unresolved threads, required CI and independent approval are verified.
+**Open review finding IDs:** All 24 review threads, including current and outdated comments, are resolved after source/test evidence was posted. The unknown-exit safety finding (`4441608542`) is addressed in `e87c419b` by retaining the bridge-level unknown barrier after later validation/quota results. The parent-refresh finding (`4441608549`) is addressed by owner-scoped Program/Routine invalidation immediately after confirmed Routine persistence, without claiming Notes success. Earlier valid findings (`4441096026`, `4441096041`, `4441136215`, `4439303249`, `4439139964`) remain addressed. The standalone Routine Detail Notes refresh finding (`4439233820`) is superseded by the owner-approved removal of the separate Routine Notes section. Fresh independent approval remains open.
+**Next exact action:** Keep PR #725 unmerged while `im-tio` reviews exact HEAD `1b40c181`; after approval, recheck branch-protection requirements and exact-head CI before any merge decision.
 
 ## 1. Discovery
 
@@ -149,6 +149,7 @@ PASS: `G:\dev\flutter-sdk\bin\flutter.bat test --reporter compact` in `apps/feat
 PASS: `G:\dev\flutter-sdk\bin\flutter.bat analyze` in `apps/features/workout` and `apps/app` after `e87c419b`.
 PASS: GitHub PR #725 exact-head CI for `c6eeca608d1224ca80aba79a45c0ea751a2dc300` — Analyze/test aggregate, Flutter matrix, docs hygiene, and attribution checks passed; Cursor agents were skipped.
 PASS: GitHub PR #725 exact-head CI for `a7803fb59ce681e8cc3bb684e3f6ece29fa6cde6` — Analyze/test aggregate, Flutter matrix, docs hygiene, and attribution checks passed; Cursor agents were skipped.
+PASS: GitHub PR #725 exact-head CI for `1b40c1813812f4b0b89e360b555a3d7155c5d9bb` — Analyze/test aggregate, Flutter matrix, docs hygiene, and attribution checks passed; Cursor agents were skipped.
 NOT RUN: physical Android/iOS keyboard and gesture QA, hosted Notes deployment, and independent review approval
 ```
 
@@ -156,10 +157,10 @@ NOT RUN: physical Android/iOS keyboard and gesture QA, hosted Notes deployment, 
 
 **Review source / link:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`)
 **Reviewer / relation to implementer:** Independent reviewer requested: `im-tio`
-**Diff or commit SHA actually reviewed:** Latest independent `im-tio` review was on PR HEAD `a245b01169bba621adf61916f76cc4753ff4da37` and withheld approval. The remediation source head is `e87c419b`; a completed review for that SHA is not yet available.
+**Diff or commit SHA actually reviewed:** Latest submitted independent `im-tio` review was on PR HEAD `a245b01169bba621adf61916f76cc4753ff4da37` and withheld approval. A fresh `im-tio` review request is pending for exact HEAD `1b40c1813812f4b0b89e360b555a3d7155c5d9bb`.
 **Review result and finding dispositions:** Review comments were reconciled against current source. The standalone Routine Detail Notes-section comment is superseded by the owner correction and remains intentionally removed. The current unknown-exit and parent-refresh findings are fixed in `e87c419b`; refreshed independent review remains pending.
 **Independent review?** Requested / pending
-**Limitations and unmet required gates:** Hosted Notes deployment remains intentionally blocked; physical Android/iOS QA, exact-head CI for `e87c419b`, review-thread resolution and independent approval remain open.
+**Limitations and unmet required gates:** Hosted Notes deployment remains intentionally blocked; physical Android/iOS QA and fresh independent approval remain open. GitHub's main branch protection endpoint currently returns `404 Branch not protected`, so required protection rules are not independently verifiable from that endpoint.
 
 ## 7. Final Handoff
 
@@ -221,7 +222,7 @@ NOT RUN: physical Android/iOS keyboard and gesture QA, hosted Notes deployment, 
 
 ### Known Limitations
 
-The bridge is intentionally sequential rather than falsely atomic because the existing Routine and Notes repositories expose separate contracts. Hosted Notes migrations are not applied; this does not authorize production activation. Existing body edit/copy/share behavior remains out of scope. Physical Android/iOS gesture and keyboard QA remains pending. Independent review, review-thread resolution and exact-head CI for `e87c419b` remain pending.
+The bridge is intentionally sequential rather than falsely atomic because the existing Routine and Notes repositories expose separate contracts. Hosted Notes migrations are not applied; this does not authorize production activation. Existing body edit/copy/share behavior remains out of scope. Physical Android/iOS gesture and keyboard QA remains pending. Fresh independent approval remains pending; all review threads and exact-head CI for `1b40c181` are reconciled.
 
 ### Final Status
 
