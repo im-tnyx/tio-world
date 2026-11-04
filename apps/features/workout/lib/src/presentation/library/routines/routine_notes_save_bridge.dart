@@ -163,7 +163,9 @@ final class RoutineNotesSaveBridge {
     );
     if (reconciliation != null) return reconciliation;
 
-    final quota = await _checkQuota();
+    final quota = await _checkQuota(
+      confirmedDraftIds: confirmedDraftIds,
+    );
     if (quota != null) return quota;
 
     for (final pending in _pending.values) {
@@ -255,7 +257,9 @@ final class RoutineNotesSaveBridge {
     );
   }
 
-  Future<RoutineNotesSaveResult?> _checkQuota() async {
+  Future<RoutineNotesSaveResult?> _checkQuota({
+    required Set<String> confirmedDraftIds,
+  }) async {
     final byScope = <RoutineNoteScope, List<_PendingInlineNote>>{};
     for (final item in _pending.values) {
       if (!item.confirmed) {
@@ -266,16 +270,18 @@ final class RoutineNotesSaveBridge {
       try {
         final notes = await _repository.read(entry.key);
         if (!_current()) {
-          return const RoutineNotesSaveResult(
+          return RoutineNotesSaveResult(
             RoutineNotesSaveStatus.unauthorized,
             'Session changed. Routine was saved, but Notes need verification.',
+            confirmedDraftIds.toList(growable: false),
           );
         }
         if (notes.any(
             (note) => note.userId != _ownerId || note.scope != entry.key)) {
-          return const RoutineNotesSaveResult(
+          return RoutineNotesSaveResult(
             RoutineNotesSaveStatus.unknown,
             'Notes readback was not owner-scoped. Press Save/Update again to refresh.',
+            confirmedDraftIds.toList(growable: false),
           );
         }
         final pendingNotReadBack = entry.value.where(
@@ -283,18 +289,23 @@ final class RoutineNotesSaveBridge {
         );
         if (notes.length + pendingNotReadBack.length >
             routineNotesMaximumCount) {
-          return const RoutineNotesSaveResult(
+          return RoutineNotesSaveResult(
             RoutineNotesSaveStatus.quota,
             'Maximum 5 active Notes reached for this scope.',
+            confirmedDraftIds.toList(growable: false),
           );
         }
       } on RoutineNoteException catch (error) {
         return RoutineNotesSaveResult(
-            _status(error.kind), _message(error.kind));
+          _status(error.kind),
+          _message(error.kind),
+          confirmedDraftIds.toList(growable: false),
+        );
       } catch (_) {
-        return const RoutineNotesSaveResult(
+        return RoutineNotesSaveResult(
           RoutineNotesSaveStatus.unavailable,
           'Routine was saved, but Notes could not be verified. Press Save/Update to retry.',
+          confirmedDraftIds.toList(growable: false),
         );
       }
     }
@@ -309,15 +320,17 @@ final class RoutineNotesSaveBridge {
       final pending = entry.value;
       if (pending.confirmed || !pending.unknown) continue;
       if (!_current()) {
-        return const RoutineNotesSaveResult(
+        return RoutineNotesSaveResult(
           RoutineNotesSaveStatus.unauthorized,
           'Session changed. Routine was saved, but Notes need verification.',
+          confirmedDraftIds.toList(growable: false),
         );
       }
       if (!await _reconcile(pending.command)) {
-        return const RoutineNotesSaveResult(
+        return RoutineNotesSaveResult(
           RoutineNotesSaveStatus.unknown,
           'Note save could not be confirmed. Press Save/Update again to refresh.',
+          confirmedDraftIds.toList(growable: false),
         );
       }
       pending.confirmed = true;

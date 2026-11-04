@@ -220,6 +220,44 @@ void main() {
     expect(bridge.hasUnknown, isFalse);
   });
 
+  test('retains reconciled draft IDs when a later draft hits the quota',
+      () async {
+    final repository = _FakeRoutineNotesRepository(unknownCreate: true);
+    final uuids = [
+      _note,
+      _mutation,
+      '55555555-5555-4555-8555-555555555555',
+      '66666666-6666-4666-8666-666666666666',
+    ];
+    final bridge = RoutineNotesSaveBridge(
+      repository: repository,
+      ownerId: _owner,
+      isSessionCurrent: () => true,
+      newUuid: () => uuids.removeAt(0),
+    );
+
+    final first = await bridge.save(drafts: [_draft()], routineId: null);
+    final original = _savedNote(repository.commands.single);
+    repository.notes = List.generate(
+      routineNotesMaximumCount,
+      (index) => _existingNote(original.scope, index),
+    );
+    repository.reconciliation = _appliedReceipt(original);
+    final second = await bridge.save(
+      drafts: [
+        _draft(),
+        _draft(draftId: 'entry-1:1', body: 'Add another note'),
+      ],
+      routineId: null,
+    );
+
+    expect(first.status, RoutineNotesSaveStatus.unknown);
+    expect(second.status, RoutineNotesSaveStatus.quota);
+    expect(second.confirmedDraftIds, contains('entry-1:0'));
+    expect(repository.createCalls, 1);
+    expect(bridge.hasUnknown, isFalse);
+  });
+
   test('enforces the five-note scope quota before create', () async {
     final scope = RoutineNoteScope.exercise(ExerciseRef.catalog(_exercise));
     final repository = _FakeRoutineNotesRepository(

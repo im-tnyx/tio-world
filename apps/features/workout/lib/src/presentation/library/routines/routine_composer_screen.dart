@@ -346,6 +346,7 @@ class RoutineComposerExerciseCard extends StatelessWidget {
             controllerRegistry: controllerRegistry,
             restControl: Align(
               alignment: Alignment.centerLeft,
+              widthFactor: 1,
               child: Semantics(
                 button: true,
                 label: RoutineRestTimerFormatter.formatSemantics(

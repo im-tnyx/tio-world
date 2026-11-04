@@ -90,6 +90,7 @@ void main() {
       _FakeRoutineNotesRepository(),
       restControl: const Align(
         alignment: Alignment.centerLeft,
+        widthFactor: 1,
         child: SizedBox(
           key: ValueKey('rest-control'),
           width: 140,
@@ -111,6 +112,35 @@ void main() {
       findsNothing,
     );
     expect(find.byKey(const ValueKey('exercise-notes-retry')), findsNothing);
+  });
+
+  testWidgets('Note remains adjacent to Rest in a compact action row',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _pump(
+      tester,
+      _FakeRoutineNotesRepository(),
+      restControl: const Align(
+        alignment: Alignment.centerLeft,
+        widthFactor: 1,
+        child: SizedBox(
+          key: ValueKey('rest-control'),
+          width: 140,
+          height: 31,
+        ),
+      ),
+    );
+
+    final rest = tester.getRect(find.byKey(const ValueKey('rest-control')));
+    final note = tester.getRect(
+      find.byKey(const ValueKey('exercise-note-action-$_exercise')),
+    );
+    expect(note.left - rest.right, closeTo(TioSpacing.sm, 0.01));
+    expect(note.right, lessThanOrEqualTo(320));
   });
 
   testWidgets('Note reveals the inline input without opening the keyboard',
