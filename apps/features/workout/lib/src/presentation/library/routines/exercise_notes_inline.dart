@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:tio_core/core.dart';
@@ -439,6 +440,9 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
                         .contains(_publishedDraftId(draft.id)),
                 onDelete: () => _deleteDraftWithConfirmation(draft),
                 onTypeChange: () => _changeDraftType(draft),
+                shouldIgnoreSwipe: () =>
+                    draft.controller.selection.baseOffset !=
+                    draft.controller.selection.extentOffset,
                 child: _ExerciseNoteDraftField(
                   fieldKey: ValueKey(_draftInputKey(_drafts.indexOf(draft))),
                   typeKey: ValueKey(_draftTypeKey(_drafts.indexOf(draft))),
@@ -766,6 +770,7 @@ final class _ExerciseNoteSwipeRow extends StatefulWidget {
     required this.enabled,
     required this.onDelete,
     required this.onTypeChange,
+    this.shouldIgnoreSwipe,
     required this.child,
     super.key,
   });
@@ -773,6 +778,7 @@ final class _ExerciseNoteSwipeRow extends StatefulWidget {
   final bool enabled;
   final Future<bool> Function() onDelete;
   final Future<void> Function() onTypeChange;
+  final bool Function()? shouldIgnoreSwipe;
   final Widget child;
 
   @override
@@ -785,19 +791,43 @@ final class _ExerciseNoteSwipeRowState extends State<_ExerciseNoteSwipeRow> {
   double _offset = 0;
   int? _activePointer;
   Offset? _dragStartPosition;
+  Timer? _longPressTimer;
   double _dragStartOffset = 0;
   var _trackingHorizontalDrag = false;
+  var _ignoreActivePointer = false;
+
+  @override
+  void dispose() {
+    _longPressTimer?.cancel();
+    super.dispose();
+  }
 
   void _onPointerDown(PointerDownEvent event) {
     if (!widget.enabled) return;
+    _longPressTimer?.cancel();
     _activePointer = event.pointer;
     _dragStartPosition = event.position;
     _dragStartOffset = _offset;
     _trackingHorizontalDrag = false;
+    _ignoreActivePointer = false;
+    if (widget.shouldIgnoreSwipe != null) {
+      _longPressTimer = Timer(kLongPressTimeout, () {
+        if (_activePointer == event.pointer) {
+          _ignoreActivePointer = true;
+          _trackingHorizontalDrag = false;
+        }
+      });
+    }
   }
 
   void _onPointerMove(PointerMoveEvent event) {
     if (!widget.enabled || event.pointer != _activePointer) return;
+    if (_ignoreActivePointer) return;
+    if (widget.shouldIgnoreSwipe?.call() ?? false) {
+      _resetPointerTracking();
+      if (mounted && _offset != 0) setState(() => _offset = 0);
+      return;
+    }
     final start = _dragStartPosition;
     if (start == null) return;
     final delta = event.position - start;
@@ -808,6 +838,8 @@ final class _ExerciseNoteSwipeRowState extends State<_ExerciseNoteSwipeRow> {
         return;
       }
       _trackingHorizontalDrag = true;
+      _longPressTimer?.cancel();
+      _longPressTimer = null;
     }
     setState(() {
       _offset = (_dragStartOffset - delta.dx).clamp(
@@ -833,12 +865,19 @@ final class _ExerciseNoteSwipeRowState extends State<_ExerciseNoteSwipeRow> {
   void _resetPointerTracking() {
     _activePointer = null;
     _dragStartPosition = null;
+    _longPressTimer?.cancel();
+    _longPressTimer = null;
     _dragStartOffset = _offset;
     _trackingHorizontalDrag = false;
+    _ignoreActivePointer = false;
   }
 
   void _finishSwipe() {
     if (!widget.enabled) return;
+    if (widget.shouldIgnoreSwipe?.call() ?? false) {
+      setState(() => _offset = 0);
+      return;
+    }
     if (_offset <= -_openThreshold) {
       unawaited(_changeType());
       return;

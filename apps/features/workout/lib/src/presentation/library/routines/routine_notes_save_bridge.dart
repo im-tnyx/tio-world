@@ -157,6 +157,12 @@ final class RoutineNotesSaveBridge {
       }
     }
 
+    final reconciliation = await _reconcileUnknowns(
+      activeDraftIds: activeDraftIds,
+      confirmedDraftIds: confirmedDraftIds,
+    );
+    if (reconciliation != null) return reconciliation;
+
     final quota = await _checkQuota();
     if (quota != null) return quota;
 
@@ -290,6 +296,33 @@ final class RoutineNotesSaveBridge {
           RoutineNotesSaveStatus.unavailable,
           'Routine was saved, but Notes could not be verified. Press Save/Update to retry.',
         );
+      }
+    }
+    return null;
+  }
+
+  Future<RoutineNotesSaveResult?> _reconcileUnknowns({
+    required Set<String> activeDraftIds,
+    required Set<String> confirmedDraftIds,
+  }) async {
+    for (final entry in _pending.entries) {
+      final pending = entry.value;
+      if (pending.confirmed || !pending.unknown) continue;
+      if (!_current()) {
+        return const RoutineNotesSaveResult(
+          RoutineNotesSaveStatus.unauthorized,
+          'Session changed. Routine was saved, but Notes need verification.',
+        );
+      }
+      if (!await _reconcile(pending.command)) {
+        return const RoutineNotesSaveResult(
+          RoutineNotesSaveStatus.unknown,
+          'Note save could not be confirmed. Press Save/Update again to refresh.',
+        );
+      }
+      pending.confirmed = true;
+      if (activeDraftIds.contains(entry.key)) {
+        confirmedDraftIds.add(entry.key);
       }
     }
     return null;

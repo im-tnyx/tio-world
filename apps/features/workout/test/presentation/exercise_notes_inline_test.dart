@@ -200,6 +200,37 @@ void main() {
     );
   });
 
+  testWidgets('text selection does not trigger Note swipe actions',
+      (tester) async {
+    await _pump(tester, _FakeRoutineNotesRepository());
+
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-action-$_exercise')),
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('exercise-note-input-$_exercise')),
+      'Select this text',
+    );
+    await tester.pump();
+
+    final input = find.byKey(const ValueKey('exercise-note-input-$_exercise'));
+    final gesture = await tester.startGesture(tester.getRect(input).center);
+    await tester.pump(const Duration(milliseconds: 600));
+    await gesture.moveBy(const Offset(120, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('exercise-note-type-sheet')), findsNothing);
+    expect(find.byKey(const ValueKey('exercise-note-delete-action')),
+        findsNothing);
+    expect(
+      tester.widget<TextField>(input).controller!.text,
+      'Select this text',
+    );
+  });
+
   testWidgets(
       'left swipe on a draft reveals Delete and removes it after confirmation',
       (tester) async {
