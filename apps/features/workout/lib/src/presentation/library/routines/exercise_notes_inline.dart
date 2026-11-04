@@ -391,7 +391,10 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            widget.restControl,
+            Flexible(
+              fit: FlexFit.loose,
+              child: widget.restControl,
+            ),
             const SizedBox(width: TioSpacing.sm),
             _ExerciseNoteAction(
               key: ValueKey('exercise-note-action-${widget.exerciseRef.value}'),

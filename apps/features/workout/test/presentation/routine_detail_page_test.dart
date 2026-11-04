@@ -29,6 +29,9 @@ Future<void> _pump(
   TioThemeMode mode = TioThemeMode.light,
   WeightUnit? weightUnit = WeightUnit.kg,
   Future<bool?> Function(Routine)? onEditPressed,
+  RoutineMoveRefreshSignal? moveRefreshSignal,
+  String? moveRefreshOwnerId,
+  String? moveRefreshLoginCycleId,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -44,6 +47,9 @@ Future<void> _pump(
         catalogRepository: _Catalog(),
         weightUnit: weightUnit,
         onEditPressed: onEditPressed,
+        moveRefreshSignal: moveRefreshSignal,
+        moveRefreshOwnerId: moveRefreshOwnerId,
+        moveRefreshLoginCycleId: moveRefreshLoginCycleId,
       ),
     ),
   );
@@ -533,6 +539,45 @@ void main() {
     expect(callbacks, 1);
     expect(compositions.readCount, 2);
     expect(find.text('1 exercise · 1 set'), findsOneWidget);
+    expect(find.text('10'), findsOneWidget);
+  });
+
+  testWidgets('partial parent save signal re-reads Routine Detail',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final compositions = _Compositions(_snapshot());
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: compositions,
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    expect(compositions.readCount, 1);
+    expect(find.byKey(const ValueKey('routine-detail-empty')), findsOneWidget);
+
+    compositions.snapshot = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 10, restSeconds: 45),
+          ),
+        ],
+      ),
+    ]);
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(compositions.readCount, 2);
     expect(find.text('10'), findsOneWidget);
   });
 

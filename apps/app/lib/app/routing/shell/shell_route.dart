@@ -332,6 +332,26 @@ List<RouteBase> _shellBranchChildRoutes(
                     null) {
               return false;
             }
+            bool editSessionValid() {
+              try {
+                final liveBoot =
+                    ref.read(appSessionBootstrapControllerProvider).state;
+                final liveAuthAsync = ref.read(authSessionStateProvider);
+                final liveAuth =
+                    liveAuthAsync.isLoading || liveAuthAsync.hasError
+                        ? null
+                        : liveAuthAsync.valueOrNull;
+                return liveBoot is AppSessionBootstrapReady &&
+                    liveBoot.userId == startingOwner &&
+                    liveAuth is AuthSessionAuthenticated &&
+                    liveAuth.session.userId == startingOwner &&
+                    liveAuth.session.loginCycleId == startingCycleId;
+              } catch (_) {
+                return false;
+              }
+            }
+
+            var parentWriteResolved = false;
             var revoked = false;
             final confirmed = await Navigator.of(context).push<bool>(
               MaterialPageRoute(
@@ -475,6 +495,9 @@ List<RouteBase> _shellBranchChildRoutes(
                         expectedLoginCycleId: startingCycleId,
                       ),
                       weightUnit: unit,
+                      onRoutineWriteResolved: () {
+                        parentWriteResolved = true;
+                      },
                       // Recheck the live opening login cycle
                       // synchronously immediately before an
                       // RPC, not only after the route rebuilds.
@@ -507,6 +530,15 @@ List<RouteBase> _shellBranchChildRoutes(
                 ),
               ),
             );
+            if (parentWriteResolved &&
+                confirmed != true &&
+                editSessionValid()) {
+              moveRefresh.request(
+                ownerId: startingOwner,
+                loginCycleId: startingCycleId,
+                programsMayHaveChanged: false,
+              );
+            }
             return confirmed ?? false;
           }
 
@@ -905,6 +937,10 @@ List<RouteBase> _shellBranchChildRoutes(
                       catalogRepository: catalog,
                       userExerciseRepository:
                           verifiedOwner ? userExerciseRepository : null,
+                      moveRefreshSignal: verifiedOwner ? moveRefresh : null,
+                      moveRefreshOwnerId: verifiedOwner ? ownerId : null,
+                      moveRefreshLoginCycleId:
+                          verifiedOwner ? authCycleId : null,
                       viewerMediaGender: verifiedOwner && weightUnit != null
                           ? ref.watch(exerciseViewerMediaGenderProvider)
                           : null,
@@ -1448,6 +1484,7 @@ List<RouteBase> _shellBranchChildRoutes(
               return;
             }
 
+            var parentWriteResolved = false;
             var exitedUnconfirmed = false;
             var revoked = false;
             WeightUnit? lastVerifiedUnit;
@@ -1543,6 +1580,7 @@ List<RouteBase> _shellBranchChildRoutes(
                               owner: owner,
                               loginCycle: cycle,
                               command: command);
+                          parentWriteResolved = true;
                         }
                       },
                       onMyProgramDefiniteFailure: (command) {
@@ -1564,7 +1602,9 @@ List<RouteBase> _shellBranchChildRoutes(
             if (context.mounted &&
                 libraryRoute.isCurrent &&
                 firstRoutineSessionValid(owner, cycle) &&
-                (confirmed == true || exitedUnconfirmed)) {
+                (confirmed == true ||
+                    parentWriteResolved ||
+                    exitedUnconfirmed)) {
               // UNKNOWN causes only a read-refresh, never a claimed ACK.
               moveRefresh.request(
                   ownerId: owner,

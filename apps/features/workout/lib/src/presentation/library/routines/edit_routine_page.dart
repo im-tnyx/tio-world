@@ -40,6 +40,7 @@ class EditRoutinePage extends StatefulWidget {
     this.routineNotesRepository,
     this.routineNotesOwnerId,
     this.isRoutineNotesSessionCurrent,
+    this.onRoutineWriteResolved,
     this.canWrite,
     this.newUuid,
     super.key,
@@ -57,6 +58,10 @@ class EditRoutinePage extends StatefulWidget {
   final RoutineNotesRepository? routineNotesRepository;
   final String? routineNotesOwnerId;
   final bool Function()? isRoutineNotesSessionCurrent;
+
+  /// Called after the parent Routine Update is confirmed, before the
+  /// independent inline Notes persistence can report a partial failure.
+  final VoidCallback? onRoutineWriteResolved;
 
   /// Profile-resolved by the app; null uses catalog's default media gender.
   final ExerciseMediaGender? viewerMediaGender;
@@ -501,11 +506,13 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     if (editor == null || !_canUpdate) {
       return;
     }
+    final routineWriteAttempted = editor.state.dirty;
     final confirmed = await editor.update();
     if (mounted &&
         identical(editor, _editor) &&
         confirmed &&
         editor.state.status == RoutineEditorStatus.saved) {
+      if (routineWriteAttempted) widget.onRoutineWriteResolved?.call();
       final notesConfirmed = await _completeConfirmedRoutineSave();
       if (notesConfirmed && mounted && identical(editor, _editor)) {
         _finishConfirmed();
@@ -519,8 +526,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         editor.state.status != RoutineEditorStatus.outcomeUnknown) {
       return;
     }
+    final routineWriteAttempted = editor.state.dirty;
     final confirmed = await editor.reconcileUnknown();
     if (mounted && identical(editor, _editor) && confirmed) {
+      if (routineWriteAttempted) widget.onRoutineWriteResolved?.call();
       final notesConfirmed = await _completeConfirmedRoutineSave();
       if (notesConfirmed && mounted && identical(editor, _editor)) {
         _finishConfirmed();

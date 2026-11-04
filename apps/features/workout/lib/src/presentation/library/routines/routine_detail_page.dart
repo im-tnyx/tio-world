@@ -15,6 +15,7 @@ import 'routine_detail_controller.dart';
 import '../../../domain/models/routine_rest_timer_preset.dart';
 import 'routine_notes_controller.dart';
 
+import 'routine_move_refresh_signal.dart';
 
 /// A read-only preview of durable Routine content under its owning Program.
 /// Starting a workout and modifying prescriptions require separate capabilities.
@@ -33,6 +34,9 @@ class RoutineDetailPage extends StatefulWidget {
     this.routineNotesRepository,
     this.routineNotesOwnerId,
     this.isRoutineNotesSessionCurrent,
+    this.moveRefreshSignal,
+    this.moveRefreshOwnerId,
+    this.moveRefreshLoginCycleId,
     super.key,
   });
 
@@ -57,6 +61,11 @@ class RoutineDetailPage extends StatefulWidget {
   @Deprecated('Routine Detail no longer renders a separate Notes section.')
   final RoutineNotesSessionIsCurrent? isRoutineNotesSessionCurrent;
 
+  /// Owner/login-cycle-scoped parent invalidation after a partial Edit save.
+  final RoutineMoveRefreshSignal? moveRefreshSignal;
+  final String? moveRefreshOwnerId;
+  final String? moveRefreshLoginCycleId;
+
   /// App-provided, account-verified navigation. True only on confirmed save.
   /// No edit capability is inferred from a read-only Detail repository.
   final Future<bool?> Function(Routine routine)? onEditPressed;
@@ -72,12 +81,17 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
   @override
   void initState() {
     super.initState();
+    widget.moveRefreshSignal?.addListener(_onMoveRefresh);
     _bind();
   }
 
   @override
   void didUpdateWidget(covariant RoutineDetailPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.moveRefreshSignal, widget.moveRefreshSignal)) {
+      oldWidget.moveRefreshSignal?.removeListener(_onMoveRefresh);
+      widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    }
     if (oldWidget.program.id != widget.program.id ||
         oldWidget.routine.id != widget.routine.id ||
         !identical(oldWidget.routineRepository, widget.routineRepository) ||
@@ -116,8 +130,22 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
     if (mounted) setState(() {});
   }
 
+  void _onMoveRefresh() {
+    final signal = widget.moveRefreshSignal;
+    if (!mounted ||
+        signal == null ||
+        !signal.matches(
+          ownerId: widget.moveRefreshOwnerId,
+          loginCycleId: widget.moveRefreshLoginCycleId,
+        )) {
+      return;
+    }
+    _controller?.load();
+  }
+
   @override
   void dispose() {
+    widget.moveRefreshSignal?.removeListener(_onMoveRefresh);
     _controller
       ?..removeListener(_changed)
       ..dispose();
