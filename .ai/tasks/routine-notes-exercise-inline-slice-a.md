@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-05
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA at last source/CI audit:** `57f446890538baa7c83a1559541e3c644fd71d0e` plus the current uncommitted remediation diff
-**Observed working-tree state:** Two confirmed review fixes are implemented locally and not yet pushed; generated Android registrant remains unrelated and excluded
+**HEAD SHA at last source/CI audit:** `16cb51bccd365c6f16e40ddca010600302bf18d4`
+**Observed working-tree state:** The compact-row follow-up fix is committed and pushed; exact-head CI for this new commit is pending. Generated Android registrant remains unrelated and excluded
 **Observed uncommitted/dirty files:** Flutter tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer mounts inline Exercise Notes and captures drafts for the surrounding Routine Save/Update. After the Routine mutation is confirmed, the existing `RoutineNotesRepository` receives canonical Exercise/Routine commands through a stable-ID bridge; quota/validation rejection leaves the draft editable or discardable, while unknown/unavailable outcomes keep the exit safety block. Failed Edit updates restore captured draft text after the saved-state rebuild; no new data source or backend contract is introduced. The current remediation constrains only the Rest control inside the existing Rest/Note row at compact width, and emits the existing owner/login-cycle-scoped refresh signal after a confirmed parent Routine write when Notes later fail, including Edit unknown reconciliation.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed locally:** Elevated Flutter SDK access allowed the current focused Notes/parent-refresh suite (`73/73`), Create/Edit Routine suite (`55/55`), full `apps/features/workout` suite (`1136/1136`), `apps/features/workout` analysis, and `apps/app` analysis to pass. The new bridge regression covers an unknown mutation that remains an exit barrier after a later validation failure. Dart formatting completed; `git diff --check` completed with only the existing generated-file, CRLF and fsmonitor warnings. The initial sandbox timeout was a machine-local SDK cache permission limitation, not a repository or Git source failure; no SDK reinstall or global Git configuration change was performed.
-**Validation remaining:** Fresh independent approval, exact-head GitHub CI after this push, and independently reproduced physical Android/iOS QA
+**Validation completed locally:** Elevated Flutter SDK access allowed the focused production-style Rest/Note adjacency test, the compact Edit regression, the focused Notes/parent-refresh suite (`73/73`), full `apps/features/workout` suite (`1140/1140`), `apps/features/workout` analysis, and prior `apps/app` analysis to pass. The new bridge regression covers an unknown mutation that remains an exit barrier after a later validation failure. `git diff --check` completed with only the existing generated-file, CRLF and fsmonitor warnings. The initial sandbox timeout was a machine-local SDK cache permission limitation, not a repository or Git source failure; no SDK reinstall or global Git configuration change was performed.
+**Validation remaining:** Exact-head GitHub CI for `16cb51bc`, fresh independent approval, and independently reproduced physical Android/iOS QA
 **Current blocker:** No local source/toolchain blocker remains after running Flutter with the required SDK cache access. The owner-provided physical-device evidence is recorded separately and is not an independent reproduction. Hosted Notes objects remain outside this PR and are not activated.
-**Open review finding IDs:** At PR HEAD `57f446890538baa7c83a1559541e3c644fd71d0e`, two current threads remain open: Cursor parent-refresh finding `4441608549` in `shell_route.dart`, and `im-tio` compact-layout finding in `exercise_notes_inline.dart`. The local remediation addresses both; all older threads remain resolved/outdated. The standalone Routine Detail Notes refresh finding is superseded by the owner-approved removal of the separate Routine Notes section. Fresh independent approval remains open.
-**Next exact action:** Commit and push only the scoped remediation files, then recheck exact-head CI, both review threads, Main Protection and `im-tio` approval. Keep PR #725 unmerged.
+**Open review finding IDs:** On `16cb51bc`, the former parent-refresh and `im-tio` compact-layout findings have current evidence replies; the compact thread is resolved. A new Cursor finding `4472710627` reports that an unconstrained injected `Align` can move Note to the trailing edge. The follow-up uses `IntrinsicWidth` around the existing Rest control and adds a production-style adjacency regression test; exact-head CI and fresh review are pending. All older threads remain resolved/outdated. The standalone Routine Detail Notes refresh finding is superseded by the owner-approved removal of the separate Routine Notes section.
+**Next exact action:** Recheck exact-head CI and the new Cursor review disposition, then reconcile `im-tio` approval and Main Protection. Keep PR #725 unmerged.
 
 ## 1. Discovery
 
@@ -127,15 +127,16 @@ Loading, empty, quota-disabled, invalid body, save failure, unknown save notice/
 **Current remediation verification (2026-11-05):**
 
 ```text
+PASS: `flutter test --reporter expanded --no-pub test/presentation/exercise_notes_inline_test.dart --plain-name 'Note stays on the right of Rest in the action row'` in `apps/features/workout` — production-style `Align` Rest control adjacency test passed
 PASS: `flutter test --reporter expanded --no-pub test/presentation/edit_routine_page_test.dart test/presentation/routine_detail_page_test.dart test/presentation/routine_notes_save_bridge_test.dart test/presentation/routine_move_refresh_signal_test.dart` in `apps/features/workout` — 73 tests passed
 PASS: `flutter test --reporter compact --no-pub` in `apps/features/workout` — 1,140 tests passed
 PASS: `flutter test --reporter expanded --no-pub test/app/workout_exercises_route_test.dart` in `apps/app` — 89 tests passed
 PASS: `flutter test --reporter compact --no-pub` in `apps/app` — 470 tests passed, 1 skipped test
 PASS: `flutter test --reporter compact --no-pub test/theme/final_enforcement_visual_ownership_test.dart test/theme/final_enforcement_primitive_liveness_test.dart` in `apps/core` — 2 tests passed
 PASS: `flutter analyze --no-pub` in `apps/features/workout` — no issues
-PASS: `flutter analyze --no-pub` in `apps/app` — no issues
+PASS: `flutter analyze --no-pub` in `apps/app` — no issues (verified before the final Workout-only follow-up)
 PASS: `git diff --check` on the working tree
-BLOCKED/NOT RUN: exact-head GitHub CI after the new commit, fresh independent review, and independently reproduced physical-device QA
+BLOCKED/NOT RUN: exact-head GitHub CI for `16cb51bc`, fresh independent review, and independently reproduced physical-device QA
 ```
 
 ```text
