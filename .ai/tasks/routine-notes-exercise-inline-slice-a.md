@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-05
 **Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA at last source/CI audit:** `89207eacb3c0a5012d7bfeb874aada809fd7079b`
-**Observed working-tree state:** The quota-ordering and text-selection gesture remediations are committed and pushed. Generated Android registrant remains unrelated and excluded
+**HEAD SHA at last source/CI audit:** `9751cd665d0d7cc66489fc0c025395f1fef96522`
+**Observed working-tree state:** The quota-ordering, text-selection gesture, partial-save draft-ID, and Rest/Note intrinsic-width remediations are committed locally. Generated Android registrant remains unrelated and excluded
 **Observed uncommitted/dirty files:** Flutter tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
 **PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
 **Current implementation state:** Shared Create/Edit composer mounts inline Exercise Notes and captures drafts for the surrounding Routine Save/Update. After the Routine mutation is confirmed, the existing `RoutineNotesRepository` receives canonical Exercise/Routine commands through a stable-ID bridge; quota/validation rejection leaves the draft editable or discardable, while unknown/unavailable outcomes keep the exit safety block. Failed Edit updates restore captured draft text after the saved-state rebuild; no new data source or backend contract is introduced. The compact Rest/Note constraint and parent-refresh remediation are in source history. The current follow-up exposes the existing immutable Supabase mutation receipt through `RoutineNotesRepository.reconcile(mutationId)` and uses that snapshot—not the current Note row—to confirm an unknown create without duplicate writes.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
-**Validation completed locally:** Elevated Flutter SDK access allowed the final focused suite (`46` tests: bridge, Supabase adapter and inline Notes widget), full `apps/features/workout` suite (`1144` tests), full `apps/app` suite (`470` passed, `1` skipped), `apps/features/workout` and `apps/app` analysis, and clean formatting for all changed Dart files. The new bridge regression proves unknown receipts are reconciled before quota evaluation, including an applied receipt after the current scope reaches five Notes; the new inline regression proves long-press text selection does not open the type sheet or reveal Delete. `git diff --check` completed with only the existing generated-file, CRLF and fsmonitor warnings. The initial sandbox timeout was a machine-local SDK cache permission limitation, not a repository or Git source failure; no SDK reinstall or global Git configuration change was performed.
-**Validation remaining:** Exact-head GitHub CI for `89207eac`, fresh independent approval, and independently reproduced physical Android/iOS QA
+**Validation completed locally:** Elevated Flutter SDK access allowed the latest focused bridge/inline suite (`33` tests), the 320dp Edit regression, full `apps/features/workout` test exit `0`, full `apps/app` test exit `0`, `apps/features/workout` and `apps/app` analysis, and clean formatting for all changed Dart files. The bridge regression proves reconciled draft IDs survive a later quota failure; the inline regression proves production-style Rest/Note adjacency at compact width and long-press text selection does not open the type sheet or reveal Delete. `git diff --check` completed with only the existing generated-file, CRLF and fsmonitor warnings. The initial sandbox timeout was a machine-local SDK cache permission limitation, not a repository or Git source failure; no SDK reinstall or global Git configuration change was performed.
+**Validation remaining:** Exact-head GitHub CI for the final pushed handoff HEAD, fresh independent approval, and independently reproduced physical Android/iOS QA
 **Current blocker:** No local source/toolchain blocker remains after running Flutter with the required SDK cache access. The owner-provided physical-device evidence is recorded separately and is not an independent reproduction. Hosted Notes objects remain outside this PR and are not activated.
-**Open review finding IDs:** Current unresolved Codex findings are `PRRT_kwDOTOXwB86zysqD` / review comment `4473017531` (reconcile unknown commands before quota evaluation) and `PRRT_kwDOTOXwB86zysqH` / review comment `4473017538` (protect TextField selection from raw swipe tracking). The earlier receipt finding `PRRT_kwDOTOXwB86zyQjA` was addressed by the receipt contract and is resolved/outdated. Former parent-refresh, compact-layout and older review findings remain resolved/outdated unless GitHub reports otherwise at the next exact-head audit. The standalone Routine Detail Notes refresh finding is superseded by the owner-approved removal of the separate Routine Notes section.
-**Next exact action:** Commit only the two verified remediation paths and focused tests, push PR #725, verify exact-head CI, reply/resolve both current Codex findings only after CI, then reconcile `im-tio` approval and Main Protection. Keep PR #725 unmerged.
+**Open review finding IDs:** Before this source commit, GitHub reported `PRRT_kwDOTOXwB86zysqD` / `4473017531` (unknown reconciliation before quota), `PRRT_kwDOTOXwB86zysqH` / `4473017538` (TextField selection versus raw swipe), `PRRT_kwDOTOXwB86zzRwO` / `4473267325` (confirmed draft IDs lost on later quota/read failure), and `PRRT_kwDOTOXwB86zzSGL` / `4473269712` (same partial-save defect). The source commit `9751cd66` addresses all four findings with one bounded reconciliation/result-propagation path plus the existing Rest/Note width constraint. Final thread disposition is pending exact-head recheck. The earlier receipt finding `PRRT_kwDOTOXwB86zyQjA` was addressed by the receipt contract and is resolved/outdated. The standalone Routine Detail Notes refresh finding is superseded by the owner-approved removal of the separate Routine Notes section.
+**Next exact action:** Push the verified source fix and this handoff update, verify exact-head CI, reply/resolve only addressed current threads with code/test evidence, then reconcile `im-tio` approval and Main Protection. Keep PR #725 unmerged.
 
 ## 1. Discovery
 
@@ -173,8 +173,8 @@ NOT RUN: physical Android/iOS keyboard and gesture QA, hosted Notes deployment, 
 
 **Review source / link:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`)
 **Reviewer / relation to implementer:** Independent reviewer requested: `im-tio`
-**Diff or commit SHA actually reviewed:** Latest submitted independent `im-tio` review was on PR HEAD `a245b01169bba621adf61916f76cc4753ff4da37` and withheld approval. A fresh `im-tio` review request is pending for exact HEAD `1b40c1813812f4b0b89e360b555a3d7155c5d9bb`.
-**Review result and finding dispositions:** Review comments were reconciled against current source. The standalone Routine Detail Notes-section comment is superseded by the owner correction and remains intentionally removed. The current unknown-exit and parent-refresh findings are fixed in `e87c419b`; refreshed independent review remains pending.
+**Diff or commit SHA actually reviewed:** Latest submitted independent `im-tio` review was on an earlier PR HEAD and withheld approval. A fresh `im-tio` review request remains pending for source HEAD `9751cd665d0d7cc66489fc0c025395f1fef96522`; the final handoff SHA will include this task-file evidence update after push.
+**Review result and finding dispositions:** Review comments were reconciled against current source. The standalone Routine Detail Notes-section comment is superseded by the owner correction and remains intentionally removed. The current quota-ordering, TextField-selection, and partial-save draft-ID findings are fixed in `9751cd665d0d7cc66489fc0c025395f1fef96522`; refreshed independent review remains pending.
 **Independent review?** Requested / pending
 **Limitations and unmet required gates:** Hosted Notes deployment remains intentionally blocked; physical Android/iOS QA and fresh independent approval remain open. GitHub's main branch protection endpoint currently returns `404 Branch not protected`, so required protection rules are not independently verifiable from that endpoint.
 
@@ -245,13 +245,16 @@ The bridge is intentionally sequential rather than falsely atomic because the ex
 - `RoutineNotesRepository.reconcile(mutationId)` now exposes the existing immutable mutation receipt; no Supabase schema, migration, RPC, RLS, grant or hosted configuration changed.
 - `RoutineNotesSaveBridge` matches the original owner, Note ID, canonical scope and body from the receipt snapshot. A later delete/transfer/current-row change cannot falsely confirm or duplicate the original create.
 - `RoutineNotesSaveBridge` reconciles all pending unknown creates before quota evaluation, so an applied receipt is not counted as a new slot after the current scope reaches five Notes.
+- `RoutineNotesSaveBridge` returns already-confirmed draft IDs through later quota/read/session failures, so partial success cannot leave an applied draft editable or silently lose its identity.
 - `_ExerciseNoteSwipeRow` suppresses raw swipe tracking during a held TextField selection gesture while preserving normal left/right swipe behavior.
-- PASS: focused bridge/adapter/inline suite — `46` tests.
-- PASS: full `apps/features/workout` suite — `1144` tests.
-- PASS: full `apps/app` suite — `470` passed, `1` skipped.
+- The production `restControl` now uses intrinsic-width `Align(widthFactor: 1)` while the existing row retains its compact `Flexible`/`IntrinsicWidth` constraint, keeping `Note` immediately adjacent to `Rest`.
+- PASS: latest focused bridge/inline suite — `33` tests.
+- PASS: full `apps/features/workout` suite — exit code `0` after the latest source commit; the full log was not retained in the shell output.
+- PASS: full `apps/app` suite — exit code `0` after the latest source commit; the full log was not retained in the shell output.
+- PASS: 320dp dark Edit table regression — `1` test.
 - PASS: `flutter analyze --no-pub` in `apps/features/workout` and `apps/app`.
 - PASS: changed-file Dart format check and `git diff --check` (existing fsmonitor/line-ending/generated-file warnings only).
-- NOT RUN: exact-head GitHub CI for `89207eac`, fresh `im-tio` approval, and independently reproduced physical-device QA.
+- NOT RUN: exact-head GitHub CI for `9751cd665d0d7cc66489fc0c025395f1fef96522`, fresh `im-tio` approval, and independently reproduced physical-device QA.
 
 ### Final Status
 
