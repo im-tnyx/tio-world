@@ -88,10 +88,13 @@ void main() {
     await _pump(
       tester,
       _FakeRoutineNotesRepository(),
-      restControl: const SizedBox(
-        key: ValueKey('rest-control'),
-        width: 140,
-        height: 31,
+      restControl: const Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          key: ValueKey('rest-control'),
+          width: 140,
+          height: 31,
+        ),
       ),
     );
 

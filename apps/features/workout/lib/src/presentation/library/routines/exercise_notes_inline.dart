@@ -393,7 +393,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
           children: [
             Flexible(
               fit: FlexFit.loose,
-              child: widget.restControl,
+              child: IntrinsicWidth(child: widget.restControl),
             ),
             const SizedBox(width: TioSpacing.sm),
             _ExerciseNoteAction(
