@@ -344,77 +344,73 @@ class RoutineComposerExerciseCard extends StatelessWidget {
             readOnlyDraftIds: readOnlyNoteDraftIds,
             onDraftsChanged: onNoteDraftsChanged,
             controllerRegistry: controllerRegistry,
-            restControl: Padding(
-              padding: const EdgeInsets.only(top: TioSpacing.xs),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Semantics(
-                  button: true,
-                  label: RoutineRestTimerFormatter.formatSemantics(
-                    normalSeconds: restPreset.normalRestSeconds,
-                    warmUpSeconds: restPreset.warmUpRestSeconds,
-                  ),
-                  child: Material(
-                    color: colors.surfaceVariant,
+            restControl: Align(
+              alignment: Alignment.centerLeft,
+              child: Semantics(
+                button: true,
+                label: RoutineRestTimerFormatter.formatSemantics(
+                  normalSeconds: restPreset.normalRestSeconds,
+                  warmUpSeconds: restPreset.warmUpRestSeconds,
+                ),
+                child: Material(
+                  color: colors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(TioRadius.full),
+                  child: InkWell(
+                    key: ValueKey('$prefix-rest-timer-${entry.id}'),
                     borderRadius: BorderRadius.circular(TioRadius.full),
-                    child: InkWell(
-                      key: ValueKey('$prefix-rest-timer-${entry.id}'),
-                      borderRadius: BorderRadius.circular(TioRadius.full),
-                      onTap: enabled ? onConfigureRestTimer : null,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: TioSpacing.md,
-                          vertical: TioSpacing.xs + 2,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.timer_outlined,
-                              size: TioSize.dp16,
-                              color: colors.textSecondary,
-                            ),
-                            const SizedBox(width: TioSpacing.xs),
-                            Flexible(
-                              child: Text.rich(
-                                TextSpan(
-                                  style: TextStyle(
-                                    fontSize: TioFontSize.size13,
-                                    fontWeight: TioFontWeight.w600,
-                                    color: colors.textPrimary,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: restPreset.normalRestSeconds != null
-                                          ? 'Rest: ${RoutineRestTimerFormatter.formatSeconds(restPreset.normalRestSeconds!)}'
-                                          : restPreset.warmUpRestSeconds != null
-                                              ? 'Rest: '
-                                              : 'Rest: OFF',
-                                    ),
-                                    if (restPreset.warmUpRestSeconds !=
-                                        null) ...[
-                                      if (restPreset.normalRestSeconds != null)
-                                        const TextSpan(text: ' '),
-                                      TextSpan(
-                                        text:
-                                            '(${RoutineRestTimerFormatter.formatSeconds(restPreset.warmUpRestSeconds!)})',
-                                        style: TextStyle(
-                                          color: entry.sets.any((s) =>
-                                                  s.prescription.setType ==
-                                                  RoutineSetType.warmUp)
-                                              ? colors.warning
-                                              : colors.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
+                    onTap: enabled ? onConfigureRestTimer : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: TioSpacing.md,
+                        vertical: TioSpacing.xs + 2,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.timer_outlined,
+                            size: TioSize.dp16,
+                            color: colors.textSecondary,
+                          ),
+                          const SizedBox(width: TioSpacing.xs),
+                          Flexible(
+                            child: Text.rich(
+                              TextSpan(
+                                style: TextStyle(
+                                  fontSize: TioFontSize.size13,
+                                  fontWeight: TioFontWeight.w600,
+                                  color: colors.textPrimary,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                children: [
+                                  TextSpan(
+                                    text: restPreset.normalRestSeconds != null
+                                        ? 'Rest: ${RoutineRestTimerFormatter.formatSeconds(restPreset.normalRestSeconds!)}'
+                                        : restPreset.warmUpRestSeconds != null
+                                            ? 'Rest: '
+                                            : 'Rest: OFF',
+                                  ),
+                                  if (restPreset.warmUpRestSeconds != null) ...[
+                                    if (restPreset.normalRestSeconds != null)
+                                      const TextSpan(text: ' '),
+                                    TextSpan(
+                                      text:
+                                          '(${RoutineRestTimerFormatter.formatSeconds(restPreset.warmUpRestSeconds!)})',
+                                      style: TextStyle(
+                                        color: entry.sets.any((s) =>
+                                                s.prescription.setType ==
+                                                RoutineSetType.warmUp)
+                                            ? colors.warning
+                                            : colors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

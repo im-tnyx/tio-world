@@ -110,7 +110,7 @@ void main() {
     expect(find.byKey(const ValueKey('exercise-notes-retry')), findsNothing);
   });
 
-  testWidgets('Note focuses the inline input without opening a sheet',
+  testWidgets('Note reveals the inline input without opening the keyboard',
       (tester) async {
     await _pump(tester, _FakeRoutineNotesRepository());
 
@@ -127,9 +127,17 @@ void main() {
     expect(inputWidget.decoration!.border, same(InputBorder.none));
     expect(inputWidget.decoration!.enabledBorder, same(InputBorder.none));
     expect(tester.getRect(input).height, lessThan(TioSize.dp52));
-    expect(FocusManager.instance.primaryFocus, isNotNull);
+    expect(inputWidget.focusNode!.hasFocus, isFalse);
     expect(
         find.byKey(const ValueKey('exercise-note-type-sheet')), findsNothing);
+
+    await tester.tap(input);
+    await tester.pump();
+    expect(inputWidget.focusNode!.hasFocus, isTrue);
+
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pump();
+    expect(inputWidget.focusNode!.hasFocus, isFalse);
   });
 
   testWidgets('draft icon follows the selected note type', (tester) async {
@@ -186,6 +194,61 @@ void main() {
           .controller!
           .text,
       'First note',
+    );
+  });
+
+  testWidgets(
+      'left swipe on a draft reveals Delete and removes it after confirmation',
+      (tester) async {
+    await _pump(tester, _FakeRoutineNotesRepository());
+
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-action-$_exercise')),
+    );
+    await tester.pump();
+
+    final draftRow = find.byKey(const ValueKey('exercise-note-draft-swipe-0'));
+    await tester.drag(draftRow, const Offset(-220, 0));
+    await tester.pump();
+
+    expect(find.text('Delete'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-delete-action')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete Note?'), findsOneWidget);
+    await tester.tap(find.text('Delete Note').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('exercise-note-input-$_exercise')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('swiping an open draft back closes the Delete action',
+      (tester) async {
+    await _pump(tester, _FakeRoutineNotesRepository());
+
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-action-$_exercise')),
+    );
+    await tester.pump();
+
+    final draftRow = find.byKey(const ValueKey('exercise-note-draft-swipe-0'));
+    await tester.drag(draftRow, const Offset(-220, 0));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('exercise-note-delete-action')),
+      findsOneWidget,
+    );
+
+    await tester.drag(draftRow, const Offset(220, 0));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('exercise-note-delete-action')),
+      findsNothing,
     );
   });
 
@@ -369,7 +432,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Delete'), findsOneWidget);
 
-    await tester.tap(find.text('Delete'));
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-delete-action')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Delete Exercise Note?'), findsOneWidget);
 
@@ -387,7 +452,9 @@ void main() {
     final row = find.byKey(const ValueKey('exercise-note-swipe-$_noteId'));
     await tester.drag(row, const Offset(-220, 0));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete'));
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-delete-action')),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Cancel'));
@@ -449,7 +516,9 @@ void main() {
       const Offset(-220, 0),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete').first);
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-delete-action')).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete Note'));
     await tester.pumpAndSettle();

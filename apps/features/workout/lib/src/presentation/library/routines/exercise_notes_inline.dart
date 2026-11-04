@@ -205,8 +205,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     ]);
   }
 
-  Future<void> _changeDraftType(int index) async {
-    final draft = _drafts[index];
+  Future<void> _changeDraftType(_ExerciseNoteDraft draft) async {
     final selection = await _chooseType(
       context,
       draft.type,
@@ -215,7 +214,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     );
     if (!mounted || selection == null) return;
     if (selection is _DeleteNoteSelection) {
-      _deleteDraft(index);
+      _deleteDraft(draft);
       return;
     }
     if (selection is! RoutineNoteType || selection == draft.type) return;
@@ -227,11 +226,26 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     _publishDrafts();
   }
 
-  void _deleteDraft(int index) {
-    final draft = _drafts.removeAt(index);
+  void _deleteDraft(_ExerciseNoteDraft draft) {
+    if (!_drafts.remove(draft)) return;
     draft.dispose();
     setState(() {});
     _publishDrafts();
+  }
+
+  Future<bool> _deleteDraftWithConfirmation(_ExerciseNoteDraft draft) async {
+    if (!mounted) return false;
+    final confirmed = await showTioConfirmationBottomSheet(
+      context: context,
+      title: 'Delete Note?',
+      message: 'This Note will be removed from this Routine draft.',
+      confirmLabel: 'Delete Note',
+      cancelLabel: 'Cancel',
+      intent: TioConfirmationIntent.destructive,
+    );
+    if (confirmed != true || !mounted) return false;
+    _deleteDraft(draft);
+    return true;
   }
 
   Future<void> _changeSavedType(RoutineNote note) async {
@@ -270,6 +284,9 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
   }
 
   void _focusDraft() {
+    // The Note action only reveals another inline draft. The user must tap
+    // the field itself before the IME is allowed to open.
+    FocusManager.instance.primaryFocus?.unfocus();
     final controller = _controller;
     if (!widget.enabled ||
         (!_previewOnly && (controller == null || !controller.canCreate))) {
@@ -288,16 +305,6 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     _drafts.add(draft);
     setState(() {});
     _publishDrafts();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      draft.focusNode.requestFocus();
-      Scrollable.ensureVisible(
-        draft.focusNode.context ?? context,
-        alignment: 0.25,
-        duration: context.tioMotion.fast,
-        curve: Curves.easeOut,
-      );
-    });
   }
 
   Future<bool> _delete(RoutineNote note) async {
@@ -380,10 +387,11 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const SizedBox(height: TioSpacing.xs),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(child: widget.restControl),
+            widget.restControl,
             const SizedBox(width: TioSpacing.sm),
             _ExerciseNoteAction(
               key: ValueKey('exercise-note-action-${widget.exerciseRef.value}'),
@@ -397,7 +405,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
           if (notes.isNotEmpty)
             for (final note in notes)
               Padding(
-                padding: const EdgeInsets.only(bottom: TioSpacing.sm),
+                padding: const EdgeInsets.only(bottom: TioSpacing.xs),
                 child: _ExerciseNoteCard(
                   key: ValueKey('exercise-note-${note.id}'),
                   enabled:
@@ -418,25 +426,32 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
                   ),
                 ),
               ),
-          for (var index = 0; index < _drafts.length; index++) ...[
+          for (final draft in _drafts) ...[
             Padding(
-              padding: const EdgeInsets.only(bottom: TioSpacing.sm),
-              child: _ExerciseNoteDraftField(
-                fieldKey: ValueKey(_draftInputKey(index)),
-                typeKey: ValueKey(_draftTypeKey(index)),
-                iconKey: ValueKey(_draftIconKey(index)),
-                controller: _drafts[index].controller,
-                focusNode: _drafts[index].focusNode,
-                enabled: canEditDraft,
-                readOnly: widget.readOnlyDraftIds
-                    .contains(_publishedDraftId(_drafts[index].id)),
-                noteType: _drafts[index].type,
-                onTypeChange: canEditDraft &&
-                        !widget.readOnlyDraftIds.contains(
-                          _publishedDraftId(_drafts[index].id),
-                        )
-                    ? () => _changeDraftType(index)
-                    : null,
+              padding: const EdgeInsets.only(bottom: TioSpacing.xs),
+              child: _ExerciseNoteSwipeRow(
+                key: ValueKey('exercise-note-draft-swipe-${draft.id}'),
+                enabled: canEditDraft &&
+                    !widget.readOnlyDraftIds
+                        .contains(_publishedDraftId(draft.id)),
+                onDelete: () => _deleteDraftWithConfirmation(draft),
+                onTypeChange: () => _changeDraftType(draft),
+                child: _ExerciseNoteDraftField(
+                  fieldKey: ValueKey(_draftInputKey(_drafts.indexOf(draft))),
+                  typeKey: ValueKey(_draftTypeKey(_drafts.indexOf(draft))),
+                  iconKey: ValueKey(_draftIconKey(_drafts.indexOf(draft))),
+                  controller: draft.controller,
+                  focusNode: draft.focusNode,
+                  enabled: canEditDraft,
+                  readOnly: widget.readOnlyDraftIds
+                      .contains(_publishedDraftId(draft.id)),
+                  noteType: draft.type,
+                  onTypeChange: canEditDraft &&
+                          !widget.readOnlyDraftIds
+                              .contains(_publishedDraftId(draft.id))
+                      ? () => _changeDraftType(draft)
+                      : null,
+                ),
               ),
             ),
           ],
@@ -454,7 +469,11 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
               ),
             ),
         ],
-        const SizedBox(height: TioSpacing.sm),
+        SizedBox(
+          height: notes.isNotEmpty || _drafts.isNotEmpty
+              ? TioSpacing.none
+              : TioSpacing.sm,
+        ),
       ],
     );
   }
@@ -550,6 +569,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
                 key: fieldKey,
                 controller: controller,
                 focusNode: focusNode,
+                onTapOutside: (_) => focusNode.unfocus(),
                 enabled: enabled && !readOnly,
                 keyboardType: TextInputType.multiline,
                 maxLines: 4,
@@ -564,7 +584,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Add a pinned exercise note',
                   hintStyle: textTheme.bodyLarge?.copyWith(
-                    color: colors.textSecondary,
+                    color: colors.textMuted,
                   ),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
@@ -757,26 +777,70 @@ final class _ExerciseNoteSwipeRow extends StatefulWidget {
 }
 
 final class _ExerciseNoteSwipeRowState extends State<_ExerciseNoteSwipeRow> {
-  static const double _revealWidth =
-      TioSize.dp64 + TioSpacing.xl + TioSpacing.md;
+  static const double _revealWidth = TioSize.dp64 + TioSpacing.lg;
   static const double _openThreshold = _revealWidth / 2;
   double _offset = 0;
+  int? _activePointer;
+  Offset? _dragStartPosition;
+  double _dragStartOffset = 0;
+  var _trackingHorizontalDrag = false;
 
-  void _onDragUpdate(DragUpdateDetails details) {
+  void _onPointerDown(PointerDownEvent event) {
     if (!widget.enabled) return;
+    _activePointer = event.pointer;
+    _dragStartPosition = event.position;
+    _dragStartOffset = _offset;
+    _trackingHorizontalDrag = false;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (!widget.enabled || event.pointer != _activePointer) return;
+    final start = _dragStartPosition;
+    if (start == null) return;
+    final delta = event.position - start;
+    if (!_trackingHorizontalDrag) {
+      if (delta.distanceSquared < 64) return;
+      if (delta.dy.abs() > delta.dx.abs()) {
+        _resetPointerTracking();
+        return;
+      }
+      _trackingHorizontalDrag = true;
+    }
     setState(() {
-      _offset = (_offset - details.delta.dx).clamp(-_revealWidth, _revealWidth);
+      _offset = (_dragStartOffset - delta.dx).clamp(
+        -_revealWidth,
+        _revealWidth,
+      );
     });
   }
 
-  void _onDragEnd(DragEndDetails details) {
+  void _onPointerUp(PointerUpEvent event) {
+    if (event.pointer != _activePointer) return;
+    final shouldFinish = _trackingHorizontalDrag;
+    _resetPointerTracking();
+    if (shouldFinish) _finishSwipe();
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _activePointer) return;
+    _resetPointerTracking();
+    if (mounted) setState(() => _offset = 0);
+  }
+
+  void _resetPointerTracking() {
+    _activePointer = null;
+    _dragStartPosition = null;
+    _dragStartOffset = _offset;
+    _trackingHorizontalDrag = false;
+  }
+
+  void _finishSwipe() {
     if (!widget.enabled) return;
-    final velocity = details.primaryVelocity ?? 0;
-    if (velocity > 200 || _offset <= -_openThreshold) {
+    if (_offset <= -_openThreshold) {
       unawaited(_changeType());
       return;
     }
-    final open = velocity < -200 || _offset >= _openThreshold;
+    final open = _offset >= _openThreshold;
     setState(() => _offset = open ? _revealWidth : 0);
   }
 
@@ -793,51 +857,68 @@ final class _ExerciseNoteSwipeRowState extends State<_ExerciseNoteSwipeRow> {
   }
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        customSemanticsActions: widget.enabled
-            ? {
-                const CustomSemanticsAction(label: 'Delete note'): () {
-                  unawaited(widget.onDelete());
-                },
-                const CustomSemanticsAction(label: 'Change note type'): () {
-                  unawaited(widget.onTypeChange());
-                },
-              }
-            : const {},
+  Widget build(BuildContext context) {
+    final deleteWidth = _offset.clamp(0.0, _revealWidth);
+    final deleteOpacity = (deleteWidth / _revealWidth).clamp(0.0, 1.0);
+
+    return Semantics(
+      customSemanticsActions: widget.enabled
+          ? {
+              const CustomSemanticsAction(label: 'Delete note'): () {
+                unawaited(widget.onDelete());
+              },
+              const CustomSemanticsAction(label: 'Change note type'): () {
+                unawaited(widget.onTypeChange());
+              },
+            }
+          : const {},
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: _onPointerDown,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerUp,
+        onPointerCancel: _onPointerCancel,
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Material(
-                color: context.tioColors.danger,
-                child: InkWell(
-                  onTap: _offset == 0 ? null : _delete,
-                  child: const Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: EdgeInsetsDirectional.only(
-                        end: TioSpacing.lg,
-                      ),
-                      child: Text(
-                        'Delete',
-                        style: TextStyle(fontWeight: TioFontWeight.w600),
+            IgnorePointer(
+              ignoring: _offset > 0,
+              child: Transform.translate(
+                offset: Offset(-_offset, 0),
+                child: widget.child,
+              ),
+            ),
+            if (deleteWidth > 0)
+              Positioned.fill(
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: SizedBox(
+                    width: deleteWidth,
+                    child: Material(
+                      color: context.tioColors.danger,
+                      child: InkWell(
+                        key: const ValueKey('exercise-note-delete-action'),
+                        onTap: _delete,
+                        child: Center(
+                          child: Opacity(
+                            opacity: deleteOpacity,
+                            child: const Text(
+                              'Delete',
+                              style: TextStyle(
+                                fontWeight: TioFontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            Transform.translate(
-              offset: Offset(-_offset, 0),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onHorizontalDragUpdate: _onDragUpdate,
-                onHorizontalDragEnd: _onDragEnd,
-                child: widget.child,
-              ),
-            ),
           ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 final class _DeleteNoteSelection {
