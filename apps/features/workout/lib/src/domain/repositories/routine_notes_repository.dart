@@ -39,6 +39,24 @@ final class RoutineNoteOutcomeUnknown implements Exception {
   String toString() => 'RoutineNoteOutcomeUnknown(${reason.name})';
 }
 
+enum RoutineNoteMutationReceiptStatus { pending, applied, deleted, expired }
+
+final class RoutineNoteMutationReceipt {
+  const RoutineNoteMutationReceipt({
+    required this.mutationId,
+    required this.status,
+    this.note,
+    this.noteId,
+    this.revision,
+  });
+
+  final String mutationId;
+  final RoutineNoteMutationReceiptStatus status;
+  final RoutineNote? note;
+  final String? noteId;
+  final int? revision;
+}
+
 final class RoutineNoteCreate {
   RoutineNoteCreate({
     required String id,
@@ -113,6 +131,12 @@ final class RoutineNoteDelete {
 
 abstract interface class RoutineNotesRepository {
   Future<List<RoutineNote>> read(RoutineNoteScope scope);
+
+  /// Returns the immutable receipt for one previously submitted mutation.
+  ///
+  /// This is intentionally separate from [read]: current Note rows may have
+  /// been deleted or transferred after the original mutation completed.
+  Future<RoutineNoteMutationReceipt> reconcile(String mutationId);
 
   Future<RoutineNote> create(RoutineNoteCreate command);
 

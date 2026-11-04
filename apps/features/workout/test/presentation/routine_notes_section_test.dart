@@ -233,6 +233,13 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
   }
 
   @override
+  Future<RoutineNoteMutationReceipt> reconcile(String mutationId) async =>
+      RoutineNoteMutationReceipt(
+        mutationId: mutationId,
+        status: RoutineNoteMutationReceiptStatus.pending,
+      );
+
+  @override
   Future<RoutineNote> create(RoutineNoteCreate command) async => _routineNote();
 
   @override

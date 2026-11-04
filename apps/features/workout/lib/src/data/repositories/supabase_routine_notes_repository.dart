@@ -126,6 +126,36 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
   }
 
   @override
+  Future<RoutineNoteMutationReceipt> reconcile(String mutationId) async {
+    final owner = _owner();
+    try {
+      final result =
+          await _gateway.reconcile(mutationId: mutationId).timeout(_timeout);
+      if (!_sameOwner(owner)) {
+        throw RoutineNoteOutcomeUnknown(
+          mutationId: mutationId,
+          reason: RoutineNoteUncertainty.sessionChanged,
+        );
+      }
+      return _receiptResult(result, mutationId);
+    } on RoutineNoteOutcomeUnknown {
+      rethrow;
+    } on RoutineNoteException {
+      rethrow;
+    } on PostgrestException catch (error) {
+      throw RoutineNoteException(
+        _definite(error) ?? RoutineNoteFailureKind.unavailable,
+      );
+    } on TimeoutException {
+      throw RoutineNoteOutcomeUnknown(mutationId: mutationId);
+    } on FormatException {
+      throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
+    } catch (_) {
+      throw RoutineNoteOutcomeUnknown(mutationId: mutationId);
+    }
+  }
+
+  @override
   Future<RoutineNote> create(RoutineNoteCreate command) async {
     final result = await _mutate(_createParams(command), command.mutationId);
     return _noteResult(result);
@@ -271,10 +301,49 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
     if (result['status'] != 'applied' || result['note'] is! Map) {
       throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
     }
-    try {
-      return RoutineNote.fromJson(
-        Map<String, dynamic>.from(result['note'] as Map),
+    return _parseNote(result['note']);
+  }
+
+  RoutineNoteMutationReceipt _receiptResult(
+    Map<String, dynamic> result,
+    String mutationId,
+  ) {
+    final responseMutationId = result['mutation_id'];
+    if (responseMutationId != null && responseMutationId != mutationId) {
+      throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
+    }
+    final status = switch (result['status']) {
+      'pending' => RoutineNoteMutationReceiptStatus.pending,
+      'applied' => RoutineNoteMutationReceiptStatus.applied,
+      'deleted' => RoutineNoteMutationReceiptStatus.deleted,
+      'expired' => RoutineNoteMutationReceiptStatus.expired,
+      _ => throw const RoutineNoteException(
+          RoutineNoteFailureKind.malformedData,
+        ),
+    };
+    if (status == RoutineNoteMutationReceiptStatus.applied) {
+      return RoutineNoteMutationReceipt(
+        mutationId: mutationId,
+        status: status,
+        note: _parseNote(result['note']),
+        noteId: _optionalString(result['note_id']),
+        revision: _optionalInt(result['revision']),
       );
+    }
+    return RoutineNoteMutationReceipt(
+      mutationId: mutationId,
+      status: status,
+      noteId: _optionalString(result['note_id']),
+      revision: _optionalInt(result['revision']),
+    );
+  }
+
+  RoutineNote _parseNote(Object? value) {
+    if (value is! Map) {
+      throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
+    }
+    try {
+      return RoutineNote.fromJson(Map<String, dynamic>.from(value));
     } on FormatException {
       throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
     } on ArgumentError {
@@ -282,6 +351,18 @@ final class SupabaseRoutineNotesRepository implements RoutineNotesRepository {
     } on TypeError {
       throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
     }
+  }
+
+  String? _optionalString(Object? value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
+  }
+
+  int? _optionalInt(Object? value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    throw const RoutineNoteException(RoutineNoteFailureKind.malformedData);
   }
 
   void _checkReadOwner(String owner) {

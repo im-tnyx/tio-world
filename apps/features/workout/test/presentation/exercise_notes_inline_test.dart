@@ -543,6 +543,13 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
       notes.where((note) => note.scope == scope).toList();
 
   @override
+  Future<RoutineNoteMutationReceipt> reconcile(String mutationId) async =>
+      RoutineNoteMutationReceipt(
+        mutationId: mutationId,
+        status: RoutineNoteMutationReceiptStatus.pending,
+      );
+
+  @override
   Future<RoutineNote> create(RoutineNoteCreate command) async {
     createCommand = command;
     final saved = _note(

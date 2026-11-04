@@ -297,13 +297,16 @@ final class RoutineNotesSaveBridge {
 
   Future<bool> _reconcile(RoutineNoteCreate command) async {
     try {
-      final notes = await _repository.read(command.scope);
+      final receipt = await _repository.reconcile(command.mutationId);
       if (!_current()) return false;
-      return notes.any((note) =>
+      final note = receipt.note;
+      return receipt.mutationId == command.mutationId &&
+          receipt.status == RoutineNoteMutationReceiptStatus.applied &&
+          note != null &&
           note.userId == _ownerId &&
           note.id == command.id &&
           note.scope == command.scope &&
-          note.body == command.body);
+          note.body == command.body;
     } catch (_) {
       return false;
     }

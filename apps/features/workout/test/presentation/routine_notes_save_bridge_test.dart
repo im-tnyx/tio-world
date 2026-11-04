@@ -101,12 +101,14 @@ void main() {
     expect(bridge.hasUnknown, isTrue);
     expect(repository.createCalls, 1);
 
-    repository.notes = [_savedNote(repository.commands.single)];
+    final saved = _savedNote(repository.commands.single);
+    repository.notes = [saved];
+    repository.reconciliation = _appliedReceipt(saved);
     final second = await bridge.save(drafts: [_draft()], routineId: null);
     expect(second.status, RoutineNotesSaveStatus.saved);
     expect(bridge.hasUnknown, isFalse);
     expect(repository.createCalls, 1);
-    expect(repository.readCalls, greaterThanOrEqualTo(3));
+    expect(repository.readCalls, greaterThanOrEqualTo(2));
   });
 
   test('does not edit an unknown command before reconciliation', () async {
@@ -161,12 +163,37 @@ void main() {
     );
 
     final first = await bridge.save(drafts: [_draft()], routineId: null);
-    repository.notes = [_savedNote(repository.commands.single)];
+    final saved = _savedNote(repository.commands.single);
+    repository.reconciliation = _appliedReceipt(saved);
     final second = await bridge.save(drafts: const [], routineId: null);
 
     expect(first.status, RoutineNotesSaveStatus.unknown);
     expect(second.status, RoutineNotesSaveStatus.saved);
     expect(repository.createCalls, 1);
+  });
+
+  test('reconciles from the original receipt after the current Note is changed',
+      () async {
+    final repository = _FakeRoutineNotesRepository(unknownCreate: true);
+    final bridge = RoutineNotesSaveBridge(
+      repository: repository,
+      ownerId: _owner,
+      isSessionCurrent: () => true,
+      newUuid: () => _note,
+    );
+
+    final first = await bridge.save(drafts: [_draft()], routineId: null);
+    final original = _savedNote(repository.commands.single);
+    repository.notes = [
+      _existingNote(original.scope, 0),
+    ];
+    repository.reconciliation = _appliedReceipt(original);
+    final second = await bridge.save(drafts: const [], routineId: null);
+
+    expect(first.status, RoutineNotesSaveStatus.unknown);
+    expect(second.status, RoutineNotesSaveStatus.saved);
+    expect(repository.createCalls, 1);
+    expect(bridge.hasUnknown, isFalse);
   });
 
   test('enforces the five-note scope quota before create', () async {
@@ -305,6 +332,15 @@ RoutineNote _existingNote(RoutineNoteScope scope, int index) {
   );
 }
 
+RoutineNoteMutationReceipt _appliedReceipt(RoutineNote note) =>
+    RoutineNoteMutationReceipt(
+      mutationId: note.lastMutationId!,
+      status: RoutineNoteMutationReceiptStatus.applied,
+      note: note,
+      noteId: note.id,
+      revision: note.revision,
+    );
+
 final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
   _FakeRoutineNotesRepository({
     this.notes = const [],
@@ -313,6 +349,7 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
   });
 
   List<RoutineNote> notes;
+  RoutineNoteMutationReceipt? reconciliation;
   final List<Object> createErrors;
   final bool unknownCreate;
   final commands = <RoutineNoteCreate>[];
@@ -324,6 +361,14 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
     readCalls++;
     return notes.where((note) => note.scope == scope).toList();
   }
+
+  @override
+  Future<RoutineNoteMutationReceipt> reconcile(String mutationId) async =>
+      reconciliation ??
+      RoutineNoteMutationReceipt(
+        mutationId: mutationId,
+        status: RoutineNoteMutationReceiptStatus.pending,
+      );
 
   @override
   Future<RoutineNote> create(RoutineNoteCreate command) async {
