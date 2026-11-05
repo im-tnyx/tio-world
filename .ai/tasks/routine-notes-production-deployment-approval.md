@@ -99,12 +99,19 @@ PR #717 adds durable persistence/repository/RPC behavior, not Notes UI or Routin
 
 The existing gate is global, not account-scoped: the state table contains one
 `gate_key = 'routine_notes'` row and no `user_id` or account selector. It cannot
-selectively enable Notes for one hosted account. Controlled testing must
-therefore use an isolated disposable Supabase project/branch containing only
-synthetic accounts, followed by a separate explicit activation approval for
-that isolated environment. Do not add speculative per-account activation
-infrastructure in this deployment slice. The current hosted project remains
-disabled until the global testing-only activation gate is separately approved.
+selectively enable Notes for one hosted account. Controlled testing therefore
+uses an isolated disposable Supabase project containing only synthetic or
+owner-attested disposable accounts, and activation still needs a separate
+explicit approval for that environment. Do not add speculative per-account
+activation infrastructure in this deployment slice.
+
+The linked project `oykupyiitspujzpwwvuj` is that isolated environment. The
+owner attested its data as disposable testing data, so this packet does not
+treat it as a real-user production database. Until the 2026-11-05 activation,
+its `routine_notes` gate stayed `disabled`. The owner then authorized
+testing-only activation. The live gate is now `enabled`, with hosted ledger 81
+through `20261031142025`. Real-user production activation, production
+TLS/`PGPASSFILE`, and device QA remain separately unauthorized.
 
 ## 2. Runner Decision
 
