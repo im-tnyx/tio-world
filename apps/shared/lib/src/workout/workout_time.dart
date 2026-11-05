@@ -1,45 +1,78 @@
 /// Immutable accounting of active and paused time for one WorkoutSession.
 ///
 /// All timestamps must be in UTC. Active workout duration subtracts pause
-/// durations to ensure truthful training volume statistics.
+/// durations to ensure truthful training volume statistics. Monotonicity is
+/// strictly enforced across all transitions (start -> pause -> resume -> pause -> finish).
 final class WorkoutTime {
   WorkoutTime({
     required DateTime startedAtUtc,
     DateTime? pausedAtUtc,
     Duration accumulatedPausedDuration = Duration.zero,
     DateTime? completedAtUtc,
+    DateTime? lastTransitionAtUtc,
   })  : startedAtUtc = _requireUtc(startedAtUtc, 'startedAtUtc'),
         pausedAtUtc = _validateOptionalUtc(pausedAtUtc, 'pausedAtUtc'),
         accumulatedPausedDuration =
             _requireNonNegativeDuration(accumulatedPausedDuration),
-        completedAtUtc = _validateOptionalUtc(completedAtUtc, 'completedAtUtc') {
-    if (this.pausedAtUtc != null &&
-        this.pausedAtUtc!.isBefore(this.startedAtUtc)) {
-      throw ArgumentError.value(
-        pausedAtUtc,
-        'pausedAtUtc',
-        'cannot be before startedAtUtc',
-      );
+        completedAtUtc = _validateOptionalUtc(completedAtUtc, 'completedAtUtc'),
+        lastTransitionAtUtc = _validateAndResolveLastTransition(
+          startedAtUtc: startedAtUtc,
+          pausedAtUtc: pausedAtUtc,
+          accumulatedPausedDuration: accumulatedPausedDuration,
+          completedAtUtc: completedAtUtc,
+          lastTransitionAtUtc: lastTransitionAtUtc,
+        ) {
+    if (this.pausedAtUtc != null) {
+      if (this.pausedAtUtc!.isBefore(this.startedAtUtc)) {
+        throw ArgumentError.value(
+          pausedAtUtc,
+          'pausedAtUtc',
+          'cannot be before startedAtUtc',
+        );
+      }
+      // The total previous pause duration cannot exceed the window up to the current pause.
+      if (this.startedAtUtc.add(this.accumulatedPausedDuration).isAfter(this.pausedAtUtc!)) {
+        throw ArgumentError(
+          'accumulatedPausedDuration ($accumulatedPausedDuration) exceeds time elapsed between start and current pause.',
+        );
+      }
     }
-    if (this.completedAtUtc != null &&
-        this.completedAtUtc!.isBefore(this.startedAtUtc)) {
-      throw ArgumentError.value(
-        completedAtUtc,
-        'completedAtUtc',
-        'cannot be before startedAtUtc',
-      );
+    if (this.completedAtUtc != null) {
+      if (this.completedAtUtc!.isBefore(this.startedAtUtc)) {
+        throw ArgumentError.value(
+          completedAtUtc,
+          'completedAtUtc',
+          'cannot be before startedAtUtc',
+        );
+      }
+      if (this.startedAtUtc.add(this.accumulatedPausedDuration).isAfter(this.completedAtUtc!)) {
+        throw ArgumentError(
+          'accumulatedPausedDuration ($accumulatedPausedDuration) exceeds total duration between start and finish.',
+        );
+      }
     }
     if (this.completedAtUtc != null && this.pausedAtUtc != null) {
       throw ArgumentError(
         'A completed or discarded session cannot remain paused.',
       );
     }
+    // For currently active session that has resumed from a prior pause:
+    if (this.pausedAtUtc == null && this.completedAtUtc == null && this.accumulatedPausedDuration > Duration.zero) {
+      if (this.lastTransitionAtUtc.isBefore(this.startedAtUtc.add(this.accumulatedPausedDuration))) {
+        throw ArgumentError(
+          'lastTransitionAtUtc ($lastTransitionAtUtc) cannot be before startedAtUtc + accumulatedPausedDuration (${this.startedAtUtc.add(this.accumulatedPausedDuration)}).',
+        );
+      }
+    }
   }
 
   /// Convenience factory for starting a session at [startedAtUtc].
   factory WorkoutTime.start({DateTime? startedAtUtc}) {
     final start = startedAtUtc ?? DateTime.timestamp();
-    return WorkoutTime(startedAtUtc: start);
+    return WorkoutTime(
+      startedAtUtc: start,
+      lastTransitionAtUtc: start,
+    );
   }
 
   /// UTC instant when the workout session started.
@@ -53,6 +86,11 @@ final class WorkoutTime {
 
   /// UTC instant when the workout session finished (completed or discarded); `null` while in progress.
   final DateTime? completedAtUtc;
+
+  /// UTC instant of the most recent lifecycle transition (start, pause, resume, or finish).
+  ///
+  /// Guarantees that subsequent transitions and duration evaluations cannot be backdated.
+  final DateTime lastTransitionAtUtc;
 
   /// Whether the workout is currently paused.
   bool get isPaused => pausedAtUtc != null;
@@ -69,11 +107,11 @@ final class WorkoutTime {
     if (isPaused) {
       throw StateError('Workout is already paused.');
     }
-    if (utc.isBefore(startedAtUtc)) {
+    if (utc.isBefore(lastTransitionAtUtc)) {
       throw ArgumentError.value(
         utc,
         'atUtc',
-        'pause timestamp cannot be before startedAtUtc',
+        'pause timestamp cannot be before last transition ($lastTransitionAtUtc)',
       );
     }
     return WorkoutTime(
@@ -81,6 +119,7 @@ final class WorkoutTime {
       pausedAtUtc: utc,
       accumulatedPausedDuration: accumulatedPausedDuration,
       completedAtUtc: completedAtUtc,
+      lastTransitionAtUtc: utc,
     );
   }
 
@@ -106,6 +145,7 @@ final class WorkoutTime {
       pausedAtUtc: null,
       accumulatedPausedDuration: accumulatedPausedDuration + additionalPause,
       completedAtUtc: completedAtUtc,
+      lastTransitionAtUtc: utc,
     );
   }
 
@@ -115,23 +155,16 @@ final class WorkoutTime {
     if (isCompleted) {
       throw StateError('Workout is already finished.');
     }
-    if (utc.isBefore(startedAtUtc)) {
+    if (utc.isBefore(lastTransitionAtUtc)) {
       throw ArgumentError.value(
         utc,
         'atUtc',
-        'finish timestamp cannot be before startedAtUtc',
+        'finish timestamp cannot be before last transition ($lastTransitionAtUtc)',
       );
     }
 
     var totalPaused = accumulatedPausedDuration;
     if (isPaused) {
-      if (utc.isBefore(pausedAtUtc!)) {
-        throw ArgumentError.value(
-          utc,
-          'atUtc',
-          'finish timestamp cannot be before pausedAtUtc',
-        );
-      }
       totalPaused += utc.difference(pausedAtUtc!);
     }
 
@@ -140,6 +173,7 @@ final class WorkoutTime {
       pausedAtUtc: null,
       accumulatedPausedDuration: totalPaused,
       completedAtUtc: utc,
+      lastTransitionAtUtc: utc,
     );
   }
 
@@ -150,36 +184,38 @@ final class WorkoutTime {
   Duration elapsedActiveDuration(DateTime nowUtc) {
     final now = _requireUtc(nowUtc, 'nowUtc');
     final effectiveEnd = completedAtUtc ?? now;
-    if (effectiveEnd.isBefore(startedAtUtc)) {
+    if (effectiveEnd.isBefore(lastTransitionAtUtc)) {
       throw ArgumentError.value(
         nowUtc,
         'nowUtc',
-        'evaluation instant cannot be before startedAtUtc',
+        'evaluation instant cannot be before last transition ($lastTransitionAtUtc)',
       );
     }
 
     var totalPaused = accumulatedPausedDuration;
     if (isPaused) {
-      final pauseEnd = effectiveEnd.isBefore(pausedAtUtc!)
-          ? pausedAtUtc!
-          : effectiveEnd;
-      totalPaused += pauseEnd.difference(pausedAtUtc!);
+      totalPaused += effectiveEnd.difference(pausedAtUtc!);
     }
 
     final totalElapsed = effectiveEnd.difference(startedAtUtc);
     final active = totalElapsed - totalPaused;
-    return active.isNegative ? Duration.zero : active;
+    if (active.isNegative) {
+      throw StateError(
+        'Inconsistent duration state: total paused duration ($totalPaused) exceeds elapsed duration ($totalElapsed).',
+      );
+    }
+    return active;
   }
 
   /// Total wall-clock time elapsed from start to finish (or [nowUtc]).
   Duration totalElapsedDuration(DateTime nowUtc) {
     final now = _requireUtc(nowUtc, 'nowUtc');
     final effectiveEnd = completedAtUtc ?? now;
-    if (effectiveEnd.isBefore(startedAtUtc)) {
+    if (effectiveEnd.isBefore(lastTransitionAtUtc)) {
       throw ArgumentError.value(
         nowUtc,
         'nowUtc',
-        'evaluation instant cannot be before startedAtUtc',
+        'evaluation instant cannot be before last transition ($lastTransitionAtUtc)',
       );
     }
     return effectiveEnd.difference(startedAtUtc);
@@ -208,6 +244,48 @@ final class WorkoutTime {
     return duration;
   }
 
+  static DateTime _validateAndResolveLastTransition({
+    required DateTime startedAtUtc,
+    required DateTime? pausedAtUtc,
+    required Duration accumulatedPausedDuration,
+    required DateTime? completedAtUtc,
+    required DateTime? lastTransitionAtUtc,
+  }) {
+    if (lastTransitionAtUtc != null) {
+      _requireUtc(lastTransitionAtUtc, 'lastTransitionAtUtc');
+      if (lastTransitionAtUtc.isBefore(startedAtUtc)) {
+        throw ArgumentError.value(
+          lastTransitionAtUtc,
+          'lastTransitionAtUtc',
+          'cannot be before startedAtUtc',
+        );
+      }
+      if (completedAtUtc != null && !lastTransitionAtUtc.isAtSameMomentAs(completedAtUtc)) {
+        throw ArgumentError.value(
+          lastTransitionAtUtc,
+          'lastTransitionAtUtc',
+          'must match completedAtUtc for finished sessions',
+        );
+      }
+      if (pausedAtUtc != null && !lastTransitionAtUtc.isAtSameMomentAs(pausedAtUtc)) {
+        throw ArgumentError.value(
+          lastTransitionAtUtc,
+          'lastTransitionAtUtc',
+          'must match pausedAtUtc for currently paused sessions',
+        );
+      }
+      return lastTransitionAtUtc;
+    }
+
+    // Default resolution when not explicitly supplied:
+    if (completedAtUtc != null) return completedAtUtc;
+    if (pausedAtUtc != null) return pausedAtUtc;
+    if (accumulatedPausedDuration > Duration.zero) {
+      return startedAtUtc.add(accumulatedPausedDuration);
+    }
+    return startedAtUtc;
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -215,7 +293,8 @@ final class WorkoutTime {
           other.startedAtUtc == startedAtUtc &&
           other.pausedAtUtc == pausedAtUtc &&
           other.accumulatedPausedDuration == accumulatedPausedDuration &&
-          other.completedAtUtc == completedAtUtc;
+          other.completedAtUtc == completedAtUtc &&
+          other.lastTransitionAtUtc == lastTransitionAtUtc;
 
   @override
   int get hashCode => Object.hash(
@@ -223,5 +302,6 @@ final class WorkoutTime {
         pausedAtUtc,
         accumulatedPausedDuration,
         completedAtUtc,
+        lastTransitionAtUtc,
       );
 }

@@ -41,6 +41,7 @@ final class WorkoutSession {
     }
     _validateStatusAndTimeAlignment();
     _validateDiscardReason();
+    _validatePerformedSets(this.performedSets, snapshot);
   }
 
   /// Convenience factory to start a new active session from a verified snapshot.
@@ -190,14 +191,33 @@ final class WorkoutSession {
   /// Records or replaces a performed set in this session.
   ///
   /// Matches existing set by [PerformedSet.id] if present, otherwise appends.
+  /// Validates that the set references a valid snapshot exercise occurrence,
+  /// matching `exerciseRef`, and that no distinct set ID occupies the same slot.
   /// Throws [StateError] if session is already in a terminal state.
   WorkoutSession logSet(PerformedSet set) {
     if (isTerminal) {
       throw StateError('Cannot log sets in terminal session ($status)');
     }
 
+    _validateSinglePerformedSet(set, snapshot);
+
     final updated = List<PerformedSet>.of(performedSets);
     final existingIndex = updated.indexWhere((item) => item.id == set.id);
+
+    // Reject two different set IDs claiming the same slot
+    final slotConflictIndex = updated.indexWhere(
+      (item) =>
+          item.sessionExerciseIndex == set.sessionExerciseIndex &&
+          item.setIndex == set.setIndex &&
+          item.id != set.id,
+    );
+    if (slotConflictIndex >= 0) {
+      final conflicting = updated[slotConflictIndex];
+      throw ArgumentError(
+        'Slot (sessionExerciseIndex: ${set.sessionExerciseIndex}, setIndex: ${set.setIndex}) is already occupied by set ID ${conflicting.id}.',
+      );
+    }
+
     if (existingIndex >= 0) {
       updated[existingIndex] = set;
     } else {
@@ -242,6 +262,50 @@ final class WorkoutSession {
       notes: notes,
       discardReason: discardReason,
     );
+  }
+
+  static void _validateSinglePerformedSet(
+    PerformedSet set,
+    WorkoutSessionSnapshot snapshot,
+  ) {
+    if (snapshot.exercises.isEmpty ||
+        set.sessionExerciseIndex < 0 ||
+        set.sessionExerciseIndex >= snapshot.exercises.length) {
+      throw ArgumentError.value(
+        set.sessionExerciseIndex,
+        'sessionExerciseIndex',
+        'does not exist in session snapshot (snapshot has ${snapshot.exercises.length} exercises)',
+      );
+    }
+    final occurrence = snapshot.exercises[set.sessionExerciseIndex];
+    if (set.exerciseRef != occurrence.exerciseRef) {
+      throw ArgumentError(
+        'Performed set exerciseRef (${set.exerciseRef}) does not match snapshot occurrence at index ${set.sessionExerciseIndex} (${occurrence.exerciseRef}).',
+      );
+    }
+  }
+
+  static void _validatePerformedSets(
+    List<PerformedSet> sets,
+    WorkoutSessionSnapshot snapshot,
+  ) {
+    final seenIds = <String>{};
+    final seenSlots = <(int, int)>{};
+
+    for (final set in sets) {
+      _validateSinglePerformedSet(set, snapshot);
+
+      if (!seenIds.add(set.id)) {
+        throw ArgumentError('Duplicate performed set ID: ${set.id}');
+      }
+
+      final slot = (set.sessionExerciseIndex, set.setIndex);
+      if (!seenSlots.add(slot)) {
+        throw ArgumentError(
+          'Duplicate performed set slot (sessionExerciseIndex: ${set.sessionExerciseIndex}, setIndex: ${set.setIndex}) under distinct set IDs in session.',
+        );
+      }
+    }
   }
 
   void _validateStatusAndTimeAlignment() {

@@ -24,6 +24,10 @@ void main() {
         () => WorkoutTime(startedAtUtc: t0, completedAtUtc: local),
         throwsArgumentError,
       );
+      expect(
+        () => WorkoutTime(startedAtUtc: t0, lastTransitionAtUtc: local),
+        throwsArgumentError,
+      );
     });
 
     test('enforces chronological monotonicity', () {
@@ -34,6 +38,10 @@ void main() {
       );
       expect(
         () => WorkoutTime(startedAtUtc: t0, completedAtUtc: earlier),
+        throwsArgumentError,
+      );
+      expect(
+        () => WorkoutTime(startedAtUtc: t0, lastTransitionAtUtc: earlier),
         throwsArgumentError,
       );
       expect(
@@ -50,11 +58,13 @@ void main() {
       final start = WorkoutTime.start(startedAtUtc: t0);
       expect(start.isPaused, isFalse);
       expect(start.isCompleted, isFalse);
+      expect(start.lastTransitionAtUtc, t0);
 
       // Active for 10 minutes, then pause at t1
       final paused = start.pause(t1);
       expect(paused.isPaused, isTrue);
       expect(paused.pausedAtUtc, t1);
+      expect(paused.lastTransitionAtUtc, t1);
       expect(paused.accumulatedPausedDuration, Duration.zero);
 
       // During pause (at t2 = +15 min), active duration is still 10 min
@@ -72,6 +82,7 @@ void main() {
       final resumed = paused.resume(t2);
       expect(resumed.isPaused, isFalse);
       expect(resumed.pausedAtUtc, isNull);
+      expect(resumed.lastTransitionAtUtc, t2);
       expect(
         resumed.accumulatedPausedDuration,
         const Duration(minutes: 5),
@@ -104,6 +115,7 @@ void main() {
       expect(time.isCompleted, isTrue);
       expect(time.isPaused, isFalse);
       expect(time.completedAtUtc, t5);
+      expect(time.lastTransitionAtUtc, t5);
       expect(
         time.accumulatedPausedDuration,
         const Duration(minutes: 15), // 5 min + 10 min
@@ -125,6 +137,8 @@ void main() {
 
       expect(time.isCompleted, isTrue);
       expect(time.isPaused, isFalse);
+      expect(time.completedAtUtc, t3);
+      expect(time.lastTransitionAtUtc, t3);
       expect(
         time.elapsedActiveDuration(t5), // evaluating at t5 returns completed duration
         const Duration(minutes: 45),
@@ -135,23 +149,76 @@ void main() {
       );
     });
 
-    test('rejects illegal operations', () {
+    test('rejects illegal operations and backdated transitions after resume (Bugbot regression)', () {
       final active = WorkoutTime.start(startedAtUtc: t0);
       expect(() => active.resume(t1), throwsStateError);
 
       final paused = active.pause(t1);
       expect(() => paused.pause(t2), throwsStateError);
 
-      // Non-monotonic transition
+      // Non-monotonic resume before pause
       expect(
         () => paused.resume(DateTime.utc(2026, 11, 5, 10, 5, 0)),
         throwsArgumentError,
       );
 
-      final finished = active.finish(t3);
+      final resumed = paused.resume(t2); // Resumed at 10:15 (t2)
+
+      // Regression: pause backdated before resume instant (e.g. 10:12) must be rejected
+      final backdatedPause = DateTime.utc(2026, 11, 5, 10, 12, 0);
+      expect(
+        () => resumed.pause(backdatedPause),
+        throwsArgumentError,
+      );
+
+      // Regression: finish backdated before resume instant (e.g. 10:12) must be rejected
+      expect(
+        () => resumed.finish(backdatedPause),
+        throwsArgumentError,
+      );
+
+      // Regression: duration evaluation before resume instant must be rejected
+      expect(
+        () => resumed.elapsedActiveDuration(backdatedPause),
+        throwsArgumentError,
+      );
+
+      final finished = resumed.finish(t3);
       expect(() => finished.pause(t4), throwsStateError);
       expect(() => finished.resume(t4), throwsStateError);
       expect(() => finished.finish(t4), throwsStateError);
+    });
+
+    test('direct constructor validates accumulatedPausedDuration against elapsed window', () {
+      // accumulatedPausedDuration cannot exceed elapsed time to pause
+      expect(
+        () => WorkoutTime(
+          startedAtUtc: t0,
+          pausedAtUtc: t1, // 10 minutes elapsed
+          accumulatedPausedDuration: const Duration(minutes: 15), // invalid!
+        ),
+        throwsArgumentError,
+      );
+
+      // accumulatedPausedDuration cannot exceed elapsed time to finish
+      expect(
+        () => WorkoutTime(
+          startedAtUtc: t0,
+          completedAtUtc: t1, // 10 minutes elapsed
+          accumulatedPausedDuration: const Duration(minutes: 12), // invalid!
+        ),
+        throwsArgumentError,
+      );
+
+      // Active session with accumulated pause requires lastTransitionAtUtc >= start + pause
+      expect(
+        () => WorkoutTime(
+          startedAtUtc: t0,
+          accumulatedPausedDuration: const Duration(minutes: 20),
+          lastTransitionAtUtc: t1, // 10 minutes elapsed, but pause was 20m!
+        ),
+        throwsArgumentError,
+      );
     });
 
     test('implements value equality', () {
@@ -159,16 +226,19 @@ void main() {
         startedAtUtc: t0,
         pausedAtUtc: t1,
         accumulatedPausedDuration: const Duration(minutes: 5),
+        lastTransitionAtUtc: t1,
       );
       final b = WorkoutTime(
         startedAtUtc: t0,
         pausedAtUtc: t1,
         accumulatedPausedDuration: const Duration(minutes: 5),
+        lastTransitionAtUtc: t1,
       );
       final c = WorkoutTime(
         startedAtUtc: t0,
         pausedAtUtc: t2,
         accumulatedPausedDuration: const Duration(minutes: 5),
+        lastTransitionAtUtc: t2,
       );
 
       expect(a, b);
