@@ -124,6 +124,10 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_81_routine_notes_staged_migrations.sh
 
+      - name: Verify TNYX-81 linked-login cleanup grant context
+        shell: bash
+        run: bash supabase/tests/database/tnyx_81_cleanup_grant_context.sh
+
       - name: Run Slice B1 SQL matrix
         shell: bash
         run: |
