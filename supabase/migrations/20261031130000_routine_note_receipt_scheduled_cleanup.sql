@@ -253,4 +253,9 @@ select cron.schedule(
   '17 3 * * *',
   'select private.prune_routine_note_cleanup_job_history()'
 );
-reset role;
+-- RESET ROLE restores the linked CLI login role. That role has no
+-- supabase_migrations USAGE or ledger INSERT, so CLI 2.114.0's appended
+-- schema_migrations insert fails with SQLSTATE 42501 and rolls the
+-- migration back. SET ROLE postgres is authorized for the session user
+-- while the scheduler role is current.
+set role postgres;

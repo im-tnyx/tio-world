@@ -124,7 +124,7 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_81_routine_notes_staged_migrations.sh
 
-      - name: Verify TNYX-81 linked-login cleanup grant context
+      - name: Verify TNYX-81 linked-login cleanup role and ledger write
         shell: bash
         run: bash supabase/tests/database/tnyx_81_cleanup_grant_context.sh
 
