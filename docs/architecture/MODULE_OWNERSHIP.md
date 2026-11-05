@@ -46,7 +46,8 @@ Per [ADR-0011](../adr/0011-workout-canonical-identities-and-exercise-catalog.md)
 - built-in catalog rows are not duplicated into Supabase; later Supabase work owns only approved user-created/dynamic/transactional Workout data;
 - existing Profile/Targets ownership is unchanged by this decision and is not moved cosmetically;
 - the legacy non-canonical `apps/shared/lib/src/workout/**` scaffolds were removed by the isolated W1A7 cleanup (TNYX-258); canonical Workout identities are introduced from W1A1 onward;
-- template sets are `SetPrescription`; actual performed history uses `PerformedSet`.
+- template sets are `SetPrescription`; actual performed history uses `PerformedSet` (with stable UUID, occurrence index, and canonical `loadKg`/`reps`).
+- the W7A domain foundation establishes pure-Dart contracts in `apps/shared` (`WorkoutSession`, `WorkoutSessionStatus`, `WorkoutTime`, `PerformedSet`, `WorkoutSessionSnapshot`, `SessionExerciseSnapshot`) and deterministic execution readiness in `apps/features/workout` (`WorkoutExecutionReadiness`, `WorkoutReadinessValidator`), preserving snapshot immutability and separating planned template truth from performed execution.
 
 Do not pre-create empty Workout capability folders before a real slice requires them.
 
