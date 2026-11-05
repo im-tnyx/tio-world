@@ -2,6 +2,7 @@ export 'routine_composition_limits.dart';
 export 'routine_rest_timer_preset.dart';
 export 'workout_duration.dart';
 export 'workout_equipment.dart';
+export 'workout_execution_readiness.dart';
 export 'workout_experience_level.dart';
 export 'workout_focus_area.dart';
 export 'workout_gym_access.dart';
