@@ -1,23 +1,23 @@
 # Supabase Public Schema Inventory
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-11-01 (read-only hosted 72-migration prefix; nine Routine Notes migrations pending)
+Last Verified: 2026-11-01 structural inventory. The 2026-11-05 testing-only ledger is 81/81 and the Notes gate is enabled; this inventory was not remeasured on that date.
 Owner: Supabase data ownership
 Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
 
 ## Status
 
-**Canonical readable inventory of the Tio-world Supabase `public` schema as verified on 2026-11-01.**
+**Canonical readable inventory of the Tio-world Supabase `public` schema as verified on 2026-11-01.** The 2026-11-05 testing-only hosted ledger is **81/81** through `20261031142025` and the Notes gate is `enabled`. This file was not remeasured then, so the counts and the absence of Notes objects below are the 2026-11-01 snapshot. See [Supabase strategy](SUPABASE_STRATEGY.md) for the later ledger and gate checkpoint.
 
-- The hosted project remains at a read-only verified **72/72** migration prefix. The pre-Notes gate plus eight Routine Notes migrations are pending, so this inventory intentionally contains no Notes table, Notes RPC, gate-state table or Notes policy yet. Merged source PR #720 is not hosted deployment evidence.
+- On 2026-11-01 the hosted project was a read-only verified **72/72** migration prefix. The pre-Notes gate plus eight Routine Notes migrations were pending, so this inventory intentionally contained no Notes table, Notes RPC, gate-state table or Notes policy. Merged source PR #720 was not, by itself, hosted deployment evidence.
 
 - GitHub protected `main@b1b7722cf2cbcf45f90cca0a72da56669bb8e455` has **81** checked-in `supabase/migrations/` SQL files, through `20261031142025_routine_note_owner_scoped_identity.sql`.
-- Read-only hosted migration ledger shows **72/72 exact version-and-name parity** with the checked-in hosted prefix; the remaining nine checked-in migrations are repository-only and no hosted-only entries were observed.
+- Read-only hosted migration ledger on 2026-11-01 showed **72/72 exact version-and-name parity** with the checked-in hosted prefix; the remaining nine checked-in migrations were repository-only and no hosted-only entries were observed. The 2026-11-05 ledger checkpoint supersedes this prefix.
 - Read-only hosted `pg_catalog` confirms **19 public ordinary tables, 194 columns, 130 catalog constraint records, 55 indexes, RLS enabled on 19/19 tables**.
 - The newly hosted M5B-B1 migration adds **three nullable UUID provenance columns** and **one all-or-none CHECK** on `public.user_workout_programs`; it does **not** add a table or index. The protected `undo_create_user_workout_program_and_move_routine` RPC is present.
 - Current read-only hosted ACL verification confirms the three Move/Create+Move/full-Undo RPCs have `authenticated EXECUTE=true`, while `anon`, `service_role` and `PUBLIC` are denied. The functions are `SECURITY DEFINER`, owned by `postgres`, with fixed empty `search_path`. The checked-in Flutter gate is the default-OFF `TIO_MOVE_ROUTINE_RELEASE` build opt-in; it controls presentation exposure only and is not RPC authorization or a remote kill switch. **Schema deployment and an RPC grant are not a public Move release or a real-write Android/iOS QA pass.**
 
-The previous **2026-10-24 69/69** checkpoint, **2026-10-21 68/68** checkpoint, **2026-10-17 62/62** checkpoint and **2026-10-11 55/55** checkpoint are historical. The current 72/72 verification was read-only; this documentation change did not deploy SQL, change grants, execute mutating RPCs, or inspect user data. The private Routine tombstone table remains intentionally outside this `public`-only inventory.
+The previous **2026-10-24 69/69** checkpoint, **2026-10-21 68/68** checkpoint, **2026-10-17 62/62** checkpoint and **2026-10-11 55/55** checkpoint are historical. The 2026-11-01 72/72 verification was read-only and is now a historical prefix; this documentation change did not deploy SQL, change grants, execute mutating RPCs, or inspect user data. The private Routine tombstone table remains intentionally outside this `public`-only inventory.
 
 ## Truth Boundary
 
@@ -60,7 +60,7 @@ This inventory intentionally excludes:
 | Applied live migrations matched to repository | 72 / 72 |
 | Repository-only pending migrations | 9 |
 
-The hosted migration ledger currently ends at the verified **72/72** prefix; all **72** applied migration versions and names matched the checked-in prefix in the 2026-11-01 read-only audit, while nine later checked-in Routine Notes migrations remain repository-only and no hosted-only entries were observed. Structural table/column/constraint/index/RLS counts were remeasured live on the same date. This is **not** proof of authenticated end-user writes, concurrency behavior, mobile device QA, client RPC availability, or production feature activation.
+On 2026-11-01 the hosted migration ledger ended at the verified **72/72** prefix; all **72** applied migration versions and names matched the checked-in prefix, while nine later checked-in Routine Notes migrations were repository-only and no hosted-only entries were observed. Structural table/column/constraint/index/RLS counts were remeasured live on that date. The 2026-11-05 testing-only ledger is 81/81 and was not remeasured here. This is **not** proof of authenticated end-user writes, concurrency behavior, mobile device QA, client RPC availability, or production feature activation.
 
 ## Table Overview
 
