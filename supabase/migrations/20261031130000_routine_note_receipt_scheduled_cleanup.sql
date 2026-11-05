@@ -222,7 +222,9 @@ revoke all on function private.prune_routine_note_cleanup_job_history()
   from public, anon, authenticated, service_role;
 grant execute on function private.prune_routine_note_cleanup_job_history()
   to routine_note_receipt_cleanup_scheduler;
-reset role;
+-- RESET ROLE returns the linked CLI login role, which has no ADMIN OPTION on
+-- the scheduler role. Restore the trusted migration role before its grant.
+set role postgres;
 grant routine_note_receipt_cleanup_scheduler to postgres with set true;
 revoke create on schema private from routine_note_receipt_cleanup_owner;
 
