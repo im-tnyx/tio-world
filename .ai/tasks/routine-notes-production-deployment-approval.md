@@ -1,9 +1,13 @@
 # Routine Notes Production Deployment Approval Packet
 
-**Status:** Final 81-migration architecture reconciled; production execution is not authorized
+**Status:** Testing-only hosted ledger is 81 and the Notes gate is `enabled`. Real-user production execution is not authorized. Sections before the 2026-11-05 receipts are dated snapshots.
 **Primary owner:** Product owner / Supabase database owner for approvals
 **Implementation owner:** None; implementation and migrations are merged
 **Affected platforms:** Supabase Postgres, deployment operations, task documentation
+**Deployment operator:** Any project-owner-authorized local agent (for example Codex, Cursor, Antigravity, or Grok), supervised by the project owner; record the actual operator at execution
+**Final authorizing authority:** Project owner
+**Environment:** Testing-only Supabase project with owner-attested disposable data
+**Production activation:** Not authorized by this packet
 
 ## Owner Approval and Scope Boundary
 
@@ -39,6 +43,20 @@ Make a safe, reviewable owner decision on deploying the nine pending Routine Not
 | Hosted Security Advisor | Read-only refresh observed `2026-10-31T19:43:33Z`: INFO `rls_enabled_no_policy` count 1 for `private.deleted_user_workout_routine_ids`; WARN `authenticated_security_definer_function_executable` count 14; WARN `auth_leaked_password_protection` count 1. These predate Notes deployment and contain no Notes-specific findings. |
 | Current main CI | GitHub Actions lookup for merge commit `22f465bf0c3b55fd99bc804e359a5047f4452e23` returned no PR-triggered workflow runs. PR #718 Docs Hygiene CI `41226124568` passed on its exact head; PR #717 Database/Flutter/Docs Hygiene checks passed on its exact PR head as listed above. No check result is inferred for the current main merge commit. |
 
+### Current preflight refresh — 2026-11-05
+
+- Local `main` and `origin/main` both resolve to
+  `435a6fc521f7c49d40324330b3ac3f40e57e0c6d`; before this packet refresh the
+  worktree had no unrelated changes. This packet remains the only intentional
+  uncommitted documentation change.
+- `stash@{0}` remains preserved and contains the unrelated
+  `GeneratedPluginRegistrant.java` change.
+- PR #725 and PR #726 are merged. GitHub #716 remains closed. Linear
+  `TNYX-81` remains `Backlog` for broader W4.
+- Hosted Supabase project `oykupyiitspujzpwwvuj` still has exactly 72 applied
+  migrations and no Notes tables, Notes functions, Notes policies, `pg_cron`,
+  `cron` schema or cleanup roles. This refresh performed no hosted writes.
+
 The canonical Supabase strategy and schema inventory are reconciled by this
 documentation closure to distinguish the read-only hosted 72-migration prefix
 from the nine pending Notes migrations. No hosted write is implied.
@@ -47,8 +65,10 @@ from the nine pending Notes migrations. No hosted write is implied.
 
 The hosted baseline is 72 migrations. The deployment target is 81: the
 pre-Notes gate is applied first, followed by the eight Notes migrations below.
-In the ordered procedure, `G0` means the pre-Notes gate and `#1`–`#8` retain
-their meaning as the eight Notes migrations.
+The immutable filename/version is authoritative. In this packet, `G0` is the
+overall sequence position 1, while `Notes-relative 1`–`Notes-relative 8`
+refer only to the eight files after G0. Do not use an unqualified `#7`, `#8`
+or `#9` reference in an approval or command.
 
 **G0.** `20261028120000_install_routine_notes_data_api_gate.sql`
 
@@ -63,17 +83,41 @@ their meaning as the eight Notes migrations.
 7. `20261031130000_routine_note_receipt_scheduled_cleanup.sql`
 8. `20261031142025_routine_note_owner_scoped_identity.sql`
 
-The current migration #7 is not an extension-only step: in one migration it creates/uses `pg_cron`, creates the cleanup owner and LOGIN scheduler roles, establishes narrowly scoped helper access, and registers both scheduled jobs. Its transaction cannot be split into “install now, schedule later” without changing the merged SQL, which is out of scope.
+The current Notes-relative migration 7 —
+`20261031130000_routine_note_receipt_scheduled_cleanup.sql` (overall sequence
+position 8) — is not an extension-only step: in one migration it creates/uses
+`pg_cron`, creates the cleanup owner and LOGIN scheduler roles, establishes
+narrowly scoped helper access, and registers both scheduled jobs. Its
+transaction cannot be split into “install now, schedule later” without
+changing the merged SQL, which is out of scope.
 
 ### Runtime behavior boundary
 
 PR #717 adds durable persistence/repository/RPC behavior, not Notes UI or Routine Create/Edit integration. Deployment alone does not enable a visible Notes feature. Preserve the approved scope: personal Routine Notes by `RoutineId`; personal Exercise Notes by authenticated user plus canonical `ExerciseRef`, shared across that same user’s Routines; cross-user access denied. Limits are five active Notes per canonical scope and 50 active Notes per user. Full mutation snapshots are retained for 30 days from `created_at`; expiry redacts the Note body while preserving `mutation_id`, `request_hash` and the permanent tombstone.
 
+### Activation scope
+
+The existing gate is global, not account-scoped: the state table contains one
+`gate_key = 'routine_notes'` row and no `user_id` or account selector. It cannot
+selectively enable Notes for one hosted account. Controlled testing therefore
+uses an isolated disposable Supabase project containing only synthetic or
+owner-attested disposable accounts, and activation still needs a separate
+explicit approval for that environment. Do not add speculative per-account
+activation infrastructure in this deployment slice.
+
+The linked project `oykupyiitspujzpwwvuj` is that isolated environment. The
+owner attested its data as disposable testing data, so this packet does not
+treat it as a real-user production database. Until the 2026-11-05 activation,
+its `routine_notes` gate stayed `disabled`. The owner then authorized
+testing-only activation. The live gate is now `enabled`, with hosted ledger 81
+through `20261031142025`. Real-user production activation, production
+TLS/`PGPASSFILE`, and device QA remain separately unauthorized.
+
 ## 2. Runner Decision
 
 ### Recommendation
 
-The previously qualified Supabase CLI **v2.114.0 direct `db push` path using a passwordless URL and protected `PGPASSFILE` covered the 72→80 disposable workflow**. Separately, the current **v2.114.0 cumulative 72→81 CLI qualification passed on isolated disposable infrastructure**: one-migration dry-run/apply stages, retry/idempotency, rollback, interruption recovery and the Notes SQL/RLS/Data API gate tests all passed. The current 72→81 run used a synthetic local credential and local `sslmode=disable`; it does not qualify production endpoint authentication, TLS, `PGPASSFILE` delivery or deployment approval. The official release page marks **Supabase CLI v2.122.0** (released 2026-10-23) as Latest, but its exact path failed at Notes migration #2 with the transaction-block `LOCK TABLE` error. Do not implement a custom runner.
+The previously qualified Supabase CLI **v2.114.0 direct `db push` path using a passwordless URL and protected `PGPASSFILE` covered the 72→80 disposable workflow**. Separately, the current **v2.114.0 cumulative 72→81 CLI qualification passed on isolated disposable infrastructure**: one-migration dry-run/apply stages, retry/idempotency, rollback, interruption recovery and the Notes SQL/RLS/Data API gate tests all passed. The current 72→81 run used a synthetic local credential and local `sslmode=disable`; it does not qualify production endpoint authentication, TLS, `PGPASSFILE` delivery or deployment approval. The official release page marks **Supabase CLI v2.122.0** (released 2026-10-23) as Latest, but its exact path failed at Notes-relative migration 2 (`20261030065649_routine_note_mutation_result_snapshot.sql`) with the transaction-block `LOCK TABLE` error. Do not implement a custom runner.
 
 Qualified v2.114.0 Windows x64 artifact (production selection still pending):
 
@@ -122,7 +166,7 @@ CLI issue [#6236](https://github.com/supabase/cli/issues/6236) describes a v2.11
 - Keep the password out of `--db-url`. The passwordless URL + ACL-restricted `PGPASSFILE` path passed the historical 72→80 disposable `db push` qualification; it does not qualify the current production endpoint path. `SUPABASE_DB_PASSWORD` was not honored by CLI v2.114.0 with explicit `--db-url`; PostgreSQL discourages `PGPASSWORD` for secret delivery. Production still requires an owner-approved endpoint, encrypted ephemeral file location, verified operator-only ACL, controlled `PGPASSFILE` injection and a production-compatible authentication check. The non-secret URL and passfile path remain visible to the process; neither contains the password.
 - **Remaining production selection:** choose and explicitly pin a supported production CLI version after considering v2.114.0's age, the current official release and repository CI's v2.116.0 pin. v2.122.0's exact migration path failed for this repository. Production endpoint reachability, TLS certificate/identity behavior and deployment credential/authentication compatibility remain unverified. Do not use production credentials for disposable tests.
 
-Run interactively, with a human present. The cumulative 72→81 CLI sequence is **qualified on disposable infrastructure with v2.114.0**, while hosted execution remains separately unauthorized. Before any production window, prepare `Stage-G0` for the pre-Notes gate, then `Stage-A1` through `Stage-A7` for Notes migrations #1–#7 and the final stage for Notes #8. Verify every included migration hash against the approved deployment SHA. Each `db push` must have exactly one intended pending migration, so the operator can verify the gate before and after each committed migration. Run the standard CLI command from the selected stage directory; this packages approved files for the official CLI and does not add a custom runner. The URL must be passwordless; set `PGPASSFILE` only to a verified operator-only temporary file:
+Run interactively, with a human present. The cumulative 72→81 CLI sequence is **qualified on disposable infrastructure with v2.114.0**, while hosted execution remains separately unauthorized. Before any production window, prepare `Stage-G0` for the pre-Notes gate, then `Stage-A1` through `Stage-A7` for Notes-relative migrations 1–7, followed by the final stage for immutable version `20261031142025_routine_note_owner_scoped_identity.sql` (Notes-relative migration 8, overall position 9). Verify every included migration hash against the approved deployment SHA. Each `db push` must have exactly one intended pending migration, so the operator can verify the gate before and after each committed migration. Run the standard CLI command from the selected stage directory; this packages approved files for the official CLI and does not add a custom runner. The URL must be passwordless; set `PGPASSFILE` only to a verified operator-only temporary file:
 
 ```powershell
 $Cli = '<versioned side-by-side supabase.exe>'
@@ -135,11 +179,17 @@ $env:PGPASSFILE = '<operator-only encrypted temporary path>\pgpass.conf'
 & $Cli db push --db-url $DbUrl --dry-run --skip-vault
 # Apply only that one pending migration, then verify the server-side Notes gate.
 & $Cli db push --db-url $DbUrl --skip-vault
-# After Notes migration #7, stop and verify scheduler authentication and a successful expiry-job run.
-# After scheduler gates pass, obtain separate explicit owner authorization for Notes migration #8.
-# Then select the final stage and require only Notes migration #8 pending.
+# After Notes-relative migration 7
+# (`20261031130000_routine_note_receipt_scheduled_cleanup.sql`, overall position 8),
+# stop and verify scheduler authentication and a successful expiry-job run.
+# After scheduler gates pass, obtain separate explicit owner authorization for
+# Notes-relative migration 8
+# (`20261031142025_routine_note_owner_scoped_identity.sql`, overall position 9).
+# Then select the final stage and require only that immutable version pending.
 & $Cli db push --db-url $DbUrl --dry-run --skip-vault
-# Apply Notes #8, then verify the access gate and security acceptance before any release.
+# Apply `20261031142025_routine_note_owner_scoped_identity.sql` (Notes-relative
+# migration 8), then verify the access gate and security acceptance before any
+# release.
 & $Cli db push --db-url $DbUrl --skip-vault
 ```
 
@@ -153,10 +203,11 @@ default-disabled PostgREST hook; the first Notes migration installs the
 restrictive SELECT policy atomically with the table. The canonical [Feature
 Rollout policy](../../docs/planning/FEATURE_ROLLOUT.md) still correctly says a
 client/UI flag is not an authorization boundary. Hosted deployment must verify
-the gate immediately after `G0`, before allowing Notes migration #1, after every
+the gate immediately after `G0`, before allowing Notes-relative migration 1
+(`20261029120000_create_user_workout_routine_notes.sql`), after every
 subsequent committed migration, and before any separate Notes activation.
 
-**Do not allow Notes migration #1 until G0 is separately owner-approved, applied and verified effective.** G0 itself is preceded by baseline, owner-approval, backup, credential, operator and deployment-window checks. The gate must block direct Notes table/API and RPC access for authenticated clients, remain effective across every committed intermediate migration (especially Notes migrations #1 and #6), and remain in force through Notes #8 plus the post-migration security acceptance. Recheck the effective gate after each migration commit and stop immediately if it is absent or uncertain. Re-enabling Notes access is a separate explicitly approved release operation after acceptance.
+**Do not allow Notes-relative migration 1 (`20261029120000_create_user_workout_routine_notes.sql`) until G0 is separately owner-approved, applied and verified effective.** G0 itself is preceded by baseline, owner-approval, backup, credential, operator and deployment-window checks. The gate must block direct Notes table/API and RPC access for authenticated clients, remain effective across every committed intermediate migration, especially the grant-bearing files `20261029120000_create_user_workout_routine_notes.sql` and `20261031100000_routine_note_rpc_normalization_and_user_index.sql`, and remain in force through `20261031142025_routine_note_owner_scoped_identity.sql` plus the post-migration security acceptance. Recheck the effective gate after each migration commit and stop immediately if it is absent or uncertain. Re-enabling Notes access is a separate explicitly approved release operation after acceptance.
 
 This packet does not activate the control. Its hosted scope, blast radius,
 verification method, activation/deactivation steps and recovery still require
@@ -168,7 +219,9 @@ substitute. No production Notes RPC probe is authorized by this requirement.
 
 ### Verified architecture
 
-Migration #7 schedules:
+Notes-relative migration 7
+(`20261031130000_routine_note_receipt_scheduled_cleanup.sql`, overall sequence
+position 8) schedules:
 
 - `routine-note-receipt-expiry`: every five minutes; redacts at most 500 expired receipt snapshots per run using `FOR UPDATE SKIP LOCKED`.
 - `routine-note-receipt-history`: daily at `03:17` database time (hosted timezone currently UTC); prunes at most 500 successful run-history records older than 90 days and retains failures.
@@ -179,9 +232,30 @@ The scheduler has no receipt-table privileges. It gets `USAGE` on `private`/`cro
 
 Supabase documents enabling Cron through Dashboard → Integrations → Cron Postgres Module; its SQL install path is also documented. Current hosted read-only settings show `pg_cron` on `supautils.privileged_extensions`, so the `postgres` role is expected to be permitted to create it. The actual `CREATE EXTENSION` has not been tested on hosted. [Cron installation](https://supabase.com/docs/guides/cron/install), [Supabase role privileges](https://supabase.com/docs/guides/database/postgres/roles-superuser).
 
-Do not separately create a production probe role/job in this task. The narrow controlled verification is the approved migration deployment itself: `Stage-G0` then Notes #1–#7; Notes #7 creates the real scheduler role and both jobs atomically. Before Notes #8 is made available to the CLI, verify exact owner/name/schedule/command rows in `cron.job`, then observe `cron.job_run_details` for the expiry job’s first `succeeded` row, timestamps and return message. The first expiry run can redact up to 500 actually expired snapshots. Verify history-prune job registration; its scheduled execution is daily. Do not manually invoke cleanup against production receipts as a test. If auth fails or no successful expiry run is observed, stop with the hosted ledger at the actual prefix, deactivate both jobs using the authorized recovery steps below, and keep Notes unavailable; do not select the final Notes #8 stage.
+Do not separately create a production probe role/job in this task. The narrow controlled verification is the approved migration deployment itself: `Stage-G0` then Notes-relative migrations 1–7. `20261031130000_routine_note_receipt_scheduled_cleanup.sql` creates the real scheduler role and both jobs atomically. Before `20261031142025_routine_note_owner_scoped_identity.sql` is made available to the CLI, verify exact owner/name/schedule/command rows in `cron.job`, then observe `cron.job_run_details` for the expiry job’s first `succeeded` row, timestamps and return message. The first expiry run can redact up to 500 actually expired snapshots. Verify history-prune job registration; its scheduled execution is daily. Do not manually invoke cleanup against production receipts as a test. If auth fails or no successful expiry run is observed, stop with the hosted ledger at the actual prefix, deactivate both jobs using the authorized recovery steps below, and keep Notes unavailable; do not select the final owner-identity migration stage.
 
-**Unresolved auth:** the future scheduler role is `LOGIN` but migration supplies no password. Hosted `cron.host=localhost` with background workers off indicates the libpq job-connection path; the actual hosted authentication method remains unverified. Hosted HBA rules are not readable to the migration role; local Docker trust-mode success is not evidence. Do not enable broad `trust`, add a password to migration SQL, or expose a credential. No read-only preflight can prove this role will authenticate because the role and jobs do not yet exist. The minimum production verification necessarily includes applying Notes migration #7, which installs the extension, creates roles and registers both real jobs in one transaction; that is a production write and immediately activates cleanup. Before that step, the owner must approve the combined checkpoint and establish a documented, narrow hosted auth path through Supabase's supported controls. After Notes #7 commits, verify effective job identity and first run in `cron.job_run_details`; if authentication fails, stop before Notes #8, deactivate both jobs through `cron.unschedule` using the approved `postgres` operator path, preserve run evidence, and keep Notes access gated. If no narrow supported path is confirmed, do not apply Notes #7; return for separately approved architecture remediation. Do not edit merged migration #7 here.
+**Unresolved auth:** the future scheduler role is `LOGIN` but
+`20261031130000_routine_note_receipt_scheduled_cleanup.sql` supplies no
+password. Hosted `cron.host=localhost` with background workers off indicates
+the libpq job-connection path; the actual hosted authentication method remains
+unverified. Hosted HBA rules are not readable to the migration role; local
+Docker trust-mode success is not evidence. Do not enable broad `trust`, add a
+password to migration SQL, or expose a credential. No read-only preflight can
+prove this role will authenticate because the role and jobs do not yet exist.
+The minimum production verification necessarily includes applying the
+Notes-relative migration 7, which installs the extension, creates roles and
+registers both real jobs in one transaction; that is a production write and
+immediately activates cleanup. Before that step, the owner must approve the
+combined checkpoint and establish a documented, narrow hosted auth path through
+Supabase's supported controls. After it commits, verify effective job identity
+and first run in `cron.job_run_details`; if authentication fails, stop before
+the owner-identity migration
+(`20261031142025_routine_note_owner_scoped_identity.sql`), deactivate both jobs
+through `cron.unschedule` using the approved `postgres` operator path, preserve
+run evidence, and keep Notes access gated. If no narrow supported path is
+confirmed, do not apply `20261031130000_routine_note_receipt_scheduled_cleanup.sql`;
+return for separately approved architecture remediation. Do not edit the merged
+migration SQL here.
 
 ### Failure monitoring, deactivation and recovery
 
@@ -215,8 +289,8 @@ reset role;
 ```
 
   Record both return values and verify both rows are absent/inactive. If role authentication prevents this, use a separately authorized `postgres` session with the granted role membership; never broaden Cron/table ACLs to recover.
-- If deployment stops after Notes migration #7 but before Notes #8, or a scheduled job fails, stop the deploy, record the actual ledger prefix, inspect the job result and safely deactivate by job name with the granted `cron.unschedule(text)` function under an authorized role. Do not write directly to `cron.job`; Supabase has changed hosted Cron permissions and its supported job API is the cron functions/Dashboard.
-- If jobs were unscheduled, a normal `db push` retry will not recreate them because Notes migration #7 is already in the ledger. After a separately approved control-plane change restores scheduler authentication, prove the scheduler `LOGIN` role can establish its supported database session before re-registering anything. Inspect `cron.job` first and register only each missing job from that authenticated scheduler session. The following names, schedules and commands match migration #7; capture each returned job ID, verify the job row, and observe a successful expiry run in `cron.job_run_details` before reopening Notes or proceeding to Notes #8. Do not use `SET ROLE` from `postgres` as a substitute for testing scheduler authentication, and do not register a duplicate when the named job already exists.
+- If deployment stops after `20261031130000_routine_note_receipt_scheduled_cleanup.sql` (Notes-relative migration 7, overall position 8) but before `20261031142025_routine_note_owner_scoped_identity.sql`, or a scheduled job fails, stop the deploy, record the actual ledger prefix, inspect the job result and safely deactivate by job name with the granted `cron.unschedule(text)` function under an authorized role. Do not write directly to `cron.job`; Supabase has changed hosted Cron permissions and its supported job API is the cron functions/Dashboard.
+- If jobs were unscheduled, a normal `db push` retry will not recreate them because `20261031130000_routine_note_receipt_scheduled_cleanup.sql` is already in the ledger. After a separately approved control-plane change restores scheduler authentication, prove the scheduler `LOGIN` role can establish its supported database session before re-registering anything. Inspect `cron.job` first and register only each missing job from that authenticated scheduler session. The following names, schedules and commands match the immutable scheduled-cleanup migration; capture each returned job ID, verify the job row, and observe a successful expiry run in `cron.job_run_details` before reopening Notes or proceeding to `20261031142025_routine_note_owner_scoped_identity.sql`. Do not use `SET ROLE` from `postgres` as a substitute for testing scheduler authentication, and do not register a duplicate when the named job already exists.
 
 ```sql
 -- Check cron.job first; execute each schedule call only if that job name is absent.
@@ -239,19 +313,19 @@ If the scheduler role still cannot authenticate, do not use these statements as 
 ## 4. Ordered Nine-Migration Deployment Plan
 
 1. Freeze the deployment SHA, verify the hosted 72-entry baseline, confirm owner approvals and all backup, network, credential, operator and low-traffic prerequisites. Do not require a hosted gate before it is installed.
-2. Apply only pre-Notes gate migration `G0` (`20261028120000_install_routine_notes_data_api_gate.sql`) after explicit deployment authorization. Do not apply Notes migration #1 in the same step.
+2. Apply only pre-Notes gate migration `G0` (`20261028120000_install_routine_notes_data_api_gate.sql`) after explicit deployment authorization. Do not apply Notes-relative migration 1 (`20261029120000_create_user_workout_routine_notes.sql`) in the same step.
 3. Reload PostgREST configuration and verify the hosted hook configuration, private default-disabled state and deterministic disabled-state enforcement. Stop and recover if hook installation, reload or fail-closed behavior is not confirmed.
-4. Allow Notes migration #1 only after G0 verification succeeds. Thereafter preserve the stop/recovery gate after every subsequent migration, especially Notes #1 and #6 grants.
+4. Allow `20261029120000_create_user_workout_routine_notes.sql` only after G0 verification succeeds. Thereafter preserve the stop/recovery gate after every subsequent migration, especially the grant-bearing files `20261029120000_create_user_workout_routine_notes.sql` and `20261031100000_routine_note_rpc_normalization_and_user_index.sql`.
 5. Confirm recent backup/PITR coverage, retention, RPO/RTO, restore operator and restore rehearsal evidence. Decide how a restored pre-expiry receipt snapshot is kept from becoming visible; run expiry reconciliation/cleanup before reopening Notes reads after restore.
-6. Verify low-traffic window, active sessions/long transactions and database health. Notes migrations #2 and #4 issue `LOCK TABLE ... ACCESS EXCLUSIVE` on the newly created private receipt table; inspect lock waits and have a stop/timeout decision.
+6. Verify low-traffic window, active sessions/long transactions and database health. `20261030065649_routine_note_mutation_result_snapshot.sql` and `20261030081321_routine_note_legacy_receipt_gate.sql` issue `LOCK TABLE ... ACCESS EXCLUSIVE` on the newly created private receipt table; inspect lock waits and have a stop/timeout decision.
 7. Treat the completed disposable 72→81 CLI qualification as technical evidence only. The ten-checkpoint SQL/HTTP harness is evidence for staged schema/security behavior, not production authorization. Verify the selected CLI binary/version/hash, direct TLS endpoint/project identity, `postgres` deployment identity, protected `PGPASSFILE` delivery and interactive operator availability before any production command.
-8. With explicit A–G approval, the G0 verification evidence and the exact CLI qualification complete, apply G0 and each cumulative Notes stage through official CLI `db push`, one migration per invocation. Notes migration #7 activates both schedules as part of its own transaction. Verify the #7 ledger prefix, exact `cron.job` rows, scheduler authentication and at least one successful expiry run. If any scheduler or access-gate check fails, do not apply Notes #8; record the actual ledger and use authorized recovery.
-9. Only after scheduler authentication and the first successful scheduled expiry execution are verified, and the Notes access gate remains effective, obtain separate explicit owner authorization for Notes migration #8. Require exactly `20261031142025` pending, apply it with the selected CLI and PGPASSFILE, and verify the access gate again.
+8. With explicit A–G approval, the G0 verification evidence and the exact CLI qualification complete, apply G0 and each cumulative Notes stage through official CLI `db push`, one migration per invocation. `20261031130000_routine_note_receipt_scheduled_cleanup.sql` (Notes-relative migration 7, overall position 8) activates both schedules as part of its own transaction. Verify the corresponding ledger prefix, exact `cron.job` rows, scheduler authentication and at least one successful expiry run. If any scheduler or access-gate check fails, do not apply `20261031142025_routine_note_owner_scoped_identity.sql`; record the actual ledger and use authorized recovery.
+9. Only after scheduler authentication and the first successful scheduled expiry execution are verified, and the Notes access gate remains effective, obtain separate explicit owner authorization for `20261031142025_routine_note_owner_scoped_identity.sql` (Notes-relative migration 8, overall position 9). Require exactly that version pending, apply it with the selected CLI and PGPASSFILE, and verify the access gate again.
 10. Verify hosted ledger is exactly **81** entries, unique and ordered, latest `20261031142025`; compare all version/name pairs and critical catalog objects/grants against the approved source. Do not repair history to force a green result.
 11. Perform production authorization verification using read-only catalog, ACL, RLS-policy, role-membership and `SECURITY DEFINER`/`search_path` inspection. Do not call behavioral Note RPCs against real users; behavioral tests remain disposable-only with synthetic fixtures.
 12. Capture post-deploy Supabase Security Advisor output and compare it with the dated baseline below. Disposition each new Notes-related warning; a green CI result is not a hosted security pass.
 13. Observe the actual expiry job’s first successful run and subsequent cadence; inspect result history and expiry backlog. Confirm the history job is registered and later runs at 03:17 UTC.
-14. After Notes #8 and all security acceptance pass, obtain separate owner authorization before disabling the server-side Notes access gate. Assign ongoing monitoring, failure escalation, backlog recovery and restore ownership. Record exact deployment SHA, CLI hash, migration ledger, job IDs/owners, advisor diff and first-run evidence in the approved tracker after separate authorization.
+14. After `20261031142025_routine_note_owner_scoped_identity.sql` and all security acceptance pass, obtain separate owner authorization before disabling the server-side Notes access gate. Assign ongoing monitoring, failure escalation, backlog recovery and restore ownership. Record exact deployment SHA, CLI hash, migration ledger, job IDs/owners, advisor diff and first-run evidence in the approved tracker after separate authorization.
 
 ## 5. Security and Acceptance Matrix
 
@@ -272,23 +346,23 @@ Reply with an explicit decision for every item. Approval of this packet alone do
 
 | ID | Operation / justification | Risks and preconditions | Verification and recovery | Status / explicit owner authorization |
 |---|---|---|---|---|
-| A | Select and pin an official CLI for the production window. v2.114.0 has a current disposable 72→81 qualification PASS and separate historical 72→80 `PGPASSFILE` evidence. Official v2.122.0 is newer but failed this migration path at Notes migration #2. | v2.114.0 is older; repository CI pins v2.116.0 but uses a different replay method; v2.122.0 is not usable for this path without remediation and requalification. Re-check current release/security advisories before the window. | Verify the selected binary/archive/executable hashes and migration order. If selecting a different version or connection mode, qualify that exact binary/path on disposable infrastructure; stop on mismatch. | **Disposable 72→81 qualification PASS; production CLI pin requires owner approval.** |
+| A | Select and pin an official CLI for the production window. v2.114.0 has a current disposable 72→81 qualification PASS and separate historical 72→80 `PGPASSFILE` evidence. Official v2.122.0 is newer but failed this migration path at Notes-relative migration 2 (`20261030065649_routine_note_mutation_result_snapshot.sql`). | v2.114.0 is older; repository CI pins v2.116.0 but uses a different replay method; v2.122.0 is not usable for this path without remediation and requalification. Re-check current release/security advisories before the window. | Verify the selected binary/archive/executable hashes and migration order. If selecting a different version or connection mode, qualify that exact binary/path on disposable infrastructure; stop on mismatch. | **Disposable 72→81 qualification PASS; production CLI pin requires owner approval.** |
 | B | Use managed `postgres` over TLS with passwordless `--db-url` and `PGPASSFILE`; no narrower migration principal is qualified. | High privilege (`BYPASSRLS`, role/DDL permissions). Historical v2.114.0 `PGPASSFILE` apply is qualified only for 72→80; current 72→81 used synthetic local credentials. Direct route needs IPv6 or IPv4 add-on. Never use `supabase_admin`, service-role API key, password-bearing argv, `PGPASSWORD`, repo secret or logs. | Approve production identity/secret-delivery method; verify endpoint TLS/identity, operator-only encrypted file ACL, no password in argv/logs/history, and the expected predeploy ledger. | **BLOCKED:** production endpoint, TLS, operator `PGPASSFILE` and authentication compatibility unverified. Explicit approval required. |
-| C | Let Notes migration #7 install hosted `pg_cron` (available 1.6.4, allowlisted, absent) as part of its SQL transaction. | Production schema/extension write; scheduler jobs and roles are created by the same migration. No separate extension-only operation is authorized. | Verify extension version/schema and exact role/function ACLs. If migration fails, inspect ledger and catalog before retry; no blind repair/drop. | **Pending.** Explicit owner approval required. |
-| D | Verify the G0 hook/configuration and disabled-state enforcement after applying G0, then verify real scheduler authentication after cumulative Notes #1…#7 deployment, with exactly one migration per CLI invocation. Notes #7 registers the jobs; Notes #8 remains a separate, explicitly authorized next step. | Each migration is a production write. Do not require a gate before G0 exists; after G0 commits, the server-side Notes gate must be effective after every committed migration. No dummy job, broad trust auth, or credential/config change is approved. | After G0, verify PostgREST reload/configuration and deterministic disabled denial before allowing Notes #1. After Notes #7, verify `cron.job` owner and exact command, scheduler LOGIN authentication, and at least one successful scheduled expiry execution. If any gate fails, stop before the next migration, preserve evidence, use the approved operator path to unschedule both jobs, keep Notes unavailable, then restore only missing jobs under the authorized scheduler role after auth is fixed. | **G0 sequencing and hosted scheduler auth unverified.** Explicit authorization required. |
-| E | Activate expiry job every five minutes (up to 500 receipt bodies per run) and history-prune job daily 03:17 UTC; both are atomically registered by migration #7. | Immediate cleanup can change production receipt snapshots once eligible; there is no independent “install but do not schedule” path in merged SQL. Require monitoring and auth evidence plan. | Verify job owner/schedule/command and first successful run; inspect backlog and failures. `cron.unschedule` is the operational stop; preserve failed records and recover forward. | **Pending.** Explicit owner approval required; cannot be approved independently from #7 and C/D. |
-| F | Approve the deployment window/operator and recovery posture for G0 plus cumulative Notes #1…#7, with exactly one migration per CLI invocation, followed by Notes #8 only after its separate authorization. | The disposable 72→81 CLI workflow is qualified, but production endpoint/credential compatibility is not. Per the R1 owner scope decision, backup/recovery evidence is deferred only for the testing-only dataset; it remains mandatory before real-user/production data. Confirm low-traffic window, lock stop criteria and the gate after G0. | Apply G0 only after baseline and owner approvals; verify hook reload and disabled enforcement before Notes #1. After Notes #7, verify scheduler authentication and a first successful scheduled expiry execution, then obtain explicit owner authorization before Notes #8. On any failure stop at the actual ledger prefix, keep Notes gated, preserve evidence, use the approved Cron deactivation/re-registration recovery if #7 committed, and prefer a reviewed forward fix. | **Owner-approved deferral for testing-only scope; not a production recovery pass.** Production TLS/PGPASSFILE, window and named operator remain pending. |
+| C | Let `20261031130000_routine_note_receipt_scheduled_cleanup.sql` (Notes-relative migration 7, overall position 8) install hosted `pg_cron` (available 1.6.4, allowlisted, absent) as part of its SQL transaction. | Production schema/extension write; scheduler jobs and roles are created by the same migration. No separate extension-only operation is authorized. | Verify extension version/schema and exact role/function ACLs. If migration fails, inspect ledger and catalog before retry; no blind repair/drop. | **Pending.** Explicit owner approval required. |
+| D | Verify the G0 hook/configuration and disabled-state enforcement after applying G0, then verify real scheduler authentication after cumulative Notes-relative migrations 1–7, with exactly one migration per CLI invocation. `20261031130000_routine_note_receipt_scheduled_cleanup.sql` registers the jobs; `20261031142025_routine_note_owner_scoped_identity.sql` remains a separate, explicitly authorized next step. | Each migration is a production write. Do not require a gate before G0 exists; after G0 commits, the server-side Notes gate must be effective after every committed migration. No dummy job, broad trust auth, or credential/config change is approved. | After G0, verify PostgREST reload/configuration and deterministic disabled denial before allowing `20261029120000_create_user_workout_routine_notes.sql`. After scheduled-cleanup migration commits, verify `cron.job` owner and exact command, scheduler LOGIN authentication, and at least one successful scheduled expiry execution. If any gate fails, stop before the next migration, preserve evidence, use the approved operator path to unschedule both jobs, keep Notes unavailable, then restore only missing jobs under the authorized scheduler role after auth is fixed. | **G0 sequencing and hosted scheduler auth unverified.** Explicit authorization required. |
+| E | Activate expiry job every five minutes (up to 500 receipt bodies per run) and history-prune job daily 03:17 UTC; both are atomically registered by `20261031130000_routine_note_receipt_scheduled_cleanup.sql`. | Immediate cleanup can change production receipt snapshots once eligible; there is no independent “install but do not schedule” path in merged SQL. Require monitoring and auth evidence plan. | Verify job owner/schedule/command and first successful run; inspect backlog and failures. `cron.unschedule` is the operational stop; preserve failed records and recover forward. | **Pending.** Explicit owner approval required; cannot be approved independently from scheduled-cleanup migration and C/D. |
+| F | Approve the deployment window/operator and recovery posture for G0 plus cumulative Notes-relative migrations 1–7, with exactly one migration per CLI invocation, followed by `20261031142025_routine_note_owner_scoped_identity.sql` only after its separate authorization. | The disposable 72→81 CLI workflow is qualified, but production endpoint/credential compatibility is not. Per the R1 owner scope decision, backup/recovery evidence is deferred only for the testing-only dataset; it remains mandatory before real-user/production data. Confirm low-traffic window, lock stop criteria and the gate after G0. | Apply G0 only after baseline and owner approvals; verify hook reload and disabled enforcement before the first Notes-relative migration. After scheduled-cleanup migration commits, verify scheduler authentication and a first successful scheduled expiry execution, then obtain explicit owner authorization before the owner-identity migration. On any failure stop at the actual ledger prefix, keep Notes gated, preserve evidence, use the approved Cron deactivation/re-registration recovery if scheduled-cleanup migration committed, and prefer a reviewed forward fix. | **Owner-approved deferral for testing-only scope; not a production recovery pass.** Production TLS/PGPASSFILE, window and named operator remain pending. |
 | G | Assign accountable operator for security comparison and continuing cron/retention monitoring. | Existing advisor warnings are baseline, not clearance; deployment does not itself prove new RPC authorization or the 30-day sweep. | Capture before/after Advisor by object, verify anon/owner/cross-owner/RPC/RLS/receipt ACLs, inspect first scheduled runs and backlog, define alert cadence/escalation and recovery contact. | **Pending named owner and acceptance criteria.** Explicit approval required. |
 
 ## 7. Remaining Deployment Blockers
 
 The approval packet is ready for owner review; production is **blocked** until all of these are resolved:
 
-1. The PR #720 server-side Notes API/RPC access gate is explicitly approved for hosted deployment. It is installed by G0 and must be verified after G0 before Notes #1, then after every committed Notes migration. A UI/release flag does not satisfy this requirement.
+1. The PR #720 server-side Notes API/RPC access gate is explicitly approved for hosted deployment. It is installed by G0 and must be verified after G0 before Notes-relative migration 1 (`20261029120000_create_user_workout_routine_notes.sql`), then after every committed Notes migration. A UI/release flag does not satisfy this requirement.
 2. A–G are explicitly approved; owner selects/pins an operationally supported CLI version. The disposable v2.114.0 72→81 qualification is PASS, but production endpoint/TLS and credential compatibility must be verified; and a supported hosted auth path for the scheduler LOGIN role is identified.
-3. C/D/E are treated as one staged production checkpoint: applying Notes #7 is the first real scheduler-auth test and immediately registers both jobs. Separate owner approval must explicitly authorize this write and the potential first cleanup effects.
+3. C/D/E are treated as one staged production checkpoint: applying `20261031130000_routine_note_receipt_scheduled_cleanup.sql` (Notes-relative migration 7, overall position 8) is the first real scheduler-auth test and immediately registers both jobs. Separate owner approval must explicitly authorize this write and the potential first cleanup effects.
 4. For the owner-declared testing-only dataset, backup/recovery evidence is explicitly deferred in R1. Before real-user or production data, the canonical backup/PITR state, restore readiness, RPO/RTO, deployment window, lock stop criteria, gate monitoring, named monitoring owner and alert/escalation process must be confirmed.
-5. The exact cumulative 72→81 CLI `db push` preview/apply/retry qualification is complete on disposable infrastructure with v2.114.0. Immediately before any production execution, refresh the hosted 72-version prefix, project identity, allowlist/settings and network connectivity, then dry-run `Stage-G0`, each `Stage-A1…Stage-A7` directory and the final Notes #8 stage, requiring exactly the intended single migration at each gate. This read-only snapshot can become stale.
+5. The exact cumulative 72→81 CLI `db push` preview/apply/retry qualification is complete on disposable infrastructure with v2.114.0. Immediately before any production execution, refresh the hosted 72-version prefix, project identity, allowlist/settings and network connectivity, then dry-run `Stage-G0`, each `Stage-A1…Stage-A7` directory and the final `20261031142025_routine_note_owner_scoped_identity.sql` stage, requiring exactly the intended single migration at each gate. This read-only snapshot can become stale.
 
 ## 8. Final Handoff
 
@@ -301,12 +375,72 @@ The approval packet is ready for owner review; production is **blocked** until a
 
 ### Validation and limits
 
-- Historical CLI `2.114.0` passwordless URL + ACL-restricted `PGPASSFILE` qualification on disposable Postgres covered the 72→80 workflow. The current CLI `2.114.0` cumulative 72→81 disposable qualification is separately **PASS** for stage preview/apply, rollback, interruption, retry/idempotency and Notes SQL/RLS/Data API checks, using synthetic local credentials. It does not qualify production endpoint/TLS/PGPASSFILE compatibility. `SUPABASE_DB_PASSWORD` was not honored with explicit `--db-url`; no production credential was used. CLI v2.122.0 failed at Notes migration #2 with the transaction-block `LOCK TABLE` error.
+- Historical CLI `2.114.0` passwordless URL + ACL-restricted `PGPASSFILE` qualification on disposable Postgres covered the 72→80 workflow. The current CLI `2.114.0` cumulative 72→81 disposable qualification is separately **PASS** for stage preview/apply, rollback, interruption, retry/idempotency and Notes SQL/RLS/Data API checks, using synthetic local credentials. It does not qualify production endpoint/TLS/PGPASSFILE compatibility. `SUPABASE_DB_PASSWORD` was not honored with explicit `--db-url`; no production credential was used. CLI v2.122.0 failed at Notes-relative migration 2 (`20261030065649_routine_note_mutation_result_snapshot.sql`) with the transaction-block `LOCK TABLE` error.
 - Current PR #720 SQL/HTTP staged qualification covered ten checkpoints and the final 81-migration source replay; it is not CLI deployment qualification.
 - Hosted refresh: migrations, project/version, extension availability/allowlist, cron settings, role flags and Security Advisor were read-only. Reading `pg_hba_file_rules` returned permission denied (`42501`); scheduler authentication remains unknown.
 - No hosted migration, extension, role, schedule, credential or data change; no production deployment or Linear status change. The documentation-only branch/commit/PR and current review/CI state are reported separately in the task completion report.
+
+## Hosted execution incident — 2026-11-05 (supersedes the 72-migration preflight snapshot)
+
+The owner ran Supabase CLI v2.114.0 `db push --linked`. Hosted ledger now has **79** applied migrations, ending at `20261031110000_routine_note_receipt_retention`. `20261031130000_routine_note_receipt_scheduled_cleanup` failed at `GRANT routine_note_receipt_cleanup_scheduler TO postgres WITH SET TRUE` with `XX000 no possible grantors`; `20261031142025_routine_note_owner_scoped_identity` remains pending. Read-only catalog checks found no cleanup roles, `cron.job`, or `cron.job_run_details`; the Notes Data API gate remains `disabled`.
+
+The linked CLI uses a login role distinct from `postgres`. After creating the cleanup-owner functions under `SET ROLE routine_note_receipt_cleanup_owner`, `RESET ROLE` returns to the login role, which lacks `ADMIN OPTION` on the scheduler role. A disposable PostgreSQL 17 reproduction confirmed that the first grant succeeds as the migration principal, the second grant fails after `RESET ROLE`, and explicit `SET ROLE postgres` before the second grant succeeds. The [focused correction handoff](routine-notes-migration-80-role-context.md) tracks the SQL, regression and review evidence. This incident does not authorize direct hosted SQL, migration repair or a blind retry. Review the corrected migration and verify its CI before a supervised retry of migration 80; verify scheduler jobs and execution before migration 81. The 72→81 disposable replay recorded above is historical evidence for the pre-incident source, not validation of this correction.
 - Documentation-only validation: `git diff --check`, migration count/order checks, stale-reference searches and packet whitespace/final-newline checks. Exact-head executable evidence is recorded in the archived implementation handoff and PR #720. Disposable database tests are summarized above and are not production evidence. No executable SQL, migration, hosted write, test/build artifact or CLI change is included in this PR.
 
 ### Final status
 
 **BLOCKED — READY FOR OWNER REVIEW ONLY** — the disposable CLI qualification is reconciled. For the owner-declared testing-only dataset, backup/recovery is deferred as an explicit scope decision, not marked ready. Production deployment remains unauthorized pending endpoint/TLS/PGPASSFILE compatibility, scheduler authentication, deployment-window/operator approval and the remaining A–G decisions; the full recovery gate returns before real-user/production data.
+
+## Migration 80 supervised deployment preflight — 2026-11-05
+
+- Repository: `main` and `origin/main` at squash merge `accb5ad49e74e3cc861a793df7d5c0edf21a84aa` (PR #727); the corrected migration's working-tree Git blob matches `HEAD`. Existing uncommitted packet edits were retained. `git stash list` is empty; the earlier `stash@{0}` reference is historical.
+- Target: linked project ref `oykupyiitspujzpwwvuj`, matching `supabase/config.toml` and the local link. CLI `2.114.0` binary SHA-256 `af90dcd1401f3f98bed6f9f5f3bf7b07e1ce2501a42265ce97007a2d1b026209` matches this packet's qualified record.
+- Read-only hosted checks: 79 applied migrations through `20261031110000`; `20261031130000` and `20261031142025` pending. `routine_notes` gate `disabled`; zero cleanup roles, zero `pg_cron` extensions, no `cron.job` table. `cron.use_background_workers=off`, and `pg_cron` is allowlisted. Existing private Notes baseline: two matching tables and eight matching functions.
+- Security Advisor baseline: 17 warnings (16 `authenticated_security_definer_function_executable`, one `auth_leaked_password_protection`). Two of the function warnings name the already-deployed Notes mutation/reconciliation RPCs. This is a comparison baseline, not security clearance.
+- An isolated temporary workspace contains the byte-identical committed migration prefix through `20261031130000` (80 files); migration 81 is absent. CLI `db push --project-ref oykupyiitspujzpwwvuj --dry-run --skip-vault` returned exactly one pending file: `20261031130000_routine_note_receipt_scheduled_cleanup.sql`. The repository migration directory was not changed.
+- No hosted write has been performed in this supervised step. Explicit in-session owner confirmation is required before the single-migration apply. After apply, verify the ledger, roles, grants, both jobs and the first successful expiry run before requesting separate authorization for migration 81. Keep the Notes gate disabled.
+
+### Supervised migration 80 attempt — 2026-11-05
+
+- The project owner gave affirmative in-session approval to apply only migration 80 after the one-file dry run. Actual deployment operator: Codex, supervised by the project owner.
+- CLI `2.114.0` ran `db push --project-ref oykupyiitspujzpwwvuj --skip-vault` from the isolated 80-file workspace with `--yes`. It listed and attempted only `20261031130000_routine_note_receipt_scheduled_cleanup.sql`; migration 81 was absent from that workspace.
+- Result: **FAILED**, exit code 1. After `Applying migration ...`, the CLI reported `permission denied for schema supabase_migrations (SQLSTATE 42501)` at statement 34, `INSERT INTO supabase_migrations.schema_migrations(version, name, statements) VALUES($1, $2, $3)`. This is a new ledger-write failure, not the prior role-grant error. The exact cause of the ledger permission failure has not yet been established.
+- Immediate read-only verification: ledger still 79 applied with migration 80 and 81 pending; zero cleanup roles, no `pg_cron`, no `cron.job`, neither cleanup function present, and Notes gate still `disabled`. This supports transaction rollback of the attempted migration. Security Advisor remained at 17 warnings (16 authenticated `SECURITY DEFINER` function warnings, one leaked-password-protection warning), including the same two existing Notes RPC warnings.
+- Stop condition triggered: no automatic retry, no manual ledger repair, no migration 81 and no Notes activation. Investigate the isolated CLI execution/role context and qualify any correction separately before another hosted write.
+
+## Readiness reconciliation — 2026-11-05
+
+This section records current preparation. It does not replace the historical 72-migration preflight or the incident notes above, and it does not approve checklist A–G.
+
+- The 72-migration baseline in the earlier preflight is historical. A read-only hosted query on project `oykupyiitspujzpwwvuj` on 2026-11-05 shows **79** applied migrations, latest `20261031110000` `routine_note_receipt_retention`. `20261031130000` and `20261031142025` are absent. `routine_notes` gate is `disabled`. Cleanup roles are 0, `pg_cron` is 0, and `cron.job` is absent.
+- The `42501` ledger failure now has a source cause: the migration's final `RESET ROLE` returns the linked CLI login role, which cannot insert into `supabase_migrations.schema_migrations`. PR #728 (`06826a85f63c23df7ddf51f3dc5149544d8cc07b`) changes that final statement to `set role postgres`. Required checks and Database CI passed on that head. Independent `im-tio` approval is still absent, so the PR is not merged and hosted source is still the PR #727 migration.
+- Local CLI binary `2.114.0` SHA-256 `af90dcd1401f3f98bed6f9f5f3bf7b07e1ce2501a42265ce97007a2d1b026209` matches the qualified record. Production endpoint, TLS, and operator `PGPASSFILE` delivery were not retested. Checklist A–G remain at the statuses in section 6. Testing-only backup deferral stays limited to R1 and does not authorize this retry.
+- Prepared command, not executed: after PR #728 is squash-merged and A–G are explicitly approved, use CLI `2.114.0` from an isolated workspace that contains only the reviewed prefix through `20261031130000`. Dry-run must list exactly `20261031130000_routine_note_receipt_scheduled_cleanup.sql`. The apply command is `supabase db push --project-ref oykupyiitspujzpwwvuj --skip-vault` with an operator present. Do not include migration 81 in that workspace.
+- Post-apply checks, not yet run: ledger count 80 and version `20261031130000` committed; migration 81 still pending; gate still `disabled`; both cleanup roles, `pg_cron` 1.6.4, both functions, grants, RLS, and both `cron.job` rows present with scheduler ownership; one successful expiry run in `cron.job_run_details`. Any failed auth or expiry run stops further hosted writes. Recovery remains the packet's scheduler unschedule procedure. No ledger repair, broad grant, or destructive reset.
+- Migration 81 and server-side Notes activation each still require a separate owner authorization after those checks pass. Routine Notes and Exercise Notes are not operational.
+
+## Migration 80 hosted apply — 2026-11-05
+
+The owner asked to apply Migration 80 after PR #728 merged at `main@b8c9cb56d318e8452bb2e94c76aab8d05a652637`.
+
+- CLI `2.114.0` SHA-256 `af90dcd1401f3f98bed6f9f5f3bf7b07e1ce2501a42265ce97007a2d1b026209`.
+- Isolated workspace contained 80 files through `20261031130000`. Migration 81 was absent.
+- Dry-run listed only `20261031130000_routine_note_receipt_scheduled_cleanup.sql`.
+- Apply command: `supabase db push --project-ref oykupyiitspujzpwwvuj --skip-vault --yes`. Exit 0. The CLI initialised the linked login role and applied that single file.
+- Read-only verification: ledger **80**, latest `20261031130000`, migration 81 absent. Notes gate `disabled`. `pg_cron` `1.6.4`. Owner role is `NOLOGIN`; scheduler role is `LOGIN`; both are nosuperuser, noinherit, and nobypassrls. Both functions are owned by `routine_note_receipt_cleanup_owner`. Jobs `routine-note-receipt-expiry` (`*/5 * * * *`) and `routine-note-receipt-history` (`17 3 * * *`) are owned by `routine_note_receipt_cleanup_scheduler`. `cron.job_run_details` had **0** rows immediately after apply, so the first expiry execution is not yet observed.
+- Migration 81 was not applied in that step. Notes activation was not performed.
+
+## Migration 81 hosted apply — 2026-11-05
+
+The owner said to apply the next migration. Expiry `cron.job_run_details` was still empty at apply time, so scheduler authentication remains unverified.
+
+- Same CLI `2.114.0` and project ref. Dry-run listed only `20261031142025_routine_note_owner_scoped_identity.sql`.
+- Apply exit 0. Read-only verification: ledger **81**, latest `20261031142025`, primary key columns `user_id,id`, Notes gate `disabled`. `cron.job_run_details` still has 0 rows. Notes activation was not performed.
+
+## Notes activation — 2026-11-05
+
+The owner asked to activate Notes. The existing private gate row was updated from `disabled` to `enabled` for `gate_key = 'routine_notes'`. No Notes RPC was called and no user Note row was written.
+
+- Follow-up read: `gate_state` is `enabled` and `private.routine_notes_data_api_gate_is_enabled()` is true. `anon`, `authenticated`, `public`, and `service_role` have no grants on the gate table. Authenticator `pgrst.db_pre_request` remains `private.routine_notes_data_api_gate`.
+- Ledger stayed **81**, latest `20261031142025`.
+- The first expiry job run is now observed: `routine-note-receipt-expiry` status `succeeded`, return message `1 row`, start `2026-11-05T09:45:00.122261+00:00`.
