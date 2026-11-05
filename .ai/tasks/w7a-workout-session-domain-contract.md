@@ -1,6 +1,6 @@
 # Feature Task — W7A: WorkoutSession, PerformedSet and Execution-Readiness Domain Foundation
 
-**Status:** Review
+**Status:** Validated
 **Primary owner:** Antigravity (AI Coding Assistant)
 **Affected platforms:** Flutter mobile (`apps/app`), shared pure-Dart domain (`apps/shared`), workout feature (`apps/features/workout`)
 
@@ -28,32 +28,31 @@
 **Planning owner:** Antigravity
 **Implementation owner:** Antigravity
 **Review owner:** Antigravity (self-review) / `im-tio` (code review)
-**Implementation ownership state:** Complete (final review blocker resolved)
+**Implementation ownership state:** Complete (merged into main)
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-11-05 21:00 UTC+05:30
-**Branch:** `feat/tnyx-84-w7a-workout-session-domain`
-**HEAD SHA (PR #730 base):** `6a56c498b2788b88ffe3a68929bb1dd2749b10fb`
-**Observed working-tree state:** Review findings resolved, constructor watermark enforced, regression tests added, clean analysis
-**Observed uncommitted/dirty files:** `workout_time.dart`, test suite, task brief
+**Repository state last verified:** 2026-11-05 21:55 UTC+05:30
+**Branch:** `main` (post-merge)
+**Merged commit SHA:** `6482f80dea2db304c27e41ea01658206499eb541`
 **PR / tracker:**
-- Primary Linear: `TNYX-84` (W7 Active Workout)
+- Primary Linear: `TNYX-84` (W7 Active Workout) — Remains **IN PROGRESS** for W7B/W7C
 - Parent Linear: `TNYX-76` (W. Workout Foundation)
 - Related Linear issues:
   - `TNYX-81`: W4 Programs & Routines
   - `TNYX-85`: W8 Workout History
   - `TNYX-87`: W10 Workout Settings
 - Slice Label Clarification: W7B and W7C are internal implementation slice labels for W7 Active Workout, NOT synonyms for `TNYX-85` or `TNYX-87`.
-- GitHub: PR #730, Backlog #48, Context #526, Consolidation #715
-**Current implementation state:** Complete, final review findings fixed and verified
+- GitHub: PR #730 (merged via squash), Backlog #48, Context #526, Consolidation #715
+- Reviewed PR HEAD SHA: `4875455941474c15cf84d485a3b40bb40d284ce1`
+- Review decision: **APPROVED** by `im-tio` (Review ID: `PRR_kwDOTOXwB88AAAABWP4TPg`)
+- Review threads: 3/3 resolved (0 unresolved)
+- PR exact-head checks: 11/11 passed
+- Post-merge Flutter CI on main: Run `42063653421` SUCCESS (all 5 jobs passed)
+**Current implementation state:** Complete, validated, and merged into main
 **Relevant execution surface:** `apps/shared/lib/src/workout/`, `apps/features/workout/lib/src/domain/`
-**Validation completed at SHA:** Feature branch working tree: 145 shared workout tests passed (100%), 68 feature domain tests passed (100%), 0 analyze errors.
-**Validation remaining:** Remote GitHub Actions CI on PR #730
-**Current blocker:** None (awaiting PR re-review from `im-tio`)
-**Open review finding IDs:**
-- Resolved: Bugbot Monotonicity finding on `workout_time.dart` (addressed with `lastTransitionAtUtc` chronological guards and constructor validation).
-- Resolved: `im-tio` P2 finding on `workout_session.dart` (addressed with snapshot exercise occurrence validation, `exerciseRef` match, set ID uniqueness, and slot uniqueness).
-- Resolved: `im-tio` / Bugbot constructor watermark finding on `workout_time.dart` (`discussion_r4482207818`) (addressed by requiring explicit `lastTransitionAtUtc` when reconstructing active resumed sessions).
-**Next exact action:** Commit review fix, push to branch, verify remote CI, reply to review thread `discussion_r4482207818`, request re-review.
+**Validation completed at SHA:** `6482f80dea2db304c27e41ea01658206499eb541` (main) / `48754559` (PR #730): 145 shared workout tests passed (100%), 68 feature domain tests passed (100%), 0 analyze errors, 11/11 PR CI passed, post-merge Flutter CI passed.
+**Validation remaining:** None for W7A. Future W7B slice will require its own migration/RLS/persistence tests.
+**Current blocker:** None for W7A.
+**Next exact action:** W7A complete. Linear TNYX-84 remains In Progress for W7B (session persistence / Supabase) and W7C (active workout execution UI); await explicit owner approval before starting W7B.
 
 ## 1. Discovery
 
@@ -195,5 +194,9 @@ RoutineTemplate -> WorkoutReadinessValidator -> WorkoutExecutionReadiness
 - [x] Resolve Cursor Bugbot monotonicity finding.
 - [x] Resolve `im-tio` P2 snapshot & set invariant finding.
 - [x] Resolve `im-tio` / Bugbot constructor watermark finding (`discussion_r4482207818`).
-- [ ] Push review fixes to GitHub PR #730.
-- [ ] Verify remote CI and request re-review.
+- [x] Push review fixes to GitHub PR #730.
+- [x] Verify remote CI and request re-review.
+- [x] Approved by independent reviewer (`im-tio`).
+- [x] Resolve all review threads (3/3 resolved).
+- [x] Merged into main via PR #730 (commit `6482f80d`).
+- [x] Verify post-merge Flutter CI (run `42063653421`).
