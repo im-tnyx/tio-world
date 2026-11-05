@@ -34,7 +34,7 @@
 **Branch:** `main` (post-merge)
 **Merged commit SHA:** `6482f80dea2db304c27e41ea01658206499eb541`
 **PR / tracker:**
-- Primary Linear: `TNYX-84` (W7 Active Workout) — Remains **IN PROGRESS** for W7B/W7C
+- Primary Linear: [TNYX-84](https://linear.app/tnyx/issue/TNYX-84) (W7 Active Workout) — Verified live status is **In Review**; broader W7 issue remains unfinished for future W7B (session persistence) and W7C (active workout UI) slices.
 - Parent Linear: `TNYX-76` (W. Workout Foundation)
 - Related Linear issues:
   - `TNYX-81`: W4 Programs & Routines
@@ -52,7 +52,7 @@
 **Validation completed at SHA:** `6482f80dea2db304c27e41ea01658206499eb541` (main) / `48754559` (PR #730): 145 shared workout tests passed (100%), 68 feature domain tests passed (100%), 0 analyze errors, 11/11 PR CI passed, post-merge Flutter CI passed.
 **Validation remaining:** None for W7A. Future W7B slice will require its own migration/RLS/persistence tests.
 **Current blocker:** None for W7A.
-**Next exact action:** W7A complete. Linear TNYX-84 remains In Progress for W7B (session persistence / Supabase) and W7C (active workout execution UI); await explicit owner approval before starting W7B.
+**Next exact action:** W7A complete. Broader Linear [TNYX-84](https://linear.app/tnyx/issue/TNYX-84) is In Review with future W7B (session persistence / Supabase) and W7C (active workout execution UI) slices unfinished; await explicit owner approval before starting W7B.
 
 ## 1. Discovery
 
