@@ -28,13 +28,13 @@
 **Planning owner:** Antigravity
 **Implementation owner:** Antigravity
 **Review owner:** Antigravity (self-review) / `im-tio` (code review)
-**Implementation ownership state:** Complete (review fixes implemented)
+**Implementation ownership state:** Complete (final review blocker resolved)
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-11-05 20:30 UTC+05:30
+**Repository state last verified:** 2026-11-05 21:00 UTC+05:30
 **Branch:** `feat/tnyx-84-w7a-workout-session-domain`
-**HEAD SHA (PR #730 base):** `d625f0453f5e945792c256847dc1cbe809f5ebef`
-**Observed working-tree state:** Review findings resolved, regression tests added, clean analysis
-**Observed uncommitted/dirty files:** `workout_time.dart`, `workout_session.dart`, test suites, task brief
+**HEAD SHA (PR #730 base):** `6a56c498b2788b88ffe3a68929bb1dd2749b10fb`
+**Observed working-tree state:** Review findings resolved, constructor watermark enforced, regression tests added, clean analysis
+**Observed uncommitted/dirty files:** `workout_time.dart`, test suite, task brief
 **PR / tracker:**
 - Primary Linear: `TNYX-84` (W7 Active Workout)
 - Parent Linear: `TNYX-76` (W. Workout Foundation)
@@ -44,15 +44,16 @@
   - `TNYX-87`: W10 Workout Settings
 - Slice Label Clarification: W7B and W7C are internal implementation slice labels for W7 Active Workout, NOT synonyms for `TNYX-85` or `TNYX-87`.
 - GitHub: PR #730, Backlog #48, Context #526, Consolidation #715
-**Current implementation state:** Complete, review findings fixed and verified
+**Current implementation state:** Complete, final review findings fixed and verified
 **Relevant execution surface:** `apps/shared/lib/src/workout/`, `apps/features/workout/lib/src/domain/`
-**Validation completed at SHA:** Feature branch working tree: 144 shared workout tests passed (100%), 68 feature domain tests passed (100%), 0 analyze errors.
+**Validation completed at SHA:** Feature branch working tree: 145 shared workout tests passed (100%), 68 feature domain tests passed (100%), 0 analyze errors.
 **Validation remaining:** Remote GitHub Actions CI on PR #730
 **Current blocker:** None (awaiting PR re-review from `im-tio`)
 **Open review finding IDs:**
 - Resolved: Bugbot Monotonicity finding on `workout_time.dart` (addressed with `lastTransitionAtUtc` chronological guards and constructor validation).
 - Resolved: `im-tio` P2 finding on `workout_session.dart` (addressed with snapshot exercise occurrence validation, `exerciseRef` match, set ID uniqueness, and slot uniqueness).
-**Next exact action:** Commit review fixes, push to branch, verify remote CI, reply to PR #730 review comments, request re-review.
+- Resolved: `im-tio` / Bugbot constructor watermark finding on `workout_time.dart` (`discussion_r4482207818`) (addressed by requiring explicit `lastTransitionAtUtc` when reconstructing active resumed sessions).
+**Next exact action:** Commit review fix, push to branch, verify remote CI, reply to review thread `discussion_r4482207818`, request re-review.
 
 ## 1. Discovery
 
@@ -63,7 +64,7 @@ Establish a robust, immutable pure-Dart domain foundation for active workout ses
 1. Pure-Dart domain models in `apps/shared`:
    - `WorkoutSessionId` reused from existing contract.
    - `WorkoutSessionStatus`: `active`, `paused`, `completed`, `discarded` with legal transition rules.
-   - `WorkoutTime`: UTC timestamps, monotonic elapsed time, pause-excluded active duration accounting, chronological transition enforcement via `lastTransitionAtUtc`.
+   - `WorkoutTime`: UTC timestamps, monotonic elapsed time, pause-excluded active duration accounting, chronological transition enforcement via `lastTransitionAtUtc`. Direct constructor requires explicit watermark for active resumed sessions.
    - `PerformedSet`: separate from `SetPrescription`, stable UUID identity, canonical `loadKg`, non-negative `reps`, occurrence index for repeated exercises.
    - `WorkoutSessionSnapshot` & `SessionExerciseSnapshot`: defensive immutable snapshot freezing routine name, program id, exercise order, and set prescriptions at start time.
    - `WorkoutSession`: composite aggregate root enforcing lifecycle invariants, snapshot exercise occurrence checks, `exerciseRef` matching, set UUID uniqueness, and slot collision rejection.
@@ -172,6 +173,14 @@ RoutineTemplate -> WorkoutReadinessValidator -> WorkoutExecutionReadiness
     - Preserves in-place edits (same set ID updating its own record).
     - Rejects slot collisions when a different set ID attempts to claim an occupied `(sessionExerciseIndex, setIndex)` slot.
 
+### `im-tio` / Bugbot Constructor Watermark Fix (`discussion_r4482207818`)
+- **Issue:** When `lastTransitionAtUtc` was omitted in direct construction of an active resumed session (`pausedAtUtc == null && completedAtUtc == null && accumulatedPausedDuration > Duration.zero`), the constructor defaulted `lastTransitionAtUtc` to `startedAtUtc + accumulatedPausedDuration`. That instant was earlier than the real resume whenever active work occurred before pause (e.g., start 10:00, pause 10:10, resume 10:15 -> inferred watermark 10:05), allowing backdated `pause()` or `finish()` calls on reconstructed sessions.
+- **Resolution:**
+  - Explicitly reject omitting `lastTransitionAtUtc` for active resumed sessions with positive accumulated pause duration (`ArgumentError.value`).
+  - Require an explicit verified `lastTransitionAtUtc` watermark representing the real resume instant.
+  - Preserved legitimate fresh-start (`accumulatedPausedDuration == Duration.zero` -> defaults to `startedAtUtc`), currently paused (`pausedAtUtc` watermark), and completed (`completedAtUtc` watermark) direct construction.
+  - Added focused regression tests in `apps/shared/test/workout/workout_time_test.dart` verifying omission rejection, explicit watermark acceptance, and rejection of backdated transitions after reconstruction.
+
 ## 6. Implementation Plan
 - [x] Create feature branch `feat/tnyx-84-w7a-workout-session-domain`.
 - [x] Implement `WorkoutSessionStatus` and legal transitions.
@@ -185,5 +194,6 @@ RoutineTemplate -> WorkoutReadinessValidator -> WorkoutExecutionReadiness
 - [x] Open GitHub PR #730.
 - [x] Resolve Cursor Bugbot monotonicity finding.
 - [x] Resolve `im-tio` P2 snapshot & set invariant finding.
+- [x] Resolve `im-tio` / Bugbot constructor watermark finding (`discussion_r4482207818`).
 - [ ] Push review fixes to GitHub PR #730.
 - [ ] Verify remote CI and request re-review.

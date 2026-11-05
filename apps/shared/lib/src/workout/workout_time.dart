@@ -4,6 +4,13 @@
 /// durations to ensure truthful training volume statistics. Monotonicity is
 /// strictly enforced across all transitions (start -> pause -> resume -> pause -> finish).
 final class WorkoutTime {
+  /// Direct constructor for [WorkoutTime].
+  ///
+  /// Reconstructing an active, unfinished session with positive accumulated paused duration
+  /// ([pausedAtUtc] == `null`, [completedAtUtc] == `null`, [accumulatedPausedDuration] > `Duration.zero`)
+  /// requires an explicit verified [lastTransitionAtUtc] watermark representing the actual resume instant.
+  /// Omitting [lastTransitionAtUtc] in this state throws [ArgumentError] to prevent watermark guessing
+  /// and backdated transition regressions.
   WorkoutTime({
     required DateTime startedAtUtc,
     DateTime? pausedAtUtc,
@@ -281,7 +288,11 @@ final class WorkoutTime {
     if (completedAtUtc != null) return completedAtUtc;
     if (pausedAtUtc != null) return pausedAtUtc;
     if (accumulatedPausedDuration > Duration.zero) {
-      return startedAtUtc.add(accumulatedPausedDuration);
+      throw ArgumentError.value(
+        lastTransitionAtUtc,
+        'lastTransitionAtUtc',
+        'must be explicitly provided when reconstructing an active session with accumulated pause duration',
+      );
     }
     return startedAtUtc;
   }

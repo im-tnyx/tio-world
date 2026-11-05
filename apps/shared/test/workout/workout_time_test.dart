@@ -221,6 +221,78 @@ void main() {
       );
     });
 
+    test('direct constructor requires explicit lastTransitionAtUtc watermark for active resumed sessions (im-tio review regression)', () {
+      // t0 = 10:00, t1 = 10:10 (pause), t2 = 10:15 (resume after 5m pause)
+      const pausedDuration = Duration(minutes: 5);
+
+      // Reconstructing active resumed session without lastTransitionAtUtc must be rejected
+      expect(
+        () => WorkoutTime(
+          startedAtUtc: t0,
+          accumulatedPausedDuration: pausedDuration,
+        ),
+        throwsArgumentError,
+      );
+
+      // Reconstruction with the actual 10:15 watermark succeeds
+      final reconstructed = WorkoutTime(
+        startedAtUtc: t0,
+        accumulatedPausedDuration: pausedDuration,
+        lastTransitionAtUtc: t2,
+      );
+      expect(reconstructed.startedAtUtc, t0);
+      expect(reconstructed.pausedAtUtc, isNull);
+      expect(reconstructed.accumulatedPausedDuration, pausedDuration);
+      expect(reconstructed.completedAtUtc, isNull);
+      expect(reconstructed.lastTransitionAtUtc, t2);
+      expect(reconstructed.isPaused, isFalse);
+      expect(reconstructed.isCompleted, isFalse);
+
+      // Backdated pause at 10:12 is rejected
+      final backdated = DateTime.utc(2026, 11, 5, 10, 12, 0);
+      expect(() => reconstructed.pause(backdated), throwsArgumentError);
+
+      // Backdated finish at 10:12 is rejected
+      expect(() => reconstructed.finish(backdated), throwsArgumentError);
+
+      // Backdated active-duration evaluation at 10:12 is rejected
+      expect(
+        () => reconstructed.elapsedActiveDuration(backdated),
+        throwsArgumentError,
+      );
+      expect(
+        () => reconstructed.totalElapsedDuration(backdated),
+        throwsArgumentError,
+      );
+
+      // Subsequent valid pause at 10:20 succeeds
+      final subsequentPause = DateTime.utc(2026, 11, 5, 10, 20, 0);
+      final pausedAgain = reconstructed.pause(subsequentPause);
+      expect(pausedAgain.isPaused, isTrue);
+      expect(pausedAgain.pausedAtUtc, subsequentPause);
+      expect(pausedAgain.lastTransitionAtUtc, subsequentPause);
+
+      // Fresh start with zero paused duration does not require lastTransitionAtUtc
+      final fresh = WorkoutTime(startedAtUtc: t0);
+      expect(fresh.lastTransitionAtUtc, t0);
+
+      // Currently paused session resolves lastTransitionAtUtc to pausedAtUtc if omitted
+      final pausedSession = WorkoutTime(
+        startedAtUtc: t0,
+        pausedAtUtc: t1,
+        accumulatedPausedDuration: pausedDuration,
+      );
+      expect(pausedSession.lastTransitionAtUtc, t1);
+
+      // Completed session resolves lastTransitionAtUtc to completedAtUtc if omitted
+      final completedSession = WorkoutTime(
+        startedAtUtc: t0,
+        completedAtUtc: t5,
+        accumulatedPausedDuration: pausedDuration,
+      );
+      expect(completedSession.lastTransitionAtUtc, t5);
+    });
+
     test('implements value equality', () {
       final a = WorkoutTime(
         startedAtUtc: t0,
