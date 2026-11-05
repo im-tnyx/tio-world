@@ -88,6 +88,20 @@ void main() {
     expect(gateway.lastReconciledMutationId, _mutation);
   });
 
+  test('reconcile returns the immutable applied receipt snapshot', () async {
+    final gateway = _Gateway(reconciliation: _appliedNote(body: 'original'));
+    final repository = _repository(gateway);
+
+    final receipt = await repository.reconcile(_mutation);
+
+    expect(receipt.mutationId, _mutation);
+    expect(receipt.status, RoutineNoteMutationReceiptStatus.applied);
+    expect(receipt.note?.body, 'original');
+    expect(receipt.note?.id, _note);
+    expect(gateway.reconcileCalls, 1);
+    expect(gateway.readCalls, 0);
+  });
+
   test('2xx mutation decode failure reconciles using the same mutation ID',
       () async {
     final gateway = _Gateway(

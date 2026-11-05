@@ -14,8 +14,8 @@ import '../../../domain/repositories/routine_notes_repository.dart';
 import 'routine_detail_controller.dart';
 import '../../../domain/models/routine_rest_timer_preset.dart';
 import 'routine_notes_controller.dart';
-import 'routine_notes_section.dart';
 
+import 'routine_move_refresh_signal.dart';
 
 /// A read-only preview of durable Routine content under its owning Program.
 /// Starting a workout and modifying prescriptions require separate capabilities.
@@ -30,9 +30,13 @@ class RoutineDetailPage extends StatefulWidget {
     this.viewerMediaGender,
     this.weightUnit = WeightUnit.kg,
     this.onEditPressed,
+    // Compatibility-only: Detail no longer renders a separate Notes section.
     this.routineNotesRepository,
     this.routineNotesOwnerId,
     this.isRoutineNotesSessionCurrent,
+    this.moveRefreshSignal,
+    this.moveRefreshOwnerId,
+    this.moveRefreshLoginCycleId,
     super.key,
   });
 
@@ -47,11 +51,20 @@ class RoutineDetailPage extends StatefulWidget {
   /// Null means the authenticated account's display unit has not resolved.
   final WeightUnit? weightUnit;
 
-  /// App-composed Routine Notes capability. Null fails closed for anonymous,
-  /// unresolved or owner-mismatched sessions.
+  /// Deprecated compatibility inputs retained for callers compiled against
+  /// the previous Detail constructor. They must not create a separate Notes
+  /// surface; Notes belong to the Routine save/composition flow.
+  @Deprecated('Routine Detail no longer renders a separate Notes section.')
   final RoutineNotesRepository? routineNotesRepository;
+  @Deprecated('Routine Detail no longer renders a separate Notes section.')
   final String? routineNotesOwnerId;
+  @Deprecated('Routine Detail no longer renders a separate Notes section.')
   final RoutineNotesSessionIsCurrent? isRoutineNotesSessionCurrent;
+
+  /// Owner/login-cycle-scoped parent invalidation after a partial Edit save.
+  final RoutineMoveRefreshSignal? moveRefreshSignal;
+  final String? moveRefreshOwnerId;
+  final String? moveRefreshLoginCycleId;
 
   /// App-provided, account-verified navigation. True only on confirmed save.
   /// No edit capability is inferred from a read-only Detail repository.
@@ -68,12 +81,17 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
   @override
   void initState() {
     super.initState();
+    widget.moveRefreshSignal?.addListener(_onMoveRefresh);
     _bind();
   }
 
   @override
   void didUpdateWidget(covariant RoutineDetailPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.moveRefreshSignal, widget.moveRefreshSignal)) {
+      oldWidget.moveRefreshSignal?.removeListener(_onMoveRefresh);
+      widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    }
     if (oldWidget.program.id != widget.program.id ||
         oldWidget.routine.id != widget.routine.id ||
         !identical(oldWidget.routineRepository, widget.routineRepository) ||
@@ -81,10 +99,7 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
             widget.compositionRepository) ||
         !identical(oldWidget.catalogRepository, widget.catalogRepository) ||
         !identical(oldWidget.userExerciseRepository,
-            widget.userExerciseRepository) ||
-        !identical(oldWidget.routineNotesRepository,
-            widget.routineNotesRepository) ||
-        oldWidget.routineNotesOwnerId != widget.routineNotesOwnerId) {
+            widget.userExerciseRepository)) {
       _bind();
     }
   }
@@ -115,8 +130,22 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
     if (mounted) setState(() {});
   }
 
+  void _onMoveRefresh() {
+    final signal = widget.moveRefreshSignal;
+    if (!mounted ||
+        signal == null ||
+        !signal.matches(
+          ownerId: widget.moveRefreshOwnerId,
+          loginCycleId: widget.moveRefreshLoginCycleId,
+        )) {
+      return;
+    }
+    _controller?.load();
+  }
+
   @override
   void dispose() {
+    widget.moveRefreshSignal?.removeListener(_onMoveRefresh);
     _controller
       ?..removeListener(_changed)
       ..dispose();
@@ -245,16 +274,6 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
                       ),
                     ),
                   ),
-                  if (widget.routineNotesRepository != null &&
-                      widget.routineNotesOwnerId != null &&
-                      widget.isRoutineNotesSessionCurrent != null)
-                    RoutineNotesSection(
-                      routineId: state.routine!.id,
-                      repository: widget.routineNotesRepository!,
-                      ownerId: widget.routineNotesOwnerId!,
-                      isSessionCurrent:
-                          widget.isRoutineNotesSessionCurrent!,
-                    ),
                 ],
               ),
             );

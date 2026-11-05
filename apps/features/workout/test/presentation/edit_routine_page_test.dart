@@ -56,7 +56,7 @@ RoutineCompositionSnapshot _snapshot({
     );
 
 class _Fixtures {
-  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true, this.canWrite, this.onExerciseInfoPressed})
+  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true, this.canWrite, this.onExerciseInfoPressed, this.onRoutineWriteResolved})
       : compositions = _Compositions(_snapshot()),
         catalog = _Catalog(),
         users = _Users();
@@ -66,6 +66,7 @@ class _Fixtures {
   final bool repositoryAvailable;
   final bool Function()? canWrite;
   final ValueChanged<Exercise>? onExerciseInfoPressed;
+  final VoidCallback? onRoutineWriteResolved;
   final _Compositions compositions;
   final _Catalog catalog;
   final _Users users;
@@ -101,6 +102,7 @@ class _Fixtures {
                     userExerciseRepository: users,
                     onExerciseInfoPressed: onExerciseInfoPressed,
                     canWrite: canWrite,
+                    onRoutineWriteResolved: onRoutineWriteResolved,
                     weightUnit: unit,
                     newUuid: newId,
                   ),
@@ -184,6 +186,22 @@ void main() {
     expect(fixture.compositions.aggregateCalls, 1);
     expect(fixture.compositions.lastAggregate!.entries, isNull);
     expect(fixture.compositions.saveCount, 0);
+  });
+
+  testWidgets('confirmed parent Update reports before returning from Edit',
+      (tester) async {
+    var callbacks = 0;
+    final fixture = _Fixtures(onRoutineWriteResolved: () => callbacks++);
+    await fixture.open(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('edit-routine-name')),
+      'Strength Push',
+    );
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+
+    expect(fixture.editorResult, isTrue);
+    expect(callbacks, 1);
   });
 
   testWidgets('Edit Set Type sheet uses shared semantic badges and preserves actions',

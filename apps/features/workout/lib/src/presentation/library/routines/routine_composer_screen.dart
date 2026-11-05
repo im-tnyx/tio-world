@@ -10,6 +10,10 @@ import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/models/routine_rest_timer_preset.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../exercises/widgets/exercise_list_row.dart';
+import 'exercise_notes_inline.dart';
+import 'routine_notes_controller.dart';
+import '../../../domain/repositories/routine_notes_repository.dart';
+import 'routine_notes_save_bridge.dart';
 
 /// One rendered Routine composition screen for Create and Edit.
 /// Persistence, navigation and auth gates remain with the owning controller.
@@ -219,6 +223,15 @@ class RoutineComposerExerciseCard extends StatelessWidget {
     required this.addSet,
     this.restPreset = const RoutineRestTimerPreset(),
     this.onConfigureRestTimer,
+    this.routineId,
+    this.routineNotesRepository,
+    this.routineNotesOwnerId,
+    this.isRoutineNotesSessionCurrent,
+    this.onNoteDraftsChanged,
+    this.initialNoteDrafts = const [],
+    this.readOnlyNoteDraftIds = const {},
+    this.notesEnabled,
+    this.controllerRegistry,
     super.key,
   });
 
@@ -240,6 +253,15 @@ class RoutineComposerExerciseCard extends StatelessWidget {
   final VoidCallback addSet;
   final RoutineRestTimerPreset restPreset;
   final VoidCallback? onConfigureRestTimer;
+  final RoutineId? routineId;
+  final RoutineNotesRepository? routineNotesRepository;
+  final String? routineNotesOwnerId;
+  final RoutineNotesSessionIsCurrent? isRoutineNotesSessionCurrent;
+  final ValueChanged<List<ExerciseNoteDraftSnapshot>>? onNoteDraftsChanged;
+  final List<ExerciseNoteDraftSnapshot> initialNoteDrafts;
+  final Set<String> readOnlyNoteDraftIds;
+  final bool? notesEnabled;
+  final RoutineNotesControllerRegistry? controllerRegistry;
 
   @override
   Widget build(BuildContext context) {
@@ -247,8 +269,7 @@ class RoutineComposerExerciseCard extends StatelessWidget {
     final isEdit = mode == RoutineComposerMode.edit;
     final prefix = isEdit ? 'edit-routine' : 'create-routine';
     final range = showRangeDraft ||
-        (entry.sets.isNotEmpty &&
-            entry.sets.first.prescription.isRepRange);
+        (entry.sets.isNotEmpty && entry.sets.first.prescription.isRepRange);
     return Padding(
       padding: const EdgeInsets.only(bottom: TioSpacing.xl),
       child: Column(
@@ -256,8 +277,7 @@ class RoutineComposerExerciseCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              if (thumbnailUrl != null)
-                ExerciseThumbnail(url: thumbnailUrl!),
+              if (thumbnailUrl != null) ExerciseThumbnail(url: thumbnailUrl!),
               Expanded(
                 child: Semantics(
                   key: ValueKey('$prefix-reorder-semantics-${entry.id}'),
@@ -311,10 +331,22 @@ class RoutineComposerExerciseCard extends StatelessWidget {
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: TioSpacing.xs),
-            child: Align(
+          ExerciseNotesInline(
+            key: ValueKey('$prefix-exercise-notes-${entry.id}'),
+            exerciseRef: entry.exercise,
+            routineId: routineId,
+            repository: routineNotesRepository,
+            ownerId: routineNotesOwnerId,
+            isSessionCurrent: isRoutineNotesSessionCurrent,
+            enabled: notesEnabled ?? enabled,
+            draftKey: entry.id,
+            initialDrafts: initialNoteDrafts,
+            readOnlyDraftIds: readOnlyNoteDraftIds,
+            onDraftsChanged: onNoteDraftsChanged,
+            controllerRegistry: controllerRegistry,
+            restControl: Align(
               alignment: Alignment.centerLeft,
+              widthFactor: 1,
               child: Semantics(
                 button: true,
                 label: RoutineRestTimerFormatter.formatSemantics(
@@ -342,34 +374,41 @@ class RoutineComposerExerciseCard extends StatelessWidget {
                             color: colors.textSecondary,
                           ),
                           const SizedBox(width: TioSpacing.xs),
-                          Text.rich(
-                            TextSpan(
-                              style: TextStyle(
-                                fontSize: TioFontSize.size13,
-                                fontWeight: TioFontWeight.w600,
-                                color: colors.textPrimary,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: restPreset.normalRestSeconds != null
-                                      ? 'Rest: ${RoutineRestTimerFormatter.formatSeconds(restPreset.normalRestSeconds!)}'
-                                      : restPreset.warmUpRestSeconds != null
-                                          ? 'Rest: '
-                                          : 'Rest: OFF',
+                          Flexible(
+                            child: Text.rich(
+                              TextSpan(
+                                style: TextStyle(
+                                  fontSize: TioFontSize.size13,
+                                  fontWeight: TioFontWeight.w600,
+                                  color: colors.textPrimary,
                                 ),
-                                if (restPreset.warmUpRestSeconds != null) ...[
-                                  if (restPreset.normalRestSeconds != null)
-                                    const TextSpan(text: ' '),
+                                children: [
                                   TextSpan(
-                                    text: '(${RoutineRestTimerFormatter.formatSeconds(restPreset.warmUpRestSeconds!)})',
-                                    style: TextStyle(
-                                      color: entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp)
-                                          ? colors.warning
-                                          : colors.textMuted,
-                                    ),
+                                    text: restPreset.normalRestSeconds != null
+                                        ? 'Rest: ${RoutineRestTimerFormatter.formatSeconds(restPreset.normalRestSeconds!)}'
+                                        : restPreset.warmUpRestSeconds != null
+                                            ? 'Rest: '
+                                            : 'Rest: OFF',
                                   ),
+                                  if (restPreset.warmUpRestSeconds != null) ...[
+                                    if (restPreset.normalRestSeconds != null)
+                                      const TextSpan(text: ' '),
+                                    TextSpan(
+                                      text:
+                                          '(${RoutineRestTimerFormatter.formatSeconds(restPreset.warmUpRestSeconds!)})',
+                                      style: TextStyle(
+                                        color: entry.sets.any((s) =>
+                                                s.prescription.setType ==
+                                                RoutineSetType.warmUp)
+                                            ? colors.warning
+                                            : colors.textMuted,
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -380,7 +419,6 @@ class RoutineComposerExerciseCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: TioSpacing.sm),
           Row(
             children: [
               const SizedBox(
@@ -476,10 +514,10 @@ class RoutineComposerExerciseCard extends StatelessWidget {
             label: 'Add Set',
             leading: const Icon(Icons.add),
             expand: true,
-            semanticLabel: entry.sets.length >=
-                    RoutineCompositionLimits.maxSetsPerExercise
-                ? 'Add Set: maximum 8 Sets per Exercise reached'
-                : null,
+            semanticLabel:
+                entry.sets.length >= RoutineCompositionLimits.maxSetsPerExercise
+                    ? 'Add Set: maximum 8 Sets per Exercise reached'
+                    : null,
             onPressed: enabled &&
                     entry.sets.length <
                         RoutineCompositionLimits.maxSetsPerExercise

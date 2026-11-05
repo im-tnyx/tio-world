@@ -112,19 +112,17 @@ void main() {
     );
   });
 
-  testWidgets('shows retry state and reloads after failure', (tester) async {
+  testWidgets('does not show a Notes retry action after a read failure',
+      (tester) async {
     final repository = _FakeRoutineNotesRepository(
       readError: const RoutineNoteException(RoutineNoteFailureKind.unavailable),
     );
     await _pumpSection(tester, repository);
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('routine-notes-failed')), findsOneWidget);
-    repository.readError = null;
-    await tester.tap(find.byKey(const ValueKey('routine-notes-retry')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('routine-notes-empty')), findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-notes-failed')), findsNothing);
+    expect(find.byKey(const ValueKey('routine-notes-retry')), findsNothing);
+    expect(find.text('Try again'), findsNothing);
   });
 
   testWidgets('removes the composer when the opening session is revoked',
@@ -233,6 +231,13 @@ final class _FakeRoutineNotesRepository implements RoutineNotesRepository {
     if (pending != null) return pending.future;
     return [...notes];
   }
+
+  @override
+  Future<RoutineNoteMutationReceipt> reconcile(String mutationId) async =>
+      RoutineNoteMutationReceipt(
+        mutationId: mutationId,
+        status: RoutineNoteMutationReceiptStatus.pending,
+      );
 
   @override
   Future<RoutineNote> create(RoutineNoteCreate command) async => _routineNote();
