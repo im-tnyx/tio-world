@@ -1,6 +1,6 @@
 # Routine Notes — Exercise inline UI Slice A
 
-**Status:** In progress
+**Status:** Validated / merged (2026-11-05)
 **Primary owner:** Current implementation session
 **Affected platforms:** Flutter phone Create/Edit Routine; Supabase contract consumed read-only
 
@@ -12,26 +12,27 @@
 **Approved product/UI/data-shape boundaries:** Add Exercise-scoped Notes inline inside the existing Create/Edit Routine Exercise card, directly below Rest/Note actions and above the Set table. Use `RoutineNoteScope.exercise(ExerciseRef)`, the existing `RoutineNotesRepository`, existing authenticated provider/session guards, existing five-note and 500-character limits, and existing delete/mutation-safety behavior. Owner clarification received 2026-11-02 supersedes the earlier inline `Save Note`/`Cancel` decision: the Note field is a temporary inline draft and has no separate Save or Cancel buttons; the owner expects the surrounding Routine save flow to commit it. The current slice does not invent a new aggregate Notes payload or write separately on keystroke. The owner also approves tapping the left pin icon or right-swiping a saved Note to change Note type, left-swiping a saved Note to reveal Delete, and showing `Delete Note` in the type sheet before the existing confirmation. Type transfer uses the existing atomic repository contract; `Pinned Routine` is enabled only when an existing Routine identity is available (Edit), while Create remains Exercise-scoped until the Routine has a durable identity.
 **Explicit non-changes:** No sheet/dialog/navigation page for creating or editing the Note, no autosave or per-keystroke write, no copy/share, new repository/model/table/migration/RLS/grant, hosted deployment, Rest Timer redesign, Set/table redesign, WorkoutSession/history/post behavior, or physical-device acceptance claim. The separate Routine Notes block is not part of the approved Exercise Notes surface and is no longer mounted on Routine Detail. The type chooser is limited to the explicitly approved type-change action and does not become a general Note editor.
 
-## Active Handoff
+## Completed Handoff
 
 **Planning owner:** Current implementation session
 **Implementation owner:** Current implementation session
 **Review owner:** Independent GitHub review (`im-tio`) when PR exists
-**Implementation ownership state:** Active
-**Ownership transition:** Not applicable
+**Implementation ownership state:** Complete
+**Ownership transition:** Archived after PR #725 merge
 **Repository state last verified:** 2026-11-05
-**Branch:** `codex/routine-notes-exercise-inline-slice-a`
-**HEAD SHA at last source/CI audit:** `9751cd665d0d7cc66489fc0c025395f1fef96522`
-**Observed working-tree state:** The quota-ordering, text-selection gesture, partial-save draft-ID, and Rest/Note intrinsic-width remediations are committed locally. Generated Android registrant remains unrelated and excluded
-**Observed uncommitted/dirty files:** Flutter tooling reports a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it is not part of this slice
-**PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) linked to existing GitHub #716 and Linear `TNYX-81`; independent review requested from `im-tio`; no separate child issue available in the current Linear workspace limit
+**Branch:** `main` after the merged PR; implementation branch `codex/routine-notes-exercise-inline-slice-a` is historical
+**Source PR HEAD:** `7cf9c8b7172d922756fe52254009524421ad4362`
+**Merge commit:** `a6a97e25215e5dfe32c2312003f1ce7cc364f843`
+**Observed working-tree state:** Post-merge `main` is aligned with `origin/main`; the unrelated Generated Android registrant change is preserved in `stash@{0}` and excluded
+**Historical pre-merge dirty-file evidence:** Flutter tooling reported a metadata-only `apps/app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java` change; it was not part of this slice and is preserved outside the merge
+**PR / tracker:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`) merged at the commit above; GitHub #716 is closed; Linear `TNYX-81` remains Backlog for broader W4; no separate child issue is created
 **Current implementation state:** Shared Create/Edit composer mounts inline Exercise Notes and captures drafts for the surrounding Routine Save/Update. After the Routine mutation is confirmed, the existing `RoutineNotesRepository` receives canonical Exercise/Routine commands through a stable-ID bridge; quota/validation rejection leaves the draft editable or discardable, while unknown/unavailable outcomes keep the exit safety block. Failed Edit updates restore captured draft text after the saved-state rebuild; no new data source or backend contract is introduced. The compact Rest/Note constraint and parent-refresh remediation are in source history. The current follow-up exposes the existing immutable Supabase mutation receipt through `RoutineNotesRepository.reconcile(mutationId)` and uses that snapshot—not the current Note row—to confirm an unknown create without duplicate writes.
 **Relevant execution surface:** `apps/features/workout/lib/src/presentation/library/routines/routine_composer_screen.dart`
 **Validation completed locally:** Elevated Flutter SDK access allowed the latest focused bridge/inline suite (`33` tests), the 320dp Edit regression, full `apps/features/workout` test exit `0`, full `apps/app` test exit `0`, `apps/features/workout` and `apps/app` analysis, and clean formatting for all changed Dart files. The bridge regression proves reconciled draft IDs survive a later quota failure; the inline regression proves production-style Rest/Note adjacency at compact width and long-press text selection does not open the type sheet or reveal Delete. `git diff --check` completed with only the existing generated-file, CRLF and fsmonitor warnings. The initial sandbox timeout was a machine-local SDK cache permission limitation, not a repository or Git source failure; no SDK reinstall or global Git configuration change was performed.
-**Validation remaining:** Fresh independent approval and independently reproduced physical Android/iOS QA; exact-head CI is green on the latest source fix and must be rechecked after any further push
-**Current blocker:** No local source/toolchain blocker remains after running Flutter with the required SDK cache access. The owner-provided physical-device evidence is recorded separately and is not an independent reproduction. Hosted Notes objects remain outside this PR and are not activated.
-**Open review finding IDs:** Before this source commit, GitHub reported `PRRT_kwDOTOXwB86zysqD` / `4473017531` (unknown reconciliation before quota), `PRRT_kwDOTOXwB86zysqH` / `4473017538` (TextField selection versus raw swipe), `PRRT_kwDOTOXwB86zzRwO` / `4473267325` (confirmed draft IDs lost on later quota/read failure), and `PRRT_kwDOTOXwB86zzSGL` / `4473269712` (same partial-save defect). Source commit `9751cd66` addresses the verified findings with bounded reconciliation/result propagation plus the existing Rest/Note width constraint. On the latest audited PR HEAD, current unresolved non-outdated review threads are `0`; the earlier receipt finding `PRRT_kwDOTOXwB86zyQjA` is resolved/outdated. The standalone Routine Detail Notes refresh finding is superseded by the owner-approved removal of the separate Routine Notes section.
-**Next exact action:** Recheck exact-head CI after this handoff-only push, then await `im-tio` independent approval and Main Protection evaluation. Keep PR #725 unmerged.
+**Validation remaining:** Independently reproduced physical Android/iOS QA is not verified. Hosted Notes deployment and hosted E2E acceptance remain separate, unauthorized gates.
+**Current blocker:** No local source/toolchain blocker remains. The owner-provided physical-device evidence is recorded separately and is not an independent reproduction. Hosted Notes objects remain outside this PR and are not activated.
+**Review disposition:** All 32 PR #725 review threads are resolved. `im-tio` approved source PR HEAD `7cf9c8b7172d922756fe52254009524421ad4362`; required exact-head CI passed before merge, and post-merge Flutter CI run `41973024373` passed on merge commit `a6a97e25215e5dfe32c2312003f1ce7cc364f843`. The standalone Routine Detail Notes refresh finding is superseded by the owner-approved removal of the separate Routine Notes section.
+**Next exact action:** Keep hosted Notes deployment behind the separate approval packet; continue broader W4 work only through a separately approved bounded slice.
 
 ## 1. Discovery
 
@@ -172,6 +173,8 @@ NOT RUN: physical Android/iOS keyboard and gesture QA, hosted Notes deployment, 
 ### Review Provenance
 
 **Review source / link:** GitHub PR #725 (`https://github.com/im-tnyx/tio-world/pull/725`)
+### Historical pre-merge review checkpoint
+
 **Reviewer / relation to implementer:** Independent reviewer requested: `im-tio`
 **Diff or commit SHA actually reviewed:** Latest submitted independent `im-tio` review was on an earlier PR HEAD and withheld approval. A fresh `im-tio` review request remains active for the latest pushed PR HEAD; no independent approval has been submitted.
 **Review result and finding dispositions:** Review comments were reconciled against current source. The standalone Routine Detail Notes-section comment is superseded by the owner correction and remains intentionally removed. The quota-ordering, TextField-selection, and partial-save draft-ID findings are fixed in `9751cd665d0d7cc66489fc0c025395f1fef96522`; current unresolved non-outdated threads are `0`, and refreshed independent review remains pending.
@@ -238,7 +241,7 @@ NOT RUN: physical Android/iOS keyboard and gesture QA, hosted Notes deployment, 
 
 ### Known Limitations
 
-The bridge is intentionally sequential rather than falsely atomic because the existing Routine and Notes repositories expose separate contracts. Hosted Notes migrations are not applied; this does not authorize production activation. Existing body edit/copy/share behavior remains out of scope. Physical Android/iOS gesture and keyboard QA remains pending. Fresh independent approval remains pending; all review threads and exact-head CI for `1b40c181` are reconciled.
+The bridge is intentionally sequential rather than falsely atomic because the existing Routine and Notes repositories expose separate contracts. Hosted Notes migrations are not applied; this does not authorize production activation. Existing body edit/copy/share behavior remains out of scope. Physical Android/iOS gesture and keyboard QA has owner-provided evidence but no independent reproduction. Future Program/Routine sharing and copy/adoption remain separately scoped.
 
 ### Current Review Remediation Evidence (2026-11-05)
 
@@ -254,9 +257,10 @@ The bridge is intentionally sequential rather than falsely atomic because the ex
 - PASS: 320dp dark Edit table regression — `1` test.
 - PASS: `flutter analyze --no-pub` in `apps/features/workout` and `apps/app`.
 - PASS: changed-file Dart format check and `git diff --check` (existing fsmonitor/line-ending/generated-file warnings only).
-- PASS: exact-head GitHub CI run `41914072329` on the latest audited source/handoff HEAD; any later push requires a fresh exact-head check.
-- NOT RUN: fresh `im-tio` approval and independently reproduced physical-device QA.
+- PASS: exact-head GitHub CI run `41915460411` on PR HEAD `7cf9c8b7172d922756fe52254009524421ad4362`; `im-tio` approved that exact HEAD.
+- PASS: post-merge Flutter CI run `41973024373` on merge commit `a6a97e25215e5dfe32c2312003f1ce7cc364f843`.
+- NOT VERIFIED: independently reproduced physical-device QA and hosted Notes deployment/E2E acceptance.
 
 ### Final Status
 
-`REVIEW`
+`VALIDATED / MERGED`
