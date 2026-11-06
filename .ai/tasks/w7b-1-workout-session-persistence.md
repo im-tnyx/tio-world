@@ -67,7 +67,7 @@
 - `4490473113` (P2): Prescription integrity cross-validated in `rpc_start_workout_session` against `user_workout_routine_sets`. Tested in assertions 11-12.
 - `4490473120` (P2): Start replay recovery fixed in `rpc_start_workout_session` by pre-checking existing session ID and returning existing record on exact match before checking routine data. Tested in assertions 14-16, 44.
 - `4491035089` (P2): Inconsistent lock hierarchy between `rpc_log_workout_performed_set` and `rpc_remove_workout_performed_set` resolved by locking parent session `user_workout_sessions` first, then child set `user_workout_performed_sets` second in all RPCs. Verified via `w7b_session_concurrency.sh` with simultaneous Log vs Remove races (Update wins and Remove wins). Zero `40P01` deadlocks observed.
-**Next exact action:** Commit and push remediations to PR #734, reply to review thread `4491035089`, and request re-review from `im-tio`.
+**Next exact action:** CI workflow run 42202562411 in progress for HEAD checkpoint `036e1013` (includes CI step replay of post-TNYX-81 migrations after staged notes harness reset). Awaiting independent review approval on PR #734.
 
 ## 1. Discovery
 
