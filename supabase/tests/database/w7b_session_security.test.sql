@@ -1,5 +1,7 @@
+\set ON_ERROR_STOP on
 BEGIN;
-SELECT plan(22);
+CREATE EXTENSION IF NOT EXISTS pgtap;
+SELECT plan(46);
 
 -- ============================================================================
 -- Fixtures Setup (Two distinct authenticated users with programs & routines)
@@ -15,26 +17,37 @@ INSERT INTO public.users (id, email) VALUES
   ('22222222-2222-2222-2222-222222222222', 'owner_b@tio.test')
 ON CONFLICT (id) DO NOTHING;
 
+-- Programs
 INSERT INTO public.user_workout_programs (id, user_id, name) VALUES
   ('aaaaaaaa-1111-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Program A'),
   ('bbbbbbbb-2222-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'Program B')
 ON CONFLICT (id) DO NOTHING;
 
+-- Routines
 INSERT INTO public.user_workout_routines (id, user_id, program_id, name) VALUES
   ('aaaaaaaa-1111-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-0000-0000-000000000001', 'Routine A'),
-  ('bbbbbbbb-2222-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 'bbbbbbbb-2222-0000-0000-000000000002', 'Routine B')
+  ('bbbbbbbb-2222-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 'bbbbbbbb-2222-0000-0000-000000000002', 'Routine B'),
+  ('aaaaaaaa-1111-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-0000-0000-000000000001', 'Routine C')
 ON CONFLICT (id) DO NOTHING;
 
+-- Routine Exercises
 INSERT INTO public.user_workout_routine_exercises (id, user_id, routine_id, position, catalog_exercise_id) VALUES
-  ('aaaaaaaa-1111-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-0000-0000-000000000002', 0, 'ex_barbell_bench_press')
+  ('aaaaaaaa-1111-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-0000-0000-000000000002', 0, 'ex_barbell_bench_press'),
+  ('bbbbbbbb-2222-0000-0000-000000000004', '22222222-2222-2222-2222-222222222222', 'bbbbbbbb-2222-0000-0000-000000000003', 0, 'ex_barbell_bench_press'),
+  ('aaaaaaaa-1111-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-0000-0000-000000000005', 0, 'ex_barbell_bench_press')
 ON CONFLICT (id) DO NOTHING;
 
+-- Routine Sets
 INSERT INTO public.user_workout_routine_sets (id, user_id, routine_exercise_id, position, set_type, reps, load_kg, rest_seconds) VALUES
-  ('aaaaaaaa-1111-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-0000-0000-000000000003', 0, 'normal', 10, 100.0, 90)
+  ('aaaaaaaa-1111-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-0000-0000-000000000003', 0, 'normal', 10, 100.0, 90),
+  ('bbbbbbbb-2222-0000-0000-000000000005', '22222222-2222-2222-2222-222222222222', 'bbbbbbbb-2222-0000-0000-000000000004', 0, 'normal', 8, 80.0, 60),
+  ('aaaaaaaa-1111-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-1111-0000-0000-000000000006', 0, 'normal', 5, 50.0, 45)
 ON CONFLICT (id) DO NOTHING;
 
--- Valid snapshot matching Routine A
+-- Snapshots
 \set valid_snapshot '{"schema_version":1,"routine_id":"aaaaaaaa-1111-0000-0000-000000000002","program_id":"aaaaaaaa-1111-0000-0000-000000000001","routine_name":"Routine A","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Barbell Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":10,"load_kg":100.0,"rest_seconds":90}]}]}'
+\set valid_snapshot_b '{"schema_version":1,"routine_id":"bbbbbbbb-2222-0000-0000-000000000003","program_id":"bbbbbbbb-2222-0000-0000-000000000002","routine_name":"Routine B","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Barbell Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":8,"load_kg":80.0,"rest_seconds":60}]}]}'
+\set valid_snapshot_c '{"schema_version":1,"routine_id":"aaaaaaaa-1111-0000-0000-000000000005","program_id":"aaaaaaaa-1111-0000-0000-000000000001","routine_name":"Routine C","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Barbell Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":5,"load_kg":50.0,"rest_seconds":45}]}]}'
 
 -- ============================================================================
 -- 1-4. Direct Authenticated DML Denial Tests
@@ -42,7 +55,6 @@ ON CONFLICT (id) DO NOTHING;
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
 
--- 1. Direct INSERT on user_workout_sessions denied
 SELECT throws_ok(
   $$
   INSERT INTO public.user_workout_sessions (
@@ -56,7 +68,6 @@ SELECT throws_ok(
   'Direct INSERT on user_workout_sessions must be denied to authenticated users'
 );
 
--- 2. Direct INSERT on user_workout_performed_sets denied
 SELECT throws_ok(
   $$
   INSERT INTO public.user_workout_performed_sets (
@@ -70,7 +81,6 @@ SELECT throws_ok(
   'Direct INSERT on user_workout_performed_sets must be denied to authenticated users'
 );
 
--- 3. Direct UPDATE on user_workout_sessions denied
 SELECT throws_ok(
   $$
   UPDATE public.user_workout_sessions SET notes = 'tampered'
@@ -80,7 +90,6 @@ SELECT throws_ok(
   'Direct UPDATE on user_workout_sessions must be denied to authenticated users'
 );
 
--- 4. Direct DELETE on user_workout_sessions denied
 SELECT throws_ok(
   $$
   DELETE FROM public.user_workout_sessions
@@ -90,9 +99,42 @@ SELECT throws_ok(
   'Direct DELETE on user_workout_sessions must be denied to authenticated users'
 );
 
+RESET ROLE;
+
 -- ============================================================================
--- 5. Forged Source Routine/Program Failure in RPC
+-- 5-8. Finding 2 (P2 - 4490473103) Three-Valued Logic & Snapshot Integrity
 -- ============================================================================
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1('{}'::jsonb),
+  false,
+  'Snapshot validator rejects empty JSONB object'
+);
+
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1('{"schema_version": 1}'::jsonb),
+  false,
+  'Snapshot validator rejects snapshot missing required fields'
+);
+
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1('{"schema_version": 1, "routine_id": "aaaaaaaa-1111-0000-0000-000000000002", "routine_name": "R", "captured_at_utc": "invalid-ts", "exercises": []}'::jsonb),
+  false,
+  'Snapshot validator rejects invalid captured_at_utc timestamp'
+);
+
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1('{"schema_version": 2}'::jsonb),
+  false,
+  'Snapshot validator rejects unsupported schema version'
+);
+
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
+
+-- ============================================================================
+-- 9-12. Routine Authorization & Prescription Integrity (Finding 4 - 4490473113)
+-- ============================================================================
+-- 9. Forged Source Routine/Program Failure: Owner A passes Owner B routine ID in both params and snapshot
 SELECT throws_ok(
   format(
     $$
@@ -105,15 +147,69 @@ SELECT throws_ok(
       %L::jsonb
     )
     $$,
-    :'valid_snapshot'
+    :'valid_snapshot_b'
   ),
   '42501',
   'invalid_routine_or_unauthorized',
   'Owner A cannot start workout using Owner B routine'
 );
 
+-- 10. Snapshot Identity Mismatch (params routine_id != snapshot routine_id)
+SELECT throws_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      gen_random_uuid(),
+      'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000002'::uuid,
+      '2026-11-06 10:00:00+00'::timestamptz,
+      '2026-11-06'::date,
+      %L::jsonb
+    )
+    $$,
+    :'valid_snapshot_b'
+  ),
+  '22023',
+  'snapshot_identity_mismatch',
+  'Snapshot routine_id mismatching parameter routine_id is rejected'
+);
+
+-- 11. Prescribed Set Mismatch: Reps altered in snapshot
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_start_workout_session(
+    gen_random_uuid(),
+    'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+    'aaaaaaaa-1111-0000-0000-000000000002'::uuid,
+    '2026-11-06 10:00:00+00'::timestamptz,
+    '2026-11-06'::date,
+    '{"schema_version":1,"routine_id":"aaaaaaaa-1111-0000-0000-000000000002","program_id":"aaaaaaaa-1111-0000-0000-000000000001","routine_name":"Routine A","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Barbell Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":99,"load_kg":100.0,"rest_seconds":90}]}]}'::jsonb
+  )
+  $$,
+  '22023',
+  'snapshot_prescription_mismatch',
+  'Snapshot prescribed set value mismatch with routine is rejected'
+);
+
+-- 12. Prescribed Set Count Mismatch: 2 sets in snapshot, 1 in routine
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_start_workout_session(
+    gen_random_uuid(),
+    'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+    'aaaaaaaa-1111-0000-0000-000000000002'::uuid,
+    '2026-11-06 10:00:00+00'::timestamptz,
+    '2026-11-06'::date,
+    '{"schema_version":1,"routine_id":"aaaaaaaa-1111-0000-0000-000000000002","program_id":"aaaaaaaa-1111-0000-0000-000000000001","routine_name":"Routine A","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Barbell Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":10,"load_kg":100.0,"rest_seconds":90},{"set_type":"normal","reps":10,"load_kg":100.0,"rest_seconds":90}]}]}'::jsonb
+  )
+  $$,
+  '22023',
+  'snapshot_prescription_count_mismatch',
+  'Snapshot prescribed set count mismatch with routine is rejected'
+);
+
 -- ============================================================================
--- 6. Valid Session Start via RPC
+-- 13. Valid Session Start via RPC
 -- ============================================================================
 SELECT lives_ok(
   format(
@@ -133,9 +229,70 @@ SELECT lives_ok(
 );
 
 -- ============================================================================
--- 7. Owner-Only SELECT via RLS
+-- 14-16. Finding 5 (P2 - 4490473120) Start Replay Recovery & Conflict
 -- ============================================================================
-SET LOCAL "request.jwt.claim.sub" = '22222222-2222-2222-2222-222222222222'; -- Switch to Owner B
+-- 14. Exact matching start replay succeeds idempotently
+SELECT lives_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000002'::uuid,
+      '2026-11-06 10:00:00+00'::timestamptz,
+      '2026-11-06'::date,
+      %L::jsonb
+    )
+    $$,
+    :'valid_snapshot'
+  ),
+  'Exact matching start replay succeeds idempotently returning existing session'
+);
+
+-- 15. Start replay with conflicting local_date throws 23505
+SELECT throws_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000002'::uuid,
+      '2026-11-06 10:00:00+00'::timestamptz,
+      '2026-11-07'::date,
+      %L::jsonb
+    )
+    $$,
+    :'valid_snapshot'
+  ),
+  '23505',
+  'duplicate_session_conflict',
+  'Start replay with conflicting parameter throws duplicate_session_conflict'
+);
+
+-- 16. Cross-user start replay: Owner B passes Owner A session ID -> 42501
+SET LOCAL "request.jwt.claim.sub" = '22222222-2222-2222-2222-222222222222';
+SELECT throws_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+      'bbbbbbbb-2222-0000-0000-000000000002'::uuid,
+      'bbbbbbbb-2222-0000-0000-000000000003'::uuid,
+      '2026-11-06 10:00:00+00'::timestamptz,
+      '2026-11-06'::date,
+      %L::jsonb
+    )
+    $$,
+    :'valid_snapshot_b'
+  ),
+  '42501',
+  'session_ownership_mismatch',
+  'Cross-user session ID reuse in start RPC is rejected with 42501'
+);
+
+-- ============================================================================
+-- 17. Owner-Only SELECT via RLS
+-- ============================================================================
 SELECT is(
   (SELECT count(*)::integer FROM public.user_workout_sessions WHERE id = 'aaaaaaaa-aaaa-0000-0000-000000000001'),
   0,
@@ -143,7 +300,7 @@ SELECT is(
 );
 
 -- ============================================================================
--- 8. Cross-User Performed-Set Foreign Key Protection
+-- 18. Cross-User Performed-Set Foreign Key Protection
 -- ============================================================================
 RESET ROLE;
 SELECT throws_ok(
@@ -163,7 +320,7 @@ SELECT throws_ok(
 );
 
 -- ============================================================================
--- 9. Single Active Session Invariant (Partial Unique Index)
+-- 19. Single Active Session Invariant (Partial Unique Index)
 -- ============================================================================
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
@@ -188,7 +345,7 @@ SELECT throws_ok(
 );
 
 -- ============================================================================
--- 10. Valid Set Logging
+-- 20. Valid Set Logging
 -- ============================================================================
 SELECT lives_ok(
   $$
@@ -204,17 +361,86 @@ SELECT lives_ok(
 );
 
 -- ============================================================================
--- 11. Slot Collision Rejection on Active Session
+-- 21-24. Finding 1 (P1 - 4490473095) Cross-User / Cross-Session Set Mutation
+-- ============================================================================
+-- 21. Owner B starts their own session and logs a set
+SET LOCAL "request.jwt.claim.sub" = '22222222-2222-2222-2222-222222222222';
+SELECT lives_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'bbbbbbbb-bbbb-0000-0000-000000000001'::uuid,
+      'bbbbbbbb-2222-0000-0000-000000000002'::uuid,
+      'bbbbbbbb-2222-0000-0000-000000000003'::uuid,
+      '2026-11-06 10:00:00+00'::timestamptz,
+      '2026-11-06'::date,
+      %L::jsonb
+    );
+    SELECT public.rpc_log_workout_performed_set(
+      'dddddddd-dddd-0000-0000-000000000001'::uuid,
+      'bbbbbbbb-bbbb-0000-0000-000000000001'::uuid,
+      1,
+      'ex_barbell_bench_press',
+      0, 0, 8, 80.0, null, null, '2026-11-06 10:02:00+00'::timestamptz, false, 'Owner B set'
+    );
+    $$,
+    :'valid_snapshot_b'
+  ),
+  'Owner B starts session and logs set successfully'
+);
+
+-- 22. Owner A attempts to log set using Owner B set ID -> 42501 set_ownership_mismatch
+SET LOCAL "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_log_workout_performed_set(
+    'dddddddd-dddd-0000-0000-000000000001'::uuid,
+    'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+    2,
+    'ex_barbell_bench_press',
+    0, 1, 10, 100.0, null, null, '2026-11-06 10:03:00+00'::timestamptz, false, 'Tampered set'
+  )
+  $$,
+  '42501',
+  'set_ownership_mismatch',
+  'Owner A cannot overwrite Owner B set UUID in rpc_log_workout_performed_set'
+);
+
+-- 23. Owner B set remains completely unaltered
+SET LOCAL "request.jwt.claim.sub" = '22222222-2222-2222-2222-222222222222';
+SELECT is(
+  (SELECT reps FROM public.user_workout_performed_sets WHERE id = 'dddddddd-dddd-0000-0000-000000000001'),
+  8,
+  'Owner B set reps remain completely unaltered after attack attempt'
+);
+
+-- 24. Valid update of Owner A own set in own session succeeds
+SET LOCAL "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_log_workout_performed_set(
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+    2,
+    'ex_barbell_bench_press',
+    0, 0, 11, 100.0, null, null, '2026-11-06 10:04:00+00'::timestamptz, false, 'Updated set'
+  )
+  $$,
+  'Owner A updates own set in own session successfully'
+);
+
+-- ============================================================================
+-- 25. Slot Collision Rejection on Active Session
 -- ============================================================================
 SELECT throws_ok(
   $$
   SELECT public.rpc_log_workout_performed_set(
     'cccccccc-cccc-0000-0000-000000000002'::uuid, -- Different set ID
     'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
-    2, -- Revision 2
+    3, -- Revision 3
     'ex_barbell_bench_press',
     0, 0, -- Same slot (0, 0)
-    12, 105.0, null, null, '2026-11-06 10:03:00+00'::timestamptz, false, 'Conflicting set'
+    12, 105.0, null, null, '2026-11-06 10:05:00+00'::timestamptz, false, 'Conflicting set'
   )
   $$,
   '23505',
@@ -223,13 +449,82 @@ SELECT throws_ok(
 );
 
 -- ============================================================================
--- 12. Pause Session
+-- 26-32. Finding 3 (P2 - 4490473109) NULL / Invalid Revision OCC Enforcement
+-- ============================================================================
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_pause_workout_session('aaaaaaaa-aaaa-0000-0000-000000000001'::uuid, null, '2026-11-06 10:10:00+00'::timestamptz)
+  $$,
+  '22023',
+  'invalid_expected_revision',
+  'rpc_pause_workout_session rejects NULL expected revision'
+);
+
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_resume_workout_session('aaaaaaaa-aaaa-0000-0000-000000000001'::uuid, null, '2026-11-06 10:15:00+00'::timestamptz)
+  $$,
+  '22023',
+  'invalid_expected_revision',
+  'rpc_resume_workout_session rejects NULL expected revision'
+);
+
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_log_workout_performed_set(
+    'cccccccc-cccc-0000-0000-000000000003'::uuid, 'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+    null, 'ex_barbell_bench_press', 0, 1, 10, 100.0, null, null, '2026-11-06 10:06:00+00'::timestamptz, false, null
+  )
+  $$,
+  '22023',
+  'invalid_expected_revision',
+  'rpc_log_workout_performed_set rejects NULL expected revision'
+);
+
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_remove_workout_performed_set('aaaaaaaa-aaaa-0000-0000-000000000001'::uuid, 'cccccccc-cccc-0000-0000-000000000001'::uuid, null)
+  $$,
+  '22023',
+  'invalid_expected_revision',
+  'rpc_remove_workout_performed_set rejects NULL expected revision'
+);
+
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_complete_workout_session('aaaaaaaa-aaaa-0000-0000-000000000001'::uuid, null, '2026-11-06 10:30:00+00'::timestamptz, null)
+  $$,
+  '22023',
+  'invalid_expected_revision',
+  'rpc_complete_workout_session rejects NULL expected revision'
+);
+
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_discard_workout_session('aaaaaaaa-aaaa-0000-0000-000000000001'::uuid, null, '2026-11-06 10:30:00+00'::timestamptz, null)
+  $$,
+  '22023',
+  'invalid_expected_revision',
+  'rpc_discard_workout_session rejects NULL expected revision'
+);
+
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_pause_workout_session('aaaaaaaa-aaaa-0000-0000-000000000001'::uuid, 0, '2026-11-06 10:10:00+00'::timestamptz)
+  $$,
+  '22023',
+  'invalid_expected_revision',
+  'rpc_pause_workout_session rejects 0 expected revision'
+);
+
+-- ============================================================================
+-- 33. Pause Session
 -- ============================================================================
 SELECT lives_ok(
   $$
   SELECT public.rpc_pause_workout_session(
     'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
-    2,
+    3,
     '2026-11-06 10:10:00+00'::timestamptz
   )
   $$,
@@ -237,13 +532,13 @@ SELECT lives_ok(
 );
 
 -- ============================================================================
--- 13. Resume Session (adds 5 minutes = 300,000,000 microseconds)
+-- 34. Resume Session (adds 5 minutes = 300,000,000 microseconds)
 -- ============================================================================
 SELECT lives_ok(
   $$
   SELECT public.rpc_resume_workout_session(
     'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
-    3,
+    4,
     '2026-11-06 10:15:00+00'::timestamptz
   )
   $$,
@@ -251,7 +546,7 @@ SELECT lives_ok(
 );
 
 -- ============================================================================
--- 14. WorkoutTime Reconstruction & Microsecond Pause Fidelity
+-- 35. WorkoutTime Reconstruction & Microsecond Pause Fidelity
 -- ============================================================================
 SELECT is(
   (SELECT accumulated_paused_microseconds FROM public.user_workout_sessions WHERE id = 'aaaaaaaa-aaaa-0000-0000-000000000001'),
@@ -260,7 +555,7 @@ SELECT is(
 );
 
 -- ============================================================================
--- 15. Stale Revision Conflict Protection (OCC)
+-- 36. Stale Revision Conflict Protection (OCC)
 -- ============================================================================
 SELECT throws_ok(
   $$
@@ -276,13 +571,13 @@ SELECT throws_ok(
 );
 
 -- ============================================================================
--- 16. Idempotent Retry of Resume
+-- 37. Idempotent Retry of Resume
 -- ============================================================================
 SELECT lives_ok(
   $$
   SELECT public.rpc_resume_workout_session(
     'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
-    4,
+    5,
     '2026-11-06 10:15:00+00'::timestamptz
   )
   $$,
@@ -290,13 +585,13 @@ SELECT lives_ok(
 );
 
 -- ============================================================================
--- 17. Session Completion
+-- 38. Session Completion
 -- ============================================================================
 SELECT lives_ok(
   $$
   SELECT public.rpc_complete_workout_session(
     'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
-    4,
+    5,
     '2026-11-06 10:30:00+00'::timestamptz,
     'Great workout'
   )
@@ -305,7 +600,7 @@ SELECT lives_ok(
 );
 
 -- ============================================================================
--- 18. Parent Terminal Immutability
+-- 39. Parent Terminal Immutability
 -- ============================================================================
 RESET ROLE;
 SELECT throws_ok(
@@ -320,7 +615,7 @@ SELECT throws_ok(
 );
 
 -- ============================================================================
--- 19. Child Terminal Immutability
+-- 40. Child Terminal Immutability
 -- ============================================================================
 SELECT throws_ok(
   $$
@@ -339,7 +634,7 @@ SELECT throws_ok(
 );
 
 -- ============================================================================
--- 20. Source Routine Deletion Preserves Workout History
+-- 41. Source Routine Deletion Preserves Workout History
 -- ============================================================================
 DELETE FROM public.user_workout_routines WHERE id = 'aaaaaaaa-1111-0000-0000-000000000002';
 SELECT is(
@@ -349,22 +644,82 @@ SELECT is(
 );
 
 -- ============================================================================
--- 21. Malformed Snapshot Rejection
+-- 42. Start Replay After Routine Deletion (Finding 5)
 -- ============================================================================
-SELECT is(
-  private.is_valid_workout_session_snapshot_v1('{"schema_version": 2}'::jsonb),
-  false,
-  'Snapshot validator rejects unsupported schema version'
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
+
+-- Start session for Routine C
+SELECT lives_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'aaaaaaaa-aaaa-0000-0000-000000000003'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000005'::uuid,
+      '2026-11-06 11:00:00+00'::timestamptz,
+      '2026-11-06'::date,
+      %L::jsonb
+    )
+    $$,
+    :'valid_snapshot_c'
+  ),
+  'Owner A starts session for Routine C'
+);
+
+-- Complete session for Routine C
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_complete_workout_session(
+    'aaaaaaaa-aaaa-0000-0000-000000000003'::uuid,
+    1,
+    '2026-11-06 11:30:00+00'::timestamptz,
+    'Done'
+  )
+  $$,
+  'Owner A completes session for Routine C'
+);
+
+-- Delete Routine C
+RESET ROLE;
+DELETE FROM public.user_workout_routines WHERE id = 'aaaaaaaa-1111-0000-0000-000000000005';
+
+-- Replay start RPC for Routine C session after routine is deleted: succeeds idempotently!
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
+SELECT lives_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'aaaaaaaa-aaaa-0000-0000-000000000003'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000005'::uuid,
+      '2026-11-06 11:00:00+00'::timestamptz,
+      '2026-11-06'::date,
+      %L::jsonb
+    )
+    $$,
+    :'valid_snapshot_c'
+  ),
+  'Start replay succeeds idempotently even after source routine is deleted'
 );
 
 -- ============================================================================
--- 22. Legitimate User Account Deletion Cascade
+-- 43-44. Legitimate User Account Deletion Cascade
 -- ============================================================================
+RESET ROLE;
 DELETE FROM auth.users WHERE id = '11111111-1111-1111-1111-111111111111';
+
 SELECT is(
   (SELECT count(*)::integer FROM public.user_workout_sessions WHERE user_id = '11111111-1111-1111-1111-111111111111'),
   0,
-  'Account cascade deletion removes all sessions cleanly without trigger blockage'
+  'Account cascade deletion removes all Owner A sessions cleanly'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.user_workout_performed_sets WHERE user_id = '11111111-1111-1111-1111-111111111111'),
+  0,
+  'Account cascade deletion removes all Owner A performed sets cleanly'
 );
 
 SELECT * FROM finish();

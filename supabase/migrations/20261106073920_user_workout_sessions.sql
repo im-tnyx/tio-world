@@ -37,35 +37,54 @@ begin
     return false;
   end if;
 
-  -- 1. schema_version must be 1
-  if jsonb_typeof(p_snapshot->'schema_version') <> 'number' or
-     (p_snapshot->>'schema_version') <> '1' then
+  -- 1. schema_version must be present, number, and equal 1
+  if not (p_snapshot ? 'schema_version') or
+     jsonb_typeof(p_snapshot->'schema_version') is distinct from 'number' or
+     (p_snapshot->>'schema_version') is distinct from '1' then
     return false;
   end if;
 
-  -- 2. Required root string fields
-  if jsonb_typeof(p_snapshot->'routine_id') <> 'string' or
+  -- 2. Required root fields
+  if not (p_snapshot ? 'routine_id') or
+     jsonb_typeof(p_snapshot->'routine_id') is distinct from 'string' or
      (p_snapshot->>'routine_id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or
-     jsonb_typeof(p_snapshot->'program_id') <> 'string' or
+     not (p_snapshot ? 'program_id') or
+     jsonb_typeof(p_snapshot->'program_id') is distinct from 'string' or
      (p_snapshot->>'program_id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or
-     jsonb_typeof(p_snapshot->'routine_name') <> 'string' or
+     not (p_snapshot ? 'routine_name') or
+     jsonb_typeof(p_snapshot->'routine_name') is distinct from 'string' or
      length(btrim(p_snapshot->>'routine_name')) = 0 or
-     jsonb_typeof(p_snapshot->'captured_at_utc') <> 'string' or
-     jsonb_typeof(p_snapshot->'exercises') <> 'array' or
+     not (p_snapshot ? 'captured_at_utc') or
+     jsonb_typeof(p_snapshot->'captured_at_utc') is distinct from 'string' or
+     length(btrim(p_snapshot->>'captured_at_utc')) = 0 or
+     not (p_snapshot ? 'exercises') or
+     jsonb_typeof(p_snapshot->'exercises') is distinct from 'array' or
      jsonb_array_length(p_snapshot->'exercises') = 0 then
     return false;
   end if;
 
+  -- Verify captured_at_utc is a valid timestamptz
+  begin
+    perform (p_snapshot->>'captured_at_utc')::timestamptz;
+  exception when others then
+    return false;
+  end;
+
   -- 3. Validate exercise occurrence array
   for v_ex in select jsonb_array_elements(p_snapshot->'exercises') loop
-    if jsonb_typeof(v_ex) <> 'object' or
-       jsonb_typeof(v_ex->'exercise_ref') <> 'string' or
+    if v_ex is null or jsonb_typeof(v_ex) <> 'object' or
+       not (v_ex ? 'exercise_ref') or
+       jsonb_typeof(v_ex->'exercise_ref') is distinct from 'string' or
        length(btrim(v_ex->>'exercise_ref')) = 0 or
-       jsonb_typeof(v_ex->'display_name') <> 'string' or
+       not (v_ex ? 'display_name') or
+       jsonb_typeof(v_ex->'display_name') is distinct from 'string' or
        length(btrim(v_ex->>'display_name')) = 0 or
-       jsonb_typeof(v_ex->'occurrence_index') <> 'number' or
-       (v_ex->>'occurrence_index')::integer < 0 or
-       jsonb_typeof(v_ex->'prescribed_sets') <> 'array' then
+       not (v_ex ? 'occurrence_index') or
+       jsonb_typeof(v_ex->'occurrence_index') is distinct from 'number' or
+       (v_ex->>'occurrence_index')::numeric < 0 or
+       (v_ex->>'occurrence_index')::numeric <> (v_ex->>'occurrence_index')::integer or
+       not (v_ex ? 'prescribed_sets') or
+       jsonb_typeof(v_ex->'prescribed_sets') is distinct from 'array' then
       return false;
     end if;
 
@@ -76,8 +95,8 @@ begin
     end if;
 
     -- exercise_type check (nullable enum matching canonical ExerciseType storage values)
-    if v_ex ? 'exercise_type' and jsonb_typeof(v_ex->'exercise_type') <> 'null' then
-      if jsonb_typeof(v_ex->'exercise_type') <> 'string' then
+    if v_ex ? 'exercise_type' and jsonb_typeof(v_ex->'exercise_type') is distinct from 'null' then
+      if jsonb_typeof(v_ex->'exercise_type') is distinct from 'string' then
         return false;
       end if;
       v_ex_type := v_ex->>'exercise_type';
@@ -94,8 +113,9 @@ begin
 
     -- 4. Prescribed sets array check (SetPrescription)
     for v_set in select jsonb_array_elements(v_ex->'prescribed_sets') loop
-      if jsonb_typeof(v_set) <> 'object' or
-         jsonb_typeof(v_set->'set_type') <> 'string' then
+      if v_set is null or jsonb_typeof(v_set) <> 'object' or
+         not (v_set ? 'set_type') or
+         jsonb_typeof(v_set->'set_type') is distinct from 'string' then
         return false;
       end if;
 
@@ -104,37 +124,50 @@ begin
         return false;
       end if;
 
-      if v_set ? 'reps' and jsonb_typeof(v_set->'reps') <> 'null' then
-        if jsonb_typeof(v_set->'reps') <> 'number' or (v_set->>'reps')::integer <= 0 then
+      if v_set ? 'reps' and jsonb_typeof(v_set->'reps') is distinct from 'null' then
+        if jsonb_typeof(v_set->'reps') is distinct from 'number' or
+           (v_set->>'reps')::numeric <= 0 or
+           (v_set->>'reps')::numeric <> (v_set->>'reps')::integer then
           return false;
         end if;
       end if;
 
-      if v_set ? 'reps_max' and jsonb_typeof(v_set->'reps_max') <> 'null' then
-        if jsonb_typeof(v_set->'reps_max') <> 'number' or
-           (v_set->>'reps_max')::integer < coalesce((v_set->>'reps')::integer, 1) then
+      if v_set ? 'reps_max' and jsonb_typeof(v_set->'reps_max') is distinct from 'null' then
+        if jsonb_typeof(v_set->'reps_max') is distinct from 'number' or
+           (v_set->>'reps_max')::numeric < coalesce((v_set->>'reps')::numeric, 1) or
+           (v_set->>'reps_max')::numeric <> (v_set->>'reps_max')::integer then
           return false;
         end if;
       end if;
 
-      if v_set ? 'load_kg' and jsonb_typeof(v_set->'load_kg') <> 'null' and
-         (jsonb_typeof(v_set->'load_kg') <> 'number' or (v_set->>'load_kg')::numeric < 0) then
-        return false;
+      if v_set ? 'load_kg' and jsonb_typeof(v_set->'load_kg') is distinct from 'null' then
+        if jsonb_typeof(v_set->'load_kg') is distinct from 'number' or
+           (v_set->>'load_kg')::numeric < 0 then
+          return false;
+        end if;
       end if;
 
-      if v_set ? 'distance_meters' and jsonb_typeof(v_set->'distance_meters') <> 'null' and
-         (jsonb_typeof(v_set->'distance_meters') <> 'number' or (v_set->>'distance_meters')::numeric < 0) then
-        return false;
+      if v_set ? 'distance_meters' and jsonb_typeof(v_set->'distance_meters') is distinct from 'null' then
+        if jsonb_typeof(v_set->'distance_meters') is distinct from 'number' or
+           (v_set->>'distance_meters')::numeric < 0 then
+          return false;
+        end if;
       end if;
 
-      if v_set ? 'duration_seconds' and jsonb_typeof(v_set->'duration_seconds') <> 'null' and
-         (jsonb_typeof(v_set->'duration_seconds') <> 'number' or (v_set->>'duration_seconds')::integer < 0) then
-        return false;
+      if v_set ? 'duration_seconds' and jsonb_typeof(v_set->'duration_seconds') is distinct from 'null' then
+        if jsonb_typeof(v_set->'duration_seconds') is distinct from 'number' or
+           (v_set->>'duration_seconds')::numeric < 0 or
+           (v_set->>'duration_seconds')::numeric <> (v_set->>'duration_seconds')::integer then
+          return false;
+        end if;
       end if;
 
-      if v_set ? 'rest_seconds' and jsonb_typeof(v_set->'rest_seconds') <> 'null' and
-         (jsonb_typeof(v_set->'rest_seconds') <> 'number' or (v_set->>'rest_seconds')::integer < 0) then
-        return false;
+      if v_set ? 'rest_seconds' and jsonb_typeof(v_set->'rest_seconds') is distinct from 'null' then
+        if jsonb_typeof(v_set->'rest_seconds') is distinct from 'number' or
+           (v_set->>'rest_seconds')::numeric < 0 or
+           (v_set->>'rest_seconds')::numeric <> (v_set->>'rest_seconds')::integer then
+          return false;
+        end if;
       end if;
     end loop;
   end loop;
@@ -418,20 +451,43 @@ declare
   v_ex_record record;
   v_snap_ex jsonb;
   v_idx integer := 0;
+  v_db_set_count integer;
+  v_set_record record;
+  v_snap_set jsonb;
+  v_set_idx integer;
 begin
   if v_user_id is null then
     raise exception 'not_authenticated' using errcode = '28000';
   end if;
 
-  -- Verify source Routine and Program ownership
-  if not exists (
-    select 1 from public.user_workout_routines r
-    where r.id = p_routine_id and r.user_id = v_user_id and r.program_id = p_program_id
-  ) then
-    raise exception 'invalid_routine_or_unauthorized' using errcode = '42501';
+  if p_session_id is null then
+    raise exception 'missing_session_id' using errcode = '22023';
   end if;
 
-  -- Validate snapshot format
+  -- 1. Finding 4490473120: Detect existing session before validating mutable source routine
+  select * into v_existing
+  from public.user_workout_sessions
+  where id = p_session_id
+  for update;
+
+  if found then
+    if v_existing.user_id <> v_user_id then
+      raise exception 'session_ownership_mismatch' using errcode = '42501';
+    end if;
+
+    -- Verify exact matching replay parameters
+    if v_existing.program_id is distinct from p_program_id or
+       v_existing.routine_id is distinct from p_routine_id or
+       v_existing.started_at_utc is distinct from p_started_at_utc or
+       v_existing.local_date is distinct from p_local_date or
+       v_existing.routine_snapshot is distinct from p_routine_snapshot then
+      raise exception 'duplicate_session_conflict' using errcode = '23505';
+    end if;
+
+    return v_existing;
+  end if;
+
+  -- 2. Validate snapshot structure
   if not private.is_valid_workout_session_snapshot_v1(p_routine_snapshot) then
     raise exception 'invalid_snapshot_structure' using errcode = '22023';
   end if;
@@ -442,7 +498,20 @@ begin
     raise exception 'snapshot_identity_mismatch' using errcode = '22023';
   end if;
 
-  -- Cross-validate exercise composition count
+  -- 3. Verify source Routine and Program ownership
+  if not exists (
+    select 1 from public.user_workout_routines r
+    where r.id = p_routine_id and r.user_id = v_user_id and r.program_id = p_program_id
+  ) then
+    raise exception 'invalid_routine_or_unauthorized' using errcode = '42501';
+  end if;
+
+  -- Acquire shared lock on source routine during snapshot validation
+  perform 1 from public.user_workout_routines r
+  where r.id = p_routine_id and r.user_id = v_user_id
+  for share;
+
+  -- 4. Cross-validate exercise composition count
   select count(*)::integer into v_db_ex_count
   from public.user_workout_routine_exercises
   where routine_id = p_routine_id and user_id = v_user_id;
@@ -451,9 +520,9 @@ begin
     raise exception 'snapshot_exercise_count_mismatch' using errcode = '22023';
   end if;
 
-  -- Cross-validate each exercise occurrence order and custom exercise metadata
+  -- 5. Cross-validate each exercise occurrence order, custom metadata, and prescribed sets (Finding 4490473113)
   for v_ex_record in
-    select position, catalog_exercise_id, user_exercise_id
+    select id, position, catalog_exercise_id, user_exercise_id
     from public.user_workout_routine_exercises
     where routine_id = p_routine_id and user_id = v_user_id
     order by position asc
@@ -484,24 +553,47 @@ begin
       end if;
     end if;
 
+    -- Cross-validate prescribed sets against user_workout_routine_sets
+    select count(*)::integer into v_db_set_count
+    from public.user_workout_routine_sets
+    where routine_exercise_id = v_ex_record.id and user_id = v_user_id;
+
+    if jsonb_array_length(v_snap_ex->'prescribed_sets') <> v_db_set_count then
+      raise exception 'snapshot_prescription_count_mismatch' using errcode = '22023';
+    end if;
+
+    v_set_idx := 0;
+    for v_set_record in
+      select position, set_type, reps, reps_max, load_kg, distance_meters, duration_seconds, rest_seconds
+      from public.user_workout_routine_sets
+      where routine_exercise_id = v_ex_record.id and user_id = v_user_id
+      order by position asc
+    loop
+      v_snap_set := (v_snap_ex->'prescribed_sets')->v_set_idx;
+
+      if (v_snap_set->>'set_type') is distinct from v_set_record.set_type or
+         (case when v_snap_set ? 'reps' and jsonb_typeof(v_snap_set->'reps') <> 'null'
+               then (v_snap_set->>'reps')::integer else null end) is distinct from v_set_record.reps or
+         (case when v_snap_set ? 'reps_max' and jsonb_typeof(v_snap_set->'reps_max') <> 'null'
+               then (v_snap_set->>'reps_max')::integer else null end) is distinct from v_set_record.reps_max or
+         (case when v_snap_set ? 'load_kg' and jsonb_typeof(v_snap_set->'load_kg') <> 'null'
+               then (v_snap_set->>'load_kg')::double precision else null end) is distinct from v_set_record.load_kg or
+         (case when v_snap_set ? 'distance_meters' and jsonb_typeof(v_snap_set->'distance_meters') <> 'null'
+               then (v_snap_set->>'distance_meters')::double precision else null end) is distinct from v_set_record.distance_meters or
+         (case when v_snap_set ? 'duration_seconds' and jsonb_typeof(v_snap_set->'duration_seconds') <> 'null'
+               then (v_snap_set->>'duration_seconds')::integer else null end) is distinct from v_set_record.duration_seconds or
+         (case when v_snap_set ? 'rest_seconds' and jsonb_typeof(v_snap_set->'rest_seconds') <> 'null'
+               then (v_snap_set->>'rest_seconds')::integer else null end) is distinct from v_set_record.rest_seconds then
+        raise exception 'snapshot_prescription_mismatch' using errcode = '22023';
+      end if;
+
+      v_set_idx := v_set_idx + 1;
+    end loop;
+
     v_idx := v_idx + 1;
   end loop;
 
-  -- Idempotency check for same session ID
-  select * into v_existing
-  from public.user_workout_sessions
-  where id = p_session_id and user_id = v_user_id;
-
-  if found then
-    if v_existing.program_id = p_program_id and
-       v_existing.routine_id = p_routine_id and
-       v_existing.started_at_utc = p_started_at_utc then
-      return v_existing;
-    else
-      raise exception 'duplicate_session_conflict' using errcode = '23505';
-    end if;
-  end if;
-
+  -- 6. Insert new active session
   insert into public.user_workout_sessions (
     id, user_id, program_id, routine_id, status, started_at_utc,
     last_transition_at_utc, accumulated_paused_microseconds, local_date,
@@ -540,6 +632,10 @@ begin
     raise exception 'not_authenticated' using errcode = '28000';
   end if;
 
+  if p_expected_revision is null or p_expected_revision < 1 then
+    raise exception 'invalid_expected_revision' using errcode = '22023';
+  end if;
+
   select * into v_session
   from public.user_workout_sessions
   where id = p_session_id and user_id = v_user_id
@@ -551,7 +647,11 @@ begin
 
   -- Idempotency: if already paused at identical timestamp
   if v_session.status = 'paused' and v_session.paused_at_utc = p_paused_at_utc then
-    return v_session;
+    if p_expected_revision in (v_session.revision, v_session.revision - 1) then
+      return v_session;
+    else
+      raise exception 'stale_revision_conflict' using errcode = 'P0003';
+    end if;
   end if;
 
   if v_session.status <> 'active' then
@@ -604,6 +704,10 @@ begin
     raise exception 'not_authenticated' using errcode = '28000';
   end if;
 
+  if p_expected_revision is null or p_expected_revision < 1 then
+    raise exception 'invalid_expected_revision' using errcode = '22023';
+  end if;
+
   select * into v_session
   from public.user_workout_sessions
   where id = p_session_id and user_id = v_user_id
@@ -615,7 +719,11 @@ begin
 
   -- Idempotency: if already active at identical resume instant
   if v_session.status = 'active' and v_session.last_transition_at_utc = p_resumed_at_utc then
-    return v_session;
+    if p_expected_revision in (v_session.revision, v_session.revision - 1) then
+      return v_session;
+    else
+      raise exception 'stale_revision_conflict' using errcode = 'P0003';
+    end if;
   end if;
 
   if v_session.status <> 'paused' then
@@ -677,10 +785,32 @@ declare
   v_user_id uuid := auth.uid();
   v_session public.user_workout_sessions;
   v_set public.user_workout_performed_sets;
+  v_existing_set public.user_workout_performed_sets;
   v_snap_ex jsonb;
 begin
   if v_user_id is null then
     raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+
+  if p_set_id is null then
+    raise exception 'missing_set_id' using errcode = '22023';
+  end if;
+
+  -- Finding 4490473109: Reject NULL or invalid expected revision
+  if p_expected_session_revision is null or p_expected_session_revision < 1 then
+    raise exception 'invalid_expected_revision' using errcode = '22023';
+  end if;
+
+  -- Finding 4490473095: Enforce existing-set ownership and session identity before upsert
+  select * into v_existing_set
+  from public.user_workout_performed_sets
+  where id = p_set_id
+  for update;
+
+  if found then
+    if v_existing_set.user_id <> v_user_id or v_existing_set.session_id <> p_session_id then
+      raise exception 'set_ownership_mismatch' using errcode = '42501';
+    end if;
   end if;
 
   -- Parent row lock: guarantees serialization and blocks sets on finished sessions
@@ -712,7 +842,7 @@ begin
     raise exception 'snapshot_exercise_ref_mismatch' using errcode = '22023';
   end if;
 
-  -- Upsert performed set
+  -- Upsert performed set with strict ownership and session scoping on conflict update
   insert into public.user_workout_performed_sets (
     id, session_id, user_id, exercise_ref, session_exercise_index, set_index,
     reps, load_kg, duration_seconds, distance_meters, completed_at_utc, is_skipped, notes
@@ -732,7 +862,13 @@ begin
     is_skipped = excluded.is_skipped,
     notes = excluded.notes,
     updated_at = timezone('utc'::text, now())
+  where public.user_workout_performed_sets.user_id = v_user_id
+    and public.user_workout_performed_sets.session_id = p_session_id
   returning * into v_set;
+
+  if v_set.id is null then
+    raise exception 'set_ownership_mismatch' using errcode = '42501';
+  end if;
 
   -- Advance parent session revision
   update public.user_workout_sessions
@@ -763,9 +899,14 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_session public.user_workout_sessions;
+  v_deleted_count integer;
 begin
   if v_user_id is null then
     raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+
+  if p_expected_session_revision is null or p_expected_session_revision < 1 then
+    raise exception 'invalid_expected_revision' using errcode = '22023';
   end if;
 
   select * into v_session
@@ -787,6 +928,11 @@ begin
 
   delete from public.user_workout_performed_sets
   where id = p_set_id and session_id = p_session_id and user_id = v_user_id;
+  get diagnostics v_deleted_count = row_count;
+
+  if v_deleted_count = 0 then
+    raise exception 'set_not_found' using errcode = 'P0002';
+  end if;
 
   update public.user_workout_sessions
   set revision = revision + 1,
@@ -821,6 +967,10 @@ begin
     raise exception 'not_authenticated' using errcode = '28000';
   end if;
 
+  if p_expected_revision is null or p_expected_revision < 1 then
+    raise exception 'invalid_expected_revision' using errcode = '22023';
+  end if;
+
   select * into v_session
   from public.user_workout_sessions
   where id = p_session_id and user_id = v_user_id
@@ -832,7 +982,11 @@ begin
 
   -- Idempotency check: if already completed at identical timestamp
   if v_session.status = 'completed' and v_session.completed_at_utc = p_completed_at_utc then
-    return v_session;
+    if p_expected_revision in (v_session.revision, v_session.revision - 1) then
+      return v_session;
+    else
+      raise exception 'stale_revision_conflict' using errcode = 'P0003';
+    end if;
   end if;
 
   if v_session.status in ('completed', 'discarded') then
@@ -894,6 +1048,10 @@ begin
     raise exception 'not_authenticated' using errcode = '28000';
   end if;
 
+  if p_expected_revision is null or p_expected_revision < 1 then
+    raise exception 'invalid_expected_revision' using errcode = '22023';
+  end if;
+
   v_trimmed_reason := btrim(coalesce(p_discard_reason, ''));
   if length(v_trimmed_reason) = 0 then
     raise exception 'discard_reason_required' using errcode = '22023';
@@ -910,7 +1068,11 @@ begin
 
   -- Idempotency check: if already discarded at identical timestamp
   if v_session.status = 'discarded' and v_session.completed_at_utc = p_discarded_at_utc then
-    return v_session;
+    if p_expected_revision in (v_session.revision, v_session.revision - 1) then
+      return v_session;
+    else
+      raise exception 'stale_revision_conflict' using errcode = 'P0003';
+    end if;
   end if;
 
   if v_session.status in ('completed', 'discarded') then
