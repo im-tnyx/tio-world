@@ -464,6 +464,12 @@ begin
     raise exception 'missing_session_id' using errcode = '22023';
   end if;
 
+  -- Finding 4491456719: Serialize concurrent identical Start attempts on target session UUID
+  perform pg_advisory_xact_lock(
+    hashtext('workout_session_start'),
+    hashtext(p_session_id::text)
+  );
+
   -- 1. Finding 4490473120: Detect existing session before validating mutable source routine
   select * into v_existing
   from public.user_workout_sessions
@@ -593,7 +599,7 @@ begin
     v_idx := v_idx + 1;
   end loop;
 
-  -- 6. Insert new active session
+  -- 6. Insert new active session (with ON CONFLICT defense-in-depth)
   insert into public.user_workout_sessions (
     id, user_id, program_id, routine_id, status, started_at_utc,
     last_transition_at_utc, accumulated_paused_microseconds, local_date,
@@ -602,7 +608,33 @@ begin
     p_session_id, v_user_id, p_program_id, p_routine_id, 'active', p_started_at_utc,
     p_started_at_utc, 0, p_local_date, p_routine_snapshot, 1
   )
+  on conflict (id) do nothing
   returning * into v_inserted;
+
+  if v_inserted.id is null then
+    select * into v_existing
+    from public.user_workout_sessions
+    where id = p_session_id
+    for update;
+
+    if found then
+      if v_existing.user_id <> v_user_id then
+        raise exception 'session_ownership_mismatch' using errcode = '42501';
+      end if;
+
+      if v_existing.program_id is distinct from p_program_id or
+         v_existing.routine_id is distinct from p_routine_id or
+         v_existing.started_at_utc is distinct from p_started_at_utc or
+         v_existing.local_date is distinct from p_local_date or
+         v_existing.routine_snapshot is distinct from p_routine_snapshot then
+        raise exception 'duplicate_session_conflict' using errcode = '23505';
+      end if;
+
+      return v_existing;
+    end if;
+
+    raise exception 'failed_to_start_session' using errcode = 'XX000';
+  end if;
 
   return v_inserted;
 end;

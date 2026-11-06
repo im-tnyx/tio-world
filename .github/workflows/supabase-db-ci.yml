@@ -589,10 +589,7 @@ jobs:
 
       - name: Run W7B-1 Session Security SQL matrix
         shell: bash
-        run: |
-          psql "$DATABASE_URL" \
-            --set=ON_ERROR_STOP=1 \
-            --file=supabase/tests/database/w7b_session_security.test.sql
+        run: bash supabase/tests/database/run_pgtap.sh supabase/tests/database/w7b_session_security.test.sql
 
       - name: Run W7B-1 two-session concurrency races
         shell: bash
