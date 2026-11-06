@@ -32,26 +32,57 @@ session_3_id='c7340000-0000-4000-8000-000000000030'
 session_4_id='c7340000-0000-4000-8000-000000000040'
 session_5_id='c7340000-0000-4000-8000-000000000050'
 
-# Guard-only mode for negative / CI preflight inspection
-if [[ "$#" -eq 1 && "$1" == "--guard-only" ]]; then
-  exit 0
-fi
-
 is_local=0
-if [[ "$#" -eq 1 && "$1" == "--local" ]]; then
-  is_local=1
-  database_url="${DATABASE_URL:-$expected_url}"
-elif [[ "${GITHUB_ACTIONS:-}" != "true" || "$database_url" != "$expected_url" || "$#" -ne 0 ]]; then
-  echo "Refusing W7B-1 concurrency race outside disposable GitHub CI database" >&2
-  exit 1
+guard_only=0
+
+for arg in "$@"; do
+  case "$arg" in
+    --local)
+      is_local=1
+      ;;
+    --guard-only)
+      guard_only=1
+      ;;
+    *)
+      echo "Unsupported W7B-1 concurrency race harness argument: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "$is_local" -eq 1 ]]; then
+  # Local opt-in execution: strictly enforce exact disposable loopback target.
+  # If DATABASE_URL is set in the environment, it must match the exact disposable URL.
+  if [[ -n "${DATABASE_URL:-}" && "$DATABASE_URL" != "$expected_url" ]]; then
+    echo "Refusing W7B-1 concurrency race with non-disposable or alternative DATABASE_URL: ${DATABASE_URL}" >&2
+    exit 1
+  fi
+  database_url="$expected_url"
+else
+  # Default CI execution: require GitHub Actions and exact disposable URL.
+  if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
+    echo "Refusing W7B-1 concurrency race outside disposable GitHub CI database (pass --local to opt in against local disposable database)" >&2
+    exit 1
+  fi
+  if [[ "${DATABASE_URL:-}" != "$expected_url" ]]; then
+    echo "Refusing W7B-1 concurrency race outside the exact disposable CI connection" >&2
+    exit 1
+  fi
+  database_url="$expected_url"
 fi
 
-for variable in "${!PG@}"; do
-  if [[ "$variable" != "PGPASSWORD" && "$variable" != "PGDATA" && "$variable" != "PG_VERSION" ]]; then
-    echo "Refusing libpq connection override: $variable" >&2
+# Reject libpq connection overrides that could redirect psql to remote/hosted servers.
+for pg_variable in "${!PG@}"; do
+  if [[ "$pg_variable" != "PGPASSWORD" ]]; then
+    echo "Refusing W7B-1 concurrency race fixture writes with libpq override: $pg_variable" >&2
     exit 1
   fi
 done
+
+# Guard-only mode for negative / preflight inspection without DB access
+if [[ "$guard_only" -eq 1 ]]; then
+  exit 0
+fi
 
 psql() { command psql --no-psqlrc "$@"; }
 

@@ -591,6 +591,10 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/run_pgtap.sh supabase/tests/database/w7b_session_security.test.sql
 
+      - name: Reject unsafe W7B-1 concurrency fixture connection overrides
+        shell: bash
+        run: bash supabase/tests/database/w7b_session_concurrency_guard.test.sh
+
       - name: Run W7B-1 two-session concurrency races
         shell: bash
         run: bash supabase/tests/database/w7b_session_concurrency.sh
