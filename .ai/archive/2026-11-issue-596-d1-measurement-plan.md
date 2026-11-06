@@ -361,11 +361,11 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 - **Owner Decision (2026-10-25):** Pre-release development status supersedes mandatory 168-hour observation waiting gate; downstream regression rate recorded as `Not measurable — pre-release / insufficient exposure` (0 linked regressions reported as of 2026-11-06; user/test exposure unknown); no unverified quality uplift claimed.
 
 ### Final Cohort Archival Review (2026-11-06)
-- **Validation Run (Exact PR #733 HEAD `4b240ee55ca20a36caa7f69f51a785c712c3ef80`):**
+- **Validation Run (Historical Checkpoint — PR #733 commit `4b240ee55ca20a36caa7f69f51a785c712c3ef80`):**
   - Docs Hygiene CI: SUCCESS, run `42165308001`, job `127720280145` (native `git diff --check` exit 0).
   - Commit attribution guard: SUCCESS, check `127720307155`.
   - Attribution guard runner: SUCCESS, run `42165306566`, job `127720276383`.
-  *(Historical source PR checks across #658, #659, #682, #683, and #685 remain separately recorded in their respective merge receipts above).*
+  *(Historical source PR checks across #658, #659, #682, #683, and #685 remain separately recorded in their respective merge receipts above. Final PR HEAD, required checks, and review decision must be verified from live GitHub before merge).*
 - **Scope Audit:** Bounded documentation archival of `.ai/tasks/issue-596-d1-measurement-plan.md` into `.ai/archive/` and active/archive index updates; zero application, database, or workflow code changes.
 - **Review Verdict:** Validated and archived; all 10 cohort PRs evaluated; all 9 parent criteria (AC-01 through AC-09) reconciled for Issue #596 closure.
 
