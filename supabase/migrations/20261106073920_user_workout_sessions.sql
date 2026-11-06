@@ -447,6 +447,7 @@ declare
   v_user_id uuid := auth.uid();
   v_existing public.user_workout_sessions;
   v_inserted public.user_workout_sessions;
+  v_routine_name text;
   v_db_ex_count integer;
   v_ex_record record;
   v_snap_ex jsonb;
@@ -504,18 +505,19 @@ begin
     raise exception 'snapshot_identity_mismatch' using errcode = '22023';
   end if;
 
-  -- 3. Verify source Routine and Program ownership
-  if not exists (
-    select 1 from public.user_workout_routines r
-    where r.id = p_routine_id and r.user_id = v_user_id and r.program_id = p_program_id
-  ) then
+  -- 3. Verify source Routine and Program ownership and validate authoritative Routine name (Finding 4492021721)
+  select r.name into v_routine_name
+  from public.user_workout_routines r
+  where r.id = p_routine_id and r.user_id = v_user_id and r.program_id = p_program_id
+  for share;
+
+  if v_routine_name is null then
     raise exception 'invalid_routine_or_unauthorized' using errcode = '42501';
   end if;
 
-  -- Acquire shared lock on source routine during snapshot validation
-  perform 1 from public.user_workout_routines r
-  where r.id = p_routine_id and r.user_id = v_user_id
-  for share;
+  if (p_routine_snapshot->>'routine_name') is distinct from v_routine_name then
+    raise exception 'snapshot_routine_name_mismatch' using errcode = '22023';
+  end if;
 
   -- 4. Cross-validate exercise composition count
   select count(*)::integer into v_db_ex_count
@@ -995,6 +997,7 @@ declare
   v_user_id uuid := auth.uid();
   v_session public.user_workout_sessions;
   v_additional_us bigint := 0;
+  v_normalized_notes text;
 begin
   if v_user_id is null then
     raise exception 'not_authenticated' using errcode = '28000';
@@ -1003,6 +1006,8 @@ begin
   if p_expected_revision is null or p_expected_revision < 1 then
     raise exception 'invalid_expected_revision' using errcode = '22023';
   end if;
+
+  v_normalized_notes := nullif(btrim(p_notes), '');
 
   select * into v_session
   from public.user_workout_sessions
@@ -1013,13 +1018,17 @@ begin
     raise exception 'session_not_found' using errcode = 'P0002';
   end if;
 
-  -- Idempotency check: if already completed at identical timestamp
+  -- Idempotency check: if already completed at identical timestamp and matching notes (Finding 4492021727)
   if v_session.status = 'completed' and v_session.completed_at_utc = p_completed_at_utc then
-    if p_expected_revision in (v_session.revision, v_session.revision - 1) then
-      return v_session;
-    else
+    if p_expected_revision not in (v_session.revision, v_session.revision - 1) then
       raise exception 'stale_revision_conflict' using errcode = 'P0003';
     end if;
+
+    if v_session.notes is distinct from v_normalized_notes then
+      raise exception 'terminal_payload_conflict' using errcode = '23505';
+    end if;
+
+    return v_session;
   end if;
 
   if v_session.status in ('completed', 'discarded') then
@@ -1044,7 +1053,7 @@ begin
       completed_at_utc = p_completed_at_utc,
       last_transition_at_utc = p_completed_at_utc,
       accumulated_paused_microseconds = accumulated_paused_microseconds + v_additional_us,
-      notes = coalesce(p_notes, notes),
+      notes = v_normalized_notes,
       revision = revision + 1,
       updated_at = timezone('utc'::text, now())
   where id = p_session_id and user_id = v_user_id
@@ -1099,13 +1108,17 @@ begin
     raise exception 'session_not_found' using errcode = 'P0002';
   end if;
 
-  -- Idempotency check: if already discarded at identical timestamp
+  -- Idempotency check: if already discarded at identical timestamp and matching reason (Finding 4492021727)
   if v_session.status = 'discarded' and v_session.completed_at_utc = p_discarded_at_utc then
-    if p_expected_revision in (v_session.revision, v_session.revision - 1) then
-      return v_session;
-    else
+    if p_expected_revision not in (v_session.revision, v_session.revision - 1) then
       raise exception 'stale_revision_conflict' using errcode = 'P0003';
     end if;
+
+    if v_session.discard_reason is distinct from v_trimmed_reason then
+      raise exception 'terminal_payload_conflict' using errcode = '23505';
+    end if;
+
+    return v_session;
   end if;
 
   if v_session.status in ('completed', 'discarded') then

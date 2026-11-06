@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
-SELECT plan(46);
+SELECT plan(60);
 
 -- ============================================================================
 -- Fixtures Setup (Two distinct authenticated users with programs & routines)
@@ -206,6 +206,40 @@ SELECT throws_ok(
   '22023',
   'snapshot_prescription_count_mismatch',
   'Snapshot prescribed set count mismatch with routine is rejected'
+);
+
+-- 13. Routine Name Integrity: Stale routine_name in snapshot is rejected (Finding 4492021721)
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_start_workout_session(
+    gen_random_uuid(),
+    'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+    'aaaaaaaa-1111-0000-0000-000000000002'::uuid,
+    '2026-11-06 10:00:00+00'::timestamptz,
+    '2026-11-06'::date,
+    '{"schema_version":1,"routine_id":"aaaaaaaa-1111-0000-0000-000000000002","program_id":"aaaaaaaa-1111-0000-0000-000000000001","routine_name":"Stale Routine Name","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Barbell Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":10,"load_kg":100.0,"rest_seconds":90}]}]}'::jsonb
+  )
+  $$,
+  '22023',
+  'snapshot_routine_name_mismatch',
+  'Snapshot stale routine_name mismatch with routine is rejected'
+);
+
+-- 14. Routine Name Integrity: Forged routine_name in snapshot is rejected (Finding 4492021721)
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_start_workout_session(
+    gen_random_uuid(),
+    'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+    'aaaaaaaa-1111-0000-0000-000000000002'::uuid,
+    '2026-11-06 10:00:00+00'::timestamptz,
+    '2026-11-06'::date,
+    '{"schema_version":1,"routine_id":"aaaaaaaa-1111-0000-0000-000000000002","program_id":"aaaaaaaa-1111-0000-0000-000000000001","routine_name":"Forged Super Routine","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Barbell Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":10,"load_kg":100.0,"rest_seconds":90}]}]}'::jsonb
+  )
+  $$,
+  '22023',
+  'snapshot_routine_name_mismatch',
+  'Snapshot forged routine_name mismatch with routine is rejected'
 );
 
 -- ============================================================================
@@ -599,6 +633,117 @@ SELECT lives_ok(
   'Owner A completes session successfully'
 );
 
+-- Terminal Replay Identity: Exact complete retry with identical notes succeeds idempotently (Finding 4492021727)
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_complete_workout_session(
+    'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+    6,
+    '2026-11-06 10:30:00+00'::timestamptz,
+    'Great workout'
+  )
+  $$,
+  'Exact matching complete retry with identical notes succeeds idempotently'
+);
+
+-- Terminal Replay Identity: Complete retry with whitespace-normalized notes succeeds idempotently (Finding 4492021727)
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_complete_workout_session(
+    'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+    6,
+    '2026-11-06 10:30:00+00'::timestamptz,
+    '   Great workout   '
+  )
+  $$,
+  'Complete retry with whitespace-normalized notes succeeds idempotently'
+);
+
+-- Terminal Replay Identity: Complete retry with conflicting notes is rejected (Finding 4492021727)
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_complete_workout_session(
+    'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+    6,
+    '2026-11-06 10:30:00+00'::timestamptz,
+    'Different notes'
+  )
+  $$,
+  '23505',
+  'terminal_payload_conflict',
+  'Complete retry with conflicting notes is rejected with terminal_payload_conflict'
+);
+
+-- Terminal Replay Identity: Complete retry with NULL notes when completed with notes is rejected (Finding 4492021727)
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_complete_workout_session(
+    'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+    6,
+    '2026-11-06 10:30:00+00'::timestamptz,
+    null
+  )
+  $$,
+  '23505',
+  'terminal_payload_conflict',
+  'Complete retry with NULL notes when original had notes is rejected with terminal_payload_conflict'
+);
+
+-- Discard and Discard Replay Identity: Owner B discards session (Finding 4492021727)
+SET LOCAL "request.jwt.claim.sub" = '22222222-2222-2222-2222-222222222222';
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_discard_workout_session(
+    'bbbbbbbb-bbbb-0000-0000-000000000001'::uuid,
+    2,
+    '2026-11-06 10:10:00+00'::timestamptz,
+    'Too tired to continue'
+  )
+  $$,
+  'Owner B discards active session successfully with reason'
+);
+
+-- Discard Replay Identity: Exact matching discard retry succeeds idempotently (Finding 4492021727)
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_discard_workout_session(
+    'bbbbbbbb-bbbb-0000-0000-000000000001'::uuid,
+    3,
+    '2026-11-06 10:10:00+00'::timestamptz,
+    'Too tired to continue'
+  )
+  $$,
+  'Exact matching discard retry succeeds idempotently'
+);
+
+-- Discard Replay Identity: Discard retry with whitespace-normalized reason succeeds idempotently (Finding 4492021727)
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_discard_workout_session(
+    'bbbbbbbb-bbbb-0000-0000-000000000001'::uuid,
+    3,
+    '2026-11-06 10:10:00+00'::timestamptz,
+    '   Too tired to continue   '
+  )
+  $$,
+  'Discard retry with whitespace-normalized reason succeeds idempotently'
+);
+
+-- Discard Replay Identity: Discard retry with conflicting reason is rejected (Finding 4492021727)
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_discard_workout_session(
+    'bbbbbbbb-bbbb-0000-0000-000000000001'::uuid,
+    3,
+    '2026-11-06 10:10:00+00'::timestamptz,
+    'Equipment failure'
+  )
+  $$,
+  '23505',
+  'terminal_payload_conflict',
+  'Discard retry with conflicting reason is rejected with terminal_payload_conflict'
+);
+
 -- ============================================================================
 -- 39. Parent Terminal Immutability
 -- ============================================================================
@@ -634,8 +779,30 @@ SELECT throws_ok(
 );
 
 -- ============================================================================
--- 41. Source Routine Deletion Preserves Workout History
+-- 41. Source Routine Renaming & Deletion Preserves Workout History
 -- ============================================================================
+-- Rename Routine A to test start replay preservation after rename (Finding 4492021721)
+UPDATE public.user_workout_routines SET name = 'Renamed Routine A' WHERE id = 'aaaaaaaa-1111-0000-0000-000000000002';
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
+SELECT lives_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'aaaaaaaa-aaaa-0000-0000-000000000001'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000001'::uuid,
+      'aaaaaaaa-1111-0000-0000-000000000002'::uuid,
+      '2026-11-06 10:00:00+00'::timestamptz,
+      '2026-11-06'::date,
+      %L::jsonb
+    )
+    $$,
+    :'valid_snapshot'
+  ),
+  'Start replay succeeds idempotently even after source routine is renamed'
+);
+RESET ROLE;
+
 DELETE FROM public.user_workout_routines WHERE id = 'aaaaaaaa-1111-0000-0000-000000000002';
 SELECT is(
   (SELECT count(*)::integer FROM public.user_workout_sessions WHERE id = 'aaaaaaaa-aaaa-0000-0000-000000000001'),
@@ -667,17 +834,58 @@ SELECT lives_ok(
   'Owner A starts session for Routine C'
 );
 
--- Complete session for Routine C
+-- Complete session for Routine C with NULL notes
 SELECT lives_ok(
   $$
   SELECT public.rpc_complete_workout_session(
     'aaaaaaaa-aaaa-0000-0000-000000000003'::uuid,
     1,
     '2026-11-06 11:30:00+00'::timestamptz,
-    'Done'
+    null
   )
   $$,
-  'Owner A completes session for Routine C'
+  'Owner A completes session for Routine C with NULL notes'
+);
+
+-- Terminal Replay Identity: Exact complete retry with NULL notes succeeds idempotently (Finding 4492021727)
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_complete_workout_session(
+    'aaaaaaaa-aaaa-0000-0000-000000000003'::uuid,
+    2,
+    '2026-11-06 11:30:00+00'::timestamptz,
+    null
+  )
+  $$,
+  'Exact matching complete retry with NULL notes succeeds idempotently'
+);
+
+-- Terminal Replay Identity: Complete retry with whitespace-only notes normalizes to NULL (Finding 4492021727)
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_complete_workout_session(
+    'aaaaaaaa-aaaa-0000-0000-000000000003'::uuid,
+    2,
+    '2026-11-06 11:30:00+00'::timestamptz,
+    '    '
+  )
+  $$,
+  'Complete retry with whitespace-only notes normalizes to NULL and succeeds idempotently'
+);
+
+-- Terminal Replay Identity: Complete retry with non-NULL notes when original had NULL is rejected (Finding 4492021727)
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_complete_workout_session(
+    'aaaaaaaa-aaaa-0000-0000-000000000003'::uuid,
+    2,
+    '2026-11-06 11:30:00+00'::timestamptz,
+    'Belated notes'
+  )
+  $$,
+  '23505',
+  'terminal_payload_conflict',
+  'Complete retry with non-NULL notes when original had NULL is rejected with terminal_payload_conflict'
 );
 
 -- Delete Routine C
