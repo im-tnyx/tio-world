@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# W7B-1 Workout Session Persistence: two-session concurrent Finish vs Log Set race.
-# Proves OCC revision bumping and parent row lock serialization prevents
-# logging a performed set into a completing/completed session.
+# W7B-1 Workout Session Persistence: Two-session Concurrency Regression Harness.
+# Exercises:
+# 1. Race 1: Finish (rpc_complete_workout_session) vs concurrent Log Set (rpc_log_workout_performed_set).
+# 2. Race 2A: Update Set (rpc_log_workout_performed_set) vs Remove Set (rpc_remove_workout_performed_set) for the same set UUID.
+# 3. Race 2B: Remove Set vs Update Set for the same set UUID.
+# Proves parent session -> performed set lock hierarchy prevents PostgreSQL 40P01 deadlock
+# and guarantees serialization via OCC revision checks.
 
 database_url="${DATABASE_URL:-}"
 expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -11,21 +15,29 @@ program_id='c7340000-0000-4000-8000-000000000002'
 routine_id='c7340000-0000-4000-8000-000000000003'
 routine_ex_id='c7340000-0000-4000-8000-000000000004'
 routine_set_id='c7340000-0000-4000-8000-000000000005'
-session_id='c7340000-0000-4000-8000-000000000010'
-set_id='c7340000-0000-4000-8000-000000000020'
+
+session_1_id='c7340000-0000-4000-8000-000000000010'
+set_1_id='c7340000-0000-4000-8000-000000000020'
+
+session_2_id='c7340000-0000-4000-8000-000000000011'
+set_2_id='c7340000-0000-4000-8000-000000000021'
 
 # Guard-only mode for negative / CI preflight inspection
 if [[ "$#" -eq 1 && "$1" == "--guard-only" ]]; then
   exit 0
 fi
 
-if [[ "${GITHUB_ACTIONS:-}" != "true" || "$database_url" != "$expected_url" || "$#" -ne 0 ]]; then
+is_local=0
+if [[ "$#" -eq 1 && "$1" == "--local" ]]; then
+  is_local=1
+  database_url="${DATABASE_URL:-$expected_url}"
+elif [[ "${GITHUB_ACTIONS:-}" != "true" || "$database_url" != "$expected_url" || "$#" -ne 0 ]]; then
   echo "Refusing W7B-1 concurrency race outside disposable GitHub CI database" >&2
   exit 1
 fi
 
 for variable in "${!PG@}"; do
-  if [[ "$variable" != "PGPASSWORD" ]]; then
+  if [[ "$variable" != "PGPASSWORD" && "$variable" != "PGDATA" && "$variable" != "PG_VERSION" ]]; then
     echo "Refusing libpq connection override: $variable" >&2
     exit 1
   fi
@@ -78,10 +90,9 @@ wait_log() {
   return 1
 }
 
-# 1. Setup fixtures (owner, program, routine, exercise, set, and active session)
+# 1. Setup fixtures (owner, program, routine, exercise, set)
 psql "$database_url" --set=ON_ERROR_STOP=1 -q <<SQL
 insert into auth.users (id, email) values ('$owner'::uuid, 'w7b-race@example.test');
-insert into public.users (id, email) values ('$owner'::uuid, 'w7b-race@example.test');
 insert into public.user_workout_programs (id, user_id, name) values ('$program_id'::uuid, '$owner'::uuid, 'Race Program');
 insert into public.user_workout_routines (id, user_id, program_id, name) values ('$routine_id'::uuid, '$owner'::uuid, '$program_id'::uuid, 'Race Routine');
 insert into public.user_workout_routine_exercises (id, user_id, routine_id, position, catalog_exercise_id)
@@ -92,21 +103,28 @@ SQL
 
 valid_snapshot='{"schema_version":1,"routine_id":"'$routine_id'","program_id":"'$program_id'","routine_name":"Race Routine","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Barbell Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":10,"load_kg":100.0,"rest_seconds":90}]}]}'
 
-# Start the session as owner
+# ==============================================================================
+# RACE 1: Finish vs Log Set Race
+# ==============================================================================
+echo "Starting Race 1: Finish vs Log Set..."
+
+# Start session 1
 psql "$database_url" --set=ON_ERROR_STOP=1 -q <<SQL
-set role authenticated;
+begin;
+set local role authenticated;
 select set_config('request.jwt.claim.sub', '$owner', true);
 select public.rpc_start_workout_session(
-  '$session_id'::uuid,
+  '$session_1_id'::uuid,
   '$program_id'::uuid,
   '$routine_id'::uuid,
   '2026-11-06 10:00:00+00'::timestamptz,
   '2026-11-06'::date,
   '$valid_snapshot'::jsonb
 );
+commit;
 SQL
 
-# 2. Race: Session A holds parent row lock while Session B attempts to log a set
+# Actor A holds parent row lock on session 1
 mkfifo "$fifo"
 psql "$database_url" --set=ON_ERROR_STOP=1 <"$fifo" >"$a_log" 2>&1 &
 pid_a=$!
@@ -115,23 +133,22 @@ writer_open=1
 
 cat >&3 <<SQL
 begin;
+select revision from public.user_workout_sessions where id = '$session_1_id'::uuid for update;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '$owner', true);
--- Lock session row in exclusive mode
-select revision from public.user_workout_sessions where id = '$session_id'::uuid for update;
 \\echo SESSION_A_LOCK_HELD
 SQL
 wait_log "SESSION_A_LOCK_HELD" "$a_log" "$pid_a"
 
-# Actor B attempts to log a set with expected revision 1 (must block on Actor A's row lock)
+# Actor B attempts to log a set with expected revision 1 (blocks on session lock)
 psql "$database_url" --set=ON_ERROR_STOP=1 >"$b_log" 2>&1 <<SQL &
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '$owner', true);
 \\echo SESSION_B_ATTEMPT
 select public.rpc_log_workout_performed_set(
-  '$set_id'::uuid,
-  '$session_id'::uuid,
+  '$set_1_id'::uuid,
+  '$session_1_id'::uuid,
   1,
   'ex_barbell_bench_press',
   0, 0, 10, 100.0, null, null,
@@ -143,7 +160,7 @@ SQL
 pid_b=$!
 wait_log "SESSION_B_ATTEMPT" "$b_log" "$pid_b"
 
-# Require evidence that Actor B is blocked waiting on the lock held by Actor A
+# Assert Actor B is blocked waiting on lock
 blocked=0
 for _ in $(seq 1 100); do
   waiting="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
@@ -164,10 +181,10 @@ if [[ "$blocked" != 1 ]]; then
   exit 1
 fi
 
-# Session A completes the session (bumping revision to 2 and setting status to completed)
+# Session A completes session (bumping revision to 2, status completed)
 cat >&3 <<SQL
 select public.rpc_complete_workout_session(
-  '$session_id'::uuid,
+  '$session_1_id'::uuid,
   1,
   '2026-11-06 10:30:00+00'::timestamptz,
   'Finished workout'
@@ -182,28 +199,279 @@ wait "$pid_a"
 pid_a=""
 grep -Fq "SESSION_A_COMMITTED" "$a_log"
 
-# Actor B must fail because expected revision was 1, but session is now completed with revision 2
+# Actor B must fail with stale_revision_conflict or session_already_terminal
 if wait "$pid_b"; then
   echo "Actor B unexpectedly logged a set into a completed session" >&2
   exit 1
 fi
 pid_b=""
 
-# Verify Actor B was rejected with stale_revision_conflict
-if ! grep -Eq "stale_revision_conflict|invalid_session_status" "$b_log"; then
-  echo "Actor B did not receive expected rejection" >&2
+if ! grep -Eq "stale_revision_conflict|session_already_terminal" "$b_log"; then
+  echo "Actor B did not receive expected OCC rejection" >&2
   cat "$b_log"
   exit 1
 fi
 
-# Verify database state: session is completed, revision is 2, 0 performed sets
-final_state="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-  --command="select status = 'completed' and revision = 2 and (select count(*) from public.user_workout_performed_sets where session_id = '$session_id'::uuid) = 0
-             from public.user_workout_sessions where id = '$session_id'::uuid" | tr -d '[:space:]')"
+# Verify no sets logged, status completed, revision 2
+final_race1="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+  --command="select status = 'completed' and revision = 2 and (select count(*) from public.user_workout_performed_sets where session_id = '$session_1_id'::uuid) = 0
+             from public.user_workout_sessions where id = '$session_1_id'::uuid" | tr -d '[:space:]')"
 
-if [[ "$final_state" != t ]]; then
-  echo "Final database state violated invariants after concurrency race" >&2
+if [[ "$final_race1" != t ]]; then
+  echo "Race 1 final database state violated invariants" >&2
+  exit 1
+fi
+echo "Race 1 (Finish vs Log Set) passed cleanly."
+
+# ==============================================================================
+# RACE 2A: Simultaneous Log/Update vs Remove (Update Wins)
+# ==============================================================================
+echo "Starting Race 2A: Log/Update vs Remove (Update Wins)..."
+
+# Start session 2 and log initial set (revision becomes 2)
+psql "$database_url" --set=ON_ERROR_STOP=1 -q <<SQL
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '$owner', true);
+select public.rpc_start_workout_session(
+  '$session_2_id'::uuid,
+  '$program_id'::uuid,
+  '$routine_id'::uuid,
+  '2026-11-06 11:00:00+00'::timestamptz,
+  '2026-11-06'::date,
+  '$valid_snapshot'::jsonb
+);
+select public.rpc_log_workout_performed_set(
+  '$set_2_id'::uuid,
+  '$session_2_id'::uuid,
+  1,
+  'ex_barbell_bench_press',
+  0, 0, 10, 100.0, null, null,
+  '2026-11-06 11:02:00+00'::timestamptz,
+  false, 'Initial set'
+);
+commit;
+SQL
+
+# Actor A holds parent row lock on session 2
+rm -f "$fifo" "$a_log" "$b_log"
+mkfifo "$fifo"
+psql "$database_url" --set=ON_ERROR_STOP=1 <"$fifo" >"$a_log" 2>&1 &
+pid_a=$!
+exec 3>"$fifo"
+writer_open=1
+
+cat >&3 <<SQL
+begin;
+select revision from public.user_workout_sessions where id = '$session_2_id'::uuid for update;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '$owner', true);
+\\echo SESSION_A_LOCK_HELD
+SQL
+wait_log "SESSION_A_LOCK_HELD" "$a_log" "$pid_a"
+
+# Actor B attempts to remove set_2 with expected revision 2 (must block on parent session lock)
+psql "$database_url" --set=ON_ERROR_STOP=1 >"$b_log" 2>&1 <<SQL &
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '$owner', true);
+\\echo SESSION_B_ATTEMPT
+select public.rpc_remove_workout_performed_set(
+  '$set_2_id'::uuid,
+  '$session_2_id'::uuid,
+  2
+);
+commit;
+SQL
+pid_b=$!
+wait_log "SESSION_B_ATTEMPT" "$b_log" "$pid_b"
+
+# Assert Actor B is blocked waiting on lock
+blocked=0
+for _ in $(seq 1 100); do
+  waiting="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+    --command="select exists (
+      select 1 from pg_stat_activity
+      where state = 'active' and wait_event_type = 'Lock'
+      and query like '%rpc_remove_workout_performed_set%'
+    )" | tr -d '[:space:]')"
+  if [[ "$waiting" == t ]]; then blocked=1; break; fi
+  if ! kill -0 "$pid_b" 2>/dev/null; then
+    echo "B finished before lock observation"; exit 1
+  fi
+  sleep 0.1
+done
+
+if [[ "$blocked" != 1 ]]; then
+  echo "Actor B never blocked on Actor A session row lock" >&2
   exit 1
 fi
 
-echo "W7B-1 Finish vs Log Set two-session concurrency race passed cleanly."
+# Session A updates set_2 with reps 12 (expected revision 2 -> advances revision to 3)
+cat >&3 <<SQL
+select public.rpc_log_workout_performed_set(
+  '$set_2_id'::uuid,
+  '$session_2_id'::uuid,
+  2,
+  'ex_barbell_bench_press',
+  0, 0, 12, 105.0, null, null,
+  '2026-11-06 11:05:00+00'::timestamptz,
+  false, 'Updated set'
+);
+commit;
+\\echo SESSION_A_COMMITTED
+\\quit
+SQL
+exec 3>&-
+writer_open=0
+wait "$pid_a"
+pid_a=""
+grep -Fq "SESSION_A_COMMITTED" "$a_log"
+
+# Actor B must fail with stale_revision_conflict (P0003), NOT 40P01 deadlock!
+if wait "$pid_b"; then
+  echo "Actor B unexpectedly removed set after concurrent update" >&2
+  exit 1
+fi
+pid_b=""
+
+if grep -Fq "40P01" "$b_log" || grep -Fq "deadlock detected" "$b_log"; then
+  echo "Deadlock 40P01 detected in Race 2A!" >&2
+  cat "$b_log"
+  exit 1
+fi
+
+if ! grep -Fq "stale_revision_conflict" "$b_log"; then
+  echo "Actor B did not receive stale_revision_conflict in Race 2A" >&2
+  cat "$b_log"
+  exit 1
+fi
+
+# Verify set_2 has reps = 12 and revision = 3
+final_race2a="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+  --command="select s.revision = 3 and p.reps = 12 and p.load_kg = 105.0
+             from public.user_workout_sessions s
+             join public.user_workout_performed_sets p on p.session_id = s.id
+             where s.id = '$session_2_id'::uuid and p.id = '$set_2_id'::uuid" | tr -d '[:space:]')"
+
+if [[ "$final_race2a" != t ]]; then
+  echo "Race 2A final database state violated invariants" >&2
+  exit 1
+fi
+echo "Race 2A (Log/Update vs Remove, Update wins) passed cleanly without 40P01 deadlock."
+
+# ==============================================================================
+# RACE 2B: Simultaneous Remove vs Log/Update (Remove Wins)
+# ==============================================================================
+echo "Starting Race 2B: Remove vs Log/Update (Remove Wins)..."
+
+# Session 2 is currently at revision 3 with set_2 (reps 12).
+# Actor B holds parent row lock on session 2
+rm -f "$fifo" "$a_log" "$b_log"
+mkfifo "$fifo"
+psql "$database_url" --set=ON_ERROR_STOP=1 <"$fifo" >"$b_log" 2>&1 &
+pid_b=$!
+exec 3>"$fifo"
+writer_open=1
+
+cat >&3 <<SQL
+begin;
+select revision from public.user_workout_sessions where id = '$session_2_id'::uuid for update;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '$owner', true);
+\\echo SESSION_B_LOCK_HELD
+SQL
+wait_log "SESSION_B_LOCK_HELD" "$b_log" "$pid_b"
+
+# Actor A attempts to update set_2 with expected revision 3 (must block on parent session lock)
+psql "$database_url" --set=ON_ERROR_STOP=1 >"$a_log" 2>&1 <<SQL &
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '$owner', true);
+\\echo SESSION_A_ATTEMPT
+select public.rpc_log_workout_performed_set(
+  '$set_2_id'::uuid,
+  '$session_2_id'::uuid,
+  3,
+  'ex_barbell_bench_press',
+  0, 0, 15, 110.0, null, null,
+  '2026-11-06 11:10:00+00'::timestamptz,
+  false, 'Stale update'
+);
+commit;
+SQL
+pid_a=$!
+wait_log "SESSION_A_ATTEMPT" "$a_log" "$pid_a"
+
+# Assert Actor A is blocked waiting on lock
+blocked=0
+for _ in $(seq 1 100); do
+  waiting="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+    --command="select exists (
+      select 1 from pg_stat_activity
+      where state = 'active' and wait_event_type = 'Lock'
+      and query like '%rpc_log_workout_performed_set%'
+    )" | tr -d '[:space:]')"
+  if [[ "$waiting" == t ]]; then blocked=1; break; fi
+  if ! kill -0 "$pid_a" 2>/dev/null; then
+    echo "A finished before lock observation"; exit 1
+  fi
+  sleep 0.1
+done
+
+if [[ "$blocked" != 1 ]]; then
+  echo "Actor A never blocked on Actor B session row lock" >&2
+  exit 1
+fi
+
+# Session B removes set_2 (expected revision 3 -> advances revision to 4)
+cat >&3 <<SQL
+select public.rpc_remove_workout_performed_set(
+  '$set_2_id'::uuid,
+  '$session_2_id'::uuid,
+  3
+);
+commit;
+\\echo SESSION_B_COMMITTED
+\\quit
+SQL
+exec 3>&-
+writer_open=0
+wait "$pid_b"
+pid_b=""
+grep -Fq "SESSION_B_COMMITTED" "$b_log"
+
+# Actor A must fail with stale_revision_conflict (P0003), NOT 40P01 deadlock!
+if wait "$pid_a"; then
+  echo "Actor A unexpectedly logged set after concurrent remove" >&2
+  exit 1
+fi
+pid_a=""
+
+if grep -Fq "40P01" "$a_log" || grep -Fq "deadlock detected" "$a_log"; then
+  echo "Deadlock 40P01 detected in Race 2B!" >&2
+  cat "$a_log"
+  exit 1
+fi
+
+if ! grep -Fq "stale_revision_conflict" "$a_log"; then
+  echo "Actor A did not receive stale_revision_conflict in Race 2B" >&2
+  cat "$a_log"
+  exit 1
+fi
+
+# Verify set_2 is removed and revision is 4
+final_race2b="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+  --command="select s.revision = 4 and (select count(*) from public.user_workout_performed_sets where session_id = '$session_2_id'::uuid) = 0
+             from public.user_workout_sessions s
+             where s.id = '$session_2_id'::uuid" | tr -d '[:space:]')"
+
+if [[ "$final_race2b" != t ]]; then
+  echo "Race 2B final database state violated invariants" >&2
+  exit 1
+fi
+echo "Race 2B (Remove vs Log/Update, Remove wins) passed cleanly without 40P01 deadlock."
+
+echo "=============================================================================="
+echo "All W7B-1 two-session concurrency regression races passed cleanly."
+echo "=============================================================================="

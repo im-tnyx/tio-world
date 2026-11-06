@@ -801,19 +801,8 @@ begin
     raise exception 'invalid_expected_revision' using errcode = '22023';
   end if;
 
-  -- Finding 4490473095: Enforce existing-set ownership and session identity before upsert
-  select * into v_existing_set
-  from public.user_workout_performed_sets
-  where id = p_set_id
-  for update;
-
-  if found then
-    if v_existing_set.user_id <> v_user_id or v_existing_set.session_id <> p_session_id then
-      raise exception 'set_ownership_mismatch' using errcode = '42501';
-    end if;
-  end if;
-
-  -- Parent row lock: guarantees serialization and blocks sets on finished sessions
+  -- 1. Parent session row lock: guarantees serialization across all session mutations and blocks sets on finished sessions.
+  -- Consistent lock hierarchy: parent workout session (user_workout_sessions) -> child performed set (user_workout_performed_sets).
   select * into v_session
   from public.user_workout_sessions
   where id = p_session_id and user_id = v_user_id
@@ -831,7 +820,7 @@ begin
     raise exception 'stale_revision_conflict' using errcode = 'P0003';
   end if;
 
-  -- Validate set against session snapshot exercise occurrence
+  -- 2. Validate set against session snapshot exercise occurrence
   if p_session_exercise_index < 0 or
      p_session_exercise_index >= jsonb_array_length(v_session.routine_snapshot->'exercises') then
     raise exception 'snapshot_exercise_index_out_of_bounds' using errcode = '22023';
@@ -840,6 +829,18 @@ begin
   v_snap_ex := (v_session.routine_snapshot->'exercises')->p_session_exercise_index;
   if (v_snap_ex->>'exercise_ref') <> p_exercise_ref then
     raise exception 'snapshot_exercise_ref_mismatch' using errcode = '22023';
+  end if;
+
+  -- 3. Finding 4490473095: Enforce existing-set ownership and session identity following parent -> child lock hierarchy
+  select * into v_existing_set
+  from public.user_workout_performed_sets
+  where id = p_set_id
+  for update;
+
+  if found then
+    if v_existing_set.user_id <> v_user_id or v_existing_set.session_id <> p_session_id then
+      raise exception 'set_ownership_mismatch' using errcode = '42501';
+    end if;
   end if;
 
   -- Upsert performed set with strict ownership and session scoping on conflict update

@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 BEGIN;
-CREATE EXTENSION IF NOT EXISTS pgtap;
+CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
 SELECT plan(46);
 
 -- ============================================================================
