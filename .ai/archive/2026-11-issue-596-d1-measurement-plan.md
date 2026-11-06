@@ -19,7 +19,7 @@
 ## Post-Merge Validated Outcome (PRs #658, #659, #682, #683, #685)
 
 - **PR #658 (Plan Specification):** Squash-merged into protected `main` at `6a4e113b06bc714039199f94d38ce59e4e0515b7` on 2026-10-23T09:14:18Z; reviewed source HEAD `d7d50bdf910769c500e8ae16a956ca062edfd16a`; independent review by `im-tio` formal `APPROVED` at 2026-10-23T09:12:27Z; 8 findings D1-F01..D1-F08 resolved; exact-HEAD checks SUCCESS.
-- **PR #659 (Handoff Reconciliation):** Squash-merged into protected `main` at `37e507cb120f842d05918eeda1ed6ca995438885` on 2026-10-23T09:30:26Z; reviewed source HEAD `7733854c86e06b3e8179e8c3fc375681c6e17bf1`; `im-tio` formal `APPROVED`; findings D1-F09..D1-F10 resolved; exact-HEAD checks SUCCESS.
+- **PR #659 (Handoff Reconciliation):** Squash-merged into protected `main` at `37e507cb120f842d05918eeda1ed6ca995438885` on 2026-10-23T09:52:07Z; reviewed source HEAD `7733854c86e06b3e8179e8c3fc375681c6e17bf1`; `im-tio` formal `APPROVED`; findings D1-F09..D1-F10 resolved; exact-HEAD checks SUCCESS.
 - **PR #682 (Fixed Cohort Evidence Reconciliation):** Squash-merged into protected `main` at `920873b55ea8bbd5b7c46dba07e6a31dd6f3dfe0` on 2026-10-25T08:23:14Z; reviewed source HEAD `7eb2aabae842a7017e3defa1b5c4388d18612aac`; `im-tio` formal `APPROVED` at 2026-10-25T08:21:24Z; exact-HEAD checks SUCCESS.
 - **PR #683 (D1-E1 First-Five Evidence):** Squash-merged into protected `main` at `bba5d59ded79e430ab59b238050224569e1f1c02` on 2026-10-25T08:53:19Z; reviewed source HEAD `89fcbaa8a298da22ce87b0a33036358d7fd40f98`; `im-tio` formal `APPROVED`; exact-HEAD checks SUCCESS.
 - **PR #685 (D1-E2 Final-Five Evidence):** Squash-merged into protected `main` at `516faa298e2437e07f89f156187afd231325679c` on 2026-10-25T09:48:27Z; reviewed source HEAD `acad75284e8294b82b9f4edb19b15debbe7a9e23`; `im-tio` formal `APPROVED`; exact-HEAD checks SUCCESS.
@@ -289,6 +289,14 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 | #676 | `PRRT_kwDOTOXwB86v5o_z` **P2**, `PRRT_kwDOTOXwB86v5o_1` **P3**; both **resolved**. | Fix commits `83bfb7ce`, `967f6c46`; author self-review `COMMENTED`. |
 | #677 | `PRRT_kwDOTOXwB86v6FVT` **P2** isolated QA wording; **resolved**. | Wording fix `9b0cdbda`, handoff `968d1f25`; author self-review `COMMENTED`. |
 
+### 7. Post-Boundary PR Audit & Cohort Entry Log (Historical Checkpoint)
+
+| PR # | Merged At / SHA | Touched Scopes | Eligibility Decision | Rationale |
+|:---:|:---:|---|:---:|---|
+| [PR #658](https://github.com/im-tnyx/tio-world/pull/658) | 2026-10-23T09:14:18Z<br>`6a4e113b` | `.ai/tasks/issue-596-d1-measurement-plan.md`<br>`.ai/tasks/README.md` | **EXCLUDED**<br>(Measurement Framework Setup) | PR #658 introduced the D1 measurement framework itself under #596. Touched paths are limited to `.ai/tasks/**` task brief setup. It does not alter production runtime code, shared architecture contracts (`docs/architecture/**`), testing guides (`TESTING_GUIDE.md`), or repository rules (`AGENTS.md`, `.ai/FEATURE_DEVELOPMENT.md`). Including the measurement setup PR within its own observed cohort of measured engineering PRs would introduce self-measurement circularity. |
+
+*Cohort Status:* All 10 consecutive substantive slots were filled with PRs #660, #661, #663, #664, #665, #668, #673, #674, #676 and #677 (2026-10-23 through 2026-10-24 UTC). Subsequent #678/#679/#680 and newer PRs are outside the **fixed** first cohort. The earliest 168-hour window closed 2026-10-30T12:16:57Z and the latest closed 2026-10-31T17:31:09Z. Per the 2026-10-25 owner decision, pre-release regression observation is satisfied without requiring a 168-hour waiting gate or speculative live-traffic claims; downstream regression rate is recorded as `Not measurable — pre-release / insufficient exposure`.
+
 ---
 
 ## 5. Parent Acceptance Criteria (AC-01 through AC-09) Reconciliation
@@ -297,7 +305,7 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 |---|---|---|---|---|
 | **AC-01** | Baseline audit completed with direct references to current files, sample PRs, and actual gaps; existing controls explicitly credited. | **Verified** | Slice A baseline audit (`2026-10-20`) in #596 comments analyzed `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, and historical PRs #605, #613, #626. | None. Baseline complete. |
 | **AC-02** | Documented authority map has one canonical owner per process rule, with no conflicting root/nested instructions. | **Verified** | Slice B1 PR #631 (`6000fe81`, archived in PR #632) established `docs/README.md` as doc authority, `.ai/FEATURE_DEVELOPMENT.md` as process authority, and `.ai/tasks/README.md` as execution evidence authority. | None. Authority map codified. |
-| **AC-03** | Multi-agent role/ownership/handoff contract supports arbitrary agent switching and role permutations, including mid-task limit recovery, same-agent sequential roles, third-party audits/prompts, previous-owner return and independently evidenced review, without authorizing multiple implementers to write the same slice. | **Verified** | PR #631 codified Agent Roles and single-ownership transfer rules. Slice C0 documented 6 scenario walkthroughs (C0-S01 to C0-S06) against `main@b327a63a`. Real cohort verified arbitrary agent/role switching (8/10 independent approvals, 2/10 self-reviews). | None. Policy codified and exercised. |
+| **AC-03** | Multi-agent role/ownership/handoff contract supports arbitrary agent switching and role permutations, including mid-task limit recovery, same-agent sequential roles, third-party audits/prompts, previous-owner return and independently evidenced review, without authorizing multiple implementers to write the same slice. | **Verified (Policy & Walkthroughs) / Live Takeovers Unexecuted** | PR #631 codified Agent Roles and single-ownership transfer rules. Slice C0 documented 6 scenario walkthroughs (C0-S01 to C0-S06) against `main@b327a63a`. Real cohort verified arbitrary review/self-review provenance (8/10 independent approvals, 2/10 author self-reviews). | **Gap / Limitation:** C0 was a policy-level desk audit, not live execution. Actual live handoff/takeover scenarios (mid-task usage limit recovery, missing-handoff recovery, returning-owner handoff) were not comprehensively exercised in live sessions; ten prospective PRs observed natural workflows but did not trigger all synthetic edge-case handoffs. |
 | **AC-04** | Definition of Done maps acceptance criteria to evidence; `PASS/REVIEW/PARTIAL/BLOCKED` semantics are clear for passed/failed/unavailable checks. | **Verified** | PR #631 codified the Final Status Decision Rule and Required Gates in `.ai/FEATURE_DEVELOPMENT.md`. PR #633 integrated evidence and merge gates into `TESTING_GUIDE.md`. | None. Decision rule codified. |
 | **AC-05** | Risk-based test/review matrix covers UI regressions and protected data/security cases without forcing unrelated expensive checks. | **Verified** | PR #633 (`0627cdac`, archived in PR #634) added the 7-class Risk-Based Regression Selection matrix to `docs/development/TESTING_GUIDE.md`. Refined in C1F PR #679 and C1G PR #684. | None. Matrix codified. |
 | **AC-06** | Existing approved owner gates, visual preservation, source-of-truth precedence, strict tenant/privacy controls, required CI and attribution guard are preserved. | **Verified** | Verified across all #596 PRs; no security, UI, or owner approval gates were weakened or bypassed. | None. Core guardrails preserved. |
@@ -309,14 +317,53 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 
 ## 6. Quality Review
 
-### Validation Run
-- `git diff --check`: Exit 0 (Verified locally before commit).
-- Changed file scope: Scoped docs archival and task index updates.
-- Markdown reference check: All relative links verified against repository structure.
+### Historical Acceptance Evidence (PR #658 Plan Specification — 2026-10-23)
 
-### Review Provenance
-- **Review source / link:** GitHub #596 historical review receipts.
-- **Review verdict:** PASS / APPROVED across merged D1 PRs #658, #659, #682, #683, #685.
+| Criterion | Changed behavior / file | Test or manual evidence + actual result | Observed SHA / environment | Remaining risk |
+|---|---|---|---|---|
+| D1-AC01 Cohort Boundary | `.ai/tasks/issue-596-d1-measurement-plan.md` | Defined at `main@21286e78` / `2026-10-23T12:55:54+05:30` | `21286e78` on Windows | None (Exact git commit referenced) |
+| D1-AC02 Eligibility Rules | `.ai/tasks/issue-596-d1-measurement-plan.md` | Explicit inclusion/exclusion criteria with documented rationale | `21286e78` on Windows | None (No ambiguous categories) |
+| D1-AC03 13-Dimension Ledger | `.ai/tasks/issue-596-d1-measurement-plan.md` | Full schema with explicit `Unknown` and finding severity fields | `21286e78` on Windows | None (Matches B1/C1 contracts) |
+| D1-AC04 Metric Formulas | `.ai/tasks/issue-596-d1-measurement-plan.md` | 6 mathematical formulas with explicit numerators and denominators | `21286e78` on Windows | None (Zero invented scores) |
+| D1-AC05 Parent AC Audit | `.ai/tasks/issue-596-d1-measurement-plan.md` | Fact-checked table for AC-01..AC-09 with corrected AC-03, 07, 08 | `21286e78` on Windows | None (Reflects verified reality) |
+
+### Historical Review Provenance (PR #658 — 2026-10-23)
+- **Review source / link:** [GitHub PR #658](https://github.com/im-tnyx/tio-world/pull/658)
+- **Reviewer / relation:** Independent review completed by `im-tio` (Collaborator, separate from author)
+- **Reviewed SHA:** `d7d50bdf910769c500e8ae16a956ca062edfd16a` (PR commit 5, re-reviewing prior `0ada08d6`, `828dc92e`, and `beec9099`)
+- **Review verdict:** `APPROVED` by `im-tio` on `d7d50bdf` at 2026-10-23T09:12:27Z (all 8 prior findings D1-F01..D1-F08 verified resolved in current source; no new actionable defects found). External tool notes:
+  - Commit attribution guard / runner: SUCCESS (run #39928982511).
+  - Docs Hygiene CI: SUCCESS (run #39928984283; native `git diff --check` exit 0).
+  - Cursor Bugbot / Security / Approval Agent: NEUTRAL due to usage/integration limits (not counted as pass/fail).
+  - Codex / Copilot PR reviewer: Quota limit noted (no unverified passes claimed).
+- **Limitations (historical):** Prospective cohort observation across 10 substantive PRs was active; parent #596 remained OPEN until all 10 PRs were observed and evaluated.
+
+### Historical Review Findings and Resolution (D1-F01 through D1-F10)
+
+| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
+|---|---|---|---|---|---|
+| D1-F01 | P2 | Resolved | Change class taxonomy lacked CI/process classes and precedence rules | `beec9099` | Exhaustive 10-class taxonomy + mixed precedence + Other/Unknown fallback added |
+| D1-F02 | P2 | Resolved | Omission of P0 findings from schema, table, and finding yield formula | `beec9099` | P0 added to schema, table header, yield formula, deduplication rule, and density metric |
+| D1-F03 | P2 | Resolved | Hardcoded Flutter & Database CI as required across entire cohort | `beec9099` | Dynamic per-PR check classification (Required vs Supplemental vs Path-Filtered) codified |
+| D1-F04 | P2 | Resolved | Independent review conflated with formal approval; denominator unanchored | `beec9099` | Separated into Activity Rate ($R_{ind\_reviewed}$) and Approval Rate ($R_{ind\_approved}$), fixed to 10 PRs |
+| D1-F05 | P2 | Resolved | Unequal post-merge observation horizon biased regression metric | `beec9099` | Fixed 7-calendar-day (168h) window established; open windows censored as `In observation` |
+| D1-F06 | P3 | Resolved | Final status pinned to older commit SHA `75755a8a` instead of current PR HEAD | `beec9099` | Corrected reviewed SHA `beec9099170c61eb28b2a5b1297b5cc14e3fc77e` and updated exact-HEAD receipt |
+| D1-F07 | P2 | Resolved | Undefined zero denominator for provisional regression and revalidation rates | `0ada08d6` | Explicit N/A semantics, raw count reporting, and open-window maturation tracking added to formulas 4 & 6 |
+| D1-F08 | P3 | Resolved | PR description and comment receipts cited imprecise commit SHAs | `0ada08d6` | Exact 40-character SHAs verified via `git rev-parse`; PR description synchronized |
+| D1-F09 | P3 | Resolved | Composite final status token `PASS / ACTIVE MEASUREMENT` used instead of canonical single token | `e84a7409` | Separated into canonical `PASS` for plan slice and `Measurement phase: ACTIVE` for ongoing lifecycle |
+| D1-F10 | P3 | Resolved | Active handoff HEAD SHA and validation language did not distinguish recorded checkpoint from live PR tip | `560513c5` | Distinguish historical recorded checkpoints (`e84a7409`, `560513c5`) from authoritative live PR tip and recorded exact-HEAD receipts |
+
+### Follow-Up Merged Evidence Milestones (2026-10-23 to 2026-10-25)
+- **PR #659 (Handoff Reconciliation):** Squash-merged at `37e507cb120f842d05918eeda1ed6ca995438885` (2026-10-23T09:52:07Z); `im-tio APPROVED`; findings D1-F09 and D1-F10 verified resolved.
+- **PR #682 (Cohort Reconciliation):** Squash-merged at `920873b55ea8bbd5b7c46dba07e6a31dd6f3dfe0` (2026-10-25T08:23:14Z); fixed 10-PR cohort locked (#660, #661, #663, #664, #665, #668, #673, #674, #676, #677); `im-tio APPROVED`.
+- **PR #683 (D1-E1 First-Five Evidence):** Squash-merged at `bba5d59ded79e430ab59b238050224569e1f1c02` (2026-10-25T08:53:19Z); slots 1-5 normalized; `im-tio APPROVED`.
+- **PR #685 (D1-E2 Final-Five Evidence):** Squash-merged at `516faa298e2437e07f89f156187afd231325679c` (2026-10-25T09:48:27Z); slots 6-10 normalized; `im-tio APPROVED`.
+- **Owner Decision (2026-10-25):** Pre-release development status supersedes mandatory 168-hour observation waiting gate; downstream regression rate recorded as `Not measurable — pre-release / insufficient exposure` (0 linked regressions reported as of 2026-11-06; user/test exposure unknown); no unverified quality uplift claimed.
+
+### Final Cohort Archival Review (2026-11-06)
+- **Validation Run:** `git diff --check` exit 0; exact-HEAD Docs Hygiene CI SUCCESS; attribution guard SUCCESS.
+- **Scope Audit:** Bounded documentation archival of `.ai/tasks/issue-596-d1-measurement-plan.md` into `.ai/archive/` and active/archive index updates; zero application, database, or workflow code changes.
+- **Review Verdict:** Validated and archived; all 10 cohort PRs evaluated; all 9 parent criteria (AC-01 through AC-09) reconciled for Issue #596 closure.
 
 ---
 
@@ -331,9 +378,10 @@ From Slice A baseline audit (`2026-10-18`), the observed characteristics prior t
 Reconciles and archives the prospective quality measurement plan for GitHub #596 Slice D1. Reconciles observed evidence across all 10 cohort PRs, applies the owner's 2026-10-25 pre-release regression evaluation policy, verifies all 9 acceptance criteria (AC-01 through AC-09), and prepares parent GitHub Issue #596 for final closure.
 
 ### Known Limitations
-- Descriptive counts recorded (20 resolved inline-only roots, 8/10 distinct-account approvals).
+- Descriptive counts recorded (20 resolved inline-only roots, 8/10 distinct-account approvals, 2/10 author self-reviews).
 - Due to pre-release development status and lack of public traffic, downstream regression rate is classified as `Not measurable — pre-release / insufficient exposure` (0 linked regressions reported as of 2026-11-06; user/test exposure unknown).
 - Zero defect rate and quality uplift are not claimed.
+- AC-03 live takeover edge cases (mid-task usage limit recovery, missing-handoff recovery, returning-owner handoff) remain unexercised as live scenarios; policy coverage and desk walkthroughs are verified.
 
 ### Final Status
 **`PASS / VALIDATED`**
