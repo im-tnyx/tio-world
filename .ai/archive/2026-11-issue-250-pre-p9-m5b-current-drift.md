@@ -1,6 +1,10 @@
 # GitHub #250 — pre-P9 M5B canonical-current documentation correction
 
-**Status:** In progress — PR review / merge gate pending (not merged)
+**Status:** Validated — source PR #672 merged on 2026-10-24
+**Archive prepared:** 2026-11-06; this archival change is not merged until separately reviewed and authorized.
+**Truth boundary:** Historical docs-only task receipt. The 2026-10-24 migration/ACL/Flutter assertions and pre-merge instructions below are dated evidence, **not** current Supabase/runtime or PR state. Current authority remains source, verified live metadata, canonical docs, and live GitHub/Linear.
+
+**Pre-merge status (historical, 2026-10-24):** In progress — PR review / merge gate pending (not merged)
 **Primary owner:** repository documentation governance (`im-tnyx`)
 **Affected platforms:** canonical Workout/Development docs and .ai execution handoff only
 
@@ -34,3 +38,12 @@
 - Inspect formal GitHub review, unresolved inline threads and PR mergeability for the **exact head**.
 - **Stop before merge.** Merge requires separate user “Go merge”; parent #250 and Linear TNYX-193 stay open/in progress until independent whole-catalog contradiction acceptance and P9 decision.
 - No local Windows `git status`, Flutter tests or device QA claimed from connected GitHub API.
+
+## Post-merge verification (archival reconciliation, 2026-11-06)
+
+- [PR #672](https://github.com/im-tnyx/tio-world/pull/672) is **MERGED** (2026-10-24 11:01:31 UTC), not awaiting review. Exact source head: `2d998edd1286528e470517e864ee5b6a75e14e2d`; squash merge: `86f0afa8711dec28a57e513f33031e779516fa10`. Verified against the live GitHub PR metadata.
+- GitHub Docs Hygiene CI run [#40087849691](https://github.com/im-tnyx/tio-world/actions/runs/40087849691) reports **SUCCESS** for that source head; zero unresolved inline review threads. Connected GitHub review metadata confirms `im-tio` **APPROVED** on 2026-10-24; earlier task/issue history identifies that account review as assistant-operated, **not independent human security review**. Do not reuse these results for this archival PR HEAD.
+- The source PR's then-current canonical corrections touched only `docs/screens/routine-library.md`, `docs/development/DEVELOPMENT_SETUP.md`, and the corresponding `.ai` task/index. They do not authorize new Supabase grants, production enablement or P9.
+- Original pre-merge scope, 69/69 Supabase checkpoint, ACL statements, tests-to-run and `Stop before merge` instructions above are preserved as **2026-10-24 history**, not actionable current state. Canonical docs and live Supabase/runtime supersede dated claims.
+- This archival follow-up only relocates this validated handoff and reconciles the active and archive indexes. No source/UI, SQL/RLS/grant, configuration, CI, lockfile, or P9 change. Local Windows worktree status and any post-merge-main CI were **not independently verified** in this archival session.
+- Parent [GitHub #250](https://github.com/im-tnyx/tio-world/issues/250) remains **OPEN**, Linear [TNYX-193](https://linear.app/tnyx/issue/TNYX-193) remains **In Progress**. Whole-catalog contradictions acceptance is unchecked and the conditional P9 decision remains unstarted. This archived child task is not parent closure.
