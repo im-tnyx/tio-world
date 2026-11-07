@@ -54,12 +54,15 @@ final class ActiveWorkoutController extends ChangeNotifier {
     final evaluationInstant = now.isBefore(transitionAt) ? transitionAt : now;
     try {
       final computed = session.time.elapsedActiveDuration(evaluationInstant);
-      if (computed < state.activeElapsedDuration) {
+      if (session.id == state.record?.session.id &&
+          computed < state.activeElapsedDuration) {
         return state.activeElapsedDuration;
       }
       return computed;
     } catch (_) {
-      return state.activeElapsedDuration;
+      return session.id == state.record?.session.id
+          ? state.activeElapsedDuration
+          : Duration.zero;
     }
   }
 
@@ -72,6 +75,35 @@ final class ActiveWorkoutController extends ChangeNotifier {
     if (_disposed) return;
     _state = next;
     notifyListeners();
+  }
+
+  /// Adopts the authoritative server record and derives presentation status.
+  void _applyAuthoritativeRecord(
+    WorkoutSessionRecord record, {
+    ActiveRestTimerState? restTimer,
+    bool clearRestTimer = false,
+  }) {
+    final session = record.session;
+    final elapsed = _calculateElapsedDuration(session, _nowUtc());
+    final status = switch (session.status) {
+      WorkoutSessionStatus.active => ActiveWorkoutStatus.active,
+      WorkoutSessionStatus.paused => ActiveWorkoutStatus.paused,
+      WorkoutSessionStatus.completed => ActiveWorkoutStatus.completed,
+      WorkoutSessionStatus.discarded => ActiveWorkoutStatus.discarded,
+    };
+
+    if (session.isTerminal) {
+      stopDurationTicker();
+    }
+
+    _emit(ActiveWorkoutState(
+      status: status,
+      record: record,
+      activeElapsedDuration: elapsed,
+      activeRestTimer:
+          (clearRestTimer || session.isTerminal) ? null : (restTimer ?? state.activeRestTimer),
+      lastKnownSessionId: session.id,
+    ));
   }
 
   /// Restores any current active or paused session for the authenticated user.
@@ -90,31 +122,12 @@ final class ActiveWorkoutController extends ChangeNotifier {
       final record = await _repository.getActiveSession();
       if (_disposed || version != _version || _isAuthInvalid()) return;
 
-      if (record == null) {
+      if (record == null || record.session.isTerminal) {
         _emit(const ActiveWorkoutState.noSession());
         return;
       }
 
-      final status = record.session.status;
-      final elapsed = _calculateElapsedDuration(record.session, _nowUtc());
-      if (status == WorkoutSessionStatus.active) {
-        _emit(ActiveWorkoutState(
-          status: ActiveWorkoutStatus.active,
-          record: record,
-          activeElapsedDuration: elapsed,
-          lastKnownSessionId: record.session.id,
-        ));
-      } else if (status == WorkoutSessionStatus.paused) {
-        _emit(ActiveWorkoutState(
-          status: ActiveWorkoutStatus.paused,
-          record: record,
-          activeElapsedDuration: elapsed,
-          lastKnownSessionId: record.session.id,
-        ));
-      } else {
-        // Defensively treat completed/discarded records as no active session.
-        _emit(const ActiveWorkoutState.noSession());
-      }
+      _applyAuthoritativeRecord(record);
     } on WorkoutSessionPersistenceException catch (e) {
       if (_disposed || version != _version || _isAuthInvalid()) return;
       if (e.kind == WorkoutSessionPersistenceFailureKind.unauthenticated ||
@@ -148,10 +161,12 @@ final class ActiveWorkoutController extends ChangeNotifier {
     }
     if (_isActionInFlight) return false;
 
-    if (state.isRunning) {
+    if (state.isRunning ||
+        state.status == ActiveWorkoutStatus.reconciliationRequired) {
       _emit(state.copyWith(
-        errorMessage:
-            'Cannot start a new session while a workout is already in progress.',
+        errorMessage: state.status == ActiveWorkoutStatus.reconciliationRequired
+            ? 'Cannot start a session: state reconciliation is required.'
+            : 'Cannot start a new session while a workout is already in progress.',
       ));
       return false;
     }
@@ -160,46 +175,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
       actionName: 'startSession',
       targetSessionId: session.id,
       mutation: () => _repository.startSession(session),
-      onSuccess: (record) {
-        final elapsed = _calculateElapsedDuration(record.session, _nowUtc());
-        final sessionStatus = record.session.status;
-        switch (sessionStatus) {
-          case WorkoutSessionStatus.active:
-            _emit(ActiveWorkoutState(
-              status: ActiveWorkoutStatus.active,
-              record: record,
-              activeElapsedDuration: elapsed,
-              lastKnownSessionId: record.session.id,
-            ));
-            break;
-          case WorkoutSessionStatus.paused:
-            _emit(ActiveWorkoutState(
-              status: ActiveWorkoutStatus.paused,
-              record: record,
-              activeElapsedDuration: elapsed,
-              lastKnownSessionId: record.session.id,
-            ));
-            break;
-          case WorkoutSessionStatus.completed:
-            stopDurationTicker();
-            _emit(ActiveWorkoutState(
-              status: ActiveWorkoutStatus.completed,
-              record: record,
-              activeElapsedDuration: elapsed,
-              lastKnownSessionId: record.session.id,
-            ));
-            break;
-          case WorkoutSessionStatus.discarded:
-            stopDurationTicker();
-            _emit(ActiveWorkoutState(
-              status: ActiveWorkoutStatus.discarded,
-              record: record,
-              activeElapsedDuration: elapsed,
-              lastKnownSessionId: record.session.id,
-            ));
-            break;
-        }
-      },
+      onSuccess: _applyAuthoritativeRecord,
     );
   }
 
@@ -221,10 +197,12 @@ final class ActiveWorkoutController extends ChangeNotifier {
     }
     if (_isActionInFlight) return false;
 
-    if (state.isRunning) {
+    if (state.isRunning ||
+        state.status == ActiveWorkoutStatus.reconciliationRequired) {
       _emit(state.copyWith(
-        errorMessage:
-            'Cannot start a new session while a workout is already in progress.',
+        errorMessage: state.status == ActiveWorkoutStatus.reconciliationRequired
+            ? 'Cannot start a session: state reconciliation is required.'
+            : 'Cannot start a new session while a workout is already in progress.',
       ));
       return false;
     }
@@ -342,15 +320,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
         expectedRevision: expectedRevision,
         set: performedSet,
       ),
-      onSuccess: (updatedRecord) {
-        final elapsed =
-            _calculateElapsedDuration(updatedRecord.session, _nowUtc());
-        _emit(state.copyWith(
-          record: updatedRecord,
-          activeElapsedDuration: elapsed,
-          clearErrorMessage: true,
-        ));
-      },
+      onSuccess: _applyAuthoritativeRecord,
     );
   }
 
@@ -375,15 +345,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
         expectedRevision: expectedRevision,
         setId: setId,
       ),
-      onSuccess: (updatedRecord) {
-        final elapsed =
-            _calculateElapsedDuration(updatedRecord.session, _nowUtc());
-        _emit(state.copyWith(
-          record: updatedRecord,
-          activeElapsedDuration: elapsed,
-          clearErrorMessage: true,
-        ));
-      },
+      onSuccess: _applyAuthoritativeRecord,
     );
   }
 
@@ -409,16 +371,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
         expectedRevision: expectedRevision,
         pausedAtUtc: pauseInstant,
       ),
-      onSuccess: (updatedRecord) {
-        final elapsed =
-            _calculateElapsedDuration(updatedRecord.session, _nowUtc());
-        _emit(state.copyWith(
-          status: ActiveWorkoutStatus.paused,
-          record: updatedRecord,
-          activeElapsedDuration: elapsed,
-          clearErrorMessage: true,
-        ));
-      },
+      onSuccess: _applyAuthoritativeRecord,
     );
   }
 
@@ -444,16 +397,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
         expectedRevision: expectedRevision,
         resumedAtUtc: resumeInstant,
       ),
-      onSuccess: (updatedRecord) {
-        final elapsed =
-            _calculateElapsedDuration(updatedRecord.session, _nowUtc());
-        _emit(state.copyWith(
-          status: ActiveWorkoutStatus.active,
-          record: updatedRecord,
-          activeElapsedDuration: elapsed,
-          clearErrorMessage: true,
-        ));
-      },
+      onSuccess: _applyAuthoritativeRecord,
     );
   }
 
@@ -484,15 +428,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
         notes: notes,
       ),
       onSuccess: (finalRecord) {
-        stopDurationTicker();
-        final elapsed =
-            _calculateElapsedDuration(finalRecord.session, _nowUtc());
-        _emit(ActiveWorkoutState(
-          status: ActiveWorkoutStatus.completed,
-          record: finalRecord,
-          activeElapsedDuration: elapsed,
-          lastKnownSessionId: finalRecord.session.id,
-        ));
+        _applyAuthoritativeRecord(finalRecord, clearRestTimer: true);
       },
     );
   }
@@ -530,15 +466,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
         reason: trimmed,
       ),
       onSuccess: (finalRecord) {
-        stopDurationTicker();
-        final elapsed =
-            _calculateElapsedDuration(finalRecord.session, _nowUtc());
-        _emit(ActiveWorkoutState(
-          status: ActiveWorkoutStatus.discarded,
-          record: finalRecord,
-          activeElapsedDuration: elapsed,
-          lastKnownSessionId: finalRecord.session.id,
-        ));
+        _applyAuthoritativeRecord(finalRecord, clearRestTimer: true);
       },
     );
   }
@@ -573,45 +501,8 @@ final class ActiveWorkoutController extends ChangeNotifier {
         return true;
       }
 
-      final status = record.session.status;
-      final elapsed = _calculateElapsedDuration(record.session, _nowUtc());
-
-      switch (status) {
-        case WorkoutSessionStatus.active:
-          _emit(ActiveWorkoutState(
-            status: ActiveWorkoutStatus.active,
-            record: record,
-            activeElapsedDuration: elapsed,
-            lastKnownSessionId: record.session.id,
-          ));
-          return true;
-        case WorkoutSessionStatus.paused:
-          _emit(ActiveWorkoutState(
-            status: ActiveWorkoutStatus.paused,
-            record: record,
-            activeElapsedDuration: elapsed,
-            lastKnownSessionId: record.session.id,
-          ));
-          return true;
-        case WorkoutSessionStatus.completed:
-          stopDurationTicker();
-          _emit(ActiveWorkoutState(
-            status: ActiveWorkoutStatus.completed,
-            record: record,
-            activeElapsedDuration: elapsed,
-            lastKnownSessionId: record.session.id,
-          ));
-          return true;
-        case WorkoutSessionStatus.discarded:
-          stopDurationTicker();
-          _emit(ActiveWorkoutState(
-            status: ActiveWorkoutStatus.discarded,
-            record: record,
-            activeElapsedDuration: elapsed,
-            lastKnownSessionId: record.session.id,
-          ));
-          return true;
-      }
+      _applyAuthoritativeRecord(record);
+      return true;
     } on WorkoutSessionPersistenceException catch (e) {
       if (_disposed || version != _version || _isAuthInvalid()) return false;
       _emit(state.copyWith(
@@ -773,6 +664,9 @@ final class ActiveWorkoutController extends ChangeNotifier {
       clearErrorMessage: true,
       clearRecord: isNewSession,
       lastKnownSessionId: targetSessionId,
+      activeElapsedDuration:
+          isNewSession ? Duration.zero : state.activeElapsedDuration,
+      clearRestTimer: isNewSession,
     ));
 
     try {

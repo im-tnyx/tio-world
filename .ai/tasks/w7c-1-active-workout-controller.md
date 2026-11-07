@@ -117,6 +117,7 @@ UI (Future W7C-2) -> ActiveWorkoutController -> WorkoutSessionRepository -> Supa
 - [x] Push branch and open PR for independent review.
 - [x] Remediate CI analyzer findings (relative import depth, canonical Routine model in test, and Provider.autoDispose definition).
 - [x] Remediate Codex P2 review findings (#4502474724, #4502474728, #4502474732, #4502474740).
+- [x] Remediate follow-up Codex P2 review findings (#4502581537, #4502581544, #4502581548).
 
 ## 5. Quality Review
 
@@ -135,6 +136,9 @@ UI (Future W7C-2) -> ActiveWorkoutController -> WorkoutSessionRepository -> Supa
 | Concurrency serialization (#4502474728) | `active_workout_controller.dart` | Reads (`restoreActiveSession`, `reconcileState`) and mutations serialized via `_isActionInFlight` | Local Flutter test runner | None |
 | Authoritative start lifecycle (#4502474732) | `active_workout_controller.dart` | Idempotent replay start derives status from `record.session.status` (paused, completed, discarded) | Local Flutter test runner | None |
 | Clock rollback resilience (#4502474740) | `active_workout_controller.dart` | `_calculateElapsedDuration` clamps to watermark without throwing; ticker remains stable | Local Flutter test runner | None |
+| Duration baseline reset (#4502581537) | `active_workout_controller.dart` | Monotonic clamping scoped to same session ID; new session start resets duration baseline to 0 | Local Flutter test runner | None |
+| Guard start on reconciliation (#4502581544) | `active_workout_controller.dart` | `startSession` and `startSessionFromRoutine` reject dispatch when status is `reconciliationRequired` | Local Flutter test runner | None |
+| Authoritative mutation readback (#4502581548) | `active_workout_controller.dart` | Pause, resume, logSet, removeSet adopt `record.session.status` directly via `_applyAuthoritativeRecord` | Local Flutter test runner | None |
 
 ## 6. Final Handoff
 
