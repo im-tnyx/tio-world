@@ -171,6 +171,47 @@ final workoutSessionRepositoryProvider =
   );
 });
 
+/// Active workout session presentation controller.
+///
+/// Binds to [workoutSessionRepositoryProvider]. Returns null if user is unauthenticated
+/// or the repository is unavailable. Automatically disposes when unobserved.
+final activeWorkoutControllerProvider =
+    Provider.autoDispose<ActiveWorkoutController?>((ref) {
+  final repository = ref.watch(workoutSessionRepositoryProvider);
+  if (repository == null) return null;
+
+  final sessionAsync = ref.watch(authSessionStateProvider);
+  final auth = sessionAsync.isLoading || sessionAsync.hasError
+      ? null
+      : sessionAsync.valueOrNull;
+  if (auth is! AuthSessionAuthenticated) return null;
+
+  final ownerId = auth.session.userId;
+  final loginCycleId = auth.session.loginCycleId;
+
+  String? currentUserId() {
+    try {
+      final current = ref.read(authSessionStateProvider);
+      final currentAuth = current.isLoading || current.hasError
+          ? null
+          : current.valueOrNull;
+      if (currentAuth is AuthSessionAuthenticated &&
+          currentAuth.session.userId == ownerId &&
+          currentAuth.session.loginCycleId == loginCycleId) {
+        return ownerId;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  final controller = ActiveWorkoutController(
+    repository: repository,
+    currentUserId: currentUserId,
+  );
+  ref.onDispose(controller.dispose);
+  return controller;
+});
+
 /// Atomic nonempty Routine creation (#535/#536). A null production client is
 /// NOT permission to fall back to the legacy metadata-only CREATE route.
 final routineCreateRepositoryProvider = Provider<RoutineCreateRepository?>((ref) {
