@@ -19,6 +19,9 @@ enum WorkoutSessionPersistenceFailureKind {
   /// The user already has an active or paused session (violates partial unique index).
   duplicateActiveSession,
 
+  /// A performed set slot is already occupied by a different set (violates uq_user_workout_performed_sets_slot, PostgreSQL 23505).
+  setSlotConflict,
+
   /// An idempotent start replay was attempted with conflicting parameters (PostgreSQL 23505).
   duplicateSessionConflict,
 

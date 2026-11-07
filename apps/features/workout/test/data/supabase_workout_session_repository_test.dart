@@ -122,6 +122,7 @@ final class _FakeGateway implements WorkoutSessionGateway {
   List<Map<String, dynamic>> performedSets = [];
   int readHeaderCallCount = 0;
   List<Map<String, dynamic>> Function()? onReadHeaderSequence;
+  Future<Map<String, dynamic>?> Function()? onReadActiveHeader;
 
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onStart;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onPause;
@@ -133,7 +134,9 @@ final class _FakeGateway implements WorkoutSessionGateway {
 
   @override
   Future<Map<String, dynamic>?> readActiveSessionHeader(String userId) async =>
-      activeHeader;
+      onReadActiveHeader != null
+          ? await onReadActiveHeader!()
+          : activeHeader;
 
   @override
   Future<Map<String, dynamic>?> readSessionHeader(
@@ -557,6 +560,159 @@ void main() {
           (e) => e.kind,
           'kind',
           WorkoutSessionPersistenceFailureKind.unauthenticated,
+        )),
+      );
+    });
+
+    test('getActiveSession returns null if session transitioned to terminal during bracketed read', () async {
+      // 1. readActiveSessionHeader sees active session
+      gateway.activeHeader = _mockSessionRow(revision: 1, status: 'active');
+      // 2. Concurrent actor completes or discards before/during _readSession
+      gateway.sessionHeader = _mockSessionRow(
+        revision: 2,
+        status: 'completed',
+        completedAt: _startedAt.add(const Duration(minutes: 30)),
+      );
+
+      final active = await repo.getActiveSession();
+      expect(active, isNull);
+    });
+
+    test('performed-set slot conflict (23505 uq_user_workout_performed_sets_slot) maps to setSlotConflict', () async {
+      gateway.onLogSet = (_) async {
+        throw const PostgrestException(
+          message: 'duplicate key value violates unique constraint "uq_user_workout_performed_sets_slot"',
+          code: '23505',
+          details: 'Key (session_id, session_exercise_index, set_index)=(...) already exists.',
+        );
+      };
+
+      final set = PerformedSet(
+        id: '55555555-5555-4555-a555-555555555555',
+        exerciseRef: CatalogExerciseRef('ex_bench_press'),
+        sessionExerciseIndex: 0,
+        setIndex: 0,
+        reps: 10,
+      );
+
+      expect(
+        () => repo.logPerformedSet(
+          sessionId: _sessionId,
+          expectedRevision: 1,
+          set: set,
+        ),
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.setSlotConflict,
+        )),
+      );
+    });
+
+    test('session_already_terminal with code P0002 maps to terminalSessionImmutable', () async {
+      gateway.onLogSet = (_) async {
+        throw const PostgrestException(
+          message: 'session_already_terminal',
+          code: 'P0002',
+        );
+      };
+
+      final set = PerformedSet(
+        id: '55555555-5555-4555-a555-555555555555',
+        exerciseRef: CatalogExerciseRef('ex_bench_press'),
+        sessionExerciseIndex: 0,
+        setIndex: 0,
+        reps: 10,
+      );
+
+      expect(
+        () => repo.logPerformedSet(
+          sessionId: _sessionId,
+          expectedRevision: 1,
+          set: set,
+        ),
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.terminalSessionImmutable,
+        )),
+      );
+    });
+
+    test('unrecognized 23505 constraint maps to invalidPayload instead of duplicateActiveSession', () async {
+      gateway.onStart = (_) async {
+        throw const PostgrestException(
+          message: 'duplicate key violates unknown_constraint',
+          code: '23505',
+        );
+      };
+
+      expect(
+        () => repo.startSession(_mockSession()),
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.invalidPayload,
+        )),
+      );
+    });
+
+    test('in-flight auth invalidation during read preserves unauthenticated / unauthorized', () async {
+      final completer = Completer<Map<String, dynamic>?>();
+      gateway.onReadActiveHeader = () => completer.future;
+
+      final futureUnauth = repo.getActiveSession();
+      currentUserId = null; // signed out mid-request
+      completer.complete(_mockSessionRow());
+
+      await expectLater(
+        futureUnauth,
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.unauthenticated,
+        )),
+      );
+
+      // Reset and test account switch
+      currentUserId = _owner;
+      final completerSwitch = Completer<Map<String, dynamic>?>();
+      gateway.onReadActiveHeader = () => completerSwitch.future;
+
+      final futureSwitch = repo.getActiveSession();
+      currentUserId = _otherOwner; // user switched mid-request
+      completerSwitch.complete(_mockSessionRow());
+
+      await expectLater(
+        futureSwitch,
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.unauthorized,
+        )),
+      );
+    });
+
+    test('in-flight auth change during mutation raises WorkoutSessionMutationOutcomeUnknown(sessionChanged)', () async {
+      final completer = Completer<Map<String, dynamic>>();
+      gateway.onPause = (_) => completer.future;
+
+      final future = repo.pauseSession(
+        sessionId: _sessionId,
+        expectedRevision: 1,
+        pausedAtUtc: _startedAt.add(const Duration(minutes: 5)),
+      );
+
+      // Account changed while mutation was in flight:
+      currentUserId = _otherOwner;
+      completer.complete(_mockSessionRow(revision: 2, status: 'paused'));
+
+      await expectLater(
+        future,
+        throwsA(isA<WorkoutSessionMutationOutcomeUnknown>().having(
+          (e) => e.reason,
+          'reason',
+          WorkoutSessionMutationUncertainty.sessionChanged,
         )),
       );
     });

@@ -43,13 +43,13 @@ This is a compact recovery checkpoint, not a live activity log. Refresh it only 
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-07 16:21 UTC+05:30
 **Branch:** `feat/w7b-2a-workout-session-persistence-gateway`
-**HEAD SHA:** `15fb580e7926027caf3266fbe7971340da222ff1` (pre-commit main baseline)
-**Observed working-tree state:** Complete implementation ready for commit
-**Observed uncommitted/dirty files:** None (all changes are tracked/staged for W7B-2A)
-**PR / tracker:** Linear TNYX-84 (W7 Active Workout) - Ready for Review
-**Current implementation state:** Complete. Gateway, repository, DTOs, provider, and test suites written and validated.
+**HEAD SHA:** `453a3ac3b5dc6652ffa8d5980926c11a04597d41`
+**Observed working-tree state:** Complete implementation and P2 review remediation ready for review
+**Observed uncommitted/dirty files:** None
+**PR / tracker:** Linear TNYX-84 (W7 Active Workout) - PR #735
+**Current implementation state:** Complete. Remediation of P2 review findings verified with 21 passing repository tests.
 **Relevant execution surface:** `apps/features/workout/`, `apps/app/`
-**Validation completed at SHA:** 970f2222c407ded7b47239bd3f84696602404803
+**Validation completed at SHA:** 453a3ac3b5dc6652ffa8d5980926c11a04597d41
 **Validation remaining:** Independent peer review and CI merge gate
 **Current blocker:** None
 **Open review finding IDs:** None
@@ -181,7 +181,7 @@ Result: 11 passed in 5s.
 4. `apps/features/workout` Repository unit tests:
 ```text
 flutter test test/data/supabase_workout_session_repository_test.dart
-Result: 15 passed in 5s.
+Result: 21 passed in 5s (including 6 remediation regression tests).
 ```
 
 5. `apps/app` Provider lifecycle unit tests:
@@ -193,7 +193,7 @@ Result: 4 passed in 6s.
 6. `apps/features/workout` Full test suite regression:
 ```text
 flutter test
-Result: 1,155 passed in ~35s. Zero failures.
+Result: 1,161 passed in ~35s. Zero failures.
 ```
 
 7. Local disposable database pgTAP regression suite (`supabase_db_oykupyiitspujzpwwvuj` on port 54322):
@@ -208,24 +208,26 @@ Result: 82 assertions passed in 1.4s. Zero failures.
 |---|---|---|---|---|
 | Domain purity & Record envelope | `workout_session_record.dart`, `models.dart` | `workout_session_repository_test.dart` verifies envelope separation | Local Flutter test runner | None |
 | Snapshot DTO schema conformance | `workout_session_dtos.dart` | `workout_session_dtos_test.dart` validates JSONB matches SQL constraint | Local Flutter test runner | None |
-| 7 RPC contract & bracketed read | `supabase_workout_session_repository.dart`, gateway | 26 tests across gateway & repository test suites | Local Flutter test runner | None |
+| 7 RPC contract & bracketed read | `supabase_workout_session_repository.dart`, gateway | 32 tests across gateway & repository test suites | Local Flutter test runner | None |
 | Auth lifecycle & zero mock fallback | `workout_providers.dart` | `workout_session_repository_provider_test.dart` verifies unauth throws and session transition | Local Flutter test runner | None |
 | Database security & RLS isolation | `w7b_session_security.test.sql` | 82 pgTAP assertions | Local Docker disposable DB | None |
 
 ### Review Provenance
 
-**Review source / link:** Self-review & automated validation suites
-**Reviewer / relation to implementer:** Antigravity (implementer self-review)
-**Diff or commit SHA actually reviewed:** Staged working directory diff against main `15fb580e7926027caf3266fbe7971340da222ff1`
-**Review result and finding IDs/dispositions:** Clean, all requirements met.
-**Independent review?** No (self-review; awaiting external peer review)
+**Review source / link:** GitHub PR #735 (im-tio review, copilot review)
+**Reviewer / relation to implementer:** `im-tio` (collaborator, peer reviewer)
+**Diff or commit SHA actually reviewed:** `e844030c372366584b636a293ae5898624248f22`
+**Review result and finding IDs/dispositions:** 3 P2 findings identified by `im-tio` and addressed with focused regression tests.
+**Independent review?** Yes (`im-tio`)
 **Limitations and unmet required gates:** None.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| - | - | None | No defects found | - | - |
+| W7B2A-P2-01 | P2 | Resolved | `getActiveSession()` race: if session transitions to terminal during bracketed read, it returned terminal record instead of null | `e844030c` | Fixed in `supabase_workout_session_repository.dart`; verified by regression test |
+| W7B2A-P2-02 | P2 | Resolved | Set slot conflict (`uq_user_workout_performed_sets_slot` 23505) and `session_already_terminal` (P0002) misclassified | `e844030c` | Added `setSlotConflict` kind, priority mapping for `session_already_terminal` to `terminalSessionImmutable`, unknown 23505 to `invalidPayload`; verified by tests |
+| W7B2A-P2-03 | P2 | Resolved | In-flight auth invalidation/session change misclassified as network transport failure | `e844030c` | Handled `WorkoutSessionPersistenceException` before network catch: rethrow for read, `WorkoutSessionMutationOutcomeUnknown(sessionChanged)` for mutation; verified by tests |
 
 ## 7. Final Handoff
 

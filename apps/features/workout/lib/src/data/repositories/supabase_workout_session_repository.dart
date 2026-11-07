@@ -67,7 +67,13 @@ final class SupabaseWorkoutSessionRepository
 
     if (header == null) return null;
     final sessionId = WorkoutSessionId(header['id'] as String);
-    return _readSession(owner, sessionId);
+    final sessionRecord = await _readSession(owner, sessionId);
+    if (sessionRecord == null) return null;
+    if (sessionRecord.session.status != WorkoutSessionStatus.active &&
+        sessionRecord.session.status != WorkoutSessionStatus.paused) {
+      return null;
+    }
+    return sessionRecord;
   }
 
   @override
@@ -365,6 +371,8 @@ final class SupabaseWorkoutSessionRepository
       final result = await call().timeout(_requestTimeout);
       _checkOwner(owner);
       return result;
+    } on WorkoutSessionPersistenceException {
+      rethrow;
     } on TimeoutException catch (e) {
       throw WorkoutSessionPersistenceException(
         WorkoutSessionPersistenceFailureKind.networkUnavailable,
@@ -392,6 +400,16 @@ final class SupabaseWorkoutSessionRepository
       final result = await operation().timeout(_requestTimeout);
       _checkOwner(owner);
       return result;
+    } on WorkoutSessionPersistenceException catch (e) {
+      if (e.kind == WorkoutSessionPersistenceFailureKind.unauthenticated ||
+          e.kind == WorkoutSessionPersistenceFailureKind.unauthorized) {
+        throw WorkoutSessionMutationOutcomeUnknown(
+          sessionId: sessionId,
+          reason: WorkoutSessionMutationUncertainty.sessionChanged,
+          cause: e,
+        );
+      }
+      rethrow;
     } on TimeoutException catch (e) {
       throw WorkoutSessionMutationOutcomeUnknown(
         sessionId: sessionId,
@@ -422,6 +440,12 @@ final class SupabaseWorkoutSessionRepository
 
   void _checkOwner(String owner) {
     final current = _currentUserId()?.trim().toLowerCase();
+    if (current == null || !_isUuid(current)) {
+      throw const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.unauthenticated,
+        message: 'No authenticated user session',
+      );
+    }
     if (current != owner) {
       throw const WorkoutSessionPersistenceException(
         WorkoutSessionPersistenceFailureKind.unauthorized,
@@ -474,6 +498,18 @@ final class SupabaseWorkoutSessionRepository
       );
     }
 
+    if (code == 'P0001' ||
+        message.contains('session_already_terminal') ||
+        message.contains('terminal_workout_session_immutable') ||
+        message.contains('terminal_session_sets_immutable') ||
+        message.contains('immutable')) {
+      return WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.terminalSessionImmutable,
+        message: error.message,
+        cause: error,
+      );
+    }
+
     if (code == 'P0002' ||
         message.contains('session_not_found') ||
         message.contains('set_not_found')) {
@@ -485,9 +521,18 @@ final class SupabaseWorkoutSessionRepository
     }
 
     if (code == '23505' || message.contains('duplicate')) {
+      if (message.contains('uq_user_workout_performed_sets_slot') ||
+          details.contains('uq_user_workout_performed_sets_slot')) {
+        return WorkoutSessionPersistenceException(
+          WorkoutSessionPersistenceFailureKind.setSlotConflict,
+          message: error.message,
+          cause: error,
+        );
+      }
       if (message.contains('single_active') ||
           details.contains('single_active') ||
-          message.contains('uq_user_workout_sessions_single_active')) {
+          message.contains('uq_user_workout_sessions_single_active') ||
+          details.contains('uq_user_workout_sessions_single_active')) {
         return WorkoutSessionPersistenceException(
           WorkoutSessionPersistenceFailureKind.duplicateActiveSession,
           message: error.message,
@@ -509,18 +554,7 @@ final class SupabaseWorkoutSessionRepository
         );
       }
       return WorkoutSessionPersistenceException(
-        WorkoutSessionPersistenceFailureKind.duplicateActiveSession,
-        message: error.message,
-        cause: error,
-      );
-    }
-
-    if (code == 'P0001' ||
-        message.contains('terminal_workout_session_immutable') ||
-        message.contains('terminal_session_sets_immutable') ||
-        message.contains('immutable')) {
-      return WorkoutSessionPersistenceException(
-        WorkoutSessionPersistenceFailureKind.terminalSessionImmutable,
+        WorkoutSessionPersistenceFailureKind.invalidPayload,
         message: error.message,
         cause: error,
       );
