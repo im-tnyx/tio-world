@@ -180,8 +180,12 @@ final class ActiveWorkoutState {
   int? get revision => record?.revision;
 
   /// Active or last-known session ID.
+  ///
+  /// Prioritizes [lastKnownSessionId] (e.g. the explicit target of a pending
+  /// or uncertain mutation) so a stale previous session record cannot hijack
+  /// reconciliation of a new session.
   WorkoutSessionId? get sessionId =>
-      record?.session.id ?? lastKnownSessionId;
+      lastKnownSessionId ?? record?.session.id;
 
   /// Sets performed in this session so far.
   List<PerformedSet> get performedSets =>

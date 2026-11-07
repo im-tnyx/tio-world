@@ -38,7 +38,9 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
     startSessionCalls++;
     if (errorToThrow != null) throw errorToThrow!;
     if (pendingCompleter != null) return pendingCompleter!.future;
-    final record = WorkoutSessionRecord(session: session, revision: 1);
+    final record = sessionsById[session.id.value] ??
+        activeSessionToReturn ??
+        WorkoutSessionRecord(session: session, revision: 1);
     activeSessionToReturn = record;
     sessionsById[session.id.value] = record;
     return record;
@@ -837,6 +839,479 @@ void main() {
       final success = await future;
 
       expect(success, isFalse);
+    });
+  });
+
+  group('P2 #4502474724 - Session Reconciliation Target Separation', () {
+    test('A completed -> B start -> unknown outcome reconciles B, not A', () async {
+      final sessionA = createTestSession();
+      final controller = createController();
+      await controller.startSession(sessionA);
+      await controller.completeSession();
+      expect(controller.state.status, ActiveWorkoutStatus.completed);
+      expect(controller.state.record?.session.id, sessionA.id);
+
+      final sessionBId = WorkoutSessionId('bbbbbbbb-bbbb-4bbb-abbb-bbbbbbbbbbbb');
+      final sessionB = WorkoutSession(
+        id: sessionBId,
+        userId: testUserId,
+        programId: testProgramId,
+        routineId: testRoutineId,
+        status: WorkoutSessionStatus.active,
+        time: WorkoutTime(
+          startedAtUtc: testStartTime,
+          lastTransitionAtUtc: testStartTime,
+        ),
+        localDate: '2026-11-07',
+        snapshot: createTestSnapshot(),
+      );
+
+      fakeRepo.errorToThrow = WorkoutSessionMutationOutcomeUnknown(
+        sessionId: sessionBId,
+        reason: WorkoutSessionMutationUncertainty.networkTimeout,
+      );
+      final startSuccess = await controller.startSession(sessionB);
+      expect(startSuccess, isFalse);
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.record, isNull);
+      expect(controller.state.lastKnownSessionId, sessionBId);
+      expect(controller.state.sessionId, sessionBId);
+
+      // Now reconcile state against server
+      fakeRepo.errorToThrow = null;
+      fakeRepo.sessionsById[sessionBId.value] = WorkoutSessionRecord(
+        session: sessionB,
+        revision: 1,
+      );
+
+      final reconcileSuccess = await controller.reconcileState();
+      expect(reconcileSuccess, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.active);
+      expect(controller.state.record?.session.id, sessionBId);
+      expect(controller.state.sessionId, sessionBId);
+    });
+
+    test('A discarded -> B start -> committed-readback failure reconciles B, not A', () async {
+      final sessionA = createTestSession();
+      final controller = createController();
+      await controller.startSession(sessionA);
+      await controller.discardSession(reason: 'Injury');
+      expect(controller.state.status, ActiveWorkoutStatus.discarded);
+      expect(controller.state.record?.session.id, sessionA.id);
+
+      final sessionBId = WorkoutSessionId('bbbbbbbb-bbbb-4bbb-abbb-bbbbbbbbbbbb');
+      final sessionB = WorkoutSession(
+        id: sessionBId,
+        userId: testUserId,
+        programId: testProgramId,
+        routineId: testRoutineId,
+        status: WorkoutSessionStatus.active,
+        time: WorkoutTime(
+          startedAtUtc: testStartTime,
+          lastTransitionAtUtc: testStartTime,
+        ),
+        localDate: '2026-11-07',
+        snapshot: createTestSnapshot(),
+      );
+
+      fakeRepo.errorToThrow = WorkoutSessionCommittedReadbackException(
+        sessionId: sessionBId,
+        operationName: 'startSession',
+        message: 'Timeout reading back session B',
+      );
+      final startSuccess = await controller.startSession(sessionB);
+      expect(startSuccess, isFalse);
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.record, isNull);
+      expect(controller.state.sessionId, sessionBId);
+
+      // Reconcile reads B, which server has in paused state
+      final pausedB = sessionB.pause(testStartTime.add(const Duration(minutes: 5)));
+      fakeRepo.errorToThrow = null;
+      fakeRepo.sessionsById[sessionBId.value] = WorkoutSessionRecord(
+        session: pausedB,
+        revision: 2,
+      );
+
+      final reconcileSuccess = await controller.reconcileState();
+      expect(reconcileSuccess, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.paused);
+      expect(controller.state.record?.session.id, sessionBId);
+      expect(controller.state.isPaused, isTrue);
+    });
+
+    test('B remains resumable and editable if server confirms active state after reconciliation', () async {
+      final sessionA = createTestSession();
+      final controller = createController();
+      await controller.startSession(sessionA);
+      await controller.completeSession();
+
+      final sessionBId = WorkoutSessionId('bbbbbbbb-bbbb-4bbb-abbb-bbbbbbbbbbbb');
+      final sessionB = WorkoutSession(
+        id: sessionBId,
+        userId: testUserId,
+        programId: testProgramId,
+        routineId: testRoutineId,
+        status: WorkoutSessionStatus.active,
+        time: WorkoutTime(
+          startedAtUtc: testStartTime,
+          lastTransitionAtUtc: testStartTime,
+        ),
+        localDate: '2026-11-07',
+        snapshot: createTestSnapshot(),
+      );
+
+      fakeRepo.errorToThrow = WorkoutSessionMutationOutcomeUnknown(
+        sessionId: sessionBId,
+        reason: WorkoutSessionMutationUncertainty.networkTimeout,
+      );
+      await controller.startSession(sessionB);
+
+      fakeRepo.errorToThrow = null;
+      fakeRepo.sessionsById[sessionBId.value] = WorkoutSessionRecord(
+        session: sessionB,
+        revision: 1,
+      );
+      await controller.reconcileState();
+      expect(controller.state.isRunning, isTrue);
+
+      final logSuccess = await controller.logSet(
+        sessionExerciseIndex: 0,
+        setIndex: 0,
+        reps: 10,
+        loadKg: 50,
+      );
+      expect(logSuccess, isTrue);
+      expect(controller.state.performedSets.length, 1);
+      expect(controller.state.record?.session.id, sessionBId);
+    });
+  });
+
+  group('P2 #4502474728 - Restore & Reconciliation Concurrency Serialization', () {
+    test('restoreActiveSession returns immediately if a mutation (pause) is in flight', () async {
+      final session = createTestSession();
+      final controller = createController();
+      await controller.startSession(session);
+
+      final completer = Completer<WorkoutSessionRecord>();
+      fakeRepo.pendingCompleter = completer;
+
+      final pauseFuture = controller.pauseSession();
+      expect(controller.state.isActionPending, isTrue);
+      expect(controller.state.pendingActionName, 'pauseSession');
+
+      final initialRestoreCalls = fakeRepo.getActiveSessionCalls;
+      await controller.restoreActiveSession();
+      expect(fakeRepo.getActiveSessionCalls, initialRestoreCalls);
+
+      completer.complete(WorkoutSessionRecord(
+        session: session.pause(testStartTime.add(const Duration(minutes: 1))),
+        revision: 2,
+      ));
+      final pauseSuccess = await pauseFuture;
+      expect(pauseSuccess, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.paused);
+      expect(controller.state.record?.revision, 2);
+    });
+
+    test('reconcileState returns false immediately if logSet is in flight', () async {
+      final session = createTestSession();
+      final controller = createController();
+      await controller.startSession(session);
+
+      final completer = Completer<WorkoutSessionRecord>();
+      fakeRepo.pendingCompleter = completer;
+
+      final logFuture = controller.logSet(
+        sessionExerciseIndex: 0,
+        setIndex: 0,
+        reps: 8,
+      );
+
+      final reconcileResult = await controller.reconcileState();
+      expect(reconcileResult, isFalse);
+
+      final performedSet = PerformedSet(
+        id: '66666666-6666-4666-a666-666666666666',
+        exerciseRef: testExerciseRef,
+        sessionExerciseIndex: 0,
+        setIndex: 0,
+        reps: 8,
+        completedAtUtc: testStartTime,
+      );
+      completer.complete(WorkoutSessionRecord(
+        session: session.logSet(performedSet),
+        revision: 2,
+      ));
+      final logSuccess = await logFuture;
+      expect(logSuccess, isTrue);
+      expect(controller.state.record?.revision, 2);
+    });
+
+    test('restoreActiveSession returns immediately if completeSession is in flight', () async {
+      final session = createTestSession();
+      final controller = createController();
+      await controller.startSession(session);
+
+      final completer = Completer<WorkoutSessionRecord>();
+      fakeRepo.pendingCompleter = completer;
+
+      final completeFuture = controller.completeSession();
+
+      final initialRestoreCalls = fakeRepo.getActiveSessionCalls;
+      await controller.restoreActiveSession();
+      expect(fakeRepo.getActiveSessionCalls, initialRestoreCalls);
+
+      completer.complete(WorkoutSessionRecord(
+        session: session.complete(testStartTime.add(const Duration(minutes: 30))),
+        revision: 2,
+      ));
+      final completeSuccess = await completeFuture;
+      expect(completeSuccess, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.completed);
+    });
+
+    test('mutations are rejected while reconcileState is in flight', () async {
+      final session = createTestSession();
+      fakeRepo.sessionsById[session.id.value] =
+          WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+
+      final completer = Completer<WorkoutSessionRecord>();
+      fakeRepo.pendingCompleter = completer;
+
+      final reconcileFuture = controller.reconcileState();
+      expect(controller.state.isActionPending, isTrue);
+
+      final pauseSuccess = await controller.pauseSession();
+      expect(pauseSuccess, isFalse);
+
+      completer.complete(WorkoutSessionRecord(session: session, revision: 1));
+      await reconcileFuture;
+    });
+
+    test('deferred read completing after auth change does not overwrite authInvalidated state', () async {
+      final session = createTestSession();
+      fakeRepo.sessionsById[session.id.value] =
+          WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+
+      final completer = Completer<WorkoutSessionRecord>();
+      fakeRepo.pendingCompleter = completer;
+
+      final reconcileFuture = controller.reconcileState();
+      expect(controller.state.isActionPending, isTrue);
+
+      currentUserId = null;
+      controller.onAuthChanged();
+      expect(controller.state.status, ActiveWorkoutStatus.authInvalidated);
+
+      completer.complete(WorkoutSessionRecord(session: session, revision: 1));
+      final result = await reconcileFuture;
+      expect(result, isFalse);
+      expect(controller.state.status, ActiveWorkoutStatus.authInvalidated);
+    });
+
+    test('disposal during in-flight operation completes safely without modifying state or throwing', () async {
+      final session = createTestSession();
+      final controller = createController();
+      await controller.startSession(session);
+
+      final completer = Completer<WorkoutSessionRecord>();
+      fakeRepo.pendingCompleter = completer;
+
+      final pauseFuture = controller.pauseSession();
+      expect(controller.state.isActionPending, isTrue);
+
+      controller.dispose();
+
+      completer.complete(WorkoutSessionRecord(
+        session: session.pause(testStartTime.add(const Duration(minutes: 1))),
+        revision: 2,
+      ));
+      final result = await pauseFuture;
+      expect(result, isFalse);
+    });
+  });
+
+  group('P2 #4502474732 - Authoritative Start Lifecycle Handling', () {
+    test('startSession returning active session adopts active status', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(
+        session: session,
+        revision: 1,
+      );
+
+      final controller = createController();
+      final success = await controller.startSession(session);
+
+      expect(success, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.active);
+      expect(controller.state.isRunning, isTrue);
+      expect(controller.state.record?.revision, 1);
+    });
+
+    test('idempotent replay start returns paused session and adopts paused status', () async {
+      final session = createTestSession();
+      final pausedSession = session.pause(testStartTime.add(const Duration(minutes: 2)));
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(
+        session: pausedSession,
+        revision: 3,
+      );
+
+      final controller = createController();
+      final success = await controller.startSession(session);
+
+      expect(success, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.paused);
+      expect(controller.state.isPaused, isTrue);
+      expect(controller.state.record?.revision, 3);
+    });
+
+    test('idempotent replay start returns completed session and adopts terminal completed status', () async {
+      final session = createTestSession();
+      final completedSession = session.complete(testStartTime.add(const Duration(minutes: 45)));
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(
+        session: completedSession,
+        revision: 5,
+      );
+
+      final controller = createController();
+      final success = await controller.startSession(session);
+
+      expect(success, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.completed);
+      expect(controller.state.isTerminal, isTrue);
+      expect(controller.state.record?.revision, 5);
+
+      final logSuccess = await controller.logSet(sessionExerciseIndex: 0, setIndex: 0, reps: 5);
+      expect(logSuccess, isFalse);
+    });
+
+    test('idempotent replay start returns discarded session and adopts terminal discarded status', () async {
+      final session = createTestSession();
+      final discardedSession = session.discard(
+        testStartTime.add(const Duration(minutes: 10)),
+        reason: 'User gave up',
+      );
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(
+        session: discardedSession,
+        revision: 4,
+      );
+
+      final controller = createController();
+      final success = await controller.startSession(session);
+
+      expect(success, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.discarded);
+      expect(controller.state.isTerminal, isTrue);
+    });
+
+    test('idempotent replay start returns paused session after another device paused it, and resumeSession succeeds', () async {
+      final session = createTestSession();
+      final pausedSession = session.pause(testStartTime.add(const Duration(minutes: 5)));
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(
+        session: pausedSession,
+        revision: 2,
+      );
+
+      final controller = createController();
+      final success = await controller.startSession(session);
+      expect(success, isTrue);
+      expect(controller.state.isPaused, isTrue);
+
+      // Now resume from paused state
+      final resumedSession = pausedSession.resume(testStartTime.add(const Duration(minutes: 6)));
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(
+        session: resumedSession,
+        revision: 3,
+      );
+
+      final resumeSuccess = await controller.resumeSession();
+      expect(resumeSuccess, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.active);
+      expect(controller.state.record?.revision, 3);
+    });
+  });
+
+  group('P2 #4502474740 - Device Clock Rollback Resilience', () {
+    test('device clock backward jump before lastTransitionAtUtc does not throw and preserves stable duration', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+
+      currentTime = testStartTime.add(const Duration(seconds: 10));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 10));
+
+      currentTime = testStartTime.subtract(const Duration(seconds: 20));
+
+      expect(() => controller.updateElapsedDuration(), returnsNormally);
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 10));
+    });
+
+    test('normal duration progression resumes once device clock advances past rollback watermark', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+
+      currentTime = testStartTime.add(const Duration(seconds: 15));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 15));
+
+      currentTime = testStartTime.add(const Duration(seconds: 5));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 15));
+
+      currentTime = testStartTime.add(const Duration(seconds: 20));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 20));
+    });
+
+    test('clock rollback during paused session preserves paused duration without error', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+
+      currentTime = testStartTime.add(const Duration(seconds: 30));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 30));
+
+      await controller.pauseSession(pausedAtUtc: currentTime);
+      expect(controller.state.isPaused, isTrue);
+
+      currentTime = testStartTime.subtract(const Duration(seconds: 10));
+      expect(() => controller.updateElapsedDuration(), returnsNormally);
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 30));
+    });
+
+    test('app foreground re-evaluation updates elapsed time safely without unhandled exception', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+
+      currentTime = testStartTime.subtract(const Duration(minutes: 5));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, Duration.zero);
+    });
+
+    test('ticker stops on disposal, completion, discard, and auth invalidation', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+
+      controller.startDurationTicker(interval: const Duration(milliseconds: 50));
+      await controller.completeSession();
+      expect(controller.state.status, ActiveWorkoutStatus.completed);
+
+      expect(() => controller.dispose(), returnsNormally);
     });
   });
 }

@@ -116,6 +116,7 @@ UI (Future W7C-2) -> ActiveWorkoutController -> WorkoutSessionRepository -> Supa
 - [x] Write provider lifecycle tests in `active_workout_controller_provider_test.dart`.
 - [x] Push branch and open PR for independent review.
 - [x] Remediate CI analyzer findings (relative import depth, canonical Routine model in test, and Provider.autoDispose definition).
+- [x] Remediate Codex P2 review findings (#4502474724, #4502474728, #4502474732, #4502474740).
 
 ## 5. Quality Review
 
@@ -130,6 +131,10 @@ UI (Future W7C-2) -> ActiveWorkoutController -> WorkoutSessionRepository -> Supa
 | Performed set logging & removal | `active_workout_controller.dart` | `logs performed set`, `removes performed set` pass | Local Flutter test runner | None |
 | OCC & readback recovery | `active_workout_controller.dart` | `committed mutation readback failure`, `staleRevisionConflict` pass | Local Flutter test runner | None |
 | Auth invalidation & isolation | `active_workout_controller.dart`, provider | `invalidates controller when auth changes` passes | Local Flutter test runner | None |
+| Target separation (#4502474724) | `active_workout_state.dart`, controller | A completed -> B start -> unknown outcome reconciles B, not A; `sessionId` prioritizes `lastKnownSessionId` | Local Flutter test runner | None |
+| Concurrency serialization (#4502474728) | `active_workout_controller.dart` | Reads (`restoreActiveSession`, `reconcileState`) and mutations serialized via `_isActionInFlight` | Local Flutter test runner | None |
+| Authoritative start lifecycle (#4502474732) | `active_workout_controller.dart` | Idempotent replay start derives status from `record.session.status` (paused, completed, discarded) | Local Flutter test runner | None |
+| Clock rollback resilience (#4502474740) | `active_workout_controller.dart` | `_calculateElapsedDuration` clamps to watermark without throwing; ticker remains stable | Local Flutter test runner | None |
 
 ## 6. Final Handoff
 
