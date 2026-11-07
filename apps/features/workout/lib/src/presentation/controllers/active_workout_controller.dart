@@ -117,13 +117,16 @@ final class ActiveWorkoutController extends ChangeNotifier {
     if (session.isTerminal) {
       stopDurationTicker();
     }
+    final changesSession = state.record?.session.id != session.id;
 
     _emit(ActiveWorkoutState(
       status: status,
       record: record,
       activeElapsedDuration: elapsed,
       activeRestTimer:
-          (clearRestTimer || session.isTerminal) ? null : (restTimer ?? state.activeRestTimer),
+          (clearRestTimer || session.isTerminal || changesSession)
+              ? null
+              : (restTimer ?? state.activeRestTimer),
       lastKnownSessionId: session.id,
     ));
   }
@@ -775,15 +778,23 @@ final class ActiveWorkoutController extends ChangeNotifier {
         ));
         return false;
       }
-      if (e.kind == WorkoutSessionPersistenceFailureKind.staleRevisionConflict) {
+      if (e.kind == WorkoutSessionPersistenceFailureKind.staleRevisionConflict ||
+          e.kind == WorkoutSessionPersistenceFailureKind.terminalSessionImmutable ||
+          e.kind == WorkoutSessionPersistenceFailureKind.invalidStateTransition) {
+        stopDurationTicker();
         _emit(state.copyWith(
           status: ActiveWorkoutStatus.reconciliationRequired,
           isActionPending: false,
           clearPendingAction: true,
           clearRecord: isNewSession,
           lastKnownSessionId: targetSessionId,
-          reconciliationReason: 'stale_revision_conflict',
-          errorMessage: 'Revision conflict: session was updated on another device. Please reconcile.',
+          clearRestTimer: true,
+          reconciliationReason:
+              e.kind == WorkoutSessionPersistenceFailureKind.staleRevisionConflict
+                  ? 'stale_revision_conflict'
+                  : e.kind.name,
+          errorMessage:
+              'Workout lifecycle changed on another device. Please reconcile before continuing.',
         ));
         return false;
       }

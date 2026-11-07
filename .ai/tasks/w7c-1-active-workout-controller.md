@@ -51,8 +51,8 @@ This is a compact recovery checkpoint, not a live activity log. Refresh it only 
 **Validation completed at SHA:** bb86b36870074ffbe29b7c8a544c0cc7abfba677
 **Validation remaining:** Focused controller tests, provider lifecycle tests, affected Workout/app tests, Flutter analyze, Melos validation, final CI on pushed SHA.
 **Current blocker:** Local Flutter/Dart/Melos executables are unavailable; GitHub network access from the shell is also unavailable until the branch can be pushed through an available transport.
-**Open review finding IDs:** `PRRT_kwDOTOXwB8605XTc` (duplicate active-session reconciliation), `PRRT_kwDOTOXwB8605XTe` (same-login Auth provider lifecycle stability).
-**Next exact action:** Apply the bounded PR #736 remediation, then run focused controller and provider lifecycle regression tests.
+**Open review finding IDs:** `PRRT_kwDOTOXwB8605XTc` (duplicate active-session reconciliation), `PRRT_kwDOTOXwB8605XTe` (same-login Auth provider lifecycle stability), `PRRT_kwDOTOXwB8605sDp` (lifecycle-mismatch recovery), `PRRT_kwDOTOXwB8605sDs` (cross-session rest-timer isolation).
+**Next exact action:** Remediate the two new exact-head P2 controller findings, then re-run the focused CI/review gate.
 
 ## Global UI / Design-System Guardrail
 

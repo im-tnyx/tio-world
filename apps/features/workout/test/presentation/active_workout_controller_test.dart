@@ -1050,6 +1050,75 @@ void main() {
     });
   });
 
+  group('P2 #4503274092 - Lifecycle Mismatch Recovery', () {
+    test('terminal-session mutation failure requires reconciliation and clears stale timer state',
+        () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn =
+          WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.restoreActiveSession();
+      controller.startRestTimer(durationSeconds: 90);
+      fakeRepo.errorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.terminalSessionImmutable,
+      );
+
+      expect(
+        await controller.logSet(
+          sessionExerciseIndex: 0,
+          setIndex: 0,
+          reps: 8,
+        ),
+        isFalse,
+      );
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.reconciliationReason, 'terminalSessionImmutable');
+      expect(controller.state.activeRestTimer, isNull);
+    });
+
+    test('invalid lifecycle transition requires reconciliation instead of retaining mutation authority',
+        () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn =
+          WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.restoreActiveSession();
+      fakeRepo.errorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.invalidStateTransition,
+      );
+
+      expect(await controller.pauseSession(), isFalse);
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.reconciliationReason, 'invalidStateTransition');
+    });
+  });
+
+  group('P2 #4503274095 - Cross-Session Rest Timer Isolation', () {
+    test('restoring a different canonical session clears the previous session rest timer',
+        () async {
+      final sessionA = createTestSession();
+      final sessionB = createTestSession(
+        id: WorkoutSessionId('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb'),
+      );
+      fakeRepo.activeSessionToReturn =
+          WorkoutSessionRecord(session: sessionA, revision: 1);
+      final controller = createController();
+      await controller.restoreActiveSession();
+      controller.startRestTimer(
+        durationSeconds: 90,
+        sessionExerciseIndex: 0,
+        setIndex: 1,
+      );
+
+      fakeRepo.activeSessionToReturn =
+          WorkoutSessionRecord(session: sessionB, revision: 1);
+      await controller.restoreActiveSession();
+
+      expect(controller.state.record?.session.id, sessionB.id);
+      expect(controller.state.activeRestTimer, isNull);
+    });
+  });
+
   group('P2 #4502474724 - Session Reconciliation Target Separation', () {
     test('A completed -> B start -> unknown outcome reconciles B, not A', () async {
       final sessionA = createTestSession();
