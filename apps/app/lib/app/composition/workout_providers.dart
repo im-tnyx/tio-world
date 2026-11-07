@@ -130,6 +130,47 @@ final userExerciseRepositoryProvider =
   return SupabaseUserExerciseRepository(client: supabaseClient);
 });
 
+/// Authenticated Workout Session persistence (W7B-2A online-first gateway).
+///
+/// Null means no authenticated Supabase client or active session exists.
+/// The repository binds to the current login cycle so account switches and
+/// logouts immediately invalidate session-local state and prevent stale writes.
+final workoutSessionRepositoryProvider =
+    Provider<WorkoutSessionRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  final sessionAsync = ref.watch(authSessionStateProvider);
+  final auth = sessionAsync.isLoading || sessionAsync.hasError
+      ? null
+      : sessionAsync.valueOrNull;
+  if (client == null ||
+      auth is! AuthSessionAuthenticated ||
+      auth.session.userId != client.auth.currentUser?.id) {
+    return null;
+  }
+
+  final ownerId = auth.session.userId;
+  final loginCycleId = auth.session.loginCycleId;
+  bool isCurrentSession() {
+    try {
+      final current = ref.read(authSessionStateProvider);
+      final currentAuth = current.isLoading || current.hasError
+          ? null
+          : current.valueOrNull;
+      return currentAuth is AuthSessionAuthenticated &&
+          currentAuth.session.userId == ownerId &&
+          currentAuth.session.loginCycleId == loginCycleId &&
+          client.auth.currentUser?.id == ownerId;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  return SupabaseWorkoutSessionRepository(
+    gateway: SupabaseWorkoutSessionGateway(client),
+    currentUserId: () => isCurrentSession() ? ownerId : null,
+  );
+});
+
 /// Atomic nonempty Routine creation (#535/#536). A null production client is
 /// NOT permission to fall back to the legacy metadata-only CREATE route.
 final routineCreateRepositoryProvider = Provider<RoutineCreateRepository?>((ref) {
