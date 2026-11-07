@@ -5,6 +5,10 @@ set -euo pipefail
 # 1. Race 1: Finish (rpc_complete_workout_session) vs concurrent Log Set (rpc_log_workout_performed_set).
 # 2. Race 2A: Update Set (rpc_log_workout_performed_set) vs Remove Set (rpc_remove_workout_performed_set) for the same set UUID.
 # 3. Race 2B: Remove Set vs Update Set for the same set UUID.
+# 4. Race 3: Concurrent Set Insertion (Two new set UUIDs).
+# 5. Race 4: Concurrent Identical Start vs Conflicting Start.
+# 6. Race 5: Concurrent Cross-User Start Race.
+# 7. Race 6: Concurrent idempotent set retry vs in-place set update under FOR UPDATE parent lock.
 # Proves parent session -> performed set lock hierarchy prevents PostgreSQL 40P01 deadlock
 # and guarantees serialization via OCC revision checks.
 
@@ -31,6 +35,8 @@ set_2_id='c7340000-0000-4000-8000-000000000021'
 session_3_id='c7340000-0000-4000-8000-000000000030'
 session_4_id='c7340000-0000-4000-8000-000000000040'
 session_5_id='c7340000-0000-4000-8000-000000000050'
+session_6_id='c7340000-0000-4000-8000-000000000060'
+set_6_id='c7340000-0000-4000-8000-000000000061'
 
 is_local=0
 guard_only=0
@@ -870,6 +876,154 @@ select public.rpc_complete_workout_session(
   '$session_5_id'::uuid,
   1,
   '2026-11-06 14:30:00+00'::timestamptz
+);
+commit;
+SQL
+
+
+# ==============================================================================
+# RACE 6: Concurrent Idempotent Set Retry vs In-Place Set Update
+# ==============================================================================
+echo "Starting Race 6: Idempotent Set Retry vs In-Place Set Update..."
+
+# Start session 6 and log initial set 6 (rev 1 -> rev 2)
+psql "$database_url" --set=ON_ERROR_STOP=1 -q <<SQL
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '$owner', true);
+select public.rpc_start_workout_session(
+  '$session_6_id'::uuid,
+  '$program_id'::uuid,
+  '$routine_id'::uuid,
+  '2026-11-06 15:00:00+00'::timestamptz,
+  '2026-11-06'::date,
+  '$valid_snapshot'::jsonb
+);
+select public.rpc_log_workout_performed_set(
+  '$set_6_id'::uuid,
+  '$session_6_id'::uuid,
+  1,
+  'ex_barbell_bench_press',
+  0,
+  0,
+  10,
+  100.0,
+  null, null, null, false, 'Baseline set'
+);
+commit;
+SQL
+
+rm -f "$fifo" "$a_log" "$b_log"
+mkfifo "$fifo"
+psql "$database_url" --set=ON_ERROR_STOP=1 <"$fifo" >"$a_log" 2>&1 &
+pid_a=$!
+exec 3>"$fifo"
+writer_open=1
+
+# Actor A runs an exact idempotent retry of Set 6 with original expected revision 1 in open transaction
+cat >&3 <<SQL
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '$owner', true);
+\echo ACTOR_A_SET6_RETRY_START
+select public.rpc_log_workout_performed_set(
+  '$set_6_id'::uuid,
+  '$session_6_id'::uuid,
+  1,
+  'ex_barbell_bench_press',
+  0,
+  0,
+  10,
+  100.0,
+  null, null, null, false, 'Baseline set'
+);
+\echo ACTOR_A_SET6_RETRY_EXECUTED
+SQL
+wait_log "ACTOR_A_SET6_RETRY_EXECUTED" "$a_log" "$pid_a"
+
+# Actor B concurrently attempts an in-place set update for Set 6 with expected revision 2 (altered reps/weight)
+psql "$database_url" --set=ON_ERROR_STOP=1 >"$b_log" 2>&1 <<SQL &
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '$owner', true);
+\echo ACTOR_B_SET6_UPDATE_ATTEMPT
+select public.rpc_log_workout_performed_set(
+  '$set_6_id'::uuid,
+  '$session_6_id'::uuid,
+  2,
+  'ex_barbell_bench_press',
+  0,
+  0,
+  12,
+  105.0,
+  null, null, null, false, 'Updated set'
+);
+commit;
+\echo ACTOR_B_SET6_UPDATE_COMMITTED
+SQL
+pid_b=$!
+wait_log "ACTOR_B_SET6_UPDATE_ATTEMPT" "$b_log" "$pid_b"
+
+# Assert Actor B is blocked waiting for parent session row lock held by Actor A
+blocked_set6=0
+for _ in $(seq 1 100); do
+  waiting="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+    --command="select exists (
+      select 1 from pg_stat_activity
+      where state = 'active' and wait_event_type = 'Lock'
+      and query like '%rpc_log_workout_performed_set%'
+    )" | tr -d '[:space:]')"
+  if [[ "$waiting" == t ]]; then blocked_set6=1; break; fi
+  if ! kill -0 "$pid_b" 2>/dev/null; then
+    echo "Actor B finished before lock observation in Race 6"; exit 1
+  fi
+  sleep 0.1
+done
+
+if [[ "$blocked_set6" != 1 ]]; then
+  echo "Actor B never blocked on Actor A in Race 6" >&2
+  exit 1
+fi
+
+# Actor A commits the idempotent retry
+cat >&3 <<SQL
+commit;
+\echo ACTOR_A_SET6_RETRY_COMMITTED
+\quit
+SQL
+exec 3>&-
+writer_open=0
+wait "$pid_a"
+pid_a=""
+grep -Fq "ACTOR_A_SET6_RETRY_COMMITTED" "$a_log"
+
+# Actor B must unblock, serialize after Actor A, and successfully commit the in-place update
+wait "$pid_b"
+pid_b=''
+grep -Fq "ACTOR_B_SET6_UPDATE_COMMITTED" "$b_log"
+
+# Verify final database state: revision bumped to 3, reps updated to 12, load updated to 105.0
+final_set6_state="$(psql "$database_url" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+  --command="select s.revision, p.reps, p.load_kg, p.notes
+             from public.user_workout_sessions s
+             join public.user_workout_performed_sets p on p.session_id = s.id
+             where s.id = '$session_6_id'::uuid and p.id = '$set_6_id'::uuid")"
+
+if [[ "$final_set6_state" != "3|12|105|Updated set" ]]; then
+  echo "Unexpected final state in Race 6: $final_set6_state" >&2
+  exit 1
+fi
+echo "Race 6 (Concurrent Idempotent Set Retry vs In-Place Set Update) passed cleanly."
+
+# Complete session 6
+psql "$database_url" --set=ON_ERROR_STOP=1 -q <<SQL
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '$owner', true);
+select public.rpc_complete_workout_session(
+  '$session_6_id'::uuid,
+  3,
+  '2026-11-06 15:30:00+00'::timestamptz
 );
 commit;
 SQL

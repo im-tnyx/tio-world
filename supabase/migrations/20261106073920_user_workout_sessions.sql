@@ -25,15 +25,32 @@ create schema if not exists private;
 create or replace function private.is_valid_workout_session_snapshot_v1(p_snapshot jsonb)
 returns boolean
 language plpgsql
-immutable
+stable
+set search_path = ''
 as $$
 declare
   v_ex jsonb;
   v_set jsonb;
   v_ex_type text;
   v_set_type text;
+  v_root_keys text[];
+  v_ex_keys text[];
+  v_set_keys text[];
+  v_routine_name text;
+  v_captured_at text;
 begin
   if p_snapshot is null or jsonb_typeof(p_snapshot) <> 'object' then
+    return false;
+  end if;
+
+  -- Technical size ceiling (256 KiB)
+  if octet_length(p_snapshot::text) > 262144 then
+    return false;
+  end if;
+
+  -- Root keys whitelist
+  select array_agg(k) into v_root_keys from jsonb_object_keys(p_snapshot) k;
+  if not (v_root_keys <@ array['schema_version', 'routine_id', 'routine_name', 'program_id', 'captured_at_utc', 'exercises']) then
     return false;
   end if;
 
@@ -47,25 +64,34 @@ begin
   -- 2. Required root fields
   if not (p_snapshot ? 'routine_id') or
      jsonb_typeof(p_snapshot->'routine_id') is distinct from 'string' or
-     (p_snapshot->>'routine_id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or
+     (p_snapshot->>'routine_id') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or
      not (p_snapshot ? 'program_id') or
      jsonb_typeof(p_snapshot->'program_id') is distinct from 'string' or
-     (p_snapshot->>'program_id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or
+     (p_snapshot->>'program_id') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or
      not (p_snapshot ? 'routine_name') or
      jsonb_typeof(p_snapshot->'routine_name') is distinct from 'string' or
-     length(btrim(p_snapshot->>'routine_name')) = 0 or
      not (p_snapshot ? 'captured_at_utc') or
      jsonb_typeof(p_snapshot->'captured_at_utc') is distinct from 'string' or
-     length(btrim(p_snapshot->>'captured_at_utc')) = 0 or
      not (p_snapshot ? 'exercises') or
      jsonb_typeof(p_snapshot->'exercises') is distinct from 'array' or
      jsonb_array_length(p_snapshot->'exercises') = 0 then
     return false;
   end if;
 
-  -- Verify captured_at_utc is a valid timestamptz
+  -- routine_name length between 1 and 100 characters
+  v_routine_name := p_snapshot->>'routine_name';
+  if length(btrim(v_routine_name)) = 0 or length(v_routine_name) > 100 then
+    return false;
+  end if;
+
+  -- Strict parseable ISO-8601 UTC timestamp check
+  v_captured_at := p_snapshot->>'captured_at_utc';
+  if v_captured_at is null or v_captured_at !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?Z$' then
+    return false;
+  end if;
+
   begin
-    perform (p_snapshot->>'captured_at_utc')::timestamptz;
+    perform v_captured_at::timestamptz;
   exception when others then
     return false;
   end;
@@ -79,6 +105,7 @@ begin
        not (v_ex ? 'display_name') or
        jsonb_typeof(v_ex->'display_name') is distinct from 'string' or
        length(btrim(v_ex->>'display_name')) = 0 or
+       length(v_ex->>'display_name') > 100 or
        not (v_ex ? 'occurrence_index') or
        jsonb_typeof(v_ex->'occurrence_index') is distinct from 'number' or
        (v_ex->>'occurrence_index')::numeric < 0 or
@@ -88,9 +115,15 @@ begin
       return false;
     end if;
 
-    -- exercise_ref format check
-    if (v_ex->>'exercise_ref') !~ '^ex_[a-z0-9_]+$' and
-       (v_ex->>'exercise_ref') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    -- Exercise keys whitelist
+    select array_agg(k) into v_ex_keys from jsonb_object_keys(v_ex) k;
+    if not (v_ex_keys <@ array['exercise_ref', 'display_name', 'exercise_type', 'occurrence_index', 'prescribed_sets']) then
+      return false;
+    end if;
+
+    -- Canonical exercise_ref format check
+    if (v_ex->>'exercise_ref') !~ '^ex_[a-z0-9]+(?:_[a-z0-9]+)*$' and
+       (v_ex->>'exercise_ref') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
       return false;
     end if;
 
@@ -116,6 +149,12 @@ begin
       if v_set is null or jsonb_typeof(v_set) <> 'object' or
          not (v_set ? 'set_type') or
          jsonb_typeof(v_set->'set_type') is distinct from 'string' then
+        return false;
+      end if;
+
+      -- Prescribed set keys whitelist
+      select array_agg(k) into v_set_keys from jsonb_object_keys(v_set) k;
+      if not (v_set_keys <@ array['set_type', 'reps', 'reps_max', 'load_kg', 'distance_meters', 'duration_seconds', 'rest_seconds']) then
         return false;
       end if;
 
@@ -229,10 +268,32 @@ create table public.user_workout_sessions (
     (status = 'discarded' and discard_reason is not null and length(btrim(discard_reason)) > 0) or
     (status <> 'discarded' and discard_reason is null)
   ),
-  constraint chk_user_workout_sessions_snapshot_valid check (
-    private.is_valid_workout_session_snapshot_v1(routine_snapshot)
+  constraint chk_user_workout_sessions_notes_length check (
+    notes is null or octet_length(notes) <= 65536
+  ),
+  constraint chk_user_workout_sessions_discard_reason_length check (
+    discard_reason is null or octet_length(discard_reason) <= 65536
   )
 );
+
+-- Validate immutable routine_snapshot strictly once on INSERT
+create or replace function public.trg_fn_validate_workout_session_snapshot()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.routine_snapshot is not null then
+    if not private.is_valid_workout_session_snapshot_v1(new.routine_snapshot) then
+      raise exception 'invalid_routine_snapshot' using errcode = '22023';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_user_workout_sessions_validate_snapshot
+  before insert on public.user_workout_sessions
+  for each row execute function public.trg_fn_validate_workout_session_snapshot();
 
 -- Partial unique index: at most one active or paused session per user at any given time
 create unique index uq_user_workout_sessions_single_active
@@ -273,11 +334,14 @@ create table public.user_workout_performed_sets (
   constraint uq_user_workout_performed_sets_slot
     unique (session_id, session_exercise_index, set_index),
   constraint chk_user_workout_performed_sets_exercise_ref check (
-    exercise_ref ~ '^ex_[a-z0-9_]+$' or
-    exercise_ref ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    exercise_ref ~ '^ex_[a-z0-9]+(?:_[a-z0-9]+)*$' or
+    exercise_ref ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   ),
   constraint chk_user_workout_performed_sets_indices check (
-    session_exercise_index >= 0 and set_index >= 0
+    session_exercise_index >= 0 and set_index >= 0 and set_index <= 999
+  ),
+  constraint chk_user_workout_performed_sets_notes_length check (
+    notes is null or octet_length(notes) <= 65536
   ),
   constraint chk_user_workout_performed_sets_reps check (
     reps is null or (reps >= 0 and reps <= 2147483647)
@@ -421,11 +485,11 @@ grant select on table public.user_workout_performed_sets to authenticated;
 
 create policy user_workout_sessions_select_own on public.user_workout_sessions
   for select to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
 
 create policy user_workout_performed_sets_select_own on public.user_workout_performed_sets
   for select to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
 
 -- ----------------------------------------------------------------------------
 -- 6. RPC: rpc_start_workout_session
@@ -465,13 +529,38 @@ begin
     raise exception 'missing_session_id' using errcode = '22023';
   end if;
 
-  -- Finding 4491456719: Serialize concurrent identical Start attempts on target session UUID
+  if p_program_id is null then
+    raise exception 'missing_program_id' using errcode = '22023';
+  end if;
+
+  if p_routine_id is null then
+    raise exception 'missing_routine_id' using errcode = '22023';
+  end if;
+
+  if p_started_at_utc is null then
+    raise exception 'missing_started_at_utc' using errcode = '22023';
+  end if;
+
+  if p_local_date is null then
+    raise exception 'missing_local_date' using errcode = '22023';
+  end if;
+
+  if p_routine_snapshot is null then
+    raise exception 'missing_routine_snapshot' using errcode = '22023';
+  end if;
+
+  -- Permissive timestamp plausibility window allowing offline-sync clock skew
+  if p_started_at_utc < '2020-01-01'::timestamptz or p_started_at_utc > timezone('utc'::text, now()) + interval '1 day' then
+    raise exception 'invalid_timestamp_range' using errcode = '22023';
+  end if;
+
+  -- Transaction-scoped advisory lock: serialize concurrent identical Start attempts on target session UUID
   perform pg_advisory_xact_lock(
     hashtext('workout_session_start'),
     hashtext(p_session_id::text)
   );
 
-  -- 1. Finding 4490473120: Detect existing session before validating mutable source routine
+  -- 1. Detect existing session before validating mutable source routine
   select * into v_existing
   from public.user_workout_sessions
   where id = p_session_id
@@ -505,7 +594,7 @@ begin
     raise exception 'snapshot_identity_mismatch' using errcode = '22023';
   end if;
 
-  -- 3. Verify source Routine and Program ownership and validate authoritative Routine name (Finding 4492021721)
+  -- 3. Verify source Routine and Program ownership and validate authoritative Routine name
   select r.name into v_routine_name
   from public.user_workout_routines r
   where r.id = p_routine_id and r.user_id = v_user_id and r.program_id = p_program_id
@@ -528,25 +617,31 @@ begin
     raise exception 'snapshot_exercise_count_mismatch' using errcode = '22023';
   end if;
 
-  -- 5. Cross-validate each exercise occurrence order, custom metadata, and prescribed sets (Finding 4490473113)
+  -- 5. Cross-validate each exercise occurrence order, custom metadata, and prescribed sets
   for v_ex_record in
     select id, position, catalog_exercise_id, user_exercise_id
     from public.user_workout_routine_exercises
     where routine_id = p_routine_id and user_id = v_user_id
     order by position asc
+    for share
   loop
     v_snap_ex := (p_routine_snapshot->'exercises')->v_idx;
+
+    if v_snap_ex is null then
+      raise exception 'snapshot_composition_mismatch' using errcode = '22023';
+    end if;
 
     if (v_snap_ex->>'occurrence_index')::integer <> v_idx then
       raise exception 'snapshot_occurrence_order_mismatch' using errcode = '22023';
     end if;
 
     if v_ex_record.catalog_exercise_id is not null then
-      if (v_snap_ex->>'exercise_ref') <> v_ex_record.catalog_exercise_id then
+      if (v_snap_ex->>'exercise_ref') is distinct from v_ex_record.catalog_exercise_id then
         raise exception 'snapshot_exercise_ref_mismatch' using errcode = '22023';
       end if;
     elsif v_ex_record.user_exercise_id is not null then
-      if (v_snap_ex->>'exercise_ref')::uuid <> v_ex_record.user_exercise_id then
+      if (v_snap_ex->>'exercise_ref') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or
+         (v_snap_ex->>'exercise_ref')::uuid is distinct from v_ex_record.user_exercise_id then
         raise exception 'snapshot_exercise_ref_mismatch' using errcode = '22023';
       end if;
 
@@ -576,8 +671,13 @@ begin
       from public.user_workout_routine_sets
       where routine_exercise_id = v_ex_record.id and user_id = v_user_id
       order by position asc
+      for share
     loop
       v_snap_set := (v_snap_ex->'prescribed_sets')->v_set_idx;
+
+      if v_snap_set is null then
+        raise exception 'snapshot_prescription_mismatch' using errcode = '22023';
+      end if;
 
       if (v_snap_set->>'set_type') is distinct from v_set_record.set_type or
          (case when v_snap_set ? 'reps' and jsonb_typeof(v_snap_set->'reps') <> 'null'
@@ -666,8 +766,16 @@ begin
     raise exception 'not_authenticated' using errcode = '28000';
   end if;
 
+  if p_session_id is null then
+    raise exception 'missing_session_id' using errcode = '22023';
+  end if;
+
   if p_expected_revision is null or p_expected_revision < 1 then
     raise exception 'invalid_expected_revision' using errcode = '22023';
+  end if;
+
+  if p_paused_at_utc is null then
+    raise exception 'missing_paused_at_utc' using errcode = '22023';
   end if;
 
   select * into v_session
@@ -679,9 +787,9 @@ begin
     raise exception 'session_not_found' using errcode = 'P0002';
   end if;
 
-  -- Idempotency: if already paused at identical timestamp
-  if v_session.status = 'paused' and v_session.paused_at_utc = p_paused_at_utc then
-    if p_expected_revision in (v_session.revision, v_session.revision - 1) then
+  -- Idempotency: if already paused at identical timestamp interval
+  if v_session.status = 'paused' and v_session.paused_at_utc = p_paused_at_utc and v_session.last_transition_at_utc = p_paused_at_utc then
+    if p_expected_revision <= v_session.revision then
       return v_session;
     else
       raise exception 'stale_revision_conflict' using errcode = 'P0003';
@@ -738,8 +846,16 @@ begin
     raise exception 'not_authenticated' using errcode = '28000';
   end if;
 
+  if p_session_id is null then
+    raise exception 'missing_session_id' using errcode = '22023';
+  end if;
+
   if p_expected_revision is null or p_expected_revision < 1 then
     raise exception 'invalid_expected_revision' using errcode = '22023';
+  end if;
+
+  if p_resumed_at_utc is null then
+    raise exception 'missing_resumed_at_utc' using errcode = '22023';
   end if;
 
   select * into v_session
@@ -753,7 +869,7 @@ begin
 
   -- Idempotency: if already active at identical resume instant
   if v_session.status = 'active' and v_session.last_transition_at_utc = p_resumed_at_utc then
-    if p_expected_revision in (v_session.revision, v_session.revision - 1) then
+    if p_expected_revision <= v_session.revision then
       return v_session;
     else
       raise exception 'stale_revision_conflict' using errcode = 'P0003';
@@ -821,6 +937,8 @@ declare
   v_set public.user_workout_performed_sets;
   v_existing_set public.user_workout_performed_sets;
   v_snap_ex jsonb;
+  v_set_count integer;
+  v_normalized_notes text;
 begin
   if v_user_id is null then
     raise exception 'not_authenticated' using errcode = '28000';
@@ -830,13 +948,29 @@ begin
     raise exception 'missing_set_id' using errcode = '22023';
   end if;
 
-  -- Finding 4490473109: Reject NULL or invalid expected revision
+  if p_session_id is null then
+    raise exception 'missing_session_id' using errcode = '22023';
+  end if;
+
   if p_expected_session_revision is null or p_expected_session_revision < 1 then
     raise exception 'invalid_expected_revision' using errcode = '22023';
   end if;
 
+  if p_exercise_ref is null or length(btrim(p_exercise_ref)) = 0 then
+    raise exception 'missing_exercise_ref' using errcode = '22023';
+  end if;
+
+  if p_session_exercise_index is null or p_session_exercise_index < 0 then
+    raise exception 'invalid_session_exercise_index' using errcode = '22023';
+  end if;
+
+  if p_set_index is null or p_set_index < 0 or p_set_index > 999 then
+    raise exception 'invalid_set_index' using errcode = '22023';
+  end if;
+
+  v_normalized_notes := nullif(btrim(p_notes), '');
+
   -- 1. Parent session row lock: guarantees serialization across all session mutations and blocks sets on finished sessions.
-  -- Consistent lock hierarchy: parent workout session (user_workout_sessions) -> child performed set (user_workout_performed_sets).
   select * into v_session
   from public.user_workout_sessions
   where id = p_session_id and user_id = v_user_id
@@ -850,13 +984,8 @@ begin
     raise exception 'session_already_terminal' using errcode = 'P0002';
   end if;
 
-  if v_session.revision <> p_expected_session_revision then
-    raise exception 'stale_revision_conflict' using errcode = 'P0003';
-  end if;
-
   -- 2. Validate set against session snapshot exercise occurrence
-  if p_session_exercise_index < 0 or
-     p_session_exercise_index >= jsonb_array_length(v_session.routine_snapshot->'exercises') then
+  if p_session_exercise_index >= jsonb_array_length(v_session.routine_snapshot->'exercises') then
     raise exception 'snapshot_exercise_index_out_of_bounds' using errcode = '22023';
   end if;
 
@@ -865,7 +994,7 @@ begin
     raise exception 'snapshot_exercise_ref_mismatch' using errcode = '22023';
   end if;
 
-  -- 3. Finding 4490473095: Enforce existing-set ownership and session identity following parent -> child lock hierarchy
+  -- 3. Enforce existing-set ownership and session identity following parent -> child lock hierarchy
   select * into v_existing_set
   from public.user_workout_performed_sets
   where id = p_set_id
@@ -875,15 +1004,45 @@ begin
     if v_existing_set.user_id <> v_user_id or v_existing_set.session_id <> p_session_id then
       raise exception 'set_ownership_mismatch' using errcode = '42501';
     end if;
+
+    -- Contract A: Idempotent replay return without revision bump when payload is strictly identical
+    if v_existing_set.exercise_ref = p_exercise_ref
+       and v_existing_set.session_exercise_index = p_session_exercise_index
+       and v_existing_set.set_index = p_set_index
+       and v_existing_set.reps is not distinct from p_reps
+       and v_existing_set.load_kg is not distinct from p_load_kg
+       and v_existing_set.duration_seconds is not distinct from p_duration_seconds
+       and v_existing_set.distance_meters is not distinct from p_distance_meters
+       and v_existing_set.completed_at_utc is not distinct from p_completed_at_utc
+       and v_existing_set.is_skipped = coalesce(p_is_skipped, false)
+       and v_existing_set.notes is not distinct from v_normalized_notes then
+      return v_existing_set;
+    end if;
   end if;
 
-  -- Upsert performed set with strict ownership and session scoping on conflict update
+  -- 4. Optimistic concurrency control for new set or conflicting update
+  if v_session.revision <> p_expected_session_revision then
+    raise exception 'stale_revision_conflict' using errcode = 'P0003';
+  end if;
+
+  -- 5. Contract C: Quota enforcement of 500 sets per session for new set insertions
+  if not found then
+    select count(*) into v_set_count
+    from public.user_workout_performed_sets
+    where session_id = p_session_id;
+
+    if v_set_count >= 500 then
+      raise exception 'session_performed_sets_limit_exceeded' using errcode = '22023';
+    end if;
+  end if;
+
+  -- 6. Upsert performed set with strict ownership and session scoping
   insert into public.user_workout_performed_sets (
     id, session_id, user_id, exercise_ref, session_exercise_index, set_index,
     reps, load_kg, duration_seconds, distance_meters, completed_at_utc, is_skipped, notes
   ) values (
     p_set_id, p_session_id, v_user_id, p_exercise_ref, p_session_exercise_index, p_set_index,
-    p_reps, p_load_kg, p_duration_seconds, p_distance_meters, p_completed_at_utc, p_is_skipped, p_notes
+    p_reps, p_load_kg, p_duration_seconds, p_distance_meters, p_completed_at_utc, coalesce(p_is_skipped, false), v_normalized_notes
   )
   on conflict (id) do update set
     exercise_ref = excluded.exercise_ref,
@@ -938,6 +1097,14 @@ declare
 begin
   if v_user_id is null then
     raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+
+  if p_set_id is null then
+    raise exception 'missing_set_id' using errcode = '22023';
+  end if;
+
+  if p_session_id is null then
+    raise exception 'missing_session_id' using errcode = '22023';
   end if;
 
   if p_expected_session_revision is null or p_expected_session_revision < 1 then
@@ -1003,8 +1170,16 @@ begin
     raise exception 'not_authenticated' using errcode = '28000';
   end if;
 
+  if p_session_id is null then
+    raise exception 'missing_session_id' using errcode = '22023';
+  end if;
+
   if p_expected_revision is null or p_expected_revision < 1 then
     raise exception 'invalid_expected_revision' using errcode = '22023';
+  end if;
+
+  if p_completed_at_utc is null then
+    raise exception 'missing_completed_at_utc' using errcode = '22023';
   end if;
 
   v_normalized_notes := nullif(btrim(p_notes), '');
@@ -1018,7 +1193,7 @@ begin
     raise exception 'session_not_found' using errcode = 'P0002';
   end if;
 
-  -- Idempotency check: if already completed at identical timestamp and matching notes (Finding 4492021727)
+  -- Invariant: verify terminal replay identity (matching completed_at_utc and notes)
   if v_session.status = 'completed' and v_session.completed_at_utc = p_completed_at_utc then
     if p_expected_revision not in (v_session.revision, v_session.revision - 1) then
       raise exception 'stale_revision_conflict' using errcode = 'P0003';
@@ -1090,8 +1265,16 @@ begin
     raise exception 'not_authenticated' using errcode = '28000';
   end if;
 
+  if p_session_id is null then
+    raise exception 'missing_session_id' using errcode = '22023';
+  end if;
+
   if p_expected_revision is null or p_expected_revision < 1 then
     raise exception 'invalid_expected_revision' using errcode = '22023';
+  end if;
+
+  if p_discarded_at_utc is null then
+    raise exception 'missing_discarded_at_utc' using errcode = '22023';
   end if;
 
   v_trimmed_reason := btrim(coalesce(p_discard_reason, ''));
@@ -1108,7 +1291,7 @@ begin
     raise exception 'session_not_found' using errcode = 'P0002';
   end if;
 
-  -- Idempotency check: if already discarded at identical timestamp and matching reason (Finding 4492021727)
+  -- Invariant: verify terminal replay identity (matching completed_at_utc and reason)
   if v_session.status = 'discarded' and v_session.completed_at_utc = p_discarded_at_utc then
     if p_expected_revision not in (v_session.revision, v_session.revision - 1) then
       raise exception 'stale_revision_conflict' using errcode = 'P0003';

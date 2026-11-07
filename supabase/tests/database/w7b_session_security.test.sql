@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
-SELECT plan(60);
+SELECT plan(77);
 
 -- ============================================================================
 -- Fixtures Setup (Two distinct authenticated users with programs & routines)
@@ -911,6 +911,360 @@ SELECT lives_ok(
   ),
   'Start replay succeeds idempotently even after source routine is deleted'
 );
+
+-- ============================================================================
+-- 43. Snapshot Hardening, Mutation Recovery, Monotonic Replays, Bounds & Quota
+-- ============================================================================
+RESET ROLE;
+
+-- 61. Snapshot rejects unknown root key
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1(
+    '{"schema_version":1,"routine_id":"11111111-1111-1111-1111-111111111111","program_id":"22222222-2222-2222-2222-222222222222","routine_name":"R","captured_at_utc":"2026-11-06T00:00:00Z","junk":"data","exercises":[{"exercise_ref":"ex_bench","display_name":"Bench","occurrence_index":0,"prescribed_sets":[]}]}'::jsonb
+  ),
+  false,
+  'Snapshot validator rejects payload with unknown root keys'
+);
+
+-- 62. Snapshot rejects magic timestamp 'now'
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1(
+    '{"schema_version":1,"routine_id":"11111111-1111-1111-1111-111111111111","program_id":"22222222-2222-2222-2222-222222222222","routine_name":"R","captured_at_utc":"now","exercises":[{"exercise_ref":"ex_bench","display_name":"Bench","occurrence_index":0,"prescribed_sets":[]}]}'::jsonb
+  ),
+  false,
+  'Snapshot validator rejects magic timestamp string now'
+);
+
+-- 63. Snapshot rejects oversized payload > 256 KiB
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1(
+    jsonb_build_object(
+      'schema_version', 1,
+      'routine_id', '11111111-1111-1111-1111-111111111111'::uuid,
+      'program_id', '22222222-2222-2222-2222-222222222222'::uuid,
+      'routine_name', repeat('R', 100),
+      'captured_at_utc', '2026-11-06T00:00:00Z',
+      'exercises', jsonb_build_array(
+        jsonb_build_object('exercise_ref', 'ex_bench', 'display_name', repeat('E', 100), 'occurrence_index', 0, 'prescribed_sets', '[]'::jsonb)
+      )
+    ) || jsonb_build_object('junk', repeat('X', 300000))
+  ),
+  false,
+  'Snapshot validator rejects oversized payload exceeding 256 KiB'
+);
+
+-- 64. Snapshot rejects display_name > 100 chars
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1(
+    jsonb_build_object(
+      'schema_version', 1,
+      'routine_id', '11111111-1111-1111-1111-111111111111'::uuid,
+      'program_id', '22222222-2222-2222-2222-222222222222'::uuid,
+      'routine_name', 'Valid Routine',
+      'captured_at_utc', '2026-11-06T00:00:00Z',
+      'exercises', jsonb_build_array(
+        jsonb_build_object('exercise_ref', 'ex_bench', 'display_name', repeat('E', 101), 'occurrence_index', 0, 'prescribed_sets', '[]'::jsonb)
+      )
+    )
+  ),
+  false,
+  'Snapshot validator rejects exercise display_name exceeding 100 characters'
+);
+
+-- Fixture for RPC tests
+RESET ROLE;
+INSERT INTO auth.users (id, email) VALUES ('33333333-3333-3333-3333-333333333333', 'owner_c@tio.test') ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.users (id, email) VALUES ('33333333-3333-3333-3333-333333333333', 'owner_c@tio.test') ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.user_workout_programs (id, user_id, name) VALUES ('cccccccc-3333-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'Program C') ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.user_workout_routines (id, user_id, program_id, name) VALUES ('cccccccc-3333-0000-0000-000000000002', '33333333-3333-3333-3333-333333333333', 'cccccccc-3333-0000-0000-000000000001', 'Routine C') ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.user_workout_routine_exercises (id, user_id, routine_id, position, catalog_exercise_id) VALUES ('cccccccc-3333-0000-0000-000000000003', '33333333-3333-3333-3333-333333333333', 'cccccccc-3333-0000-0000-000000000002', 0, 'ex_bench_press') ON CONFLICT (id) DO NOTHING;
+
+\set valid_snap_c '{"schema_version":1,"routine_id":"cccccccc-3333-0000-0000-000000000002","program_id":"cccccccc-3333-0000-0000-000000000001","routine_name":"Routine C","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_bench_press","display_name":"Bench","occurrence_index":0,"prescribed_sets":[]}]}'
+
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '33333333-3333-3333-3333-333333333333';
+
+-- Start session (rev 1)
+SELECT public.rpc_start_workout_session(
+  'cccccccc-cccc-0000-0000-000000000001'::uuid,
+  'cccccccc-3333-0000-0000-000000000001'::uuid,
+  'cccccccc-3333-0000-0000-000000000002'::uuid,
+  '2026-11-06 10:00:00+00'::timestamptz,
+  '2026-11-06'::date,
+  :'valid_snap_c'::jsonb
+);
+
+-- Log Set 1 (rev 1 -> rev 2)
+SELECT public.rpc_log_workout_performed_set(
+  'cccccccc-5555-0000-0000-000000000001'::uuid,
+  'cccccccc-cccc-0000-0000-000000000001'::uuid,
+  1,
+  'ex_bench_press',
+  0,
+  0,
+  10,
+  100.0,
+  null, null, null, false, 'First set'
+);
+
+-- 65. Session revision check after first set log
+SELECT is(
+  (
+    SELECT revision FROM public.user_workout_sessions WHERE id = 'cccccccc-cccc-0000-0000-000000000001'::uuid
+  ),
+  2,
+  'Session revision is 2 after first set log'
+);
+
+-- 66. Exact Log Set retry with original revision (1) returns existing set and leaves revision at 2
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_log_workout_performed_set(
+    'cccccccc-5555-0000-0000-000000000001'::uuid,
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    1,
+    'ex_bench_press',
+    0,
+    0,
+    10,
+    100.0,
+    null, null, null, false, 'First set'
+  )
+  $$,
+  'Identical Log Set retry with original revision succeeds idempotently'
+);
+
+-- 67. Log Set retry with same set_id but altered payload and stale revision throws P0003
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_log_workout_performed_set(
+    'cccccccc-5555-0000-0000-000000000001'::uuid,
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    1,
+    'ex_bench_press',
+    0,
+    0,
+    12,
+    100.0,
+    null, null, null, false, 'First set'
+  )
+  $$,
+  'P0003',
+  'stale_revision_conflict',
+  'Log Set with conflicting payload and stale revision throws stale_revision_conflict'
+);
+
+-- Pause at T1 (rev 2 -> 3)
+SELECT public.rpc_pause_workout_session(
+  'cccccccc-cccc-0000-0000-000000000001'::uuid,
+  2,
+  '2026-11-06 10:15:00+00'::timestamptz
+);
+
+-- Log Set 2 while paused (rev 3 -> 4)
+SELECT public.rpc_log_workout_performed_set(
+  'cccccccc-5555-0000-0000-000000000002'::uuid,
+  'cccccccc-cccc-0000-0000-000000000001'::uuid,
+  3,
+  'ex_bench_press',
+  0,
+  1,
+  8,
+  105.0
+);
+
+-- 68. Pause replay at T1 with original expected revision 2 succeeds after intervening set mutation (rev 4)
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_pause_workout_session(
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    2,
+    '2026-11-06 10:15:00+00'::timestamptz
+  )
+  $$,
+  'Pause replay with identical timestamp succeeds idempotently after intervening set mutations'
+);
+
+-- Resume at T2 (rev 4 -> 5)
+SELECT public.rpc_resume_workout_session(
+  'cccccccc-cccc-0000-0000-000000000001'::uuid,
+  4,
+  '2026-11-06 10:20:00+00'::timestamptz
+);
+
+-- Log Set 3 while active (rev 5 -> 6)
+SELECT public.rpc_log_workout_performed_set(
+  'cccccccc-5555-0000-0000-000000000003'::uuid,
+  'cccccccc-cccc-0000-0000-000000000001'::uuid,
+  5,
+  'ex_bench_press',
+  0,
+  2,
+  6,
+  110.0
+);
+
+-- 69. Resume replay at T2 with original expected revision 4 succeeds after intervening set mutation (rev 6)
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_resume_workout_session(
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    4,
+    '2026-11-06 10:20:00+00'::timestamptz
+  )
+  $$,
+  'Resume replay with identical timestamp succeeds idempotently after intervening set mutations'
+);
+
+-- 70. Valid set removal increments session revision (rev 6 -> 7)
+SELECT lives_ok(
+  $$
+  SELECT public.rpc_remove_workout_performed_set(
+    'cccccccc-5555-0000-0000-000000000003'::uuid,
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    6
+  )
+  $$,
+  'Valid set removal succeeds and increments revision'
+);
+
+-- 71. Set removal retry on already removed set throws stale_revision_conflict or set_not_found for read-after-write
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_remove_workout_performed_set(
+    'cccccccc-5555-0000-0000-000000000003'::uuid,
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    6
+  )
+  $$,
+  'P0003',
+  'stale_revision_conflict',
+  'Removal retry with original revision throws stale_revision_conflict'
+);
+
+-- 72. Performed set with set_index = 1000 is rejected by check constraint
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_log_workout_performed_set(
+    'cccccccc-5555-0000-0000-000000000004'::uuid,
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    7,
+    'ex_bench_press',
+    0,
+    1000,
+    5,
+    100.0
+  )
+  $$,
+  '22023',
+  'invalid_set_index',
+  'Set with set_index = 1000 is rejected by RPC validation'
+);
+
+-- 73. Notes exceeding 65,536 bytes rejected by check constraint
+SELECT throws_ok(
+  format(
+    $$
+    SELECT public.rpc_log_workout_performed_set(
+      'cccccccc-5555-0000-0000-000000000005'::uuid,
+      'cccccccc-cccc-0000-0000-000000000001'::uuid,
+      7,
+      'ex_bench_press',
+      0,
+      3,
+      5,
+      100.0,
+      null, null, null, false, %L
+    )
+    $$,
+    repeat('N', 65537)
+  ),
+  '23514',
+  NULL,
+  'Performed set with notes exceeding 65,536 bytes is rejected by check constraint'
+);
+
+-- 74. RPC parameter NULL check rejects missing session_id
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_pause_workout_session(
+    NULL,
+    7,
+    '2026-11-06 10:30:00+00'::timestamptz
+  )
+  $$,
+  '22023',
+  'missing_session_id',
+  'Pause RPC rejects NULL session_id with 22023'
+);
+
+-- 75. RPC parameter NULL check rejects missing expected_revision
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_pause_workout_session(
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    NULL,
+    '2026-11-06 10:30:00+00'::timestamptz
+  )
+  $$,
+  '22023',
+  'invalid_expected_revision',
+  'Pause RPC rejects NULL expected_revision with 22023'
+);
+
+-- 76. Start RPC rejects start timestamp before plausibility window (2015)
+SELECT throws_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'cccccccc-cccc-0000-0000-000000000099'::uuid,
+      'cccccccc-3333-0000-0000-000000000001'::uuid,
+      'cccccccc-3333-0000-0000-000000000002'::uuid,
+      '2015-01-01 00:00:00+00'::timestamptz,
+      '2015-01-01'::date,
+      %L::jsonb
+    )
+    $$,
+    :'valid_snap_c'
+  ),
+  '22023',
+  'invalid_timestamp_range',
+  'Start RPC rejects start timestamp before plausibility window (2015)'
+);
+
+-- 77. 500-set quota check: insert up to 500 sets, then 501st set fails with session_performed_sets_limit_exceeded
+RESET ROLE;
+-- Session currently has 2 sets (set 1 and set 2; set 3 was deleted). Insert 498 more sets to reach 500 sets
+INSERT INTO public.user_workout_performed_sets (
+  id, session_id, user_id, exercise_ref, session_exercise_index, set_index, reps, load_kg
+)
+SELECT
+  gen_random_uuid(), 'cccccccc-cccc-0000-0000-000000000001'::uuid, '33333333-3333-3333-3333-333333333333'::uuid,
+  'ex_bench_press', 0, 3 + s, 10, 100.0
+FROM generate_series(0, 497) s;
+
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '33333333-3333-3333-3333-333333333333';
+
+SELECT throws_ok(
+  $$
+  SELECT public.rpc_log_workout_performed_set(
+    'cccccccc-5555-0000-0000-000000000501'::uuid,
+    'cccccccc-cccc-0000-0000-000000000001'::uuid,
+    7,
+    'ex_bench_press',
+    0,
+    501,
+    10,
+    100.0
+  )
+  $$,
+  '22023',
+  'session_performed_sets_limit_exceeded',
+  'Attempt to log 501st set in session is rejected with session_performed_sets_limit_exceeded'
+);
+
+RESET ROLE;
 
 -- ============================================================================
 -- 43-44. Legitimate User Account Deletion Cascade
