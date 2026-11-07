@@ -10,6 +10,7 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
   final Map<String, WorkoutSessionRecord> sessionsById = {};
   Exception? errorToThrow;
   Completer<WorkoutSessionRecord>? pendingCompleter;
+  Completer<WorkoutSessionRecord?>? pendingRestoreCompleter;
   int getActiveSessionCalls = 0;
   int startSessionCalls = 0;
   int logSetCalls = 0;
@@ -24,6 +25,7 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
   Future<WorkoutSessionRecord?> getActiveSession() async {
     getActiveSessionCalls++;
     if (errorToThrow != null) throw errorToThrow!;
+    if (pendingRestoreCompleter != null) return pendingRestoreCompleter!.future;
     return activeSessionToReturn;
   }
 
@@ -31,6 +33,7 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
   Future<WorkoutSessionRecord?> getSession(WorkoutSessionId sessionId) async {
     getSessionCalls++;
     if (errorToThrow != null) throw errorToThrow!;
+    if (pendingRestoreCompleter != null) return pendingRestoreCompleter!.future;
     return sessionsById[sessionId.value] ?? activeSessionToReturn;
   }
 
@@ -165,6 +168,13 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
     completeCalls++;
     if (errorToThrow != null) throw errorToThrow!;
     if (pendingCompleter != null) return pendingCompleter!.future;
+    if (customMutationRecordToReturn != null) {
+      final ret = customMutationRecordToReturn!;
+      customMutationRecordToReturn = null;
+      sessionsById[sessionId.value] = ret;
+      activeSessionToReturn = ret.session.isTerminal ? null : ret;
+      return ret;
+    }
     final current = sessionsById[sessionId.value] ?? activeSessionToReturn!;
     final updatedSession = current.session.complete(completedAtUtc, notes: notes);
     final updated = current.copyWith(
@@ -186,6 +196,13 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
     discardCalls++;
     if (errorToThrow != null) throw errorToThrow!;
     if (pendingCompleter != null) return pendingCompleter!.future;
+    if (customMutationRecordToReturn != null) {
+      final ret = customMutationRecordToReturn!;
+      customMutationRecordToReturn = null;
+      sessionsById[sessionId.value] = ret;
+      activeSessionToReturn = ret.session.isTerminal ? null : ret;
+      return ret;
+    }
     final current = sessionsById[sessionId.value] ?? activeSessionToReturn!;
     final updatedSession = current.session.discard(discardedAtUtc, reason: reason);
     final updated = current.copyWith(
@@ -1539,6 +1556,340 @@ void main() {
       final removed = await controller.removeSet('set-to-remove');
       expect(removed, isTrue);
       expect(controller.state.status, ActiveWorkoutStatus.completed);
+    });
+  });
+
+  group('P2 #4502680017 - Authoritative Elapsed Duration Correction', () {
+    test('pauseSession corrects speculative ticker duration accumulated during latency', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+      expect(controller.state.status, ActiveWorkoutStatus.active);
+
+      // Advance clock to 60s
+      currentTime = testStartTime.add(const Duration(seconds: 60));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 60));
+
+      // Pause is dispatched at 60s, but delayed over the wire
+      final completer = Completer<WorkoutSessionRecord>();
+      fakeRepo.pendingCompleter = completer;
+
+      final pauseFuture = controller.pauseSession(pausedAtUtc: currentTime);
+
+      // Speculative ticker ticks to 65s while mutation is in-flight
+      currentTime = testStartTime.add(const Duration(seconds: 65));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 65));
+
+      // Server completes pause mutation at exactly 60s
+      fakeRepo.pendingCompleter = null;
+      final pausedSession = session.pause(testStartTime.add(const Duration(seconds: 60)));
+      completer.complete(WorkoutSessionRecord(session: pausedSession, revision: 2));
+
+      final success = await pauseFuture;
+      expect(success, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.paused);
+      // Authoritative readback must correct speculative 65s back to authoritative 60s
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 60));
+    });
+
+    test('completeSession corrects speculative ticker duration accumulated during latency', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+
+      currentTime = testStartTime.add(const Duration(seconds: 120));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 120));
+
+      final completer = Completer<WorkoutSessionRecord>();
+      fakeRepo.pendingCompleter = completer;
+
+      final completeFuture = controller.completeSession(completedAtUtc: currentTime);
+
+      // Speculative ticker ticks to 128s while mutation in-flight
+      currentTime = testStartTime.add(const Duration(seconds: 128));
+      controller.updateElapsedDuration();
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 128));
+
+      // Server confirms completion at 120s
+      fakeRepo.pendingCompleter = null;
+      final completedSession = session.complete(testStartTime.add(const Duration(seconds: 120)));
+      completer.complete(WorkoutSessionRecord(session: completedSession, revision: 2));
+
+      final success = await completeFuture;
+      expect(success, isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.completed);
+      // Authoritative completion corrects speculative 128s back to 120s
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 120));
+    });
+
+    test('paused time remains excluded upon resume and subsequent ticker ticks', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+
+      currentTime = testStartTime.add(const Duration(seconds: 60));
+      await controller.pauseSession(pausedAtUtc: currentTime);
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 60));
+
+      // Advance clock by 5 minutes while paused
+      currentTime = testStartTime.add(const Duration(seconds: 360));
+      controller.updateElapsedDuration();
+      // Paused duration must not advance
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 60));
+
+      // Resume at 360s
+      await controller.resumeSession(resumedAtUtc: currentTime);
+      expect(controller.state.status, ActiveWorkoutStatus.active);
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 60));
+
+      // Advance clock by 10s after resume
+      currentTime = testStartTime.add(const Duration(seconds: 370));
+      controller.updateElapsedDuration();
+      // Active duration is 60s + 10s = 70s (5-minute pause is excluded)
+      expect(controller.state.activeElapsedDuration, const Duration(seconds: 70));
+    });
+  });
+
+  group('P2 #4502680020 & #4502685338 - Restore Read Failure Must Not Mean No Session', () {
+    test('previously active session + restore network failure preserves active session state and enters reconciliationRequired', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+      expect(controller.state.status, ActiveWorkoutStatus.active);
+
+      // Simulate network failure during restoreActiveSession (e.g. app resume from background)
+      fakeRepo.errorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Network connection lost',
+      );
+
+      await controller.restoreActiveSession();
+
+      // Must NOT report noSession!
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.status, isNot(ActiveWorkoutStatus.noSession));
+      expect(controller.state.record, isNotNull);
+      expect(controller.state.sessionId, testSessionId);
+      expect(controller.state.reconciliationReason, 'restore_failed');
+      expect(controller.state.errorMessage, 'Network connection lost');
+    });
+
+    test('previously paused session + transient read failure preserves paused record and session identity', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.startSession(session);
+      await controller.pauseSession();
+      expect(controller.state.status, ActiveWorkoutStatus.paused);
+
+      fakeRepo.errorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.unavailable,
+        message: 'Database temporarily unavailable',
+      );
+
+      await controller.restoreActiveSession();
+
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.record?.session.status, WorkoutSessionStatus.paused);
+      expect(controller.state.sessionId, testSessionId);
+      expect(controller.state.errorMessage, 'Database temporarily unavailable');
+    });
+
+    test('reconciliation-required state + restore failure preserves original reconciliationReason and target ID', () async {
+      final sessionBId = WorkoutSessionId('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb');
+      final sessionB = createTestSession(id: sessionBId);
+      final controller = createController();
+
+      // Cause reconciliationRequired via mutation uncertainty
+      fakeRepo.errorToThrow = WorkoutSessionMutationOutcomeUnknown(
+        sessionId: sessionB.id,
+        reason: WorkoutSessionMutationUncertainty.networkTimeout,
+      );
+      await controller.startSession(sessionB);
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.reconciliationReason, 'networkTimeout');
+      expect(controller.state.sessionId, sessionBId);
+
+      // Now restoreActiveSession is invoked and fails with read network error
+      fakeRepo.errorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Still offline',
+      );
+
+      await controller.restoreActiveSession();
+
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      // Original reconciliationReason and recovery target ID must be preserved
+      expect(controller.state.reconciliationReason, 'networkTimeout');
+      expect(controller.state.sessionId, sessionBId);
+      expect(controller.state.errorMessage, 'Still offline');
+    });
+
+    test('cold restore failure with unknown session presence enters reconciliationRequired and does NOT emit noSession', () async {
+      final controller = createController();
+      expect(controller.state.status, ActiveWorkoutStatus.initial);
+
+      fakeRepo.errorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'No Internet connection',
+      );
+
+      await controller.restoreActiveSession();
+
+      // Absence was not confirmed; must NOT declare noSession
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.status, isNot(ActiveWorkoutStatus.noSession));
+      expect(controller.state.errorMessage, 'No Internet connection');
+    });
+
+    test('successful null read returns noSession', () async {
+      final controller = createController();
+      fakeRepo.activeSessionToReturn = null;
+
+      await controller.restoreActiveSession();
+
+      expect(controller.state.status, ActiveWorkoutStatus.noSession);
+      expect(controller.state.record, isNull);
+      expect(controller.state.errorMessage, isNull);
+    });
+
+    test('failed restore cannot authorize duplicate start', () async {
+      final controller = createController();
+      fakeRepo.errorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Offline',
+      );
+
+      await controller.restoreActiveSession();
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+
+      // User attempts to start new workout while state is unconfirmed
+      final newSession = createTestSession();
+      final started = await controller.startSession(newSession);
+      expect(started, isFalse);
+      expect(
+        controller.state.errorMessage,
+        'Cannot start a session: state reconciliation is required.',
+      );
+
+      // Also startFromRoutine is blocked
+      final program = Program(id: testProgramId, name: 'Block A');
+      final routine = Routine(id: testRoutineId, programId: testProgramId, name: 'Routine A');
+      final composition = RoutineComposition(
+        routineId: testRoutineId,
+        exercises: [
+          RoutineExercise(
+            exercise: testExerciseRef,
+            sets: [SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 80.0)],
+          ),
+        ],
+      );
+      final resolvedExercises = {
+        testExerciseRef: Exercise(
+          ref: testExerciseRef,
+          displayName: 'Bench Press',
+          exerciseType: ExerciseType.weightReps,
+          status: ExerciseStatus.active,
+        ),
+      };
+
+      final routineStarted = await controller.startSessionFromRoutine(
+        program: program,
+        routine: routine,
+        composition: composition,
+        resolvedExercises: resolvedExercises,
+        localDate: '2026-11-07',
+      );
+      expect(routineStarted, isFalse);
+      expect(
+        controller.state.errorMessage,
+        'Cannot start a session: state reconciliation is required.',
+      );
+    });
+
+    test('retry succeeds and restores authoritative session', () async {
+      final session = createTestSession();
+      final controller = createController();
+
+      // 1. Initial restore fails
+      fakeRepo.errorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Temporary glitch',
+      );
+      await controller.restoreActiveSession();
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+
+      // 2. Network recovers, retry succeeds
+      fakeRepo.errorToThrow = null;
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 3);
+
+      await controller.restoreActiveSession();
+
+      expect(controller.state.status, ActiveWorkoutStatus.active);
+      expect(controller.state.revision, 3);
+      expect(controller.state.errorMessage, isNull);
+      expect(controller.state.reconciliationReason, isNull);
+    });
+
+    test('auth change during restore invalidates stale data without overwriting authInvalidated state', () async {
+      final session = createTestSession();
+      fakeRepo.pendingRestoreCompleter = Completer<WorkoutSessionRecord?>();
+      final controller = createController();
+
+      // Launch restore with pending read
+      final restoreFuture = controller.restoreActiveSession();
+      expect(controller.state.status, ActiveWorkoutStatus.restoring);
+
+      // User signs out before read completes
+      currentUserId = null;
+      controller.onAuthChanged();
+      expect(controller.state.status, ActiveWorkoutStatus.authInvalidated);
+
+      // Restore finally completes with stale server record
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: session, revision: 1);
+      fakeRepo.pendingRestoreCompleter!.complete(fakeRepo.activeSessionToReturn);
+      await restoreFuture;
+
+      // Must remain authInvalidated and must NOT adopt stale session data
+      expect(controller.state.status, ActiveWorkoutStatus.authInvalidated);
+      expect(controller.state.record, isNull);
+    });
+
+    test('disposal during pending restore does not emit new state or throw', () async {
+      final session = createTestSession();
+      fakeRepo.pendingRestoreCompleter = Completer<WorkoutSessionRecord?>();
+      final controller = createController();
+
+      final restoreFuture = controller.restoreActiveSession();
+      expect(controller.state.status, ActiveWorkoutStatus.restoring);
+
+      controller.dispose();
+
+      fakeRepo.pendingRestoreCompleter!.complete(WorkoutSessionRecord(session: session, revision: 1));
+      await restoreFuture;
+
+      expect(() => controller.state, returnsNormally);
+    });
+
+    test('unexpected generic exception during restore enters reconciliationRequired consistently', () async {
+      final controller = createController();
+      fakeRepo.errorToThrow = Exception('Unexpected TLS handshake failure');
+
+      await controller.restoreActiveSession();
+
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.status, isNot(ActiveWorkoutStatus.noSession));
+      expect(
+        controller.state.errorMessage,
+        contains('Unexpected TLS handshake failure'),
+      );
     });
   });
 }

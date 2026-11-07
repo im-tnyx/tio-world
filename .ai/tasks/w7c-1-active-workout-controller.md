@@ -118,6 +118,8 @@ UI (Future W7C-2) -> ActiveWorkoutController -> WorkoutSessionRepository -> Supa
 - [x] Remediate CI analyzer findings (relative import depth, canonical Routine model in test, and Provider.autoDispose definition).
 - [x] Remediate Codex P2 review findings (#4502474724, #4502474728, #4502474732, #4502474740).
 - [x] Remediate follow-up Codex P2 review findings (#4502581537, #4502581544, #4502581548).
+- [x] Remediate authoritative duration correction finding (#4502680017).
+- [x] Remediate restore read failure / noSession findings (#4502680020, #4502685338).
 
 ## 5. Quality Review
 
@@ -139,6 +141,8 @@ UI (Future W7C-2) -> ActiveWorkoutController -> WorkoutSessionRepository -> Supa
 | Duration baseline reset (#4502581537) | `active_workout_controller.dart` | Monotonic clamping scoped to same session ID; new session start resets duration baseline to 0 | Local Flutter test runner | None |
 | Guard start on reconciliation (#4502581544) | `active_workout_controller.dart` | `startSession` and `startSessionFromRoutine` reject dispatch when status is `reconciliationRequired` | Local Flutter test runner | None |
 | Authoritative mutation readback (#4502581548) | `active_workout_controller.dart` | Pause, resume, logSet, removeSet adopt `record.session.status` directly via `_applyAuthoritativeRecord` | Local Flutter test runner | None |
+| Authoritative duration correction (#4502680017) | `active_workout_controller.dart` | `_applyAuthoritativeRecord` uses `enforceMonotonic: false` to allow authoritative pause/complete to correct ticker drift | Local Flutter test runner | None |
+| Safe restore error handling (#4502680020, #4502685338) | `active_workout_controller.dart` | `restoreActiveSession` read failures enter `reconciliationRequired` preserving record/session ID instead of falsely claiming `noSession` | Local Flutter test runner | None |
 
 ## 6. Final Handoff
 

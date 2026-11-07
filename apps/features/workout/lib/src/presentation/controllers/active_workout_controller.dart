@@ -49,18 +49,36 @@ final class ActiveWorkoutController extends ChangeNotifier {
   /// Protects against clock rollbacks where device time jumps before the session's
   /// [lastTransitionAtUtc], preventing uncaught [ArgumentError] exceptions from
   /// domain timing validation while keeping displayed duration stable and non-negative.
-  Duration _calculateElapsedDuration(WorkoutSession session, DateTime now) {
+  /// Calculates elapsed active workout duration safely.
+  ///
+  /// Protects against clock rollbacks where device time jumps before the session's
+  /// [lastTransitionAtUtc], preventing uncaught [ArgumentError] exceptions from
+  /// domain timing validation while keeping displayed duration stable and non-negative.
+  ///
+  /// When [enforceMonotonic] is true (used by periodic UI ticker updates), the duration
+  /// will not regress below previously displayed [state.activeElapsedDuration] for the
+  /// same session. When false (used when adopting authoritative server records), the
+  /// authoritative server-derived duration (e.g. at pause or completion) is allowed
+  /// to correct any speculative ticker drift that accumulated during network latency.
+  Duration _calculateElapsedDuration(
+    WorkoutSession session,
+    DateTime now, {
+    bool enforceMonotonic = false,
+  }) {
     final transitionAt = session.time.lastTransitionAtUtc;
     final evaluationInstant = now.isBefore(transitionAt) ? transitionAt : now;
+    final isSameSession =
+        state.record != null && state.record!.session.id == session.id;
     try {
       final computed = session.time.elapsedActiveDuration(evaluationInstant);
-      if (session.id == state.record?.session.id &&
+      if (enforceMonotonic &&
+          isSameSession &&
           computed < state.activeElapsedDuration) {
         return state.activeElapsedDuration;
       }
       return computed;
     } catch (_) {
-      return session.id == state.record?.session.id
+      return (enforceMonotonic && isSameSession)
           ? state.activeElapsedDuration
           : Duration.zero;
     }
@@ -84,7 +102,11 @@ final class ActiveWorkoutController extends ChangeNotifier {
     bool clearRestTimer = false,
   }) {
     final session = record.session;
-    final elapsed = _calculateElapsedDuration(session, _nowUtc());
+    final elapsed = _calculateElapsedDuration(
+      session,
+      _nowUtc(),
+      enforceMonotonic: false,
+    );
     final status = switch (session.status) {
       WorkoutSessionStatus.active => ActiveWorkoutStatus.active,
       WorkoutSessionStatus.paused => ActiveWorkoutStatus.paused,
@@ -114,6 +136,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
     }
     if (_isActionInFlight) return;
 
+    final priorState = state;
     _isActionInFlight = true;
     final version = ++_version;
     _emit(state.copyWith(status: ActiveWorkoutStatus.restoring));
@@ -134,15 +157,19 @@ final class ActiveWorkoutController extends ChangeNotifier {
           e.kind == WorkoutSessionPersistenceFailureKind.unauthorized) {
         _emit(const ActiveWorkoutState.authInvalidated());
       } else {
-        _emit(state.copyWith(
-          status: ActiveWorkoutStatus.noSession,
+        _emit(priorState.copyWith(
+          status: ActiveWorkoutStatus.reconciliationRequired,
+          reconciliationReason:
+              priorState.reconciliationReason ?? 'restore_failed',
           errorMessage: e.message ?? 'Failed to restore active session',
         ));
       }
     } catch (e) {
       if (_disposed || version != _version || _isAuthInvalid()) return;
-      _emit(state.copyWith(
-        status: ActiveWorkoutStatus.noSession,
+      _emit(priorState.copyWith(
+        status: ActiveWorkoutStatus.reconciliationRequired,
+        reconciliationReason:
+            priorState.reconciliationReason ?? 'restore_failed',
         errorMessage: 'Unexpected error restoring workout session: $e',
       ));
     } finally {
@@ -505,6 +532,11 @@ final class ActiveWorkoutController extends ChangeNotifier {
       return true;
     } on WorkoutSessionPersistenceException catch (e) {
       if (_disposed || version != _version || _isAuthInvalid()) return false;
+      if (e.kind == WorkoutSessionPersistenceFailureKind.unauthenticated ||
+          e.kind == WorkoutSessionPersistenceFailureKind.unauthorized) {
+        _emit(const ActiveWorkoutState.authInvalidated());
+        return false;
+      }
       _emit(state.copyWith(
         isActionPending: false,
         clearPendingAction: true,
@@ -610,7 +642,11 @@ final class ActiveWorkoutController extends ChangeNotifier {
     if (session == null) return;
 
     final now = _nowUtc();
-    final elapsed = _calculateElapsedDuration(session, now);
+    final elapsed = _calculateElapsedDuration(
+      session,
+      now,
+      enforceMonotonic: true,
+    );
 
     ActiveRestTimerState? restTimer = state.activeRestTimer;
     if (restTimer != null && restTimer.isExpired(now)) {
