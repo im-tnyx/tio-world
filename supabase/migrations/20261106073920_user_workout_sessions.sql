@@ -78,9 +78,9 @@ begin
     return false;
   end if;
 
-  -- routine_name length between 1 and 100 characters
+  -- routine_name nonblank check
   v_routine_name := p_snapshot->>'routine_name';
-  if length(btrim(v_routine_name)) = 0 or length(v_routine_name) > 100 then
+  if length(btrim(v_routine_name)) = 0 then
     return false;
   end if;
 
@@ -105,7 +105,6 @@ begin
        not (v_ex ? 'display_name') or
        jsonb_typeof(v_ex->'display_name') is distinct from 'string' or
        length(btrim(v_ex->>'display_name')) = 0 or
-       length(v_ex->>'display_name') > 100 or
        not (v_ex ? 'occurrence_index') or
        jsonb_typeof(v_ex->'occurrence_index') is distinct from 'number' or
        (v_ex->>'occurrence_index')::numeric < 0 or

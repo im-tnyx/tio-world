@@ -14,6 +14,7 @@
 3. "PR #734 Final P2 Closure & Merge Readiness: 1. Fix P2 #4491456710 — Fail CI on pgTAP assertion failures. 2. Fix P2 #4491456719 — Concurrent Start idempotency in supabase/migrations/20261106073920_user_workout_sessions.sql."
 4. "PR #734 Final Two P2 Corrections: 1. Fix P2 #4492021721 — Routine name integrity in rpc_start_workout_session. 2. Fix P2 #4492021727 — Terminal replay identity in rpc_complete_workout_session and rpc_discard_workout_session."
 5. "GO — Approve PR #734 A/B/C/D bounded implementation: Owner contract approval for Gates A, B, C, D and review remediation."
+6. "PR #734 Final P2 Compatibility Fix: Remove artificial 100-character snapshot name limit, align with existing source tables under 256 KiB ceiling, and extend pgTAP coverage to 82 assertions."
 
 **Approved product/UI/data-shape boundaries:**
 - Two owner-scoped tables: `public.user_workout_sessions` and `public.user_workout_performed_sets`.
@@ -21,7 +22,7 @@
 - 7 mutation RPCs (`rpc_start_workout_session`, `rpc_pause_workout_session`, `rpc_resume_workout_session`, `rpc_log_workout_performed_set`, `rpc_remove_workout_performed_set`, `rpc_complete_workout_session`, `rpc_discard_workout_session`).
 - Consistent parent session (`user_workout_sessions`) -> child set (`user_workout_performed_sets`) lock hierarchy across all RPCs preventing `40P01` deadlocks.
 - Contract Gate A (Mutation Recovery): Lookup-first idempotent set return without revision bump when payload is identical; strict OCC revision checking when payload is altered; read-after-write set deletion reconciliation (no tombstone tables); timestamp monotonic Pause/Resume retries across intervening mutations (`paused_at_utc` / `resumed_at_utc` matching with monotonic `last_transition_at_utc`).
-- Contract Gate B (Historical Snapshot): Technical ceiling of 256 KiB (`octet_length <= 262144`); root and nested property key whitelists; canonical ExerciseRef regex (`^ex_[a-z0-9]+(?:_[a-z0-9]+)*$` or lowercase UUID); strict ISO-8601 UTC regex; 100-character name limits on routines and exercises; snapshot validation executed in `rpc_start_workout_session` and guarded via `BEFORE INSERT` trigger (`trg_user_workout_sessions_validate_snapshot`), eliminating row-level check re-validation on set mutations.
+- Contract Gate B (Historical Snapshot): Technical ceiling of 256 KiB (`octet_length <= 262144`); root and nested property key whitelists; canonical ExerciseRef regex (`^ex_[a-z0-9]+(?:_[a-z0-9]+)*$` or lowercase UUID); strict ISO-8601 UTC regex; unrestricted routine and exercise display names aligned with existing owner-writable source tables, validated for nonblank (`length(btrim(...)) > 0`), authoritative source name equality, and bounded under the 256 KiB technical ceiling; snapshot validation executed in `rpc_start_workout_session` and guarded via `BEFORE INSERT` trigger (`trg_user_workout_sessions_validate_snapshot`), eliminating row-level check re-validation on set mutations.
 - Contract Gate C (Flexible Performed Sets): Hard limit of maximum 500 sets per session enforced under parent row lock in `rpc_log_workout_performed_set` (`count >= 500` raises `22023 session_performed_sets_limit_exceeded`); `set_index` range `0..999` enforced via `chk_user_workout_performed_sets_indices`; supports repeated exercise occurrences, extra sets beyond prescription, and sparse indices; updates and identical retries do not consume quota.
 - Contract Gate D (Text Storage Protection): Maximum 65,536 UTF-8 bytes (`octet_length <= 65536`) enforced on `user_workout_sessions.notes`, `user_workout_sessions.discard_reason`, and `user_workout_performed_sets.notes`.
 - Review findings remediation (P3 triage):
@@ -49,7 +50,7 @@
 **Repository state last verified:** 2026-11-07 14:20 UTC+05:30
 **Branch:** `feat/w7b-1-workout-session-persistence`
 **PR:** https://github.com/im-tnyx/tio-world/pull/734
-**PR Previous HEAD SHA:** `ec42c39bef79c694952f4db63820183318d334cb`
+**PR Previous HEAD SHA:** `18db5b241f08c421b311df29224ece6d7b045865`
 **Observed working-tree state:** Changes ready for commit
 **Observed modified files:**
 - `supabase/migrations/20261106073920_user_workout_sessions.sql`
@@ -57,11 +58,11 @@
 - `supabase/tests/database/w7b_session_concurrency.sh`
 - `.ai/tasks/w7b-1-workout-session-persistence.md`
 **PR / tracker:** Linear TNYX-84 (W7 Active Workout) - Restored to **In Progress**
-**Current implementation state:** Full implementation and test coverage of approved Contract Gates A, B, C, D and review remediation complete. pgTAP test suite expanded from 60 to 77 assertions passing 100% on PostgreSQL 17; concurrency harness expanded from 5 to 6 races with Race 6 (concurrent idempotent set retry vs in-place set update) passing 100%; connection guard 11/11 tests passing; `git diff --check` passing with zero errors.
+**Current implementation state:** Full implementation and test coverage of approved Contract Gates A, B, C, D and review remediation complete. pgTAP test suite expanded to 82 assertions passing 100% on PostgreSQL 17; concurrency harness expanded from 5 to 6 races with Race 6 (concurrent idempotent set retry vs in-place set update) passing 100%; connection guard 11/11 tests passing; `git diff --check` passing with zero errors.
 **Relevant execution surface:** `supabase/migrations/`, `supabase/tests/database/`, `.github/workflows/`
 **Validation completed:**
 - All migrations applied cleanly via `--single-transaction`.
-- 77/77 pgTAP assertions pass in `supabase/tests/database/w7b_session_security.test.sql` with exit 0 via PostgreSQL 17 test harness.
+- 82/82 pgTAP assertions pass in `supabase/tests/database/w7b_session_security.test.sql` with exit 0 via PostgreSQL 17 test harness.
 - Negative TAP testing verified: assertion failure (`ok(false)`), plan mismatch, and fatal SQL syntax errors all exit with code 1.
 - `supabase/tests/database/w7b_session_concurrency_guard.test.sh` passes 11/11 guard checks:
   - CI mode passes with exact loopback URL.
@@ -95,6 +96,7 @@
 - `4492021727` (P2): Terminal replay identity resolved in `rpc_complete_workout_session` (comparing normalized `nullif(btrim(p_notes), '')`) and `rpc_discard_workout_session` (comparing normalized `btrim(p_discard_reason)`), returning existing terminal session on exact match and raising `terminal_payload_conflict` (`23505`) on conflicting notes/reason. Tested in assertions 41-44, 46-48, 55-57.
 - `im-tio` thread `PRRT_kwDOTOXwB860kRDo` (P2): Disposable connection guard bypass in `w7b_session_concurrency.sh` resolved by strictly enforcing the exact loopback disposable URL in both CI and local modes (`database_url="$expected_url"`), refusing any non-loopback/alternative `DATABASE_URL`, rejecting all libpq `PG*` connection overrides except `PGPASSWORD`, making local execution opt-in via `--local`, and adding `w7b_session_concurrency_guard.test.sh` to CI pipeline.
 - `im-tio` thread `PRRT_kwDOTOXwB860qdai` / #4496780930 (P2): Credential disclosure in concurrency harness rejection message resolved by removing `${DATABASE_URL}` and `$arg` interpolations from error output, returning constant generic refusal messages (`Refusing W7B-1 concurrency race with non-disposable or alternative DATABASE_URL` and `Unsupported W7B-1 concurrency race harness argument`), and verifying in `w7b_session_concurrency_guard.test.sh` that synthetic sentinel passwords and full connection strings never appear in stdout or stderr.
+- `im-tio` thread `PRRT_kwDOTOXwB8600dBy` / #4501071121 (P2): 100-character snapshot name limit incompatibility resolved by removing artificial 100-character caps from `routine_name` and `display_name` in `private.is_valid_workout_session_snapshot_v1`, keeping nonblank checks, key whitelists, canonical exercise ref regex, and 256 KiB ceiling. Authoritative stored names in `user_workout_routines.name` and `user_workout_exercises.display_name` exceeding 100 characters can now start workout sessions cleanly without error. Tested in assertions 64-66, 78-80.
 - `im-tio` P3 findings (`#4499918985`, `#4499919004`, `#4499918994`, `#4499918991`, `#4499918998`, `#4499919000`):
   * `#4499918985`: `is_valid_workout_session_snapshot_v1` marked `STABLE`, `SET search_path = ''`, strict timestamp regex, canonical catalog regex.
   * `#4499919004` / `#4499918994`: RLS policies updated to `using (user_id = (select auth.uid()))` for InitPlan evaluation.
@@ -116,6 +118,6 @@ Provide durable, multi-tenant secure, terminal-immutable PostgreSQL persistence 
 5. Snapshot cross-validation in `rpc_start_workout_session` matching database routine composition and prescribed sets.
 6. Deterministic snapshot validator `private.is_valid_workout_session_snapshot_v1` rejecting empty JSONB and missing required keys.
 7. Account deletion cascade works cleanly without trigger blockage.
-8. 100% passing pgTAP security tests (77 tests) on local disposable Supabase database.
+8. 100% passing pgTAP security tests (82 tests) on local disposable Supabase database.
 9. Concurrency regression harness (6 races) for Finish vs Log Set, Log/Update vs Remove, and Idempotent Retry vs Update races.
 10. CI integration into `.github/workflows/supabase-db-ci.yml`.

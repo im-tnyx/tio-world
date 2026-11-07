@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
-SELECT plan(77);
+SELECT plan(82);
 
 -- ============================================================================
 -- Fixtures Setup (Two distinct authenticated users with programs & routines)
@@ -953,7 +953,43 @@ SELECT is(
   'Snapshot validator rejects oversized payload exceeding 256 KiB'
 );
 
--- 64. Snapshot rejects display_name > 100 chars
+-- 64. Snapshot validator accepts routine_name and exercise display_name longer than 100 characters
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1(
+    jsonb_build_object(
+      'schema_version', 1,
+      'routine_id', '11111111-1111-1111-1111-111111111111'::uuid,
+      'program_id', '22222222-2222-2222-2222-222222222222'::uuid,
+      'routine_name', repeat('R', 120),
+      'captured_at_utc', '2026-11-06T00:00:00Z',
+      'exercises', jsonb_build_array(
+        jsonb_build_object('exercise_ref', 'ex_bench', 'display_name', repeat('E', 120), 'occurrence_index', 0, 'prescribed_sets', '[]'::jsonb)
+      )
+    )
+  ),
+  true,
+  'Snapshot validator accepts routine_name and display_name longer than 100 characters'
+);
+
+-- 65. Snapshot validator rejects whitespace-only blank routine_name
+SELECT is(
+  private.is_valid_workout_session_snapshot_v1(
+    jsonb_build_object(
+      'schema_version', 1,
+      'routine_id', '11111111-1111-1111-1111-111111111111'::uuid,
+      'program_id', '22222222-2222-2222-2222-222222222222'::uuid,
+      'routine_name', '   ',
+      'captured_at_utc', '2026-11-06T00:00:00Z',
+      'exercises', jsonb_build_array(
+        jsonb_build_object('exercise_ref', 'ex_bench', 'display_name', 'Valid Exercise', 'occurrence_index', 0, 'prescribed_sets', '[]'::jsonb)
+      )
+    )
+  ),
+  false,
+  'Snapshot validator rejects whitespace-only blank routine_name'
+);
+
+-- 66. Snapshot validator rejects whitespace-only blank exercise display_name
 SELECT is(
   private.is_valid_workout_session_snapshot_v1(
     jsonb_build_object(
@@ -963,12 +999,12 @@ SELECT is(
       'routine_name', 'Valid Routine',
       'captured_at_utc', '2026-11-06T00:00:00Z',
       'exercises', jsonb_build_array(
-        jsonb_build_object('exercise_ref', 'ex_bench', 'display_name', repeat('E', 101), 'occurrence_index', 0, 'prescribed_sets', '[]'::jsonb)
+        jsonb_build_object('exercise_ref', 'ex_bench', 'display_name', '   ', 'occurrence_index', 0, 'prescribed_sets', '[]'::jsonb)
       )
     )
   ),
   false,
-  'Snapshot validator rejects exercise display_name exceeding 100 characters'
+  'Snapshot validator rejects whitespace-only blank exercise display_name'
 );
 
 -- Fixture for RPC tests
@@ -1262,6 +1298,162 @@ SELECT throws_ok(
   '22023',
   'session_performed_sets_limit_exceeded',
   'Attempt to log 501st set in session is rejected with session_performed_sets_limit_exceeded'
+);
+
+RESET ROLE;
+
+-- Fixture for Owner D long-name tests (>100 characters compatibility)
+RESET ROLE;
+INSERT INTO auth.users (id, email) VALUES ('44444444-4444-4444-4444-444444444444', 'owner_d@tio.test') ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.users (id, email) VALUES ('44444444-4444-4444-4444-444444444444', 'owner_d@tio.test') ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.user_workout_programs (id, user_id, name) VALUES ('dddddddd-4444-0000-0000-000000000001', '44444444-4444-4444-4444-444444444444', 'Program D') ON CONFLICT (id) DO NOTHING;
+
+\set long_routine_name 'Super Advanced Hypertrophy & Periodization Routine With Ultra Comprehensive Name That Comfortably Exceeds One Hundred Chars'
+INSERT INTO public.user_workout_routines (id, user_id, program_id, name) VALUES (
+  'dddddddd-4444-0000-0000-000000000002',
+  '44444444-4444-4444-4444-444444444444',
+  'dddddddd-4444-0000-0000-000000000001',
+  :'long_routine_name'
+) ON CONFLICT (id) DO NOTHING;
+
+\set long_exercise_name 'Incline Dumbbell Bench Press With Three Second Eccentric Pause And Full Range Of Motion At Chest Level Custom Variation'
+INSERT INTO public.user_workout_exercises (id, user_id, display_name, exercise_type) VALUES (
+  'dddddddd-4444-0000-0000-000000000010',
+  '44444444-4444-4444-4444-444444444444',
+  :'long_exercise_name',
+  'dumbbell_x2_simultaneous'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.user_workout_routine_exercises (id, user_id, routine_id, position, user_exercise_id) VALUES (
+  'dddddddd-4444-0000-0000-000000000003',
+  '44444444-4444-4444-4444-444444444444',
+  'dddddddd-4444-0000-0000-000000000002',
+  0,
+  'dddddddd-4444-0000-0000-000000000010'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.user_workout_routine_sets (id, user_id, routine_exercise_id, position, set_type, reps, load_kg, rest_seconds) VALUES (
+  'dddddddd-4444-0000-0000-000000000004',
+  '44444444-4444-4444-4444-444444444444',
+  'dddddddd-4444-0000-0000-000000000003',
+  0,
+  'normal',
+  8,
+  32.5,
+  120
+) ON CONFLICT (id) DO NOTHING;
+
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = '44444444-4444-4444-4444-444444444444';
+
+-- 78. Start workout with >100 char routine name and >100 char custom exercise name succeeds
+SELECT lives_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'dddddddd-dddd-0000-0000-000000000001'::uuid,
+      'dddddddd-4444-0000-0000-000000000001'::uuid,
+      'dddddddd-4444-0000-0000-000000000002'::uuid,
+      '2026-11-06 16:00:00+00'::timestamptz,
+      '2026-11-06'::date,
+      jsonb_build_object(
+        'schema_version', 1,
+        'routine_id', 'dddddddd-4444-0000-0000-000000000002'::uuid,
+        'program_id', 'dddddddd-4444-0000-0000-000000000001'::uuid,
+        'routine_name', %L,
+        'captured_at_utc', '2026-11-06T16:00:00Z',
+        'exercises', jsonb_build_array(
+          jsonb_build_object(
+            'exercise_ref', 'dddddddd-4444-0000-0000-000000000010'::uuid,
+            'display_name', %L,
+            'exercise_type', 'dumbbell_x2_simultaneous',
+            'occurrence_index', 0,
+            'prescribed_sets', jsonb_build_array(
+              jsonb_build_object('set_type', 'normal', 'reps', 8, 'load_kg', 32.5, 'rest_seconds', 120)
+            )
+          )
+        )
+      )
+    )
+    $$,
+    :'long_routine_name',
+    :'long_exercise_name'
+  ),
+  'Start workout session succeeds with Routine and Custom Exercise names longer than 100 characters'
+);
+
+-- 79. Start workout session rejects snapshot when custom exercise display name differs from authoritative source
+SELECT throws_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'dddddddd-dddd-0000-0000-000000000002'::uuid,
+      'dddddddd-4444-0000-0000-000000000001'::uuid,
+      'dddddddd-4444-0000-0000-000000000002'::uuid,
+      '2026-11-06 16:30:00+00'::timestamptz,
+      '2026-11-06'::date,
+      jsonb_build_object(
+        'schema_version', 1,
+        'routine_id', 'dddddddd-4444-0000-0000-000000000002'::uuid,
+        'program_id', 'dddddddd-4444-0000-0000-000000000001'::uuid,
+        'routine_name', %L,
+        'captured_at_utc', '2026-11-06T16:30:00Z',
+        'exercises', jsonb_build_array(
+          jsonb_build_object(
+            'exercise_ref', 'dddddddd-4444-0000-0000-000000000010'::uuid,
+            'display_name', 'Tampered Custom Exercise Name',
+            'exercise_type', 'dumbbell_x2_simultaneous',
+            'occurrence_index', 0,
+            'prescribed_sets', jsonb_build_array(
+              jsonb_build_object('set_type', 'normal', 'reps', 8, 'load_kg', 32.5, 'rest_seconds', 120)
+            )
+          )
+        )
+      )
+    )
+    $$,
+    :'long_routine_name'
+  ),
+  '22023',
+  'snapshot_custom_exercise_metadata_mismatch',
+  'Start RPC rejects snapshot when custom exercise display name differs from authoritative database record'
+);
+
+-- 80. Start workout session rejects snapshot when routine name differs from authoritative source (long name mismatch)
+SELECT throws_ok(
+  format(
+    $$
+    SELECT public.rpc_start_workout_session(
+      'dddddddd-dddd-0000-0000-000000000003'::uuid,
+      'dddddddd-4444-0000-0000-000000000001'::uuid,
+      'dddddddd-4444-0000-0000-000000000002'::uuid,
+      '2026-11-06 17:00:00+00'::timestamptz,
+      '2026-11-06'::date,
+      jsonb_build_object(
+        'schema_version', 1,
+        'routine_id', 'dddddddd-4444-0000-0000-000000000002'::uuid,
+        'program_id', 'dddddddd-4444-0000-0000-000000000001'::uuid,
+        'routine_name', 'Tampered Long Routine Name',
+        'captured_at_utc', '2026-11-06T17:00:00Z',
+        'exercises', jsonb_build_array(
+          jsonb_build_object(
+            'exercise_ref', 'dddddddd-4444-0000-0000-000000000010'::uuid,
+            'display_name', %L,
+            'exercise_type', 'dumbbell_x2_simultaneous',
+            'occurrence_index', 0,
+            'prescribed_sets', jsonb_build_array(
+              jsonb_build_object('set_type', 'normal', 'reps', 8, 'load_kg', 32.5, 'rest_seconds', 120)
+            )
+          )
+        )
+      )
+    )
+    $$,
+    :'long_exercise_name'
+  ),
+  '22023',
+  'snapshot_routine_name_mismatch',
+  'Start RPC rejects snapshot when routine name differs from authoritative database record'
 );
 
 RESET ROLE;
