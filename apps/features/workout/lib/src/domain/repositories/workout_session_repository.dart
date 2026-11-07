@@ -93,13 +93,12 @@ final class WorkoutSessionCommittedReadbackException
   WorkoutSessionCommittedReadbackException({
     required this.sessionId,
     required this.operationName,
-    Object? cause,
+    super.cause,
     String? message,
   }) : super(
           WorkoutSessionPersistenceFailureKind.mutationCommittedReadbackFailed,
           message: message ??
               'Committed $operationName acknowledged by server, but readback failed for session ${sessionId.value}',
-          cause: cause,
         );
 
   final WorkoutSessionId sessionId;
