@@ -517,9 +517,18 @@ final class ActiveWorkoutController extends ChangeNotifier {
     ));
 
     try {
-      final record = targetId != null
+      var record = targetId != null
           ? await _repository.getSession(targetId)
           : await _repository.getActiveSession();
+
+      // A rejected duplicate start and an unknown start outcome retain the
+      // attempted ID for safe recovery. That ID is not evidence that it ever
+      // existed, though: another device may own the user's active session.
+      // Resolve that owner-scoped canonical record before concluding absence.
+      if (targetId != null && record == null) {
+        if (_disposed || version != _version || _isAuthInvalid()) return false;
+        record = await _repository.getActiveSession();
+      }
 
       if (_disposed || version != _version || _isAuthInvalid()) return false;
 
@@ -746,6 +755,24 @@ final class ActiveWorkoutController extends ChangeNotifier {
       if (e.kind == WorkoutSessionPersistenceFailureKind.unauthenticated ||
           e.kind == WorkoutSessionPersistenceFailureKind.unauthorized) {
         _emit(const ActiveWorkoutState.authInvalidated());
+        return false;
+      }
+      if (isNewSession &&
+          actionName == 'startSession' &&
+          e.kind == WorkoutSessionPersistenceFailureKind.duplicateActiveSession) {
+        // This is a known rejected start, not an unknown mutation outcome.
+        // The user still has an authoritative active/paused session that must
+        // be discovered before another start can be attempted.
+        _emit(state.copyWith(
+          status: ActiveWorkoutStatus.reconciliationRequired,
+          isActionPending: false,
+          clearPendingAction: true,
+          clearRecord: true,
+          lastKnownSessionId: targetSessionId,
+          reconciliationReason: 'duplicate_active_session',
+          errorMessage:
+              'Another active workout session exists. Please reconcile before starting a new session.',
+        ));
         return false;
       }
       if (e.kind == WorkoutSessionPersistenceFailureKind.staleRevisionConflict) {

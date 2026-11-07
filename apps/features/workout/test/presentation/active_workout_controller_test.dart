@@ -9,8 +9,13 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
   WorkoutSessionRecord? customMutationRecordToReturn;
   final Map<String, WorkoutSessionRecord> sessionsById = {};
   Exception? errorToThrow;
+  Exception? startSessionErrorToThrow;
+  Exception? getSessionErrorToThrow;
+  Exception? getActiveSessionErrorToThrow;
+  bool returnNullForTargetLookup = false;
   Completer<WorkoutSessionRecord>? pendingCompleter;
   Completer<WorkoutSessionRecord?>? pendingRestoreCompleter;
+  Completer<WorkoutSessionRecord?>? pendingActiveSessionCompleter;
   int getActiveSessionCalls = 0;
   int startSessionCalls = 0;
   int logSetCalls = 0;
@@ -24,7 +29,11 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
   @override
   Future<WorkoutSessionRecord?> getActiveSession() async {
     getActiveSessionCalls++;
+    if (getActiveSessionErrorToThrow != null) throw getActiveSessionErrorToThrow!;
     if (errorToThrow != null) throw errorToThrow!;
+    if (pendingActiveSessionCompleter != null) {
+      return pendingActiveSessionCompleter!.future;
+    }
     if (pendingRestoreCompleter != null) return pendingRestoreCompleter!.future;
     return activeSessionToReturn;
   }
@@ -32,7 +41,9 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
   @override
   Future<WorkoutSessionRecord?> getSession(WorkoutSessionId sessionId) async {
     getSessionCalls++;
+    if (getSessionErrorToThrow != null) throw getSessionErrorToThrow!;
     if (errorToThrow != null) throw errorToThrow!;
+    if (returnNullForTargetLookup) return null;
     if (pendingRestoreCompleter != null) return pendingRestoreCompleter!.future;
     return sessionsById[sessionId.value] ?? activeSessionToReturn;
   }
@@ -40,6 +51,7 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
   @override
   Future<WorkoutSessionRecord> startSession(WorkoutSession session) async {
     startSessionCalls++;
+    if (startSessionErrorToThrow != null) throw startSessionErrorToThrow!;
     if (errorToThrow != null) throw errorToThrow!;
     if (pendingCompleter != null) return pendingCompleter!.future;
     final record = sessionsById[session.id.value] ??
@@ -868,6 +880,29 @@ void main() {
       expect(controller.state.record?.revision, 1);
     });
 
+    test('same-owner auth metadata refresh does not discard an in-flight mutation', () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn =
+          WorkoutSessionRecord(session: session, revision: 1);
+      final completer = Completer<WorkoutSessionRecord>();
+      fakeRepo.pendingCompleter = completer;
+      final controller = createController();
+      await controller.restoreActiveSession();
+
+      final pending = controller.logSet(
+        sessionExerciseIndex: 0,
+        setIndex: 0,
+        reps: 8,
+      );
+      // The verified owner is unchanged; profile/Auth metadata updates must not
+      // invalidate this controller or its dispatched mutation.
+      currentUserId = testUserId;
+      completer.complete(WorkoutSessionRecord(session: session, revision: 2));
+
+      expect(await pending, isTrue);
+      expect(controller.state.revision, 2);
+    });
+
     test('safely handles disposal while async operation is pending', () async {
       final session = createTestSession();
       fakeRepo.activeSessionToReturn =
@@ -889,6 +924,129 @@ void main() {
       final success = await future;
 
       expect(success, isFalse);
+    });
+  });
+
+  group('P2 #4503139163 - Duplicate Active Session Reconciliation', () {
+    WorkoutSession sessionWithId(String value, {WorkoutSessionStatus status = WorkoutSessionStatus.active}) =>
+        createTestSession(id: WorkoutSessionId(value), status: status);
+
+    Future<ActiveWorkoutController> duplicateStartController({
+      required WorkoutSession sessionB,
+    }) async {
+      final controller = createController();
+      fakeRepo.startSessionErrorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.duplicateActiveSession,
+      );
+      expect(await controller.startSession(sessionB), isFalse);
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.reconciliationReason, 'duplicate_active_session');
+      expect(controller.state.sessionId, sessionB.id);
+      return controller;
+    }
+
+    test('adopts canonical active session A when rejected session B is absent', () async {
+      final sessionA = sessionWithId('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
+      final sessionB = sessionWithId('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb');
+      final controller = await duplicateStartController(sessionB: sessionB);
+      fakeRepo.returnNullForTargetLookup = true;
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: sessionA, revision: 4);
+
+      expect(await controller.reconcileState(), isTrue);
+      expect(fakeRepo.getSessionCalls, 1);
+      expect(fakeRepo.getActiveSessionCalls, 1);
+      expect(controller.state.status, ActiveWorkoutStatus.active);
+      expect(controller.state.record?.session.id, sessionA.id);
+    });
+
+    test('adopts canonical paused session A when rejected session B is absent', () async {
+      final sessionA = sessionWithId('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa')
+          .pause(testStartTime.add(const Duration(minutes: 3)));
+      final sessionB = sessionWithId('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb');
+      final controller = await duplicateStartController(sessionB: sessionB);
+      fakeRepo.returnNullForTargetLookup = true;
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: sessionA, revision: 4);
+
+      expect(await controller.reconcileState(), isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.paused);
+      expect(controller.state.record?.session.id, sessionA.id);
+    });
+
+    test('emits noSession only after target and canonical active lookup confirm absence', () async {
+      final sessionB = sessionWithId('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb');
+      final controller = await duplicateStartController(sessionB: sessionB);
+      fakeRepo.returnNullForTargetLookup = true;
+      fakeRepo.activeSessionToReturn = null;
+
+      expect(await controller.reconcileState(), isTrue);
+      expect(fakeRepo.getActiveSessionCalls, 1);
+      expect(controller.state.status, ActiveWorkoutStatus.noSession);
+    });
+
+    test('fallback network failure preserves reconciliation state and blocks another start', () async {
+      final sessionB = sessionWithId('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb');
+      final controller = await duplicateStartController(sessionB: sessionB);
+      fakeRepo.returnNullForTargetLookup = true;
+      fakeRepo.getActiveSessionErrorToThrow = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+      );
+
+      expect(await controller.reconcileState(), isFalse);
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
+      expect(controller.state.sessionId, sessionB.id);
+      expect(await controller.startSession(sessionWithId('cccccccc-cccc-4ccc-cccc-cccccccccccc')), isFalse);
+      expect(fakeRepo.startSessionCalls, 1);
+    });
+
+    test('unknown start B remains safe and adopts A only after canonical fallback', () async {
+      final sessionA = sessionWithId('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
+      final sessionB = sessionWithId('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb');
+      final controller = createController();
+      fakeRepo.errorToThrow = WorkoutSessionMutationOutcomeUnknown(
+        sessionId: sessionB.id,
+        reason: WorkoutSessionMutationUncertainty.networkTimeout,
+      );
+      expect(await controller.startSession(sessionB), isFalse);
+      fakeRepo.errorToThrow = null;
+      fakeRepo.returnNullForTargetLookup = true;
+      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(session: sessionA, revision: 7);
+
+      expect(await controller.reconcileState(), isTrue);
+      expect(controller.state.status, ActiveWorkoutStatus.active);
+      expect(controller.state.record?.session.id, sessionA.id);
+    });
+
+    test('auth change during canonical fallback cannot overwrite authInvalidated state', () async {
+      final sessionB = sessionWithId('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb');
+      final controller = await duplicateStartController(sessionB: sessionB);
+      fakeRepo.returnNullForTargetLookup = true;
+      final fallback = Completer<WorkoutSessionRecord?>();
+      fakeRepo.pendingActiveSessionCompleter = fallback;
+
+      final reconciliation = controller.reconcileState();
+      currentUserId = null;
+      controller.onAuthChanged();
+      fallback.complete(null);
+
+      expect(await reconciliation, isFalse);
+      expect(controller.state.status, ActiveWorkoutStatus.authInvalidated);
+    });
+
+    test('concurrent recovery and disposal keep one fallback read and do not emit noSession', () async {
+      final sessionB = sessionWithId('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb');
+      final controller = await duplicateStartController(sessionB: sessionB);
+      fakeRepo.returnNullForTargetLookup = true;
+      final fallback = Completer<WorkoutSessionRecord?>();
+      fakeRepo.pendingActiveSessionCompleter = fallback;
+
+      final first = controller.reconcileState();
+      expect(await controller.reconcileState(), isFalse);
+      expect(fakeRepo.getActiveSessionCalls, 1);
+      controller.dispose();
+      fallback.complete(null);
+
+      expect(await first, isFalse);
+      expect(controller.state.status, ActiveWorkoutStatus.reconciliationRequired);
     });
   });
 

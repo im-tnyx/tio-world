@@ -1,7 +1,7 @@
 # Feature Task: W7C-1 Active Workout Controller & State Orchestration
 
 **Status:** In progress
-**Primary owner:** Antigravity
+**Primary owner:** Codex
 **Affected platforms:** Flutter (apps/features/workout, apps/app)
 
 ## Owner Approval and Scope Boundary
@@ -36,23 +36,23 @@
 This is a compact recovery checkpoint, not a live activity log. Refresh it only at meaningful durable checkpoints, when implementation pauses, when ownership changes, or when recovery is needed. Use `Not applicable` where no handoff state exists.
 
 **Planning owner:** Antigravity
-**Implementation owner:** Antigravity
+**Implementation owner:** Codex
 **Review owner:** im-tio
 **Implementation ownership state:** Active
-**Ownership transition:** Not applicable
-**Repository state last verified:** 2026-11-07 20:25 UTC+05:30
+**Ownership transition:** User explicitly assigned the bounded PR #736 P2 remediation to Codex; prior implementation ownership is superseded for this remediation only.
+**Repository state last verified:** 2026-11-08 00:00 UTC+05:30
 **Branch:** `feat/w7c-1-active-workout-controller`
-**HEAD SHA:** `bb86b36870074ffbe29b7c8a544c0cc7abfba677`
+**HEAD SHA:** `3ee21aceeceaaee2c7088adfc5bf7617efcfb4bc`
 **Observed working-tree state:** Clean branch branched from origin/main
 **Observed uncommitted/dirty files:** None
 **PR / tracker:** Linear TNYX-84 (W7 Active Workout)
-**Current implementation state:** Implementation in progress
+**Current implementation state:** PR #736 P2 remediation implemented locally; focused validation is pending because no Flutter/Dart/Melos executable is available on this host PATH.
 **Relevant execution surface:** `apps/features/workout/`, `apps/app/`
 **Validation completed at SHA:** bb86b36870074ffbe29b7c8a544c0cc7abfba677
-**Validation remaining:** Unit tests, provider lifecycle tests, Flutter analyze
-**Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Implement `active_workout_state.dart` and `active_workout_controller.dart`.
+**Validation remaining:** Focused controller tests, provider lifecycle tests, affected Workout/app tests, Flutter analyze, Melos validation, final CI on pushed SHA.
+**Current blocker:** Local Flutter/Dart/Melos executables are unavailable; GitHub network access from the shell is also unavailable until the branch can be pushed through an available transport.
+**Open review finding IDs:** `PRRT_kwDOTOXwB8605XTc` (duplicate active-session reconciliation), `PRRT_kwDOTOXwB8605XTe` (same-login Auth provider lifecycle stability).
+**Next exact action:** Apply the bounded PR #736 remediation, then run focused controller and provider lifecycle regression tests.
 
 ## Global UI / Design-System Guardrail
 
@@ -143,6 +143,8 @@ UI (Future W7C-2) -> ActiveWorkoutController -> WorkoutSessionRepository -> Supa
 | Authoritative mutation readback (#4502581548) | `active_workout_controller.dart` | Pause, resume, logSet, removeSet adopt `record.session.status` directly via `_applyAuthoritativeRecord` | Local Flutter test runner | None |
 | Authoritative duration correction (#4502680017) | `active_workout_controller.dart` | `_applyAuthoritativeRecord` uses `enforceMonotonic: false` to allow authoritative pause/complete to correct ticker drift | Local Flutter test runner | None |
 | Safe restore error handling (#4502680020, #4502685338) | `active_workout_controller.dart` | `restoreActiveSession` read failures enter `reconciliationRequired` preserving record/session ID instead of falsely claiming `noSession` | Local Flutter test runner | None |
+| Duplicate-session canonical fallback (#4503139163) | `active_workout_controller.dart`, controller tests | Targeted missing session now falls back to owner-scoped `getActiveSession()` before `noSession`; known duplicate starts enter reconciliation without being classified as unknown | Pending local validation | Flutter/Dart executable unavailable on host PATH |
+| Same-login provider stability (#4503139166) | `workout_providers.dart`, provider lifecycle tests | Provider dependencies select verified owner/login-cycle identity; profile/verification updates should retain repository/controller and rest timer | Pending local validation | Flutter/Dart executable unavailable on host PATH |
 
 ## 6. Final Handoff
 

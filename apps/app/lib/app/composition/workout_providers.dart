@@ -1,12 +1,36 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_feature_workout/workout.dart';
-import 'package:tio_feature_auth/auth.dart' show AuthSessionAuthenticated;
+import 'package:tio_feature_auth/auth.dart'
+    show AuthSessionAuthenticated, AuthSessionState;
 import 'package:tio_shared/shared.dart';
 
 import 'auth_providers.dart';
 
 import 'runtime_providers.dart';
+
+typedef _WorkoutAuthIdentity = ({String ownerId, String loginCycleId});
+
+/// The only Auth fields that define Workout mutation authority and lifecycle.
+///
+/// Profile/verification metadata can legitimately change during the same
+/// login. Selecting this boundary keeps the repository and controller stable
+/// for that event while request-time checks below still fail closed if the
+/// authenticated owner or login cycle changes.
+_WorkoutAuthIdentity? _selectWorkoutAuthIdentity(
+  AsyncValue<AuthSessionState> sessionAsync,
+) {
+  if (sessionAsync.isLoading || sessionAsync.hasError) return null;
+  final auth = sessionAsync.valueOrNull;
+  if (auth is! AuthSessionAuthenticated) return null;
+
+  final ownerId = auth.session.userId.trim();
+  final loginCycleId = auth.session.loginCycleId?.trim();
+  if (ownerId.isEmpty || loginCycleId == null || loginCycleId.isEmpty) {
+    return null;
+  }
+  return (ownerId: ownerId, loginCycleId: loginCycleId);
+}
 
 /// Canonical Workout Profile owner used by Product Onboarding completion.
 final workoutProfileRepositoryProvider =
@@ -138,18 +162,16 @@ final userExerciseRepositoryProvider =
 final workoutSessionRepositoryProvider =
     Provider<WorkoutSessionRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
-  final sessionAsync = ref.watch(authSessionStateProvider);
-  final auth = sessionAsync.isLoading || sessionAsync.hasError
-      ? null
-      : sessionAsync.valueOrNull;
-  if (client == null ||
-      auth is! AuthSessionAuthenticated ||
-      auth.session.userId != client.auth.currentUser?.id) {
+  final identity = ref.watch(
+    authSessionStateProvider.select(_selectWorkoutAuthIdentity),
+  );
+  if (client == null || identity == null ||
+      identity.ownerId != client.auth.currentUser?.id) {
     return null;
   }
 
-  final ownerId = auth.session.userId;
-  final loginCycleId = auth.session.loginCycleId;
+  final ownerId = identity.ownerId;
+  final loginCycleId = identity.loginCycleId;
   bool isCurrentSession() {
     try {
       final current = ref.read(authSessionStateProvider);
@@ -180,14 +202,13 @@ final activeWorkoutControllerProvider =
   final repository = ref.watch(workoutSessionRepositoryProvider);
   if (repository == null) return null;
 
-  final sessionAsync = ref.watch(authSessionStateProvider);
-  final auth = sessionAsync.isLoading || sessionAsync.hasError
-      ? null
-      : sessionAsync.valueOrNull;
-  if (auth is! AuthSessionAuthenticated) return null;
+  final identity = ref.watch(
+    authSessionStateProvider.select(_selectWorkoutAuthIdentity),
+  );
+  if (identity == null) return null;
 
-  final ownerId = auth.session.userId;
-  final loginCycleId = auth.session.loginCycleId;
+  final ownerId = identity.ownerId;
+  final loginCycleId = identity.loginCycleId;
 
   String? currentUserId() {
     try {
@@ -208,7 +229,12 @@ final activeWorkoutControllerProvider =
     repository: repository,
     currentUserId: currentUserId,
   );
-  ref.onDispose(controller.dispose);
+  ref.onDispose(() {
+    // A retained stale reference must lose its private in-memory session data
+    // when this identity-bound provider is invalidated.
+    controller.onAuthChanged();
+    controller.dispose();
+  });
   return controller;
 });
 

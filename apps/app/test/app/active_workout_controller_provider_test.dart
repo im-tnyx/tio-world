@@ -90,6 +90,134 @@ void main() {
       expect(controller!.state.status, ActiveWorkoutStatus.initial);
     });
 
+    test('retains repository and controller across same-login profile and verification updates', () async {
+      final client = _FakeSupabaseClient(currentUserId: _testUserId);
+      final authEvents = StreamController<AuthSessionState>();
+      addTearDown(authEvents.close);
+      final container = ProviderContainer(
+        overrides: [
+          supabaseClientProvider.overrideWithValue(client),
+          authSessionStateProvider.overrideWith((ref) => authEvents.stream),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        activeWorkoutControllerProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      const initial = AuthSession(userId: _testUserId, loginCycleId: 'cycle-1');
+      authEvents.add(const AuthSessionAuthenticated(initial));
+      await pumpEventQueue();
+      final initialRepository = container.read(workoutSessionRepositoryProvider);
+      final initialController = container.read(activeWorkoutControllerProvider);
+      expect(initialRepository, isNotNull);
+      expect(initialController, isNotNull);
+      initialController!.startRestTimer(durationSeconds: 60);
+
+      for (final updated in const [
+        AuthSession(
+          userId: _testUserId,
+          loginCycleId: 'cycle-1',
+          displayName: 'Updated name',
+        ),
+        AuthSession(
+          userId: _testUserId,
+          loginCycleId: 'cycle-1',
+          photoUrl: 'https://example.invalid/avatar.png',
+        ),
+        AuthSession(
+          userId: _testUserId,
+          loginCycleId: 'cycle-1',
+          isEmailVerified: true,
+        ),
+      ]) {
+        authEvents.add(AuthSessionAuthenticated(updated));
+        await pumpEventQueue();
+        expect(container.read(workoutSessionRepositoryProvider), same(initialRepository));
+        expect(container.read(activeWorkoutControllerProvider), same(initialController));
+        expect(initialController.state.activeRestTimer, isNotNull);
+      }
+    });
+
+    test('rebuilds controller for a new login cycle and never retains old capability', () async {
+      final client = _FakeSupabaseClient(currentUserId: _testUserId);
+      final authEvents = StreamController<AuthSessionState>();
+      addTearDown(authEvents.close);
+      final container = ProviderContainer(
+        overrides: [
+          supabaseClientProvider.overrideWithValue(client),
+          authSessionStateProvider.overrideWith((ref) => authEvents.stream),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        activeWorkoutControllerProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      authEvents.add(const AuthSessionAuthenticated(
+        AuthSession(userId: _testUserId, loginCycleId: 'cycle-1'),
+      ));
+      await pumpEventQueue();
+      final first = container.read(activeWorkoutControllerProvider);
+      expect(first, isNotNull);
+
+      authEvents.add(const AuthSessionAuthenticated(
+        AuthSession(userId: _testUserId, loginCycleId: 'cycle-2'),
+      ));
+      await pumpEventQueue();
+      final second = container.read(activeWorkoutControllerProvider);
+      expect(second, isNotNull);
+      expect(second, isNot(same(first)));
+    });
+
+    test('fails closed after account switch or repeated unauthenticated auth events', () async {
+      final client = _FakeSupabaseClient(currentUserId: _testUserId);
+      final authEvents = StreamController<AuthSessionState>();
+      addTearDown(authEvents.close);
+      final container = ProviderContainer(
+        overrides: [
+          supabaseClientProvider.overrideWithValue(client),
+          authSessionStateProvider.overrideWith((ref) => authEvents.stream),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(
+        activeWorkoutControllerProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      authEvents.add(const AuthSessionAuthenticated(
+        AuthSession(userId: _testUserId, loginCycleId: 'cycle-1'),
+      ));
+      await pumpEventQueue();
+      final previousUserController = container.read(activeWorkoutControllerProvider);
+      expect(previousUserController, isNotNull);
+
+      authEvents.add(const AuthSessionAuthenticated(AuthSession(
+        userId: '22222222-2222-4222-a222-222222222222',
+        loginCycleId: 'cycle-2',
+      )));
+      await pumpEventQueue();
+      expect(container.read(activeWorkoutControllerProvider), isNull);
+
+      authEvents.add(const AuthSessionUnauthenticated());
+      authEvents.add(const AuthSessionUnauthenticated());
+      await pumpEventQueue();
+      expect(container.read(activeWorkoutControllerProvider), isNull);
+      expect(
+        previousUserController!.state.status,
+        ActiveWorkoutStatus.authInvalidated,
+      );
+    });
+
     test('invalidates controller when auth state transitions to signout', () async {
       final client = _FakeSupabaseClient(currentUserId: _testUserId);
       const initialSession = AuthSession(
