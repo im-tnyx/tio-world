@@ -176,7 +176,7 @@ final workoutSessionRepositoryProvider =
 /// Binds to [workoutSessionRepositoryProvider]. Returns null if user is unauthenticated
 /// or the repository is unavailable. Automatically disposes when unobserved.
 final activeWorkoutControllerProvider =
-    ChangeNotifierProvider.autoDispose<ActiveWorkoutController?>((ref) {
+    Provider.autoDispose<ActiveWorkoutController?>((ref) {
   final repository = ref.watch(workoutSessionRepositoryProvider);
   if (repository == null) return null;
 
@@ -204,10 +204,12 @@ final activeWorkoutControllerProvider =
     return null;
   }
 
-  return ActiveWorkoutController(
+  final controller = ActiveWorkoutController(
     repository: repository,
     currentUserId: currentUserId,
   );
+  ref.onDispose(controller.dispose);
+  return controller;
 });
 
 /// Atomic nonempty Routine creation (#535/#536). A null production client is

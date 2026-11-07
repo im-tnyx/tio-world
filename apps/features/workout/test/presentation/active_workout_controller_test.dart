@@ -173,6 +173,7 @@ void main() {
   final testProgramId = ProgramId('33333333-3333-4333-a333-333333333333');
   final testRoutineId = RoutineId('44444444-4444-4444-a444-444444444444');
   final testStartTime = DateTime.utc(2026, 11, 7, 10, 0, 0);
+  final testExerciseRef = ExerciseRef.catalog('ex_barbell_bench_press');
 
   WorkoutSessionSnapshot createTestSnapshot() => WorkoutSessionSnapshot(
         routineId: testRoutineId,
@@ -181,11 +182,11 @@ void main() {
         capturedAtUtc: testStartTime,
         exercises: [
           SessionExerciseSnapshot(
-            exerciseRef: const CatalogExerciseRef('bench_press'),
+            exerciseRef: testExerciseRef,
             displayName: 'Bench Press',
             exerciseType: ExerciseType.weightReps,
             occurrenceIndex: 0,
-            prescribedSets: const [
+            prescribedSets: [
               SetPrescription(
                 setType: RoutineSetType.warmUp,
                 reps: 10,
@@ -346,7 +347,6 @@ void main() {
       final controller = createController();
       final program = Program(
         id: testProgramId,
-        userId: testUserId,
         name: 'Hypertrophy Block',
       );
       final routine = Routine(
@@ -356,30 +356,25 @@ void main() {
       );
       final composition = RoutineComposition(
         routineId: testRoutineId,
-        programId: testProgramId,
-        entries: [
-          RoutineCompositionEntry(
-            id: '66666666-6666-4666-a666-666666666666',
-            exerciseRef: const CatalogExerciseRef('bench_press'),
-            orderIndex: 0,
-            sets: const [
-              PrescribedSetEntry(
-                id: '77777777-7777-4777-a777-777777777777',
-                prescription: SetPrescription(
-                  setType: RoutineSetType.normal,
-                  reps: 8,
-                  loadKg: 80.0,
-                ),
+        exercises: [
+          RoutineExercise(
+            exercise: testExerciseRef,
+            sets: [
+              SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 8,
+                loadKg: 80.0,
               ),
             ],
           ),
         ],
       );
       final resolvedExercises = {
-        const CatalogExerciseRef('bench_press'): Exercise(
-          ref: const CatalogExerciseRef('bench_press'),
-          name: 'Bench Press',
+        testExerciseRef: Exercise(
+          ref: testExerciseRef,
+          displayName: 'Bench Press',
           exerciseType: ExerciseType.weightReps,
+          status: ExerciseStatus.active,
         ),
       };
 
@@ -401,7 +396,6 @@ void main() {
       final controller = createController();
       final program = Program(
         id: testProgramId,
-        userId: testUserId,
         name: 'Hypertrophy Block',
       );
       final routine = Routine(
@@ -411,8 +405,7 @@ void main() {
       );
       final emptyComposition = RoutineComposition(
         routineId: testRoutineId,
-        programId: testProgramId,
-        entries: const [],
+        exercises: const [],
       );
 
       final success = await controller.startSessionFromRoutine(
@@ -479,7 +472,7 @@ void main() {
     test('removes performed set successfully', () async {
       final performedSet = PerformedSet(
         id: '88888888-8888-4888-a888-888888888888',
-        exerciseRef: const CatalogExerciseRef('bench_press'),
+        exerciseRef: testExerciseRef,
         sessionExerciseIndex: 0,
         setIndex: 0,
         reps: 10,

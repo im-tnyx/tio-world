@@ -114,7 +114,8 @@ UI (Future W7C-2) -> ActiveWorkoutController -> WorkoutSessionRepository -> Supa
 - [x] Wire `activeWorkoutControllerProvider` in `apps/app/lib/app/composition/workout_providers.dart`.
 - [x] Write unit tests in `active_workout_controller_test.dart`.
 - [x] Write provider lifecycle tests in `active_workout_controller_provider_test.dart`.
-- [ ] Push branch and open PR for independent review.
+- [x] Push branch and open PR for independent review.
+- [x] Remediate CI analyzer findings (relative import depth, canonical Routine model in test, and Provider.autoDispose definition).
 
 ## 5. Quality Review
 

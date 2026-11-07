@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../domain/models/workout_execution_readiness.dart';
-import '../../../domain/models/workout_session_record.dart';
-import '../../../domain/repositories/workout_session_repository.dart';
+import '../../domain/models/workout_execution_readiness.dart';
+import '../../domain/models/workout_session_record.dart';
+import '../../domain/repositories/workout_session_repository.dart';
 import 'active_workout_state.dart';
 
 /// Presentation controller orchestrating live workout sessions, set logging,
@@ -199,7 +199,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
       return false;
     }
 
-    final sessionId = WorkoutSessionId.create();
+    final sessionId = WorkoutSessionId(_uuidGenerator());
     final session = WorkoutSession.start(
       id: sessionId,
       userId: userId,

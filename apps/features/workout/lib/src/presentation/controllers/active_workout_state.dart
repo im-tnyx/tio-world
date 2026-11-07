@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 
-import '../../../domain/models/workout_session_record.dart';
+import '../../domain/models/workout_session_record.dart';
 
 /// Lifecycle statuses for the Active Workout presentation controller.
 enum ActiveWorkoutStatus {
