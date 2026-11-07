@@ -1,6 +1,7 @@
 export 'exercises/exercises.dart';
 export 'in_memory_workout_profile_repository.dart';
 export 'in_memory_workout_targets_repository.dart';
+export 'dto/workout_session_dtos.dart';
 export 'repositories/supabase_program_repository.dart';
 export 'repositories/supabase_program_delete_repository.dart';
 export 'repositories/supabase_workout_profile_repository.dart';
@@ -14,3 +15,5 @@ export 'repositories/supabase_routine_delete_repository.dart';
 export 'repositories/supabase_routine_move_repository.dart';
 export 'repositories/supabase_routine_notes_repository.dart';
 export 'repositories/routine_move_delete_attempt_gate.dart';
+export 'repositories/supabase_workout_session_gateway.dart';
+export 'repositories/supabase_workout_session_repository.dart';
