@@ -31,6 +31,18 @@ enum WorkoutSessionPersistenceFailureKind {
   /// A completed or discarded session cannot be modified (PostgreSQL P0001).
   terminalSessionImmutable,
 
+  /// The session is in an incompatible lifecycle status for the requested transition
+  /// (e.g. attempting to pause an already paused session, or resume an active session;
+  /// PostgreSQL P0001 invalid_transition_from_status).
+  invalidStateTransition,
+
+  /// The mutation was acknowledged/committed by the server, but the subsequent
+  /// readback to fetch the authoritative record failed (e.g. read timeout or conflict).
+  ///
+  /// Callers must NOT replay the mutation with stale revision; they should reconcile
+  /// state via [WorkoutSessionRepository.getSession] or [WorkoutSessionRepository.getActiveSession].
+  mutationCommittedReadbackFailed,
+
   /// The session performed sets quota (500 sets) has been exceeded (PostgreSQL 22023).
   quotaExceeded,
 
@@ -66,6 +78,36 @@ final class WorkoutSessionPersistenceException implements Exception {
     final msg = message != null ? ': $message' : '';
     return 'WorkoutSessionPersistenceException(${kind.name}$msg)';
   }
+}
+
+/// Thrown when a mutation was acknowledged and applied by the server, but the subsequent
+/// readback to construct the authoritative session record failed (e.g., read timeout,
+/// transport drop, or read contention).
+///
+/// Because the write succeeded on the server, the server revision was bumped. Callers
+/// MUST NOT replay the mutation with the original expected revision; instead, callers
+/// should reconcile state using [WorkoutSessionRepository.getSession] or
+/// [WorkoutSessionRepository.getActiveSession].
+final class WorkoutSessionCommittedReadbackException
+    extends WorkoutSessionPersistenceException {
+  WorkoutSessionCommittedReadbackException({
+    required this.sessionId,
+    required this.operationName,
+    Object? cause,
+    String? message,
+  }) : super(
+          WorkoutSessionPersistenceFailureKind.mutationCommittedReadbackFailed,
+          message: message ??
+              'Committed $operationName acknowledged by server, but readback failed for session ${sessionId.value}',
+          cause: cause,
+        );
+
+  final WorkoutSessionId sessionId;
+  final String operationName;
+
+  @override
+  String toString() =>
+      'WorkoutSessionCommittedReadbackException(sessionId: ${sessionId.value}, operation: $operationName, message: $message)';
 }
 
 /// Reasons why a mutation outcome could not be definitely confirmed.

@@ -113,8 +113,11 @@ final class SupabaseWorkoutSessionRepository
     // If an idempotent replay occurred on a session that already has performed sets,
     // fetch the full session with sets. Otherwise return new empty record.
     if (rowDto.revision > 1) {
-      final existingRecord = await _readSession(owner, session.id);
-      if (existingRecord != null) return existingRecord;
+      return _readbackAfterMutation(
+        owner: owner,
+        sessionId: session.id,
+        operationName: 'startSession',
+      );
     }
 
     return rowDto.toRecord(
@@ -142,14 +145,11 @@ final class SupabaseWorkoutSessionRepository
       operation: () => _gateway.rpcPauseWorkoutSession(params),
     );
 
-    final record = await _readSession(owner, sessionId);
-    if (record == null) {
-      throw const WorkoutSessionPersistenceException(
-        WorkoutSessionPersistenceFailureKind.notFound,
-        message: 'Session not found after pause transition',
-      );
-    }
-    return record;
+    return _readbackAfterMutation(
+      owner: owner,
+      sessionId: sessionId,
+      operationName: 'pauseSession',
+    );
   }
 
   @override
@@ -171,14 +171,11 @@ final class SupabaseWorkoutSessionRepository
       operation: () => _gateway.rpcResumeWorkoutSession(params),
     );
 
-    final record = await _readSession(owner, sessionId);
-    if (record == null) {
-      throw const WorkoutSessionPersistenceException(
-        WorkoutSessionPersistenceFailureKind.notFound,
-        message: 'Session not found after resume transition',
-      );
-    }
-    return record;
+    return _readbackAfterMutation(
+      owner: owner,
+      sessionId: sessionId,
+      operationName: 'resumeSession',
+    );
   }
 
   @override
@@ -203,14 +200,11 @@ final class SupabaseWorkoutSessionRepository
     // rpc_log_workout_performed_set returns the child set row, not the parent session.
     // Read back the authoritative parent session to capture authoritative revision
     // and full performed-set list.
-    final record = await _readSession(owner, sessionId);
-    if (record == null) {
-      throw const WorkoutSessionPersistenceException(
-        WorkoutSessionPersistenceFailureKind.notFound,
-        message: 'Session not found after logging set',
-      );
-    }
-    return record;
+    return _readbackAfterMutation(
+      owner: owner,
+      sessionId: sessionId,
+      operationName: 'logPerformedSet',
+    );
   }
 
   @override
@@ -233,14 +227,11 @@ final class SupabaseWorkoutSessionRepository
     );
 
     // Read back authoritative session after set removal.
-    final record = await _readSession(owner, sessionId);
-    if (record == null) {
-      throw const WorkoutSessionPersistenceException(
-        WorkoutSessionPersistenceFailureKind.notFound,
-        message: 'Session not found after removing set',
-      );
-    }
-    return record;
+    return _readbackAfterMutation(
+      owner: owner,
+      sessionId: sessionId,
+      operationName: 'removePerformedSet',
+    );
   }
 
   @override
@@ -264,14 +255,11 @@ final class SupabaseWorkoutSessionRepository
       operation: () => _gateway.rpcCompleteWorkoutSession(params),
     );
 
-    final record = await _readSession(owner, sessionId);
-    if (record == null) {
-      throw const WorkoutSessionPersistenceException(
-        WorkoutSessionPersistenceFailureKind.notFound,
-        message: 'Session not found after completion',
-      );
-    }
-    return record;
+    return _readbackAfterMutation(
+      owner: owner,
+      sessionId: sessionId,
+      operationName: 'completeSession',
+    );
   }
 
   @override
@@ -303,14 +291,11 @@ final class SupabaseWorkoutSessionRepository
       operation: () => _gateway.rpcDiscardWorkoutSession(params),
     );
 
-    final record = await _readSession(owner, sessionId);
-    if (record == null) {
-      throw const WorkoutSessionPersistenceException(
-        WorkoutSessionPersistenceFailureKind.notFound,
-        message: 'Session not found after discard',
-      );
-    }
-    return record;
+    return _readbackAfterMutation(
+      owner: owner,
+      sessionId: sessionId,
+      operationName: 'discardSession',
+    );
   }
 
   /// Bracketed consistency read: verifies session header revision before and after
@@ -360,6 +345,45 @@ final class SupabaseWorkoutSessionRepository
       message:
           'Sustained write contention prevented acquiring a consistent session snapshot',
     );
+  }
+
+  Future<WorkoutSessionRecord> _readbackAfterMutation({
+    required String owner,
+    required WorkoutSessionId sessionId,
+    required String operationName,
+  }) async {
+    try {
+      final record = await _readSession(owner, sessionId);
+      if (record == null) {
+        throw WorkoutSessionCommittedReadbackException(
+          sessionId: sessionId,
+          operationName: operationName,
+          message:
+              'Committed $operationName acknowledged by server, but session ${sessionId.value} could not be read back',
+        );
+      }
+      return record;
+    } on WorkoutSessionPersistenceException catch (e) {
+      if (e.kind == WorkoutSessionPersistenceFailureKind.unauthenticated ||
+          e.kind == WorkoutSessionPersistenceFailureKind.unauthorized) {
+        rethrow;
+      }
+      throw WorkoutSessionCommittedReadbackException(
+        sessionId: sessionId,
+        operationName: operationName,
+        cause: e,
+        message:
+            'Committed $operationName acknowledged by server, but readback failed: ${e.message}',
+      );
+    } catch (e) {
+      throw WorkoutSessionCommittedReadbackException(
+        sessionId: sessionId,
+        operationName: operationName,
+        cause: e,
+        message:
+            'Committed $operationName acknowledged by server, but readback failed: $e',
+      );
+    }
   }
 
   Future<T> _executeRead<T>(
@@ -493,6 +517,14 @@ final class SupabaseWorkoutSessionRepository
     if (code == 'P0003' || message.contains('stale_revision_conflict')) {
       return WorkoutSessionPersistenceException(
         WorkoutSessionPersistenceFailureKind.staleRevisionConflict,
+        message: error.message,
+        cause: error,
+      );
+    }
+
+    if (message.contains('invalid_transition_from_status')) {
+      return WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.invalidStateTransition,
         message: error.message,
         cause: error,
       );

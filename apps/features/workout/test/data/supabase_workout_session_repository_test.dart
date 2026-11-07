@@ -121,8 +121,15 @@ final class _FakeGateway implements WorkoutSessionGateway {
   Map<String, dynamic>? sessionHeader;
   List<Map<String, dynamic>> performedSets = [];
   int readHeaderCallCount = 0;
+  int logSetCallCount = 0;
+  int removeSetCallCount = 0;
+  int pauseCallCount = 0;
+  int resumeCallCount = 0;
+  int completeCallCount = 0;
+  int discardCallCount = 0;
   List<Map<String, dynamic>> Function()? onReadHeaderSequence;
   Future<Map<String, dynamic>?> Function()? onReadActiveHeader;
+  Future<Map<String, dynamic>?> Function(String, String)? onReadSessionHeader;
 
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onStart;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onPause;
@@ -144,6 +151,9 @@ final class _FakeGateway implements WorkoutSessionGateway {
     String sessionId,
   ) async {
     readHeaderCallCount++;
+    if (onReadSessionHeader != null) {
+      return onReadSessionHeader!(userId, sessionId);
+    }
     if (onReadHeaderSequence != null) {
       final seq = onReadHeaderSequence!();
       if (seq.isNotEmpty) return seq.removeAt(0);
@@ -172,49 +182,56 @@ final class _FakeGateway implements WorkoutSessionGateway {
   @override
   Future<Map<String, dynamic>> rpcPauseWorkoutSession(
     Map<String, dynamic> params,
-  ) async =>
-      onPause != null
-          ? await onPause!(params)
-          : _mockSessionRow(revision: 2, status: 'paused');
+  ) async {
+    pauseCallCount++;
+    return onPause != null
+        ? await onPause!(params)
+        : _mockSessionRow(revision: 2, status: 'paused');
+  }
 
   @override
   Future<Map<String, dynamic>> rpcResumeWorkoutSession(
     Map<String, dynamic> params,
-  ) async =>
-      onResume != null
-          ? await onResume!(params)
-          : _mockSessionRow(revision: 3, status: 'active');
+  ) async {
+    resumeCallCount++;
+    return onResume != null
+        ? await onResume!(params)
+        : _mockSessionRow(revision: 3, status: 'active');
+  }
 
   @override
   Future<Map<String, dynamic>> rpcLogWorkoutPerformedSet(
     Map<String, dynamic> params,
-  ) async =>
-      onLogSet != null ? await onLogSet!(params) : _mockSetRow();
+  ) async {
+    logSetCallCount++;
+    return onLogSet != null ? await onLogSet!(params) : _mockSetRow();
+  }
 
   @override
   Future<void> rpcRemoveWorkoutPerformedSet(Map<String, dynamic> params) async {
+    removeSetCallCount++;
     if (onRemoveSet != null) await onRemoveSet!(params);
   }
 
   @override
   Future<Map<String, dynamic>> rpcCompleteWorkoutSession(
     Map<String, dynamic> params,
-  ) async =>
-      onComplete != null
-          ? await onComplete!(params)
-          : _mockSessionRow(revision: 4, status: 'completed');
+  ) async {
+    completeCallCount++;
+    return onComplete != null
+        ? await onComplete!(params)
+        : _mockSessionRow(revision: 4, status: 'completed');
+  }
 
   @override
   Future<Map<String, dynamic>> rpcDiscardWorkoutSession(
     Map<String, dynamic> params,
-  ) async =>
-      onDiscard != null
-          ? await onDiscard!(params)
-          : _mockSessionRow(
-              revision: 4,
-              status: 'discarded',
-              discardReason: 'Fatigue',
-            );
+  ) async {
+    discardCallCount++;
+    return onDiscard != null
+        ? await onDiscard!(params)
+        : _mockSessionRow(revision: 5, status: 'discarded');
+  }
 }
 
 void main() {
@@ -713,6 +730,315 @@ void main() {
           (e) => e.reason,
           'reason',
           WorkoutSessionMutationUncertainty.sessionChanged,
+        )),
+      );
+    });
+
+    test('RPC success followed by readback timeout throws WorkoutSessionCommittedReadbackException', () async {
+      // 1. RPC log performed set succeeds
+      gateway.onLogSet = (_) async => _mockSetRow(setIndex: 0);
+      // 2. Subsequent readback times out
+      gateway.onReadSessionHeader = (_, __) => Future.delayed(
+            const Duration(milliseconds: 50),
+            () => throw TimeoutException('Read timed out'),
+          );
+
+      final fastRepo = SupabaseWorkoutSessionRepository(
+        gateway: gateway,
+        currentUserId: () => _owner,
+        requestTimeout: const Duration(milliseconds: 20),
+        readAttempts: 1,
+      );
+
+      final set = PerformedSet(
+        id: '55555555-5555-4555-a555-555555555555',
+        exerciseRef: CatalogExerciseRef('ex_bench_press'),
+        sessionExerciseIndex: 0,
+        setIndex: 0,
+        reps: 10,
+      );
+
+      WorkoutSessionCommittedReadbackException? thrownEx;
+      try {
+        await fastRepo.logPerformedSet(
+          sessionId: _sessionId,
+          expectedRevision: 1,
+          set: set,
+        );
+      } on WorkoutSessionCommittedReadbackException catch (e) {
+        thrownEx = e;
+      }
+
+      expect(thrownEx, isNotNull);
+      expect(thrownEx!.sessionId, _sessionId);
+      expect(thrownEx.operationName, 'logPerformedSet');
+      expect(
+        thrownEx.kind,
+        WorkoutSessionPersistenceFailureKind.mutationCommittedReadbackFailed,
+      );
+      // Verify RPC was executed and succeeded on server
+      expect(gateway.logSetCallCount, 1);
+    });
+
+    test('RPC success followed by revision read conflict throws WorkoutSessionCommittedReadbackException', () async {
+      // 1. RPC remove performed set succeeds
+      gateway.onRemoveSet = (_) async {};
+      // 2. Subsequent readback experiences revision skew between start & end headers
+      var toggle = 0;
+      gateway.onReadSessionHeader = (_, __) async {
+        toggle++;
+        // Odd calls return revision 2, even calls return revision 3 (simulating continuous concurrent writes)
+        return _mockSessionRow(revision: toggle.isOdd ? 2 : 3);
+      };
+
+      final setRepo = SupabaseWorkoutSessionRepository(
+        gateway: gateway,
+        currentUserId: () => _owner,
+        readAttempts: 2,
+      );
+
+      WorkoutSessionCommittedReadbackException? thrownEx;
+      try {
+        await setRepo.removePerformedSet(
+          sessionId: _sessionId,
+          expectedRevision: 1,
+          setId: '55555555-5555-4555-a555-555555555555',
+        );
+      } on WorkoutSessionCommittedReadbackException catch (e) {
+        thrownEx = e;
+      }
+
+      expect(thrownEx, isNotNull);
+      expect(thrownEx!.sessionId, _sessionId);
+      expect(thrownEx.operationName, 'removePerformedSet');
+      expect(
+        thrownEx.kind,
+        WorkoutSessionPersistenceFailureKind.mutationCommittedReadbackFailed,
+      );
+      expect(thrownEx.cause, isA<WorkoutSessionPersistenceException>().having(
+        (e) => e.kind,
+        'kind',
+        WorkoutSessionPersistenceFailureKind.readConflict,
+      ));
+      // Verify the delete was dispatched once and not retried automatically
+      expect(gateway.removeSetCallCount, 1);
+    });
+
+    test('caller can safely reconcile state via getSession after WorkoutSessionCommittedReadbackException', () async {
+      // Step 1: Mutation completes, but readback fails
+      final pauseTime = _startedAt.add(const Duration(minutes: 5));
+      gateway.onPause = (_) async => _mockSessionRow(
+            revision: 2,
+            status: 'paused',
+            pausedAt: pauseTime,
+          );
+      var failRead = true;
+      gateway.onReadSessionHeader = (_, __) async {
+        if (failRead) {
+          throw const PostgrestException(message: 'read error', code: '500');
+        }
+        return _mockSessionRow(
+          revision: 2,
+          status: 'paused',
+          pausedAt: pauseTime,
+        );
+      };
+
+      WorkoutSessionCommittedReadbackException? caughtException;
+      try {
+        await repo.pauseSession(
+          sessionId: _sessionId,
+          expectedRevision: 1,
+          pausedAtUtc: pauseTime,
+        );
+      } on WorkoutSessionCommittedReadbackException catch (e) {
+        caughtException = e;
+      }
+
+      expect(caughtException, isNotNull);
+      expect(caughtException!.operationName, 'pauseSession');
+      expect(gateway.pauseCallCount, 1);
+
+      // Step 2: Caller reconciles state via getSession without replaying mutation with stale revision
+      failRead = false;
+      final reconciled = await repo.getSession(caughtException.sessionId);
+      expect(reconciled, isNotNull);
+      expect(reconciled!.revision, 2);
+      expect(reconciled.session.status, WorkoutSessionStatus.paused);
+      // RPC was NOT retried
+      expect(gateway.pauseCallCount, 1);
+    });
+
+    test('auth invalidation during post-mutation readback preserves unauthenticated / unauthorized', () async {
+      final pauseTime = _startedAt.add(const Duration(minutes: 5));
+      final mutationCompleter = Completer<Map<String, dynamic>>();
+      final readCompleter = Completer<Map<String, dynamic>?>();
+
+      gateway.onPause = (_) => mutationCompleter.future;
+      gateway.onReadSessionHeader = (_, __) => readCompleter.future;
+
+      final futureUnauth = repo.pauseSession(
+        sessionId: _sessionId,
+        expectedRevision: 1,
+        pausedAtUtc: pauseTime,
+      );
+
+      // 1. Let mutation finish while user is still authenticated
+      mutationCompleter.complete(_mockSessionRow(
+        revision: 2,
+        status: 'paused',
+        pausedAt: pauseTime,
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      // 2. User logs out while readback is in flight
+      currentUserId = null;
+      readCompleter.complete(_mockSessionRow(
+        revision: 2,
+        status: 'paused',
+        pausedAt: pauseTime,
+      ));
+
+      await expectLater(
+        futureUnauth,
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.unauthenticated,
+        )),
+      );
+
+      // Reset and test account switch during readback
+      currentUserId = _owner;
+      final mutationSwitchCompleter = Completer<Map<String, dynamic>>();
+      final readSwitchCompleter = Completer<Map<String, dynamic>?>();
+      gateway.onPause = (_) => mutationSwitchCompleter.future;
+      gateway.onReadSessionHeader = (_, __) => readSwitchCompleter.future;
+
+      final futureSwitch = repo.pauseSession(
+        sessionId: _sessionId,
+        expectedRevision: 1,
+        pausedAtUtc: pauseTime,
+      );
+
+      // 1. Let mutation finish while user is still authenticated as _owner
+      mutationSwitchCompleter.complete(_mockSessionRow(
+        revision: 2,
+        status: 'paused',
+        pausedAt: pauseTime,
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      // 2. User switches account while readback is in flight
+      currentUserId = _otherOwner;
+      readSwitchCompleter.complete(_mockSessionRow(
+        revision: 2,
+        status: 'paused',
+        pausedAt: pauseTime,
+      ));
+
+      await expectLater(
+        futureSwitch,
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.unauthorized,
+        )),
+      );
+    });
+
+    test('P0001 invalid_transition_from_status maps to invalidStateTransition (pause/resume)', () async {
+      // 1. Pausing an already paused or non-active session
+      gateway.onPause = (_) async {
+        throw const PostgrestException(
+          message: 'invalid_transition_from_status',
+          code: 'P0001',
+        );
+      };
+
+      expect(
+        () => repo.pauseSession(
+          sessionId: _sessionId,
+          expectedRevision: 2,
+          pausedAtUtc: _startedAt.add(const Duration(minutes: 10)),
+        ),
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.invalidStateTransition,
+        )),
+      );
+
+      // 2. Resuming an active or non-paused session
+      gateway.onResume = (_) async {
+        throw const PostgrestException(
+          message: 'invalid_transition_from_status',
+          code: 'P0001',
+        );
+      };
+
+      expect(
+        () => repo.resumeSession(
+          sessionId: _sessionId,
+          expectedRevision: 3,
+          resumedAtUtc: _startedAt.add(const Duration(minutes: 15)),
+        ),
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.invalidStateTransition,
+        )),
+      );
+    });
+
+    test('genuinely terminal session mutations still map to terminalSessionImmutable', () async {
+      // 1. Logging set on already finished workout
+      gateway.onLogSet = (_) async {
+        throw const PostgrestException(
+          message: 'session_already_terminal',
+          code: 'P0002',
+        );
+      };
+
+      final set = PerformedSet(
+        id: '55555555-5555-4555-a555-555555555555',
+        exerciseRef: CatalogExerciseRef('ex_bench_press'),
+        sessionExerciseIndex: 0,
+        setIndex: 0,
+        reps: 10,
+      );
+
+      expect(
+        () => repo.logPerformedSet(
+          sessionId: _sessionId,
+          expectedRevision: 5,
+          set: set,
+        ),
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.terminalSessionImmutable,
+        )),
+      );
+
+      // 2. Trigger immutability error
+      gateway.onLogSet = (_) async {
+        throw const PostgrestException(
+          message: 'terminal_session_sets_immutable',
+          code: 'P0001',
+        );
+      };
+
+      expect(
+        () => repo.logPerformedSet(
+          sessionId: _sessionId,
+          expectedRevision: 5,
+          set: set,
+        ),
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (e) => e.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.terminalSessionImmutable,
         )),
       );
     });
