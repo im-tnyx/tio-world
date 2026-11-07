@@ -1223,12 +1223,7 @@ void main() {
       expect(controller.state.isPaused, isTrue);
 
       // Now resume from paused state
-      final resumedSession = pausedSession.resume(testStartTime.add(const Duration(minutes: 6)));
-      fakeRepo.activeSessionToReturn = WorkoutSessionRecord(
-        session: resumedSession,
-        revision: 3,
-      );
-
+      currentTime = testStartTime.add(const Duration(minutes: 6));
       final resumeSuccess = await controller.resumeSession();
       expect(resumeSuccess, isTrue);
       expect(controller.state.status, ActiveWorkoutStatus.active);
