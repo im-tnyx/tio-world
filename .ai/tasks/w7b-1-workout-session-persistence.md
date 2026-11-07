@@ -51,13 +51,13 @@
 - `supabase/tests/database/w7b_session_security.test.sql`
 - `.ai/tasks/w7b-1-workout-session-persistence.md`
 **PR / tracker:** Linear TNYX-84 (W7 Active Workout) - Restored to **In Progress**
-**Current implementation state:** Remediation of all 11 review findings complete; local pgTAP suite (60 tests) passing 100% via `run_pgtap.sh`; 5-race concurrency harness passing 100%; connection guard hardening and negative test suite complete; CI workflow integration complete.
+**Current implementation state:** Remediation of all 12 review findings complete; local pgTAP suite (60 tests) passing 100% via `run_pgtap.sh`; 5-race concurrency harness passing 100%; connection guard credential disclosure remediation and negative test suite complete; CI workflow integration complete.
 **Relevant execution surface:** `supabase/migrations/`, `supabase/tests/database/`, `.github/workflows/`
 **Validation completed:**
 - All migrations applied cleanly via `--single-transaction`.
 - 60/60 pgTAP assertions pass in `supabase/tests/database/w7b_session_security.test.sql` with exit 0 via `run_pgtap.sh`.
 - Negative TAP testing verified: assertion failure (`ok(false)`), plan mismatch, and fatal SQL syntax errors all exit with code 1.
-- `supabase/tests/database/w7b_session_concurrency_guard.test.sh` passes 10/10 guard checks:
+- `supabase/tests/database/w7b_session_concurrency_guard.test.sh` passes 11/11 guard checks:
   - CI mode passes with exact loopback URL.
   - Local mode (`--local`) passes without `DATABASE_URL` and with exact loopback URL.
   - Rejects missing CI flag outside `--local`.
@@ -65,6 +65,7 @@
   - Rejects unexpected/remote connection URIs in CI and in local `--local` mode.
   - Rejects all libpq environment overrides (`PGHOSTADDR`, `PGSERVICE`, `PGSERVICEFILE`, `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGOPTIONS`) in CI and in local mode.
   - Rejects unsupported arguments.
+  - Security regression (4496780930): Sentinel password and connection string redaction verified across local mode, CI mode, and argument parsing; no credential or URL leakage in stdout/stderr, constant generic refusal message returned.
 - `supabase/tests/database/w7b_session_concurrency.sh --local` passes with exit 0 across all 5 races:
   - Race 1: Finish vs Log Set (OCC rejection `stale_revision_conflict`, revision 2, 0 sets).
   - Race 2A: Log/Update vs Remove, Update wins (revision 3, reps 12, Remove fails with `stale_revision_conflict`, 0 deadlocks).
@@ -86,7 +87,8 @@
 - `4492021721` (P2): Routine name integrity in `rpc_start_workout_session` resolved by reading authoritative name from `user_workout_routines` under `FOR SHARE` lock, verifying `p_routine_snapshot->>'routine_name' is not distinct from v_routine_name` (`snapshot_routine_name_mismatch` `22023`), while preserving existing session start replay even after source routine rename or deletion. Tested in assertions 13-14, 51, 58.
 - `4492021727` (P2): Terminal replay identity resolved in `rpc_complete_workout_session` (comparing normalized `nullif(btrim(p_notes), '')`) and `rpc_discard_workout_session` (comparing normalized `btrim(p_discard_reason)`), returning existing terminal session on exact match and raising `terminal_payload_conflict` (`23505`) on conflicting notes/reason. Tested in assertions 41-44, 46-48, 55-57.
 - `im-tio` thread `PRRT_kwDOTOXwB860kRDo` (P2): Disposable connection guard bypass in `w7b_session_concurrency.sh` resolved by strictly enforcing the exact loopback disposable URL in both CI and local modes (`database_url="$expected_url"`), refusing any non-loopback/alternative `DATABASE_URL`, rejecting all libpq `PG*` connection overrides except `PGPASSWORD`, making local execution opt-in via `--local`, and adding `w7b_session_concurrency_guard.test.sh` to CI pipeline.
-**Next exact action:** Commit and push HEAD checkpoint to PR #734, reply to finding on thread PRRT_kwDOTOXwB860kRDo, resolve thread, re-request review from `im-tio`, and monitor CI qualification.
+- `im-tio` thread `PRRT_kwDOTOXwB860qdai` / #4496780930 (P2): Credential disclosure in concurrency harness rejection message resolved by removing `${DATABASE_URL}` and `$arg` interpolations from error output, returning constant generic refusal messages (`Refusing W7B-1 concurrency race with non-disposable or alternative DATABASE_URL` and `Unsupported W7B-1 concurrency race harness argument`), and verifying in `w7b_session_concurrency_guard.test.sh` that synthetic sentinel passwords and full connection strings never appear in stdout or stderr.
+**Next exact action:** Commit and push HEAD checkpoint to PR #734, reply to finding 4496780930, resolve review thread, re-request review from `im-tio`, and monitor CI qualification.
 
 ## 1. Discovery
 

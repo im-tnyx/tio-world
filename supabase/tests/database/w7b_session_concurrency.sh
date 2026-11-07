@@ -44,7 +44,7 @@ for arg in "$@"; do
       guard_only=1
       ;;
     *)
-      echo "Unsupported W7B-1 concurrency race harness argument: $arg" >&2
+      echo "Unsupported W7B-1 concurrency race harness argument" >&2
       exit 1
       ;;
   esac
@@ -54,7 +54,7 @@ if [[ "$is_local" -eq 1 ]]; then
   # Local opt-in execution: strictly enforce exact disposable loopback target.
   # If DATABASE_URL is set in the environment, it must match the exact disposable URL.
   if [[ -n "${DATABASE_URL:-}" && "$DATABASE_URL" != "$expected_url" ]]; then
-    echo "Refusing W7B-1 concurrency race with non-disposable or alternative DATABASE_URL: ${DATABASE_URL}" >&2
+    echo "Refusing W7B-1 concurrency race with non-disposable or alternative DATABASE_URL" >&2
     exit 1
   fi
   database_url="$expected_url"
