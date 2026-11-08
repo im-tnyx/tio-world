@@ -40,10 +40,10 @@
 **Current implementation state:** W7C-2 page, route, auth/chrome integration and focused tests are implemented and pushed. No automatic merge performed.
 **Relevant execution surface:** `apps/features/workout`, `apps/app/lib/app/routing`, `apps/app/lib/app/composition`, `apps/core/lib/src/routing`
 **Validation completed at SHA:** `42dddd59f34c96d3350cbc6415368da5a0b41d01` (local package analysis; exact-head CI and docs hygiene successful)
-**Validation remaining:** Local Flutter widget tests remain unavailable on this Windows host because the Flutter wrapper hangs and direct tool invocation fails on the configured Git child process.
-**Current blocker:** Merge remains intentionally held pending owner authorization. W3/W4 remain blockers for future start/launcher flows.
+**Validation remaining:** Owner-authorized independent review by `i-the`; local Flutter widget tests remain unavailable on this Windows host because the Flutter wrapper hangs and direct tool invocation fails on the configured Git child process.
+**Current blocker:** Merge remains intentionally held pending independent review/owner decision. W3/W4 remain blockers for future start/launcher flows.
 **Open review finding IDs:** None for W7C-2
-**Next exact action:** Recheck exact-head protections after the final pushed handoff, then wait for owner-authorized merge.
+**Next exact action:** Obtain independent `i-the` review on PR #738, then recheck exact-head protections before any owner-authorized merge.
 
 ## Global UI / Design-System Guardrail
 
@@ -165,10 +165,10 @@ Review-thread reconciliation: PASS; all three W7C-2 inline threads resolved, inc
 
 **Review source / link:** [GitHub PR #738](https://github.com/im-tnyx/tio-world/pull/738)
 **Reviewer / relation to implementer:** im-tio / independent technical reviewer
-**Diff or commit SHA actually reviewed:** `i-the` approved PR #738 review `5816955824`; automated review feedback reconciled through `dfd384a1ec11ae168ad9cf28f218ec5898f675a1`.
+**Diff or commit SHA actually reviewed:** Automated review feedback reconciled through `42dddd59f34c96d3350cbc6415368da5a0b41d01`; independent reviewer `i-the` remains requested/pending.
 **Review result and finding IDs/dispositions:** Three automated P2 threads resolved: action errors rendered in active/paused states; terminal test uses actual completion transition; confirmation finder scoped to `BottomSheet`.
-**Independent review?** Yes — `i-the` submitted `APPROVED` review `5816955824`.
-**Limitations and unmet required gates:** Local Flutter widget tests did not complete on this Windows host. Cursor security/approval agents were `neutral` because their weekly quota was exhausted; no Supabase-sensitive code changed. Owner merge authorization remains open.
+**Independent review?** Pending (`i-the` requested; no submitted independent approval yet)
+**Limitations and unmet required gates:** Local Flutter widget tests did not complete on this Windows host. Cursor security/approval agents were `neutral` because their weekly quota was exhausted; no Supabase-sensitive code changed. Independent review and owner merge authorization remain open.
 
 ### Review Findings and Resolution
 

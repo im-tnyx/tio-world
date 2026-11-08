@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../controllers/active_workout_controller.dart';
 import '../controllers/active_workout_state.dart';
+import '../library/routines/routine_set_input_limits.dart';
 
 /// Focused Active Workout surface for resuming and recovering a persisted
 /// session. App composition supplies the auth-bound controller; the feature
@@ -13,16 +15,20 @@ class ActiveWorkoutPage extends StatelessWidget {
     required this.controller,
     super.key,
     this.onBack,
+    this.showStartPreview = false,
   });
 
   final ActiveWorkoutController? controller;
   final VoidCallback? onBack;
+  /// Entry-only UI: never creates a session, exercise, or fake identity.
+  final bool showStartPreview;
 
   @override
   Widget build(BuildContext context) {
     return _ActiveWorkoutBody(
       controller: controller,
       onBack: onBack ?? () => Navigator.of(context).maybePop(),
+      showStartPreview: showStartPreview,
     );
   }
 }
@@ -31,10 +37,12 @@ class _ActiveWorkoutBody extends StatefulWidget {
   const _ActiveWorkoutBody({
     required this.controller,
     required this.onBack,
+    required this.showStartPreview,
   });
 
   final ActiveWorkoutController? controller;
   final VoidCallback onBack;
+  final bool showStartPreview;
 
   @override
   State<_ActiveWorkoutBody> createState() => _ActiveWorkoutBodyState();
@@ -201,7 +209,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     final state = controller?.state;
 
     return Scaffold(
-      appBar: const TioAppBar(title: Text('Active Workout')),
+      appBar: const TioAppBar(title: Text('Log Workout')),
       body: SafeArea(
         child: controller == null || state == null
             ? _UnavailableState(onBack: widget.onBack)
@@ -220,6 +228,9 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
       case ActiveWorkoutStatus.restoring:
         return const _LoadingState();
       case ActiveWorkoutStatus.noSession:
+        if (widget.showStartPreview) {
+          return _StartWorkoutPreview(onBack: widget.onBack);
+        }
         return _MessageState(
           key: const ValueKey('active-workout-no-session'),
           title: 'No active workout',
@@ -284,6 +295,88 @@ class _LoadingState extends StatelessWidget {
         label: 'Restoring active workout',
         liveRegion: true,
         child: const CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+/// The Play FAB is a UI-only entry, not an empty-first workout mutation.
+/// Snapshot-based execution appears here automatically when a real session
+/// exists. No made-up Routine, Exercise, timer or completion is persisted.
+class _StartWorkoutPreview extends StatelessWidget {
+  const _StartWorkoutPreview({required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      key: const ValueKey('active-workout-start-preview'),
+      padding: const EdgeInsets.all(TioSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TioCard(
+            variant: TioCardVariant.elevated,
+            child: _WorkoutStats(
+              duration: Duration.zero,
+              volumeKg: 0,
+              completedSets: 0,
+              onDurationPressed: null,
+            ),
+          ),
+          const SizedBox(height: TioSpacing.lg),
+          TioCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'No exercises yet',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: TioSpacing.sm),
+                Text(
+                  'This is the Active Workout UI preview. No workout has '
+                  'started or been saved. Exercise selection and starting '
+                  'a session will be connected in a later approved slice.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: TioSpacing.lg),
+                _SetHeader(),
+              ],
+            ),
+          ),
+          const SizedBox(height: TioSpacing.lg),
+          TioButton.supporting(
+            key: const ValueKey('active-workout-preview-add-set'),
+            label: 'Add Set',
+            enabled: false,
+            onPressed: null,
+            expand: true,
+          ),
+          const SizedBox(height: TioSpacing.sm),
+          TioButton.primary(
+            key: const ValueKey('active-workout-preview-add-exercise'),
+            label: 'Add Exercise',
+            enabled: false,
+            onPressed: null,
+            expand: true,
+          ),
+          const SizedBox(height: TioSpacing.sm),
+          TioButton.primary(
+            key: const ValueKey('active-workout-preview-finish'),
+            label: 'Finish workout',
+            enabled: false,
+            onPressed: null,
+            expand: true,
+          ),
+          const SizedBox(height: TioSpacing.sm),
+          TioButton.secondary(
+            label: 'Back to Workout',
+            onPressed: onBack,
+            expand: true,
+          ),
+        ],
       ),
     );
   }
@@ -462,11 +555,11 @@ class _SessionState extends StatelessWidget {
                   exercise: exercise,
                   performedSets: state.performedSets,
                   actionPending: state.isActionPending,
-                  onLogSet: (setIndex, prescription) => controller.logSet(
+                  onLogSet: (setIndex, reps, loadKg) => controller.logSet(
                     sessionExerciseIndex: exercise.occurrenceIndex,
                     setIndex: setIndex,
-                    reps: prescription.reps,
-                    loadKg: prescription.loadKg,
+                    reps: reps,
+                    loadKg: loadKg,
                   ),
                   onRemoveSet: controller.removeSet,
                 ),
@@ -665,7 +758,7 @@ class _ExerciseExecutionCard extends StatelessWidget {
   final SessionExerciseSnapshot exercise;
   final List<PerformedSet> performedSets;
   final bool actionPending;
-  final Future<bool> Function(int setIndex, SetPrescription prescription)
+  final Future<bool> Function(int setIndex, int? reps, double? loadKg)
       onLogSet;
   final Future<bool> Function(String setId) onRemoveSet;
 
@@ -707,7 +800,7 @@ class _ExerciseExecutionCard extends StatelessWidget {
                     prescription: entry.value,
                     performed: _performedFor(entry.key),
                     disabled: actionPending,
-                    onLog: () => onLogSet(entry.key, entry.value),
+                    onLog: (reps, loadKg) => onLogSet(entry.key, reps, loadKg),
                     onRemove: (id) => onRemoveSet(id),
                   ),
                 ),
@@ -736,7 +829,9 @@ class _SetHeader extends StatelessWidget {
   }
 }
 
-class _ActiveSetRow extends StatelessWidget {
+/// Actual performed-set editor. Prescription values are hints to confirm,
+/// never a hidden automatic write. Only the explicit check calls logSet().
+class _ActiveSetRow extends StatefulWidget {
   const _ActiveSetRow({
     required this.setIndex,
     required this.prescription,
@@ -750,17 +845,68 @@ class _ActiveSetRow extends StatelessWidget {
   final SetPrescription prescription;
   final PerformedSet? performed;
   final bool disabled;
-  final Future<bool> Function() onLog;
+  final Future<bool> Function(int? reps, double? loadKg) onLog;
   final Future<bool> Function(String setId) onRemove;
 
   @override
+  State<_ActiveSetRow> createState() => _ActiveSetRowState();
+}
+
+class _ActiveSetRowState extends State<_ActiveSetRow> {
+  late final TextEditingController _weight;
+  late final TextEditingController _reps;
+
+  String _weightText() {
+    final load = widget.performed?.loadKg ?? widget.prescription.loadKg;
+    return load == null ? '' : _formatNumber(load);
+  }
+
+  String _repsText() =>
+      (widget.performed?.reps ?? widget.prescription.reps)?.toString() ?? '';
+
+  @override
+  void initState() {
+    super.initState();
+    _weight = TextEditingController(text: _weightText());
+    _reps = TextEditingController(text: _repsText());
+  }
+
+  @override
+  void didUpdateWidget(covariant _ActiveSetRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.performed?.id != widget.performed?.id ||
+        oldWidget.prescription != widget.prescription) {
+      _weight.text = _weightText();
+      _reps.text = _repsText();
+    }
+  }
+
+  @override
+  void dispose() {
+    _weight.dispose();
+    _reps.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final performed = widget.performed;
     final isComplete = performed != null;
+    final loadDraft = _weight.text.trim();
+    final repsDraft = _reps.text.trim();
+    final loadKg = loadDraft.isEmpty ? null : double.tryParse(loadDraft);
+    final reps = repsDraft.isEmpty ? null : int.tryParse(repsDraft);
+    final valid = (loadDraft.isEmpty ||
+            (loadKg != null && loadKg.isFinite && loadKg >= 0)) &&
+        (repsDraft.isEmpty ||
+            (reps != null && reps >= 0 &&
+                reps <= RoutineSetInputLimits.maxReps)) &&
+        (loadKg != null || reps != null);
     final rowColor = isComplete
         ? context.tioColors.success.withAlpha(TioAlpha.alpha20)
         : context.tioColors.surfaceVariant;
     return Container(
-      key: ValueKey('active-workout-set-$setIndex'),
+      key: ValueKey('active-workout-set-${widget.setIndex}'),
       padding: const EdgeInsets.symmetric(
         horizontal: TioSpacing.sm,
         vertical: TioSpacing.xs,
@@ -773,12 +919,12 @@ class _ActiveSetRow extends StatelessWidget {
         children: [
           SizedBox(
             width: TioSize.dp40,
-            child: Text('${setIndex + 1}',
+            child: Text('${widget.setIndex + 1}',
                 style: Theme.of(context).textTheme.titleSmall),
           ),
           Expanded(
             child: Text(
-              _prescriptionSummary(prescription),
+              _prescriptionSummary(widget.prescription),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: context.tioColors.textSecondary,
                   ),
@@ -787,27 +933,54 @@ class _ActiveSetRow extends StatelessWidget {
           ),
           SizedBox(
             width: TioSize.dp64,
-            child: Text(_formatNullableNumber(
-                performed?.loadKg ?? prescription.loadKg)),
+            child: isComplete
+                ? Text(_formatNullableNumber(performed.loadKg))
+                : Semantics(
+                    label: 'Set ${widget.setIndex + 1} actual weight in kg',
+                    child: TioInput.boxedNumber(
+                      key: ValueKey('active-workout-load-${widget.setIndex}'),
+                      controller: _weight,
+                      hint: '-',
+                      enabled: !widget.disabled,
+                      inputFormatters: [RoutineSetInputLimits.weight],
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
           ),
           SizedBox(
             width: TioSize.dp64,
-            child: Text('${performed?.reps ?? prescription.reps ?? '-'}'),
+            child: isComplete
+                ? Text('${performed.reps ?? '-'}')
+                : Semantics(
+                    label: 'Set ${widget.setIndex + 1} actual reps',
+                    child: TioInput.boxedNumber(
+                      key: ValueKey('active-workout-reps-${widget.setIndex}'),
+                      controller: _reps,
+                      hint: '-',
+                      enabled: !widget.disabled,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        RoutineSetInputLimits.reps,
+                      ],
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
           ),
           SizedBox(
             width: TioSize.dp48,
             child: IconButton(
-              key: ValueKey('active-workout-set-toggle-$setIndex'),
+              key: ValueKey('active-workout-set-toggle-${widget.setIndex}'),
               tooltip: isComplete
-                  ? 'Unlog set ${setIndex + 1}'
-                  : 'Log set ${setIndex + 1}',
-              onPressed: disabled
+                  ? 'Unlog set ${widget.setIndex + 1}'
+                  : 'Log set ${widget.setIndex + 1}',
+              onPressed: widget.disabled || (!isComplete && !valid)
                   ? null
                   : () async {
                       if (performed case final item?) {
-                        await onRemove(item.id);
+                        await widget.onRemove(item.id);
                       } else {
-                        await onLog();
+                        await widget.onLog(reps, loadKg);
                       }
                     },
               icon: Icon(

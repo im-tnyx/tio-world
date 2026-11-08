@@ -17,6 +17,7 @@ Future<WorkoutDateController> _pump(
   int resolvedFirstDayOfWeek = DateTime.monday,
   _MutableClock? clock,
   VoidCallback? onLibraryPressed,
+  VoidCallback? onPlayPressed,
 }) async {
   final resolvedClock = clock ?? _MutableClock(DateTime(2026, 9, 23, 14, 30));
   final dates = WorkoutDateController(clock: resolvedClock.call);
@@ -35,6 +36,7 @@ Future<WorkoutDateController> _pump(
           body: WorkoutHomePage(
             resolvedFirstDayOfWeek: resolvedFirstDayOfWeek,
             onLibraryPressed: onLibraryPressed ?? () {},
+            onPlayPressed: onPlayPressed,
           ),
         ),
       ),
@@ -46,6 +48,16 @@ Future<WorkoutDateController> _pump(
 }
 
 void main() {
+  testWidgets('Play FAB forwards the start UI action', (tester) async {
+    var presses = 0;
+    await _pump(tester, onPlayPressed: () => presses++);
+
+    final play = find.byKey(const ValueKey('workout-home-play-action'));
+    expect(play, findsOneWidget);
+    await tester.tap(play);
+    expect(presses, 1);
+  });
+
   testWidgets('shows the Library entry below the calendar', (tester) async {
     var opened = 0;
     await _pump(tester, onLibraryPressed: () => opened++);
