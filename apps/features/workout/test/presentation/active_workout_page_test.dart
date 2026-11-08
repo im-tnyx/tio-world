@@ -18,6 +18,7 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
   Exception? pauseError;
   Completer<WorkoutSessionRecord>? pauseCompleter;
   WorkoutSessionRecord? completeResult;
+  PerformedSet? lastLoggedSet;
   var getActiveCalls = 0;
 
   @override
@@ -59,8 +60,10 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     required WorkoutSessionId sessionId,
     required int expectedRevision,
     required PerformedSet set,
-  }) async =>
-      active!;
+  }) async {
+    lastLoggedSet = set;
+    return active!;
+  }
 
   @override
   Future<WorkoutSessionRecord> removePerformedSet({
@@ -114,6 +117,7 @@ WorkoutSessionSnapshot _snapshot() => WorkoutSessionSnapshot(
 
 WorkoutSession _session({
   WorkoutSessionStatus status = WorkoutSessionStatus.active,
+  bool withPerformedSet = true,
 }) {
   final start = DateTime.utc(2026, 11, 7, 10);
   final paused = status == WorkoutSessionStatus.paused ? start : null;
@@ -131,6 +135,19 @@ WorkoutSession _session({
     ),
     localDate: '2026-11-07',
     snapshot: _snapshot(),
+    performedSets: withPerformedSet
+        ? [
+            PerformedSet(
+              id: '55555555-5555-4555-a555-555555555555',
+              exerciseRef: _exerciseRef,
+              sessionExerciseIndex: 0,
+              setIndex: 0,
+              reps: 8,
+              loadKg: 80,
+              completedAtUtc: start,
+            ),
+          ]
+        : const [],
     discardReason:
         status == WorkoutSessionStatus.discarded ? 'Test discard' : null,
   );
@@ -139,6 +156,7 @@ WorkoutSession _session({
 Future<void> _pumpPage(
   WidgetTester tester, {
   required ActiveWorkoutController controller,
+  bool showStartPreview = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -146,7 +164,10 @@ Future<void> _pumpPage(
         config: const TioThemeConfig(mode: TioThemeMode.light),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: ActiveWorkoutPage(controller: controller),
+      home: ActiveWorkoutPage(
+          controller: controller,
+          showStartPreview: showStartPreview,
+        ),
     ),
   );
   await tester.pump();
@@ -154,6 +175,55 @@ Future<void> _pumpPage(
 }
 
 void main() {
+  testWidgets('Play preview has no fabricated session or exercise',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(tester, controller: controller, showStartPreview: true);
+    expect(find.byKey(const ValueKey('active-workout-start-preview')),
+        findsOneWidget);
+    expect(find.text('No exercises yet'), findsOneWidget);
+    expect(find.text('Bench Press'), findsNothing);
+    final addExercise = tester.widget<TioButton>(
+      find.byKey(const ValueKey('active-workout-preview-add-exercise')),
+    );
+    expect(addExercise.enabled, isFalse);
+  });
+
+  testWidgets('performed set logs typed values, not prescribed targets',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(withPerformedSet: false),
+        revision: 1,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(tester, controller: controller);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-load-0')),
+        matching: find.byType(EditableText),
+      ),
+      '12',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-reps-0')),
+        matching: find.byType(EditableText),
+      ),
+      '6',
+    );
+    await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-0')));
+    await tester.pump();
+    expect(repository.lastLoggedSet?.loadKg, 12);
+    expect(repository.lastLoggedSet?.reps, 6);
+  });
+
   testWidgets('renders active snapshot and controller-backed actions',
       (tester) async {
     final repository = _FakeSessionRepository()
@@ -192,6 +262,27 @@ void main() {
     expect(find.text('Paused'), findsOneWidget);
     expect(find.text('Bench Press'), findsOneWidget);
     expect(find.text('Resume workout'), findsOneWidget);
+  });
+
+  testWidgets('keeps Finish disabled until a set is logged', (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(withPerformedSet: false),
+        revision: 1,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+
+    await _pumpPage(tester, controller: controller);
+
+    final finish = tester.widget<TioButton>(
+      find.byKey(const ValueKey('active-workout-complete')),
+    );
+    expect(finish.enabled, isFalse);
+    expect(find.text('Log at least one set before finishing this workout.'),
+        findsOneWidget);
   });
 
   testWidgets(

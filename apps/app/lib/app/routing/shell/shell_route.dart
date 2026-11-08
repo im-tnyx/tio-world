@@ -143,6 +143,9 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
       builder: (context, ref, _) => WorkoutHomePage(
         resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
         onLibraryPressed: () => context.push(AppRoutes.workoutLibrary.path),
+        onPlayPressed: () => context.push(
+          '${AppRoutes.workoutActive.path}?preview=1',
+        ),
       ),
     );
   }
@@ -1816,6 +1819,7 @@ List<RouteBase> _shellBranchChildRoutes(
       builder: (context, state) => Consumer(
         builder: (context, ref, _) => ActiveWorkoutPage(
           controller: ref.watch(activeWorkoutControllerProvider),
+          showStartPreview: state.uri.queryParameters['preview'] == '1',
         ),
       ),
     ),
