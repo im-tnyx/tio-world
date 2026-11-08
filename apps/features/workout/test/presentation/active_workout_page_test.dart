@@ -16,6 +16,7 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
   WorkoutSessionRecord? active;
   Exception? restoreError;
   Completer<WorkoutSessionRecord>? pauseCompleter;
+  WorkoutSessionRecord? completeResult;
   var getActiveCalls = 0;
 
   @override
@@ -73,7 +74,7 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     required DateTime completedAtUtc,
     String? notes,
   }) async =>
-      active!;
+      completeResult ?? active!;
 
   @override
   Future<WorkoutSessionRecord> discardSession({
@@ -282,17 +283,24 @@ void main() {
   });
 
   testWidgets('terminal state restricts mutating actions', (tester) async {
+    final terminalRecord = WorkoutSessionRecord(
+      session: _session(status: WorkoutSessionStatus.completed),
+      revision: 3,
+    );
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1)
+      ..completeResult = terminalRecord;
     final controller = ActiveWorkoutController(
-      repository: _FakeSessionRepository()
-        ..active = WorkoutSessionRecord(
-          session: _session(status: WorkoutSessionStatus.completed),
-          revision: 3,
-        ),
+      repository: repository,
       currentUserId: () => _userId,
       clock: () => DateTime.utc(2026, 11, 7, 10, 1),
     );
 
     await _pumpPage(tester, controller: controller);
+    await tester.tap(find.byKey(const ValueKey('active-workout-complete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Finish workout'));
+    await tester.pumpAndSettle();
 
     expect(find.text('Completed'), findsOneWidget);
     expect(find.byKey(const ValueKey('active-workout-complete')), findsNothing);
