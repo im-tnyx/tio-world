@@ -135,16 +135,17 @@ void main() {
 
       // Search gym
       await tester.enterText(find.byKey(const ValueKey('gym-search-input')), 'Sky');
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
-      expect(find.text('Sky Fitness - Best Gym in Mangyawas, Mansarover'), findsOneWidget);
+      expect(find.text('Sky Fitness - Best Gym in Mangyawas, Mansarovar'), findsOneWidget);
 
       // Select Sky Fitness
-      await tester.tap(find.text('Sky Fitness - Best Gym in Mangyawas, Mansarover'));
+      await tester.tap(find.text('Sky Fitness - Best Gym in Mangyawas, Mansarovar'));
       await tester.pumpAndSettle();
 
       // Verified selected on SaveWorkoutPage
-      expect(find.text('Sky Fitness - Best Gym in Mangyawas, Mansarover'), findsOneWidget);
+      expect(find.text('Sky Fitness - Best Gym in Mangyawas, Mansarovar'), findsOneWidget);
       expect(find.byKey(const ValueKey('save-workout-gym-clear')), findsOneWidget);
 
       // Clear gym back to None

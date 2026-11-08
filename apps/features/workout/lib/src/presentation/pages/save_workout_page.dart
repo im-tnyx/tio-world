@@ -125,6 +125,7 @@ class SaveWorkoutPage extends StatefulWidget {
     this.onSave,
     this.onDiscard,
     this.clock,
+    this.gymLocationRepository,
     super.key,
   });
 
@@ -134,6 +135,7 @@ class SaveWorkoutPage extends StatefulWidget {
   final int completedSets;
   final DateTime? startedAt;
   final DateTime Function()? clock;
+  final GymLocationRepository? gymLocationRepository;
 
   final FutureOr<void> Function({
     required String title,
@@ -216,6 +218,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
       MaterialPageRoute<String>(
         builder: (routeContext) => GymSelectionPage(
           currentGymName: _selectedGym,
+          repository: widget.gymLocationRepository,
         ),
       ),
     );

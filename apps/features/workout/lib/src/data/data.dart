@@ -17,3 +17,4 @@ export 'repositories/supabase_routine_notes_repository.dart';
 export 'repositories/routine_move_delete_attempt_gate.dart';
 export 'repositories/supabase_workout_session_gateway.dart';
 export 'repositories/supabase_workout_session_repository.dart';
+export 'repositories/supabase_gym_location_repository.dart';

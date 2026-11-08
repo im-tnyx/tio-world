@@ -1,35 +1,56 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:tio_core/core.dart';
 
-/// Represents a gym location option.
-class GymLocation {
-  const GymLocation({
-    required this.id,
-    required this.name,
-    required this.address,
-    this.distanceKm,
-    this.isPrivate = false,
+import '../../data/repositories/supabase_gym_location_repository.dart';
+import '../../domain/models/gym_location.dart';
+import '../../domain/repositories/gym_location_repository.dart';
+
+export '../../domain/models/gym_location.dart';
+export '../../domain/repositories/gym_location_repository.dart';
+
+/// Screen allowing the user to search and select a gym location.
+class GymSelectionPage extends StatefulWidget {
+  const GymSelectionPage({
+    this.currentGymName,
+    this.repository,
+    this.positionProvider,
+    super.key,
   });
 
-  final String id;
-  final String name;
-  final String address;
-  final double? distanceKm;
-  final bool isPrivate;
+  final String? currentGymName;
+  final GymLocationRepository? repository;
+  final Future<Position?> Function()? positionProvider;
+
+  @override
+  State<GymSelectionPage> createState() => _GymSelectionPageState();
+}
+
+class _GymSelectionPageState extends State<GymSelectionPage> {
+  final TextEditingController _searchController = TextEditingController();
+  late final GymLocationRepository _repository;
+
+  String _query = '';
+  bool _isLoading = false;
+  double? _currentLat;
+  double? _currentLng;
+  Timer? _debounceTimer;
 
   static const homeGym = GymLocation(
     id: 'home_gym',
     name: 'Home gym',
     address: 'Private location',
-    isPrivate: true,
   );
 
-  static const List<GymLocation> defaultPopularGyms = [
+  static const List<GymLocation> _fallbackPopularGyms = [
     GymLocation(
       id: 'sky_mangyawas',
-      name: 'Sky Fitness - Best Gym in Mangyawas, Mansarover',
-      address: 'Maharani Garden Road, Mansarover, Rajat Path, Jaipur, Rajasthan',
+      name: 'Sky Fitness - Best Gym in Mangyawas, Mansarovar',
+      address:
+          'Maharani Garden Road, Mansarovar, Rajat Path, Jaipur, Rajasthan',
       distanceKm: 1.86,
     ),
     GymLocation(
@@ -59,56 +80,151 @@ class GymLocation {
       distanceKm: 7.50,
     ),
   ];
-}
 
-/// Screen allowing the user to search and select a gym location.
-class GymSelectionPage extends StatefulWidget {
-  const GymSelectionPage({
-    this.currentGymName,
-    super.key,
-  });
-
-  final String? currentGymName;
-
-  @override
-  State<GymSelectionPage> createState() => _GymSelectionPageState();
-}
-
-class _GymSelectionPageState extends State<GymSelectionPage> {
-  final TextEditingController _searchController = TextEditingController();
-  String _query = '';
+  List<GymLocation> _gyms = _fallbackPopularGyms;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
-      final text = _searchController.text.trim();
-      if (text != _query) {
-        setState(() => _query = text);
-      }
-    });
+    _repository = widget.repository ?? SupabaseGymLocationRepository();
+    _searchController.addListener(_onSearchInputChanged);
+    _loadInitialGyms();
   }
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
+    _searchController.removeListener(_onSearchInputChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  List<GymLocation> get _filteredPopularGyms {
-    if (_query.isEmpty) return GymLocation.defaultPopularGyms;
-    final lower = _query.toLowerCase();
-    return GymLocation.defaultPopularGyms.where((g) {
-      return g.name.toLowerCase().contains(lower) ||
-          g.address.toLowerCase().contains(lower);
-    }).toList();
+  void _onSearchInputChanged() {
+    final text = _searchController.text.trim();
+    if (text == _query) return;
+    setState(() => _query = text);
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      _executeSearch(text);
+    });
+  }
+
+  Future<void> _loadInitialGyms() async {
+    setState(() => _isLoading = true);
+
+    Position? pos;
+    try {
+      if (widget.positionProvider != null) {
+        pos = await widget.positionProvider!();
+      } else {
+        final serviceEnabled = await Geolocator.isLocationServiceEnabled()
+            .timeout(const Duration(milliseconds: 1000));
+        if (serviceEnabled) {
+          var permission = await Geolocator.checkPermission()
+              .timeout(const Duration(milliseconds: 1000));
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission()
+                .timeout(const Duration(milliseconds: 1000));
+          }
+          if (permission == LocationPermission.always ||
+              permission == LocationPermission.whileInUse) {
+            pos = await Geolocator.getCurrentPosition(
+              locationSettings: const LocationSettings(
+                timeLimit: Duration(seconds: 4),
+              ),
+            ).timeout(const Duration(seconds: 4));
+          }
+        }
+      }
+    } catch (_) {
+      // Location unavailable / denied / test environment, fallback to query
+    }
+
+    if (pos != null) {
+      _currentLat = pos.latitude;
+      _currentLng = pos.longitude;
+    }
+
+    try {
+      final results = await _repository.searchGyms(
+        latitude: _currentLat,
+        longitude: _currentLng,
+      ).timeout(const Duration(seconds: 4));
+
+      if (mounted) {
+        setState(() {
+          if (results.isNotEmpty) {
+            _gyms = results;
+          } else {
+            _gyms = _fallbackPopularGyms;
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _gyms = _fallbackPopularGyms;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _executeSearch(String query) async {
+    if (query.isEmpty) {
+      unawaited(_loadInitialGyms());
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final results = await _repository.searchGyms(
+        query: query,
+        latitude: _currentLat,
+        longitude: _currentLng,
+      ).timeout(const Duration(seconds: 4));
+
+      if (mounted) {
+        setState(() {
+          if (results.isNotEmpty) {
+            _gyms = results;
+          } else {
+            // If remote search has no matches, filter fallback list
+            final lower = query.toLowerCase();
+            final filteredFallback = _fallbackPopularGyms.where((g) {
+              return g.name.toLowerCase().contains(lower) ||
+                  g.address.toLowerCase().contains(lower);
+            }).toList();
+            _gyms = filteredFallback;
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        final lower = query.toLowerCase();
+        final filteredFallback = _fallbackPopularGyms.where((g) {
+          return g.name.toLowerCase().contains(lower) ||
+              g.address.toLowerCase().contains(lower);
+        }).toList();
+        _gyms = filteredFallback;
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   bool get _matchesHomeGym {
     if (_query.isEmpty) return true;
     final lower = _query.toLowerCase();
-    return GymLocation.homeGym.name.toLowerCase().contains(lower) ||
-        GymLocation.homeGym.address.toLowerCase().contains(lower);
+    return homeGym.name.toLowerCase().contains(lower) ||
+        homeGym.address.toLowerCase().contains(lower);
   }
 
   void _selectGym(GymLocation gym) {
@@ -125,7 +241,6 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
-    final filtered = _filteredPopularGyms;
 
     return Scaffold(
       appBar: TioAppBar(
@@ -201,6 +316,13 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
             ),
           ),
 
+          if (_isLoading)
+            LinearProgressIndicator(
+              minHeight: 2,
+              backgroundColor: TioPalette.transparent,
+              valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+            ),
+
           const SizedBox(height: TioSpacing.sm),
 
           // Gym list
@@ -228,17 +350,17 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
                   ),
                   _GymTile(
                     key: const ValueKey('gym-option-home-gym'),
-                    gym: GymLocation.homeGym,
+                    gym: homeGym,
                     icon: Icons.home_outlined,
-                    isSelected: widget.currentGymName == GymLocation.homeGym.name,
-                    onTap: () => _selectGym(GymLocation.homeGym),
+                    isSelected: widget.currentGymName == homeGym.name,
+                    onTap: () => _selectGym(homeGym),
                   ),
                   const SizedBox(height: TioSpacing.md),
                 ],
 
                 // If user typed a search not in the list, offer to use it
                 if (_query.isNotEmpty &&
-                    !filtered.any((g) =>
+                    !_gyms.any((g) =>
                         g.name.toLowerCase() == _query.toLowerCase())) ...[
                   _CustomSearchTile(
                     query: _query,
@@ -247,22 +369,22 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
                   const SizedBox(height: TioSpacing.md),
                 ],
 
-                // Popular gyms Section
-                if (filtered.isNotEmpty) ...[
+                // Popular / Nearby gyms Section
+                if (_gyms.isNotEmpty) ...[
                   Padding(
                     padding: const EdgeInsets.only(
                       top: TioSpacing.sm,
                       bottom: TioSpacing.sm,
                     ),
                     child: Text(
-                      'Popular gyms',
+                      _currentLat != null ? 'Nearby gyms' : 'Popular gyms',
                       style: textTheme.titleSmall?.copyWith(
                         color: colors.textSecondary,
                         fontWeight: TioFontWeight.w600,
                       ),
                     ),
                   ),
-                  for (final gym in filtered)
+                  for (final gym in _gyms)
                     _GymTile(
                       key: ValueKey('gym-option-${gym.id}'),
                       gym: gym,
@@ -270,7 +392,7 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
                       isSelected: widget.currentGymName == gym.name,
                       onTap: () => _selectGym(gym),
                     ),
-                ] else if (!_matchesHomeGym && _query.isEmpty) ...[
+                ] else if (!_matchesHomeGym && !_isLoading) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: TioSpacing.xl),
                     child: Center(
@@ -397,24 +519,24 @@ class _CustomSearchTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return InkWell(
+      key: const ValueKey('gym-option-custom-search'),
       borderRadius: BorderRadius.circular(TioRadius.md),
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+      child: Container(
+        padding: const EdgeInsets.all(TioSpacing.md),
+        decoration: BoxDecoration(
+          color: colors.surfaceVariant.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(TioRadius.md),
+          border: Border.all(
+            color: colors.surfaceVariant,
+          ),
+        ),
         child: Row(
           children: [
-            Container(
-              width: TioSize.dp40,
-              height: TioSize.dp40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: colors.primary.withValues(alpha: 0.15),
-              ),
-              child: Icon(
-                Icons.add_location_alt_outlined,
-                size: TioSize.dp20,
-                color: colors.primary,
-              ),
+            Icon(
+              Icons.add_location_alt_outlined,
+              size: TioSize.dp20,
+              color: colors.primary,
             ),
             const SizedBox(width: TioSpacing.md),
             Expanded(
@@ -423,19 +545,24 @@ class _CustomSearchTile extends StatelessWidget {
                 children: [
                   Text(
                     'Use "$query"',
-                    style: textTheme.bodyLarge?.copyWith(
+                    style: textTheme.bodyMedium?.copyWith(
                       fontWeight: TioFontWeight.w600,
-                      color: colors.primary,
+                      color: colors.textPrimary,
                     ),
                   ),
                   Text(
-                    'Set as custom gym location',
+                    'Select this custom gym name',
                     style: textTheme.bodySmall?.copyWith(
                       color: colors.textSecondary,
                     ),
                   ),
                 ],
               ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: TioSize.dp20,
+              color: colors.textSecondary,
             ),
           ],
         ),

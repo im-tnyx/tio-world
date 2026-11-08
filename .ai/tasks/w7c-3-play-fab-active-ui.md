@@ -59,14 +59,13 @@ Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> fe
 
 **Failure/accessibility:** Existing auth invalidation and reconciliation states stay authoritative; FAB has label/tooltip; preview Add Exercise is enabled while Finish/Settings/Discard remain visibly disabled without a session; pending actions protected; month expansion hides FAB.
 
-### Planned Gym Location Architecture (Google Places API + Supabase Proxy)
-- **Current UI State:** `GymSelectionPage` provides search bar, suggestions (`Home gym`), and popular gyms with distance and address. User can select a gym or clear to `None`.
-- **Target Production Architecture (Owner-agreed plan, deferred until Google Places API key setup):**
-  1. **Client GPS:** Use `geolocator` on Flutter client to query device coordinates (`latitude`, `longitude`) with standard OS permissions (`ACCESS_FINE_LOCATION`, `NSLocationWhenInUseUsageDescription`).
-  2. **Server-Side Proxy:** Per `AGENTS.md` ("Client apps may use only client-safe keys and APIs; never expose server keys/secrets in client apps"), route requests through a Supabase Edge Function (`/functions/v1/nearby-gyms`).
-  3. **Google Places API:** Edge function queries Google Places API (New) Nearby Search (`includedTypes: ["gym", "fitness_center"]`) around user coordinates with caching to minimize billing quota.
-  4. **Text Search:** Debounced location-biased autocomplete/text search via the same edge proxy.
-  5. **Privacy & Fallback:** `Home gym` (private location) remains pinned in suggestions; `None` when unselected.
+### Gym Location Architecture (Google Places API + Supabase Proxy)
+- **Status:** Implemented & Verified with automated Deno and Flutter test suites.
+- **Client GPS:** Uses `geolocator` on Flutter client to query device coordinates (`latitude`, `longitude`) with standard OS permissions (`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` on Android; `NSLocationWhenInUseUsageDescription` on iOS). Timeout guards ensure testing stability without hanging.
+- **Server-Side Proxy:** Per `AGENTS.md` ("Client apps may use only client-safe keys and APIs; never expose server keys/secrets in client apps"), requests route through Supabase Edge Function `/functions/v1/nearby-gyms`.
+- **Google Places API:** Edge function securely reads `GOOGLE_PLACES_API_KEY` from environment secrets and queries Google Places API (New) (`places:searchNearby` with `includedTypes: ["gym", "fitness_center"]` around coordinates or `places:searchText` for queries), calculating distance with Haversine formula and sorting results.
+- **Privacy & Fallbacks:** `Home gym` (private location) is pinned in suggestions; `None` fallback when cleared. Fallback popular gyms provided when location or network is unavailable.
+- **Tests:** 6/6 Deno unit tests in `supabase/functions/nearby-gyms/index_test.ts`; 12/12 widget tests in `save_workout_page_test.dart`; 1,317/1,317 tests in `apps/features/workout`.
 
 ## 5. Implementation Plan
 
