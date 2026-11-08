@@ -195,6 +195,14 @@ class AppRoutes {
     chromePolicy: ChromePolicy.noBottomBar,
   );
 
+  /// Focused Active Workout resume/recovery surface.
+  static const workoutActive = TioRouteContract(
+    path: '/workout/active',
+    title: 'Active Workout',
+    description: 'Resume or recover your current workout session.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
   /// Canonical Exercise Detail/About surface for catalog and Custom Exercises.
   ///
   /// The `exerciseId` path segment is an `ex_*` catalog identity or a

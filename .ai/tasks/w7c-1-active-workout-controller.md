@@ -1,6 +1,6 @@
 # Feature Task: W7C-1 Active Workout Controller & State Orchestration
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** Codex
 **Affected platforms:** Flutter (apps/features/workout, apps/app)
 
@@ -38,21 +38,21 @@ This is a compact recovery checkpoint, not a live activity log. Refresh it only 
 **Planning owner:** Antigravity
 **Implementation owner:** Codex
 **Review owner:** im-tio
-**Implementation ownership state:** Active
-**Ownership transition:** User explicitly assigned the bounded PR #736 P2 remediation to Codex; prior implementation ownership is superseded for this remediation only.
-**Repository state last verified:** 2026-11-08 00:00 UTC+05:30
-**Branch:** `feat/w7c-1-active-workout-controller`
-**HEAD SHA:** `3ee21aceeceaaee2c7088adfc5bf7617efcfb4bc`
-**Observed working-tree state:** Clean branch branched from origin/main
+**Implementation ownership state:** Complete
+**Ownership transition:** Codex implementation → merged main at PR #736
+**Repository state last verified:** 2026-11-08 11:14 IST
+**Branch:** `main`
+**HEAD SHA:** `01e8648312a9e52559c05bcaad16d23e1d0bf4be`
+**Observed working-tree state:** Clean before W7C-2 branch creation
 **Observed uncommitted/dirty files:** None
-**PR / tracker:** Linear TNYX-84 (W7 Active Workout)
-**Current implementation state:** PR #736 P2 remediation implemented locally; focused validation is pending because no Flutter/Dart/Melos executable is available on this host PATH.
+**PR / tracker:** GitHub PR #736 merged; Linear TNYX-84 parent
+**Current implementation state:** W7C-1 controller/state/provider slice is merged and validated at the exact PR head.
 **Relevant execution surface:** `apps/features/workout/`, `apps/app/`
-**Validation completed at SHA:** bb86b36870074ffbe29b7c8a544c0cc7abfba677
-**Validation remaining:** Focused controller tests, provider lifecycle tests, affected Workout/app tests, Flutter analyze, Melos validation, final CI on pushed SHA.
-**Current blocker:** Local Flutter/Dart/Melos executables are unavailable; GitHub network access from the shell is also unavailable until the branch can be pushed through an available transport.
-**Open review finding IDs:** `PRRT_kwDOTOXwB8605XTc` (duplicate active-session reconciliation), `PRRT_kwDOTOXwB8605XTe` (same-login Auth provider lifecycle stability), `PRRT_kwDOTOXwB8605sDp` (lifecycle-mismatch recovery), `PRRT_kwDOTOXwB8605sDs` (cross-session rest-timer isolation).
-**Next exact action:** Remediate the two new exact-head P2 controller findings, then re-run the focused CI/review gate.
+**Validation completed at SHA:** `d13e2a314566bdf980befdbf9b93dd589522f02b` (PR head) and merge `01e8648312a9e52559c05bcaad16d23e1d0bf4be`; Docs Hygiene CI and Flutter CI successful; independent review approved.
+**Validation remaining:** None for W7C-1. W7C-2 has separate page/routing validation.
+**Current blocker:** None for the merged W7C-1 slice.
+**Open review finding IDs:** None; prior PR #736 findings are resolved/outdated.
+**Next exact action:** Continue with the separately approved W7C-2 screen and route slice.
 
 ## Global UI / Design-System Guardrail
 
@@ -159,4 +159,4 @@ UI (Future W7C-2) -> ActiveWorkoutController -> WorkoutSessionRepository -> Supa
 
 ### Final Status
 
-`READY FOR REVIEW`
+`PASS`

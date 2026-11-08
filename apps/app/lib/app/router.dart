@@ -61,6 +61,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.workoutLibrary,
     AppRoutes.workoutPrograms,
     AppRoutes.workoutExercises,
+    AppRoutes.workoutActive,
     AppRoutes.login,
     AppRoutes.emailLogin,
     AppRoutes.emailSignup,
