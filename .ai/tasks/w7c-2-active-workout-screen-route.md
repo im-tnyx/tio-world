@@ -1,6 +1,6 @@
 # Feature Task: W7C-2 Active Workout Resume/Recovery Screen and Route Foundation
 
-**Status:** In progress
+**Status:** Validated; awaiting owner merge decision
 **Primary owner:** Codex
 **Affected platforms:** Flutter phone (`apps/features/workout`, `apps/app`, `apps/core` routing contracts)
 
@@ -31,19 +31,19 @@
 **Review owner:** im-tio
 **Implementation ownership state:** Active
 **Ownership transition:** Previous read-only planning owner → Codex implementation owner after explicit owner approval
-**Repository state last verified:** 2026-11-08 11:14 IST
+**Repository state last verified:** 2026-11-08 12:34 IST
 **Branch:** `feat/w7c-2-active-workout-screen-route`
-**HEAD SHA:** `01e8648312a9e52559c05bcaad16d23e1d0bf4be`
-**Observed working-tree state:** Clean branch from verified `origin/main`
-**Observed uncommitted/dirty files:** None at task creation
-**PR / tracker:** GitHub #737; parent Linear TNYX-84; Linear child creation blocked by workspace free-issue limit
-**Current implementation state:** Task brief and tracking are reconciled; source implementation is starting.
+**HEAD SHA:** `42dddd59f34c96d3350cbc6415368da5a0b41d01`
+**Observed working-tree state:** Clean branch; one focused PR commit series ahead of verified `origin/main`
+**Observed uncommitted/dirty files:** None
+**PR / tracker:** GitHub #738 (open); GitHub #737 focused tracker; parent Linear TNYX-84; Linear child creation blocked by workspace free-issue limit
+**Current implementation state:** W7C-2 page, route, auth/chrome integration and focused tests are implemented and pushed. No automatic merge performed.
 **Relevant execution surface:** `apps/features/workout`, `apps/app/lib/app/routing`, `apps/app/lib/app/composition`, `apps/core/lib/src/routing`
-**Validation completed at SHA:** `01e8648312a9e52559c05bcaad16d23e1d0bf4be` (W7C-1 merged source baseline)
-**Validation remaining:** Focused page/widget, routing, provider lifecycle, package analyze/test, required CI and exact-head independent review
-**Current blocker:** None for the approved resume/recovery-only slice. W3/W4 remain blockers for future start/launcher flows.
+**Validation completed at SHA:** `42dddd59f34c96d3350cbc6415368da5a0b41d01` (local package analysis; exact-head CI and docs hygiene successful)
+**Validation remaining:** Owner-authorized independent review by `i-the`; local Flutter widget tests remain unavailable on this Windows host because the Flutter wrapper hangs and direct tool invocation fails on the configured Git child process.
+**Current blocker:** Merge remains intentionally held pending independent review/owner decision. W3/W4 remain blockers for future start/launcher flows.
 **Open review finding IDs:** None for W7C-2
-**Next exact action:** Implement the focused `ActiveWorkoutPage` and `/workout/active` route without introducing new workout state or launchers.
+**Next exact action:** Obtain independent `i-the` review on PR #738, then recheck exact-head protections before any owner-authorized merge.
 
 ## Global UI / Design-System Guardrail
 
@@ -133,12 +133,12 @@ Explicit restoring, unavailable/no-session, reconciliation retry, terminal, auth
 
 ## 5. Implementation Plan
 
-- [ ] Add `ActiveWorkoutPage` and export it through the Workout presentation barrels.
-- [ ] Register `AppRoutes.workoutActive` and `/workout/active` through existing shell routing/chrome policy.
-- [ ] Integrate provider restore, state rendering, supported actions, retry and safe Back behavior.
-- [ ] Add focused page/widget tests for active, paused, restore, no-session, reconciliation, terminal and auth-invalidated states.
-- [ ] Add routing/provider lifecycle tests for auth gating, account switch/logout, `NoBottomNav`, Back and disposal.
-- [ ] Run focused Flutter/Dart validation, review full diff, commit/push and open a focused PR against `main`.
+- [x] Add `ActiveWorkoutPage` and export it through the Workout presentation barrels.
+- [x] Register `AppRoutes.workoutActive` and `/workout/active` through existing shell routing/chrome policy.
+- [x] Integrate provider restore, state rendering, supported actions, retry and safe Back behavior.
+- [x] Add focused page/widget tests for active, paused, restore, no-session, reconciliation, terminal and auth-invalidated states.
+- [x] Add routing/provider lifecycle tests for auth gating, account switch/logout, `NoBottomNav`, Back and disposal.
+- [x] Run focused Dart analysis, review full diff, commit/push and open PR #738 against `main`.
 
 ## 6. Quality Review
 
@@ -147,26 +147,28 @@ Explicit restoring, unavailable/no-session, reconciliation retry, terminal, auth
 ```text
 Repository preflight: PASS (`main` and `origin/main` at 01e8648312a9e52559c05bcaad16d23e1d0bf4be; clean worktree before branch creation)
 W7C-1 merged PR #736: PASS (Docs Hygiene CI and Flutter CI successful at PR head)
-W7C-2 implementation validation: Not run yet.
+W7C-2 implementation validation: PASS at `42dddd59f34c96d3350cbc6415368da5a0b41d01` for `dart analyze --format=machine .` in `apps/features/workout`, `apps/core` and `apps/app`; `git diff --check` PASS.
+Exact-head PR CI: PASS (`Flutter CI` run `42454495092` / #4447; `Docs Hygiene CI` run `42454495110` / #559; all required jobs successful).
+Review-thread reconciliation: PASS; all three W7C-2 inline threads resolved, including the action-error rendering finding and two test findings.
 ```
 
 ### Acceptance Evidence (substantive scope)
 
 | Criterion | Changed behavior / file | Test or manual evidence + actual result | Observed SHA / environment | Remaining risk |
 |---|---|---|---|---|
-| Active/paused snapshot rendering | Pending `ActiveWorkoutPage` | Not run yet | Not applicable | Page implementation pending |
-| Restore/no-session/reconciliation states | Pending `ActiveWorkoutPage` | Not run yet | Not applicable | State UX pending |
-| Auth and provider lifecycle | Pending page/routing tests | Not run yet | Not applicable | Disposal/redaction coverage pending |
-| Route chrome/deep-link/Back | Pending app routing files/tests | Not run yet | Not applicable | Route registration pending |
+| Active/paused snapshot rendering | `active_workout_page.dart`; `active_workout_page_test.dart` | Focused tests committed; exact-head app-workout shard PASS | `42dddd59` / Flutter CI | Local widget runner unavailable |
+| Restore/no-session/reconciliation states | `active_workout_page.dart`; focused page tests | Exact-head app-workout shard PASS | `42dddd59` / Flutter CI | Local widget runner unavailable |
+| Auth and provider lifecycle | `shell_route.dart`; session route policy tests | Exact-head app-workout shard PASS; static analysis PASS | `42dddd59` | Device/account-switch runtime evidence not run |
+| Route chrome/deep-link/Back | `app_routes.dart`, `router.dart`, route tests | Exact-head app-workout shard PASS; Docs Hygiene PASS | `42dddd59` | Hosted/device visual evidence not run |
 
 ### Review Provenance
 
-**Review source / link:** Not available yet; GitHub independent review requested after PR creation
+**Review source / link:** [GitHub PR #738](https://github.com/im-tnyx/tio-world/pull/738)
 **Reviewer / relation to implementer:** im-tio / independent technical reviewer
-**Diff or commit SHA actually reviewed:** Not applicable
-**Review result and finding IDs/dispositions:** Not available yet
-**Independent review?** Unknown / unavailable
-**Limitations and unmet required gates:** Implementation, CI and independent review are pending.
+**Diff or commit SHA actually reviewed:** Automated review feedback reconciled through `42dddd59f34c96d3350cbc6415368da5a0b41d01`; independent reviewer `i-the` remains requested/pending.
+**Review result and finding IDs/dispositions:** Three automated P2 threads resolved: action errors rendered in active/paused states; terminal test uses actual completion transition; confirmation finder scoped to `BottomSheet`.
+**Independent review?** Pending (`i-the` requested; no submitted independent approval yet)
+**Limitations and unmet required gates:** Local Flutter widget tests did not complete on this Windows host. Cursor security/approval agents were `neutral` because their weekly quota was exhausted; no Supabase-sensitive code changed. Independent review and owner merge authorization remain open.
 
 ### Review Findings and Resolution
 
@@ -178,11 +180,11 @@ W7C-2 implementation validation: Not run yet.
 
 ### Changed Files
 
-Task governance files only at creation: `.ai/tasks/w7c-2-active-workout-screen-route.md`, `.ai/tasks/w7c-1-active-workout-controller.md`, `.ai/tasks/README.md`.
+`.ai/tasks/w7c-2-active-workout-screen-route.md`, `.ai/tasks/w7c-1-active-workout-controller.md`, `.ai/tasks/README.md`, `apps/features/workout/lib/src/presentation/pages/active_workout_page.dart`, `apps/features/workout/lib/src/presentation/pages/pages.dart`, `apps/features/workout/test/presentation/active_workout_page_test.dart`, `apps/core/lib/src/routing/routes/app_routes.dart`, `apps/core/test/app_routes_test.dart`, `apps/app/lib/app/router.dart`, `apps/app/lib/app/routing/shell/shell_route.dart`, `apps/app/test/app/session/app_session_route_policy_test.dart`, `apps/app/test/app/workout_exercises_route_test.dart`.
 
 ### Actual Behavior
 
-Implementation not yet started; this brief records the approved, reconciled execution boundary.
+Authenticated `/workout/active` now renders persisted active/paused `WorkoutSessionSnapshot` data with explicit restoring, no-session, reconciliation retry, terminal and auth-invalidated states. It uses `TioAppBar`, `TioCard`, `TioButton`, existing confirmation patterns and `NoBottomNav`; action loading/duplicate prevention, action-error feedback, stale-session redaction and safe Back are covered without introducing a new controller, timer, repository or launcher.
 
 ### Known Limitations
 
