@@ -327,7 +327,12 @@ void main() {
     await _pumpPage(tester, controller: controller);
     await tester.tap(find.byKey(const ValueKey('active-workout-complete')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Finish workout'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Finish workout'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Completed'), findsOneWidget);
