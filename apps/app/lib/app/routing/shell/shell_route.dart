@@ -1810,6 +1810,15 @@ List<RouteBase> _shellBranchChildRoutes(
         ),
       ],
     ),
+    GoRoute(
+      path: _childPath(branch, AppRoutes.workoutActive),
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) => ActiveWorkoutPage(
+          controller: ref.watch(activeWorkoutControllerProvider),
+        ),
+      ),
+    ),
   ];
 }
 

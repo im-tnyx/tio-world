@@ -42,6 +42,7 @@ void main() {
         AppRoutes.usernameSetup.path,
         AppRoutes.onboarding.path,
         FeatureRoutes.home.path,
+        AppRoutes.workoutActive.path,
       ]) {
         expect(
           appSessionBootstrapRedirect(

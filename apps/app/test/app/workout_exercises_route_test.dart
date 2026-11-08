@@ -28,6 +28,7 @@ import 'package:tio_shared/shared.dart';
 const _programsPath = '/workout/programs';
 const _exercisesPath = '/workout/exercises';
 const _libraryPath = '/workout/library';
+const _activePath = '/workout/active';
 
 const _syntheticProgramId = '20000000-0000-4000-8000-000000000001';
 
@@ -71,6 +72,15 @@ void main() {
     expect(AppRoutes.workoutExercises.path, _exercisesPath);
   });
 
+  test('Active Workout hides the bottom navigation and root top bar', () {
+    final policy = shellChromePolicyForPath(_activePath);
+
+    expect(policy, ChromePolicy.noBottomBar);
+    expect(policy.showsBottomNav, isFalse);
+    expect(policy.showsRootTopBar, isFalse);
+    expect(AppRoutes.workoutActive.path, _activePath);
+  });
+
   group('deep links follow /workout gating', () {
     for (final status in OnboardingStatus.values) {
       for (final mode in <AppMode?>[null, ...AppMode.values]) {
@@ -95,6 +105,10 @@ void main() {
             redirect(_libraryPath),
             redirect(FeatureRoutes.workout.path),
           );
+          expect(
+            redirect(_activePath),
+            redirect(FeatureRoutes.workout.path),
+          );
           const nutritionOnly = [AppDestination.home, AppDestination.nutrition];
           expect(
             redirect(_programsPath, nutritionOnly),
@@ -102,6 +116,10 @@ void main() {
           );
           expect(
             redirect(_exercisesPath, nutritionOnly),
+            redirect(FeatureRoutes.workout.path, nutritionOnly),
+          );
+          expect(
+            redirect(_activePath, nutritionOnly),
             redirect(FeatureRoutes.workout.path, nutritionOnly),
           );
         });
