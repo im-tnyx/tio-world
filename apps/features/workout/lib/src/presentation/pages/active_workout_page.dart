@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../controllers/active_workout_controller.dart';
 import '../controllers/active_workout_state.dart';
@@ -106,6 +107,72 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     }
   }
 
+  Future<void> _showPauseDetails(ActiveWorkoutState state) async {
+    final controller = _controller;
+    final session = state.session;
+    if (controller == null || session == null || state.isTerminal) return;
+
+    final shouldToggle = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            TioSpacing.lg,
+            TioSpacing.sm,
+            TioSpacing.lg,
+            TioSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Duration',
+                textAlign: TextAlign.center,
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
+              const SizedBox(height: TioSpacing.lg),
+              _PauseDetailRow(
+                label: 'Duration',
+                value: _formatDuration(state.activeElapsedDuration),
+              ),
+              const SizedBox(height: TioSpacing.sm),
+              _PauseDetailRow(
+                label: 'Start time',
+                value: _formatStartTime(context, session.time.startedAtUtc),
+              ),
+              const SizedBox(height: TioSpacing.lg),
+              TioButton.primary(
+                key: const ValueKey('active-workout-pause-sheet-action'),
+                label: state.status == ActiveWorkoutStatus.active
+                    ? 'Pause Workout Timer'
+                    : 'Resume Workout Timer',
+                leading: Icon(
+                  state.status == ActiveWorkoutStatus.active
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
+                ),
+                onPressed: state.isActionPending
+                    ? null
+                    : () => Navigator.of(sheetContext).pop(true),
+                expand: true,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!mounted ||
+        shouldToggle != true ||
+        !identical(controller, _controller)) {
+      return;
+    }
+    await _pauseOrResume(state);
+  }
+
   Future<void> _complete(ActiveWorkoutState state) async {
     final controller = _controller;
     if (controller == null || state.isActionPending || !state.isRunning) return;
@@ -191,9 +258,14 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
         }
         return _SessionState(
           state: state,
+          controller: controller,
+          onDurationPressed:
+              state.isActionPending ? null : () => _showPauseDetails(state),
           onPauseOrResume:
               state.isActionPending ? null : () => _pauseOrResume(state),
-          onComplete: state.isActionPending || state.isTerminal
+          onComplete: state.isActionPending ||
+                  state.isTerminal ||
+                  state.performedSets.isEmpty
               ? null
               : () => _complete(state),
           onBack: widget.onBack,
@@ -303,12 +375,16 @@ class _MessageState extends StatelessWidget {
 class _SessionState extends StatelessWidget {
   const _SessionState({
     required this.state,
+    required this.controller,
+    required this.onDurationPressed,
     required this.onPauseOrResume,
     required this.onComplete,
     required this.onBack,
   });
 
   final ActiveWorkoutState state;
+  final ActiveWorkoutController controller;
+  final VoidCallback? onDurationPressed;
   final VoidCallback? onPauseOrResume;
   final VoidCallback? onComplete;
   final VoidCallback onBack;
@@ -336,14 +412,24 @@ class _SessionState extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  snapshot.routineName,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        snapshot.routineName,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                    ),
+                    Text(statusLabel),
+                  ],
                 ),
-                const SizedBox(height: TioSpacing.sm),
-                Text(statusLabel),
-                const SizedBox(height: TioSpacing.xs),
-                Text(_formatDuration(state.activeElapsedDuration)),
+                const SizedBox(height: TioSpacing.md),
+                _WorkoutStats(
+                  duration: state.activeElapsedDuration,
+                  volumeKg: _volumeKg(state.performedSets),
+                  completedSets: state.performedSets.length,
+                  onDurationPressed: onDurationPressed,
+                ),
               ],
             ),
           ),
@@ -368,27 +454,46 @@ class _SessionState extends StatelessWidget {
           else
             ...snapshot.exercises.map(
               (exercise) => Padding(
-                padding: const EdgeInsets.only(bottom: TioSpacing.sm),
-                child: TioCard(
+                padding: const EdgeInsets.only(bottom: TioSpacing.md),
+                child: _ExerciseExecutionCard(
                   key: ValueKey(
                     'active-workout-exercise-${exercise.occurrenceIndex}',
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          exercise.displayName,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                      const SizedBox(width: TioSpacing.sm),
-                      Text('${exercise.prescribedSets.length} sets'),
-                    ],
+                  exercise: exercise,
+                  performedSets: state.performedSets,
+                  actionPending: state.isActionPending,
+                  onLogSet: (setIndex, prescription) => controller.logSet(
+                    sessionExerciseIndex: exercise.occurrenceIndex,
+                    setIndex: setIndex,
+                    reps: prescription.reps,
+                    loadKg: prescription.loadKg,
                   ),
+                  onRemoveSet: controller.removeSet,
                 ),
               ),
             ),
+          const SizedBox(height: TioSpacing.sm),
+          TioButton.supporting(
+            key: const ValueKey('active-workout-add-set'),
+            label: 'Add Set',
+            leading: const Icon(Icons.add_rounded),
+            enabled: !state.isTerminal && !state.isActionPending,
+            onPressed: state.isTerminal || state.isActionPending
+                ? null
+                : () => _showDeferredAction(context, 'Add Set'),
+            expand: true,
+          ),
+          const SizedBox(height: TioSpacing.sm),
+          TioButton.primary(
+            key: const ValueKey('active-workout-add-exercise'),
+            label: 'Add Exercise',
+            leading: const Icon(Icons.add_rounded),
+            enabled: !state.isTerminal && !state.isActionPending,
+            onPressed: state.isTerminal || state.isActionPending
+                ? null
+                : () => _showDeferredAction(context, 'Add Exercise'),
+            expand: true,
+          ),
           const SizedBox(height: TioSpacing.sm),
           if (!state.isTerminal) ...[
             TioButton.secondary(
@@ -396,6 +501,7 @@ class _SessionState extends StatelessWidget {
               label: state.status == ActiveWorkoutStatus.active
                   ? 'Pause workout'
                   : 'Resume workout',
+              enabled: onPauseOrResume != null,
               onPressed: onPauseOrResume,
               loading: state.isActionPending,
               expand: true,
@@ -404,10 +510,22 @@ class _SessionState extends StatelessWidget {
             TioButton.primary(
               key: const ValueKey('active-workout-complete'),
               label: 'Finish workout',
+              enabled: onComplete != null,
               onPressed: onComplete,
               loading: state.isActionPending,
               expand: true,
             ),
+            if (state.performedSets.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: TioSpacing.xs),
+                child: Text(
+                  'Log at least one set before finishing this workout.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: context.tioColors.textSecondary,
+                      ),
+                ),
+              ),
           ] else ...[
             TioButton.secondary(
               label: 'Back to Workout',
@@ -419,6 +537,341 @@ class _SessionState extends StatelessWidget {
       ),
     );
   }
+}
+
+class _WorkoutStats extends StatelessWidget {
+  const _WorkoutStats({
+    required this.duration,
+    required this.volumeKg,
+    required this.completedSets,
+    required this.onDurationPressed,
+  });
+
+  final Duration duration;
+  final double volumeKg;
+  final int completedSets;
+  final VoidCallback? onDurationPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final durationContent = _WorkoutStat(
+      label: 'Duration',
+      value: _formatDuration(duration),
+      valueColor: context.tioColors.primary,
+    );
+    return Row(
+      children: [
+        Expanded(
+          child: Semantics(
+            button: onDurationPressed != null,
+            label: 'Workout duration and pause controls',
+            child: InkWell(
+              key: const ValueKey('active-workout-duration-stat'),
+              borderRadius: BorderRadius.circular(TioRadius.md),
+              onTap: onDurationPressed,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: TioSpacing.xs),
+                child: durationContent,
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: _WorkoutStat(
+            label: 'Volume',
+            value: '${_formatNumber(volumeKg)} kg',
+          ),
+        ),
+        Expanded(
+          child: _WorkoutStat(
+            label: 'Sets',
+            value: '$completedSets',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkoutStat extends StatelessWidget {
+  const _WorkoutStat({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: context.tioColors.textSecondary,
+              ),
+        ),
+        const SizedBox(height: TioSpacing.xs),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: valueColor ?? context.tioColors.textPrimary,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PauseDetailRow extends StatelessWidget {
+  const _PauseDetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodyLarge),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: context.tioColors.primary,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ExerciseExecutionCard extends StatelessWidget {
+  const _ExerciseExecutionCard({
+    required this.exercise,
+    required this.performedSets,
+    required this.actionPending,
+    required this.onLogSet,
+    required this.onRemoveSet,
+    super.key,
+  });
+
+  final SessionExerciseSnapshot exercise;
+  final List<PerformedSet> performedSets;
+  final bool actionPending;
+  final Future<bool> Function(int setIndex, SetPrescription prescription)
+      onLogSet;
+  final Future<bool> Function(String setId) onRemoveSet;
+
+  PerformedSet? _performedFor(int setIndex) {
+    for (final item in performedSets) {
+      if (item.sessionExerciseIndex == exercise.occurrenceIndex &&
+          item.setIndex == setIndex) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TioCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  exercise.displayName,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              Text('${exercise.prescribedSets.length} sets'),
+            ],
+          ),
+          const SizedBox(height: TioSpacing.md),
+          _SetHeader(),
+          const SizedBox(height: TioSpacing.xs),
+          ...exercise.prescribedSets.asMap().entries.map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: TioSpacing.xs),
+                  child: _ActiveSetRow(
+                    setIndex: entry.key,
+                    prescription: entry.value,
+                    performed: _performedFor(entry.key),
+                    disabled: actionPending,
+                    onLog: () => onLogSet(entry.key, entry.value),
+                    onRemove: (id) => onRemoveSet(id),
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SetHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: context.tioColors.textSecondary,
+        );
+    return Row(
+      children: [
+        SizedBox(width: TioSize.dp40, child: Text('SET', style: style)),
+        Expanded(child: Text('PREVIOUS', style: style)),
+        SizedBox(width: TioSize.dp64, child: Text('KG', style: style)),
+        SizedBox(width: TioSize.dp64, child: Text('REPS', style: style)),
+        SizedBox(width: TioSize.dp48, child: Text('✓', style: style)),
+      ],
+    );
+  }
+}
+
+class _ActiveSetRow extends StatelessWidget {
+  const _ActiveSetRow({
+    required this.setIndex,
+    required this.prescription,
+    required this.performed,
+    required this.disabled,
+    required this.onLog,
+    required this.onRemove,
+  });
+
+  final int setIndex;
+  final SetPrescription prescription;
+  final PerformedSet? performed;
+  final bool disabled;
+  final Future<bool> Function() onLog;
+  final Future<bool> Function(String setId) onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final isComplete = performed != null;
+    final rowColor = isComplete
+        ? context.tioColors.success.withAlpha(TioAlpha.alpha20)
+        : context.tioColors.surfaceVariant;
+    return Container(
+      key: ValueKey('active-workout-set-$setIndex'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: TioSpacing.sm,
+        vertical: TioSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: rowColor,
+        borderRadius: BorderRadius.circular(TioRadius.sm),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: TioSize.dp40,
+            child: Text('${setIndex + 1}',
+                style: Theme.of(context).textTheme.titleSmall),
+          ),
+          Expanded(
+            child: Text(
+              _prescriptionSummary(prescription),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: context.tioColors.textSecondary,
+                  ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          SizedBox(
+            width: TioSize.dp64,
+            child: Text(_formatNullableNumber(
+                performed?.loadKg ?? prescription.loadKg)),
+          ),
+          SizedBox(
+            width: TioSize.dp64,
+            child: Text('${performed?.reps ?? prescription.reps ?? '-'}'),
+          ),
+          SizedBox(
+            width: TioSize.dp48,
+            child: IconButton(
+              key: ValueKey('active-workout-set-toggle-$setIndex'),
+              tooltip: isComplete
+                  ? 'Unlog set ${setIndex + 1}'
+                  : 'Log set ${setIndex + 1}',
+              onPressed: disabled
+                  ? null
+                  : () async {
+                      if (performed case final item?) {
+                        await onRemove(item.id);
+                      } else {
+                        await onLog();
+                      }
+                    },
+              icon: Icon(
+                isComplete ? Icons.check_circle_rounded : Icons.check_rounded,
+                color: isComplete
+                    ? context.tioColors.success
+                    : context.tioColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showDeferredAction(BuildContext context, String action) {
+  return showTioInformationBottomSheet(
+    context: context,
+    title: '$action coming next',
+    message:
+        'This Active Workout screen is connected to the existing persisted session contract. $action persistence will be enabled after the approved workout-composition contract is added.',
+    actionLabel: 'Got it',
+    icon: Icons.info_outline_rounded,
+  );
+}
+
+double _volumeKg(List<PerformedSet> sets) {
+  var total = 0.0;
+  for (final set in sets) {
+    final load = set.loadKg;
+    final reps = set.reps;
+    if (load != null && reps != null) total += load * reps;
+  }
+  return total;
+}
+
+String _formatNumber(double value) {
+  if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+  return value.toStringAsFixed(1);
+}
+
+String _formatNullableNumber(double? value) =>
+    value == null ? '-' : _formatNumber(value);
+
+String _prescriptionSummary(SetPrescription prescription) {
+  final reps = prescription.reps == null
+      ? '-'
+      : prescription.repsMax == null
+          ? '${prescription.reps}'
+          : '${prescription.reps}-${prescription.repsMax}';
+  final load = prescription.loadKg == null
+      ? '-'
+      : '${_formatNumber(prescription.loadKg!)}kg';
+  return '$load × $reps';
+}
+
+String _formatStartTime(BuildContext context, DateTime startedAtUtc) {
+  final local = startedAtUtc.toLocal();
+  final date = MaterialLocalizations.of(context).formatMediumDate(local);
+  final time = MaterialLocalizations.of(context).formatTimeOfDay(
+    TimeOfDay.fromDateTime(local),
+  );
+  return '$date, $time';
 }
 
 String _formatDuration(Duration duration) {

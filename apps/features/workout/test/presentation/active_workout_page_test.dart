@@ -114,6 +114,7 @@ WorkoutSessionSnapshot _snapshot() => WorkoutSessionSnapshot(
 
 WorkoutSession _session({
   WorkoutSessionStatus status = WorkoutSessionStatus.active,
+  bool withPerformedSet = true,
 }) {
   final start = DateTime.utc(2026, 11, 7, 10);
   final paused = status == WorkoutSessionStatus.paused ? start : null;
@@ -131,6 +132,19 @@ WorkoutSession _session({
     ),
     localDate: '2026-11-07',
     snapshot: _snapshot(),
+    performedSets: withPerformedSet
+        ? [
+            PerformedSet(
+              id: '55555555-5555-4555-a555-555555555555',
+              exerciseRef: _exerciseRef,
+              sessionExerciseIndex: 0,
+              setIndex: 0,
+              reps: 8,
+              loadKg: 80,
+              completedAtUtc: start,
+            ),
+          ]
+        : const [],
     discardReason:
         status == WorkoutSessionStatus.discarded ? 'Test discard' : null,
   );
@@ -192,6 +206,27 @@ void main() {
     expect(find.text('Paused'), findsOneWidget);
     expect(find.text('Bench Press'), findsOneWidget);
     expect(find.text('Resume workout'), findsOneWidget);
+  });
+
+  testWidgets('keeps Finish disabled until a set is logged', (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(withPerformedSet: false),
+        revision: 1,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+
+    await _pumpPage(tester, controller: controller);
+
+    final finish = tester.widget<TioButton>(
+      find.byKey(const ValueKey('active-workout-complete')),
+    );
+    expect(finish.enabled, isFalse);
+    expect(find.text('Log at least one set before finishing this workout.'),
+        findsOneWidget);
   });
 
   testWidgets(
