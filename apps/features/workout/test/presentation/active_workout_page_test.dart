@@ -15,6 +15,7 @@ final _exerciseRef = ExerciseRef.catalog('ex_barbell_bench_press');
 final class _FakeSessionRepository implements WorkoutSessionRepository {
   WorkoutSessionRecord? active;
   Exception? restoreError;
+  Exception? pauseError;
   Completer<WorkoutSessionRecord>? pauseCompleter;
   WorkoutSessionRecord? completeResult;
   var getActiveCalls = 0;
@@ -41,7 +42,9 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     required int expectedRevision,
     required DateTime pausedAtUtc,
   }) async =>
-      pauseCompleter?.future ?? active!;
+      pauseError != null
+          ? Future<WorkoutSessionRecord>.error(pauseError!)
+          : pauseCompleter?.future ?? active!;
 
   @override
   Future<WorkoutSessionRecord> resumeSession({
@@ -218,6 +221,31 @@ void main() {
     repository.pauseCompleter!.complete(repository.active!);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('renders recoverable action errors for an active session',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1)
+      ..pauseError = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Workout could not be paused while offline.',
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+
+    await _pumpPage(tester, controller: controller);
+    await tester.tap(find.byKey(const ValueKey('active-workout-pause-resume')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('active-workout-action-error')),
+      findsOneWidget,
+    );
+    expect(find.text('Workout could not be paused while offline.'),
+        findsOneWidget);
   });
 
   testWidgets('renders explicit no-session state', (tester) async {

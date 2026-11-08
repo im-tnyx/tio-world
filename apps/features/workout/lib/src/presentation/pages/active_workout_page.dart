@@ -347,6 +347,19 @@ class _SessionState extends StatelessWidget {
               ],
             ),
           ),
+          if (state.errorMessage case final message?) ...[
+            const SizedBox(height: TioSpacing.sm),
+            Semantics(
+              liveRegion: true,
+              child: TioCard(
+                key: const ValueKey('active-workout-action-error'),
+                child: Text(
+                  message,
+                  style: TextStyle(color: context.tioColors.danger),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: TioSpacing.lg),
           if (snapshot.exercises.isEmpty)
             const TioCard(
