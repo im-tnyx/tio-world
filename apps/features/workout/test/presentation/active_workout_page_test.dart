@@ -62,6 +62,11 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     required PerformedSet set,
   }) async {
     lastLoggedSet = set;
+    final record = active!;
+    active = record.copyWith(
+      session: record.session.logSet(set),
+      revision: record.revision + 1,
+    );
     return active!;
   }
 
@@ -157,17 +162,18 @@ Future<void> _pumpPage(
   WidgetTester tester, {
   required ActiveWorkoutController controller,
   bool showStartPreview = false,
+  TioThemeMode themeMode = TioThemeMode.light,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => TioTheme(
-        config: const TioThemeConfig(mode: TioThemeMode.light),
+        config: TioThemeConfig(mode: themeMode),
         child: child ?? const SizedBox.shrink(),
       ),
       home: ActiveWorkoutPage(
-          controller: controller,
-          showStartPreview: showStartPreview,
-        ),
+        controller: controller,
+        showStartPreview: showStartPreview,
+      ),
     ),
   );
   await tester.pump();
@@ -219,9 +225,75 @@ void main() {
       '6',
     );
     await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-0')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(repository.lastLoggedSet?.loadKg, 12);
     expect(repository.lastLoggedSet?.reps, 6);
+    expect(controller.state.performedSets.single.loadKg, 12);
+    expect(controller.state.performedSets.single.reps, 6);
+    expect(find.byKey(const ValueKey('active-workout-load-0')), findsNothing);
+    expect(find.byKey(const ValueKey('active-workout-reps-0')), findsNothing);
+  });
+
+  testWidgets('does not log an invalid immediate draft from stale input state',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(withPerformedSet: false),
+        revision: 1,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(tester, controller: controller);
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-load-0')),
+        matching: find.byType(EditableText),
+      ),
+      '',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-reps-0')),
+        matching: find.byType(EditableText),
+      ),
+      '',
+    );
+    await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-0')));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastLoggedSet, isNull);
+    expect(controller.state.performedSets, isEmpty);
+  });
+
+  testWidgets('restored performed values remain distinct from prescriptions',
+      (tester) async {
+    final restoredSet = PerformedSet(
+      id: '66666666-6666-4666-a666-666666666666',
+      exerciseRef: _exerciseRef,
+      sessionExerciseIndex: 0,
+      setIndex: 0,
+      reps: 6,
+      loadKg: 12,
+      completedAtUtc: DateTime.utc(2026, 11, 7, 10, 1),
+    );
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(withPerformedSet: false).logSet(restoredSet),
+        revision: 2,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(tester, controller: controller);
+
+    expect(find.byKey(const ValueKey('active-workout-load-0')), findsNothing);
+    expect(find.byKey(const ValueKey('active-workout-reps-0')), findsNothing);
+    expect(controller.state.performedSets.single.loadKg, 12);
+    expect(controller.state.performedSets.single.reps, 6);
   });
 
   testWidgets('renders active snapshot and controller-backed actions',
@@ -242,6 +314,36 @@ void main() {
         findsOneWidget);
     expect(
         find.byKey(const ValueKey('active-workout-complete')), findsOneWidget);
+  });
+
+  testWidgets('renders the execution UI on a compact dark viewport',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1);
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      themeMode: TioThemeMode.dark,
+    );
+
+    expect(find.text('Duration'), findsOneWidget);
+    expect(find.text('Volume'), findsOneWidget);
+    expect(find.text('Sets'), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-set-0')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.drag(
+        find.byType(SingleChildScrollView).last, const Offset(0, -240));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('renders paused state without changing snapshot identity',

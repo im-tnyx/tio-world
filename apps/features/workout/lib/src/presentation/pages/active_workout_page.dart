@@ -20,6 +20,7 @@ class ActiveWorkoutPage extends StatelessWidget {
 
   final ActiveWorkoutController? controller;
   final VoidCallback? onBack;
+
   /// Entry-only UI: never creates a session, exercise, or fake identity.
   final bool showStartPreview;
 
@@ -316,7 +317,7 @@ class _StartWorkoutPreview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TioCard(
+          const TioCard(
             variant: TioCardVariant.elevated,
             child: _WorkoutStats(
               duration: Duration.zero,
@@ -342,29 +343,29 @@ class _StartWorkoutPreview extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: TioSpacing.lg),
-                _SetHeader(),
+                const _SetHeader(),
               ],
             ),
           ),
           const SizedBox(height: TioSpacing.lg),
-          TioButton.supporting(
-            key: const ValueKey('active-workout-preview-add-set'),
+          const TioButton.supporting(
+            key: ValueKey('active-workout-preview-add-set'),
             label: 'Add Set',
             enabled: false,
             onPressed: null,
             expand: true,
           ),
           const SizedBox(height: TioSpacing.sm),
-          TioButton.primary(
-            key: const ValueKey('active-workout-preview-add-exercise'),
+          const TioButton.primary(
+            key: ValueKey('active-workout-preview-add-exercise'),
             label: 'Add Exercise',
             enabled: false,
             onPressed: null,
             expand: true,
           ),
           const SizedBox(height: TioSpacing.sm),
-          TioButton.primary(
-            key: const ValueKey('active-workout-preview-finish'),
+          const TioButton.primary(
+            key: ValueKey('active-workout-preview-finish'),
             label: 'Finish workout',
             enabled: false,
             onPressed: null,
@@ -758,8 +759,7 @@ class _ExerciseExecutionCard extends StatelessWidget {
   final SessionExerciseSnapshot exercise;
   final List<PerformedSet> performedSets;
   final bool actionPending;
-  final Future<bool> Function(int setIndex, int? reps, double? loadKg)
-      onLogSet;
+  final Future<bool> Function(int setIndex, int? reps, double? loadKg) onLogSet;
   final Future<bool> Function(String setId) onRemoveSet;
 
   PerformedSet? _performedFor(int setIndex) {
@@ -790,7 +790,7 @@ class _ExerciseExecutionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: TioSpacing.md),
-          _SetHeader(),
+          const _SetHeader(),
           const SizedBox(height: TioSpacing.xs),
           ...exercise.prescribedSets.asMap().entries.map(
                 (entry) => Padding(
@@ -812,6 +812,8 @@ class _ExerciseExecutionCard extends StatelessWidget {
 }
 
 class _SetHeader extends StatelessWidget {
+  const _SetHeader();
+
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -864,6 +866,40 @@ class _ActiveSetRowState extends State<_ActiveSetRow> {
   String _repsText() =>
       (widget.performed?.reps ?? widget.prescription.reps)?.toString() ?? '';
 
+  bool _isValidDraft({
+    required String loadDraft,
+    required double? loadKg,
+    required String repsDraft,
+    required int? reps,
+  }) =>
+      (loadDraft.isEmpty ||
+          (loadKg != null && loadKg.isFinite && loadKg >= 0)) &&
+      (repsDraft.isEmpty ||
+          (reps != null &&
+              reps >= 0 &&
+              reps <= RoutineSetInputLimits.maxReps)) &&
+      (loadKg != null || reps != null);
+
+  Future<void> _logCurrentDraft() async {
+    final loadDraft = _weight.text.trim();
+    final repsDraft = _reps.text.trim();
+    final loadKg = loadDraft.isEmpty ? null : double.tryParse(loadDraft);
+    final reps = repsDraft.isEmpty ? null : int.tryParse(repsDraft);
+
+    // Input changes schedule a rebuild. Re-read the controllers at the explicit
+    // log action so a tap in that frame cannot submit a prior prescribed value.
+    if (!_isValidDraft(
+      loadDraft: loadDraft,
+      loadKg: loadKg,
+      repsDraft: repsDraft,
+      reps: reps,
+    )) {
+      if (mounted) setState(() {});
+      return;
+    }
+    await widget.onLog(reps, loadKg);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -896,12 +932,12 @@ class _ActiveSetRowState extends State<_ActiveSetRow> {
     final repsDraft = _reps.text.trim();
     final loadKg = loadDraft.isEmpty ? null : double.tryParse(loadDraft);
     final reps = repsDraft.isEmpty ? null : int.tryParse(repsDraft);
-    final valid = (loadDraft.isEmpty ||
-            (loadKg != null && loadKg.isFinite && loadKg >= 0)) &&
-        (repsDraft.isEmpty ||
-            (reps != null && reps >= 0 &&
-                reps <= RoutineSetInputLimits.maxReps)) &&
-        (loadKg != null || reps != null);
+    final valid = _isValidDraft(
+      loadDraft: loadDraft,
+      loadKg: loadKg,
+      repsDraft: repsDraft,
+      reps: reps,
+    );
     final rowColor = isComplete
         ? context.tioColors.success.withAlpha(TioAlpha.alpha20)
         : context.tioColors.surfaceVariant;
@@ -980,7 +1016,7 @@ class _ActiveSetRowState extends State<_ActiveSetRow> {
                       if (performed case final item?) {
                         await widget.onRemove(item.id);
                       } else {
-                        await widget.onLog(reps, loadKg);
+                        await _logCurrentDraft();
                       }
                     },
               icon: Icon(
