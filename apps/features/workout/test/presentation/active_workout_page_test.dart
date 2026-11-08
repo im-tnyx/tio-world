@@ -18,6 +18,7 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
   Exception? pauseError;
   Completer<WorkoutSessionRecord>? pauseCompleter;
   WorkoutSessionRecord? completeResult;
+  WorkoutSessionRecord? discardResult;
   PerformedSet? lastLoggedSet;
   var getActiveCalls = 0;
 
@@ -94,7 +95,28 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     required DateTime discardedAtUtc,
     required String reason,
   }) async =>
-      active!;
+      discardResult ?? active!;
+}
+
+final class _PreviewCatalogRepository implements ExerciseCatalogRepository {
+  @override
+  Future<ExerciseCatalog> load() async => ExerciseCatalog([
+        Exercise(
+          ref: ExerciseRef.catalog('ex_barbell_bench_press'),
+          displayName: 'Bench Press',
+          status: ExerciseStatus.active,
+          media: ExerciseMedia(
+            type: ExerciseMediaType.image,
+            defaultGender: ExerciseMediaGender.male,
+            male: ExerciseMediaVariant(
+              thumbnailUrl: Uri.parse('https://example.com/bench.png'),
+            ),
+            female: ExerciseMediaVariant(
+              thumbnailUrl: Uri.parse('https://example.com/bench.png'),
+            ),
+          ),
+        ),
+      ]);
 }
 
 WorkoutSessionSnapshot _snapshot() => WorkoutSessionSnapshot(
@@ -161,8 +183,11 @@ WorkoutSession _session({
 Future<void> _pumpPage(
   WidgetTester tester, {
   required ActiveWorkoutController controller,
+  ExerciseCatalogRepository? catalogRepository,
   bool showStartPreview = false,
   TioThemeMode themeMode = TioThemeMode.light,
+  VoidCallback? onBack,
+  DateTime Function()? clock,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -172,7 +197,10 @@ Future<void> _pumpPage(
       ),
       home: ActiveWorkoutPage(
         controller: controller,
+        catalogRepository: catalogRepository,
         showStartPreview: showStartPreview,
+        onBack: onBack,
+        clock: clock ?? () => tester.binding.clock.now(),
       ),
     ),
   );
@@ -187,15 +215,44 @@ void main() {
       repository: _FakeSessionRepository(),
       currentUserId: () => _userId,
     );
-    await _pumpPage(tester, controller: controller, showStartPreview: true);
+    await _pumpPage(
+      tester,
+      controller: controller,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
     expect(find.byKey(const ValueKey('active-workout-start-preview')),
         findsOneWidget);
-    expect(find.text('No exercises yet'), findsOneWidget);
+    expect(find.text('Get started'), findsOneWidget);
+    expect(find.text('Add an exercise to start your workout'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    final finish = tester.widget<TioButton>(
+      find.byKey(const ValueKey('active-workout-preview-finish')),
+    );
+    expect(finish.enabled, isFalse);
+    expect(
+      tester
+          .getSize(
+            find.descendant(
+              of: find.byKey(const ValueKey('active-workout-preview-finish')),
+              matching: find.byType(FilledButton),
+            ),
+          )
+          .height,
+      TioSize.dp34,
+    );
     expect(find.text('Bench Press'), findsNothing);
     final addExercise = tester.widget<TioButton>(
       find.byKey(const ValueKey('active-workout-preview-add-exercise')),
     );
-    expect(addExercise.enabled, isFalse);
+    expect(addExercise.enabled, isTrue);
+    final discard = tester.widget<TioButton>(
+      find.byKey(const ValueKey('active-workout-preview-discard')),
+    );
+    expect(discard.enabled, isFalse);
+    expect(find.text('Retry'), findsNothing);
+    expect(find.text('Back to Workout'), findsNothing);
+    expect(find.byType(TioCard), findsNothing);
   });
 
   testWidgets('performed set logs typed values, not prescribed targets',
@@ -232,6 +289,144 @@ void main() {
     expect(controller.state.performedSets.single.reps, 6);
     expect(find.byKey(const ValueKey('active-workout-load-0')), findsNothing);
     expect(find.byKey(const ValueKey('active-workout-reps-0')), findsNothing);
+  });
+
+  testWidgets('adds selected exercises from the routine picker to preview',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-add-exercise')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.byKey(const ValueKey('exercises-page')), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_barbell_bench_press')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('exercise-selected-ex_barbell_bench_press')),
+      findsOneWidget,
+    );
+    final addSelected = tester.widget<TioButton>(
+      find.byKey(const ValueKey('exercises-add-selected')),
+    );
+    expect(addSelected.enabled, isTrue);
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.byKey(const ValueKey('exercises-page')), findsNothing);
+    expect(find.text('Bench Press'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('active-workout-preview-exercise-0')),
+      findsOneWidget,
+    );
+    expect(find.text('1 sets'), findsNothing);
+    expect(find.text('SET'), findsOneWidget);
+    expect(find.text('PREVIOUS'), findsOneWidget);
+    expect(find.text('KG'), findsOneWidget);
+    expect(find.text('REPS'), findsOneWidget);
+    expect(find.text('RPE'), findsOneWidget);
+
+    final exerciseCard = find.byKey(
+      const ValueKey('active-workout-preview-exercise-0'),
+    );
+    final cardRect = tester.getRect(exerciseCard);
+    final thumbnailFinder = find.descendant(
+      of: exerciseCard,
+      matching: find.byType(ExerciseThumbnail),
+    );
+    expect(thumbnailFinder, findsOneWidget);
+    final thumbRect = tester.getRect(thumbnailFinder);
+
+    final previewRow = find.byKey(
+      const ValueKey('active-workout-preview-row-0-0'),
+    );
+    final logSet = find.byKey(
+      const ValueKey('active-workout-preview-set-toggle-0-0'),
+    );
+    final rowRect = tester.getRect(previewRow);
+    final setBadgeRect = tester.getRect(
+      find.byKey(const ValueKey('active-workout-preview-set-number-0-0')),
+    );
+    final checkRect = tester.getRect(logSet);
+    expect(rowRect.left, closeTo(cardRect.left, 0.1));
+    expect(rowRect.right, closeTo(cardRect.right, 0.1));
+    expect(thumbRect.left, closeTo(setBadgeRect.left, 0.1));
+    expect(setBadgeRect.left, closeTo(rowRect.left + TioSpacing.lg, 0.1));
+    expect(checkRect.right, closeTo(rowRect.right - TioSpacing.lg, 0.1));
+    expect(tester.widget<IconButton>(logSet).onPressed, isNotNull);
+    await tester.tap(logSet);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        findsOneWidget);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '12',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '6',
+    );
+    await tester.tap(logSet);
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        findsNothing);
+    expect(find.text('72 kg'), findsOneWidget);
+    final loggedRow = tester.widget<Container>(
+      find.byKey(const ValueKey('active-workout-preview-row-0-0')),
+    );
+    expect(loggedRow.color, isNot(TioPalette.transparent));
+
+    await tester.tap(logSet);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        findsOneWidget);
+    expect(find.text('0 kg'), findsOneWidget);
+
+    final addSet = find.widgetWithText(TioButton, 'Add Set');
+    expect(addSet, findsOneWidget);
+    await tester.tap(addSet);
+    await tester.pump();
+
+    final row0 = find.byKey(const ValueKey('active-workout-preview-row-0-0'));
+    final row1 = find.byKey(const ValueKey('active-workout-preview-row-0-1'));
+    expect(row0, findsOneWidget);
+    expect(row1, findsOneWidget);
+
+    final check0 = find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0'));
+    final check1 = find.byKey(const ValueKey('active-workout-preview-set-toggle-0-1'));
+    final c0Rect = tester.getRect(check0);
+    final c1Rect = tester.getRect(check1);
+    // Row 0 checkmark height is 38dp, row minHeight is 48dp with 5dp vertical padding.
+    // Row 0 bottom padding is 5dp, margin is 8dp (TioSpacing.sm), Row 1 top padding is 5dp.
+    // So distance between c0 bottom and c1 top is 5 + 8 + 5 = 18dp.
+    expect(c1Rect.top - c0Rect.bottom, closeTo(TioSpacing.sm, 0.1));
   });
 
   testWidgets('does not log an invalid immediate draft from stale input state',
@@ -346,6 +541,34 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('renders the empty start UI on a compact dark viewport',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      showStartPreview: true,
+      themeMode: TioThemeMode.dark,
+    );
+
+    expect(find.text('Get started'), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-preview-add-exercise')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-preview-settings')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-preview-discard')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders paused state without changing snapshot identity',
       (tester) async {
     final repository = _FakeSessionRepository()
@@ -456,11 +679,12 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets('offers explicit reconciliation retry', (tester) async {
+  testWidgets('does not expose recovery controls or backend error text',
+      (tester) async {
     final repository = _FakeSessionRepository()
       ..restoreError = const WorkoutSessionPersistenceException(
         WorkoutSessionPersistenceFailureKind.networkUnavailable,
-        message: 'offline',
+        message: 'PGRST205: user_workout_sessions is unavailable',
       );
     final controller = ActiveWorkoutController(
       repository: repository,
@@ -472,17 +696,283 @@ void main() {
       find.byKey(const ValueKey('active-workout-reconciliation')),
       findsOneWidget,
     );
-    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Retry'), findsNothing);
+    expect(find.text('Back'), findsNothing);
+    expect(find.textContaining('PGRST205'), findsNothing);
+  });
 
-    repository
-      ..restoreError = null
-      ..active = WorkoutSessionRecord(session: _session(), revision: 1);
-    await tester.tap(find.byKey(const ValueKey('active-workout-Retry')));
+  testWidgets('Play preview keeps the UI visible after a load failure',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository()
+        ..restoreError = const WorkoutSessionPersistenceException(
+          WorkoutSessionPersistenceFailureKind.networkUnavailable,
+          message: 'PGRST205: user_workout_sessions is unavailable',
+        ),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      showStartPreview: true,
+    );
+
+    expect(find.byKey(const ValueKey('active-workout-start-preview')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-preview-add-exercise')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-preview-discard')),
+        findsOneWidget);
+    expect(find.text('Retry'), findsNothing);
+    expect(find.textContaining('PGRST205'), findsNothing);
+  });
+
+  testWidgets('preview timer ticks and formats seconds, minutes and hours',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      showStartPreview: true,
+    );
+
+    expect(find.text('0s'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 44));
+    expect(find.text('44s'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 24));
+    expect(find.text('1min 8s'), findsOneWidget);
+
+    // Pump to 1h 47min 47s (107 minutes 47 seconds = 6467 total seconds, 6467 - 68 = 6399 seconds)
+    await tester.pump(const Duration(seconds: 6399));
+    expect(find.text('1h 47min 47s'), findsOneWidget);
+  });
+
+  testWidgets('preview timer pause and resume toggles via timer click and bottom sheet',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      showStartPreview: true,
+    );
+
+    // Initial 10s
+    await tester.pump(const Duration(seconds: 10));
+    expect(find.text('10s'), findsOneWidget);
+    final runningDuration = tester.widget<Text>(find.text('10s'));
+    expect(runningDuration.style?.color, TioColors.light.primary);
+
+    // Tap Duration stat to open bottom sheet
+    await tester.tap(find.byKey(const ValueKey('active-workout-duration-stat')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Duration'), findsWidgets);
+    expect(find.text('Pause Workout Timer'), findsOneWidget);
+    // 10s is displayed on both main screen and the open bottom sheet
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('10s'),
+      ),
+      findsOneWidget,
+    );
+
+    // Live timer ticking inside open bottom sheet
+    await tester.pump(const Duration(seconds: 3));
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('13s'),
+      ),
+      findsOneWidget,
+    );
+
+    // Tap Pause Workout Timer
+    await tester.tap(find.byKey(const ValueKey('active-workout-pause-sheet-action')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pause Workout Timer'), findsNothing);
+
+    // Advance time by 15 seconds while paused
+    await tester.pump(const Duration(seconds: 15));
+    // Time must remain frozen at 13s and show disabled color
+    expect(find.text('13s'), findsOneWidget);
+    final pausedDuration = tester.widget<Text>(find.text('13s'));
+    expect(pausedDuration.style?.color, TioColors.light.textSecondary);
+
+    // Tap top timer icon to open bottom sheet again
+    await tester.tap(find.byKey(const ValueKey('active-workout-preview-timer')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resume Workout Timer'), findsOneWidget);
+    final sheetPausedDuration = tester.widget<Text>(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('13s'),
+      ),
+    );
+    expect(sheetPausedDuration.style?.color, TioColors.light.textSecondary);
+
+    // Tap Resume Workout Timer
+    await tester.tap(find.byKey(const ValueKey('active-workout-pause-sheet-action')));
+    await tester.pumpAndSettle();
+
+    // Advance time by 5 seconds after resume
+    await tester.pump(const Duration(seconds: 5));
+    // Time resumed and reached 18s with active color
+    expect(find.text('18s'), findsOneWidget);
+    final resumedDuration = tester.widget<Text>(find.text('18s'));
+    expect(resumedDuration.style?.color, TioColors.light.primary);
+  });
+
+  testWidgets('preview discard asks confirmation and calls onBack on confirm',
+      (tester) async {
+    var backed = false;
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+      onBack: () => backed = true,
+    );
+
+    // Add an exercise so discard is enabled
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-add-exercise')),
+    );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_barbell_bench_press')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
-    expect(repository.getActiveCalls, 2);
-    expect(find.text('Push Day A'), findsOneWidget);
+    expect(find.text('Bench Press'), findsOneWidget);
+
+    final discard = tester.widget<TioButton>(
+      find.byKey(const ValueKey('active-workout-preview-discard')),
+    );
+    expect(discard.enabled, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('active-workout-preview-discard')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discard workout?'), findsOneWidget);
+    expect(find.text('This session and any logged sets will be discarded.'),
+        findsOneWidget);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.widgetWithText(TioButton, 'Discard workout'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(backed, isTrue);
+  });
+
+  testWidgets('tapping RPE button opens Log Set RPE sheet and updates value',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+
+    // Add an exercise
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-add-exercise')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_barbell_bench_press')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.byKey(const ValueKey('active-workout-preview-rpe-0-0')),
+        findsOneWidget);
+
+    // Tap RPE icon
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-rpe-0-0')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Log Set RPE'), findsOneWidget);
+    expect(find.text('Set 1: 0kg x 0 reps'), findsOneWidget);
+    expect(find.text('Select RPE'), findsOneWidget);
+
+    // Select 7.5
+    await tester.tap(find.byKey(const ValueKey('rpe-option-7.5')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vigorous Effort'), findsOneWidget);
+    expect(find.text('Could have maybe done 3 more reps'), findsOneWidget);
+
+    // Tap Done
+    await tester.tap(find.byKey(const ValueKey('rpe-sheet-done-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Log Set RPE'), findsNothing);
+    // Value 7.5 is displayed in the set row
+    expect(find.text('7.5'), findsOneWidget);
+  });
+
+  testWidgets('discards a real active workout after confirmation',
+      (tester) async {
+    final discarded = WorkoutSessionRecord(
+      session: _session(status: WorkoutSessionStatus.discarded),
+      revision: 2,
+    );
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1)
+      ..discardResult = discarded;
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(tester, controller: controller);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('active-workout-discard')),
+    );
+    await tester.tap(find.byKey(const ValueKey('active-workout-discard')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.widgetWithText(TioButton, 'Discard workout'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.state.status, ActiveWorkoutStatus.discarded);
+    expect(find.byKey(const ValueKey('active-workout-discard')), findsNothing);
   });
 
   testWidgets('auth invalidation never renders stale session data',
@@ -518,14 +1008,12 @@ void main() {
     );
 
     await _pumpPage(tester, controller: controller);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('active-workout-complete')),
+    );
     await tester.tap(find.byKey(const ValueKey('active-workout-complete')));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byType(BottomSheet),
-        matching: find.text('Finish workout'),
-      ),
-    );
+    await tester.tap(find.byKey(const ValueKey('save-workout-submit-button')));
     await tester.pumpAndSettle();
 
     expect(find.text('Completed'), findsOneWidget);
@@ -533,5 +1021,104 @@ void main() {
     expect(find.byKey(const ValueKey('active-workout-pause-resume')),
         findsNothing);
     expect(find.text('Back to Workout'), findsOneWidget);
+  });
+
+  testWidgets(
+      'progress bar updates as sets are logged and Finish button turns green when workout is complete',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+
+    // Add Bench Press exercise
+    await tester.tap(find.byKey(const ValueKey('active-workout-preview-add-exercise')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_barbell_bench_press')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('active-workout-progress-bar')), findsOneWidget);
+
+    // Initial state: 0 of 1 set logged -> progress 0%
+    var semantics = tester.getSemantics(find.byKey(const ValueKey('active-workout-progress-bar')));
+    expect(semantics.value, '0%');
+
+    // Add a second set so there are 2 sets in total
+    await tester.tap(find.widgetWithText(TioButton, 'Add Set'));
+    await tester.pumpAndSettle();
+
+    // Log Set 1: progress becomes 1/2 = 50%
+    final toggle0 = find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0'));
+    await tester.tap(toggle0);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '50',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '10',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(toggle0);
+    await tester.pumpAndSettle();
+
+    semantics = tester.getSemantics(find.byKey(const ValueKey('active-workout-progress-bar')));
+    expect(semantics.value, '50%');
+
+    // Finish button should be enabled, but not yet green (workout is 50% complete)
+    final finishFinder = find.byKey(const ValueKey('active-workout-preview-finish'));
+    expect(tester.widget<TioButton>(finishFinder).enabled, isTrue);
+
+    // Now log Set 2: progress becomes 2/2 = 100%
+    final toggle1 = find.byKey(const ValueKey('active-workout-preview-set-toggle-0-1'));
+    await tester.tap(toggle1);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-load-0-1')),
+        matching: find.byType(EditableText),
+      ),
+      '50',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-1')),
+        matching: find.byType(EditableText),
+      ),
+      '10',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(toggle1);
+    await tester.pumpAndSettle();
+
+    semantics = tester.getSemantics(find.byKey(const ValueKey('active-workout-progress-bar')));
+    expect(semantics.value, '100%');
+
+    // When 100% complete, Finish button's theme has green background (0xFF43A047)
+    final themeFinder = find.ancestor(
+      of: finishFinder,
+      matching: find.byType(Theme),
+    );
+    final theme = tester.widget<Theme>(themeFinder.first);
+    expect(
+      theme.data.filledButtonTheme.style?.backgroundColor?.resolve({}),
+      const Color(0xFF43A047),
+    );
   });
 }

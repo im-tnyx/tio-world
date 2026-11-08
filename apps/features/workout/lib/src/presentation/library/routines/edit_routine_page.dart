@@ -918,7 +918,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
 
   Widget _setRow(RoutineCompositionEntry entry, RoutineCompositionSet set,
           int index, ExerciseType? exerciseType) =>
-      RoutineSetInputRow(
+      WorkoutSetInputRow(
         key: ValueKey('edit-routine-set-${set.id}'),
         set: set,
         index: index,

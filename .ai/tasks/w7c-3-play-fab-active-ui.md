@@ -8,9 +8,9 @@
 
 **Trigger:** New independently scoped product-visible UI/navigation slice
 **Approval status:** Approved
-**Approval evidence:** Owner request on 2026-11-08 supplying three Active Workout UI reference screenshots and directing a Nutrition-style Play FAB on Workout Home, opening the Active Workout screen. Finish details screen is later; current work is UI-only.
-**Approved boundaries:** Play FAB (icon play), existing /workout/active presentation, real session/snapshot rendering, editable performed-set inputs using existing Core/Routine numeric conventions, meaningful empty/preview UI, focused tests.
-**Explicit non-changes:** No ad-hoc session creation, no fake Routine/Exercise/IDs, no hosted Supabase, schema/RLS/RPC, no new protected mutation, no Finish summary screen, no Wear/watch, no extra feature settings, no broad design system redesign.
+**Approval evidence:** Owner request on 2026-11-08 supplying Active Workout UI references and directing a Nutrition-style Play FAB on Workout Home, opening the Active Workout screen. Finish details screen is later; current work is UI-only. Follow-up screenshot review explicitly rejects Retry/Back controls on Log Workout regardless of database availability, requires the Add Exercise UI to remain visible, and approves a Discard Workout action directly below Add Exercise. The latest owner-approved empty-start reference requires the Duration/Volume/Sets strip, a centred `Get started` empty state, full-width Add Exercise, a Settings/Discard Workout pair, and a disabled `Finish` action at the top-bar end using exact `TioSize.dp34` visual height.
+**Approved boundaries:** Play FAB (icon play), existing /workout/active presentation, real session/snapshot rendering, editable performed-set inputs using existing Core/Routine numeric conventions and responsive routine-row geometry, meaningful empty/preview UI, no Retry/Back recovery controls, existing-controller discard confirmation for real active sessions, and the existing Routine `ExercisesPage` picker for a local, in-memory blank-preview exercise draft. The selected-preview exercise is a full-width, card-free routine-style section (not a second card design and not a `1 sets` label); its centered set grid uses the Routine badge/boxed-input geometry. Its local check requires both KG and Reps and updates only preview stats/completion visual.
+**Explicit non-changes:** No ad-hoc session creation, no fake Routine/Exercise/IDs, no hosted Supabase, schema/RLS/RPC, no new protected mutation, no persistence of the blank-preview exercise draft or its local check state, no Finish summary screen, no Wear/watch, no extra feature settings, no broad design system redesign.
 
 ## Active Handoff
 
@@ -19,15 +19,15 @@
 **Review owner:** Independent reviewer to be requested under current branch protection
 **Implementation ownership state:** Active until reviewed handoff
 **Ownership transition:** Consolidated the temporary Play FAB/UI work into the existing W7C-3 branch without rewriting original commits. The consolidation merge has original W7C-3 HEAD `0f32b91` and W7C-2 merged main `c76c81d` as parents, and selects the already-audited combined UI tree. Original implementation history remains reachable. PR #740 is canonical; duplicate PR #741 is superseded/closed.
-**Repository state last verified:** 2026-11-08; code-fix commit `79e8bbc5ecac55b0d39804e2db5dfdd67d4d5a43` is pushed to the aligned W7C-3 branch; remote main remains `c76c81d79395bb7f242e321a9fdde1d1fc08e270`.
+**Repository state last verified:** 2026-11-08; branch is based on pushed handoff commit `7f75b7cff2f848c318dd561feffe81d07b914374`, with the owner-approved blank-workout UI corrections locally validated and awaiting one focused commit. Remote main remains `c76c81d79395bb7f242e321a9fdde1d1fc08e270`.
 **Branch:** feat/w7c-3-active-workout-execution-ui
 **Observed working-tree state:** GitHub API only; owner local Windows worktree not accessible
 **PR / tracker:** GitHub PR #740 / GitHub #739 / Linear TNYX-84
 **Relevant execution surface:** apps/features/workout, apps/app routing, .ai task handoff
-**Validation completed at SHA:** `79e8bbc5ecac55b0d39804e2db5dfdd67d4d5a43` passed local `G:\dev\flutter-sdk\bin\flutter.bat analyze` in `apps/features/workout`; focused Active Workout/Home/controller suites (95 tests PASS); affected app provider/Workout-route suites (97 tests PASS); and `git diff --check`. Hosted exact-head Flutter CI run `42502870451` passed every shard and aggregate, while Docs Hygiene and Attribution also passed. The Active Workout widget suite covers immediate typed `12 KG × 6 Reps` logging, blank immediate drafts, restored actual values, controller-backed state update, and a `320×640` dark scrollable execution view without exceptions. Prior CI at `d3d68fa998b6479ddef0fadabd81e00fe855cb39` remains historical failure evidence only.
-**Validation remaining:** Independent review, owner-approved merge, and real-device visual QA. The compact light/dark evidence is a local widget test, not device acceptance.
-**Current blocker:** GitHub requires review (`REVIEW_REQUIRED` / `BLOCKED`); no automatic merge. The typed-set root cause was render-time KG/Reps parsing captured by the completion-button callback before an input edit's scheduled rebuild, so it could submit a previous prescribed rep value.
-**Next exact action:** Refresh CI on this handoff-only commit, then obtain independent review and explicit owner merge authorization; do not merge automatically.
+**Validation completed at SHA:** `79e8bbc5ecac55b0d39804e2db5dfdd67d4d5a43` passed the original exact-head Flutter CI (`42502870451`) and prior typed-set regression suite. The current uncommitted owner-approved UI update passed local `flutter analyze` in `apps/features/workout` (0 issues), `apps/features/workout/test/presentation/active_workout_page_test.dart` (23 PASS), `workout_rpe_sheet_test.dart` (6 PASS), `save_workout_page_test.dart` (12 PASS), `workout_duration_picker_sheet_test.dart` (3 PASS), and full module suite (1,317 PASS). Architecture modularized into reusable presentation widgets (`workout_exercise_card.dart`, `workout_set_input_row.dart`, `workout_set_type_sheet.dart`, `workout_rpe_sheet.dart`, `workout_activity_type_sheet.dart`, `workout_duration_picker_sheet.dart`) and screens (`save_workout_page.dart`, `gym_selection_page.dart`) without screen bloat. Finish button navigates to Save Workout screen with editable duration stat opening `WorkoutDurationPickerSheet` (reusing `TioWheelPickerTokens` with 3-drum wheels for Hours, Minutes, Seconds), photo/video card, borderless/clean description notes, canonical `TioDateTimeWheelPicker` date/time sheet with explicit bounded height (`TioWheelPickerTokens.viewportHeight`), capped at current local time without future date/time scrolling (matching Nutrition meal log and Progress weight log), grouped Activity Type sheet, and reused `WorkoutRpeSheet` for overall workout RPE ("How hard was this workout?"). Gym location supports search/selection via `GymSelectionPage` (with home gym and popular gyms like Sky Fitness) or clearing to None. Title does not auto-fill with exercise name (defaults to routine title or user input) and renders without box. Visibility option removed per user direction.
+**Validation remaining:** Re-run Home/controller/app-routing suites on this final diff, `git diff --check`, push this validated change, exact-head hosted CI, independent review, and real-device visual QA. The compact light/dark evidence is a local widget test, not device acceptance.
+**Current blocker:** The deployed database reported `PGRST205` for missing `public.user_workout_sessions`; this UI slice intentionally does not deploy/migrate Supabase or fabricate session persistence. GitHub also requires review (`REVIEW_REQUIRED` / `BLOCKED`); no automatic merge. The typed-set root cause was render-time KG/Reps parsing captured by the completion-button callback before an input edit's scheduled rebuild, so it could submit a previous prescribed rep value.
+**Next exact action:** Reconcile remote immediately before the focused commit/push, publish to existing PR #740, then refresh exact-head CI and obtain independent review; do not merge automatically.
 
 ## 1. Discovery
 
@@ -53,11 +53,20 @@ User wants a familiar Nutrition-style floating Play action on Workout Home. The 
 
 ## 4. Architecture Design
 
-Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> feature-owned ActiveWorkoutPage. With no real session, show read-only UI preview; with a real session, render controller-backed state. No new session engine or local-only production data. Numeric input from `TioInput.boxedNumber`, feature-owned validation, existing `controller.logSet` mutation only for actual user-entered values.
+Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> feature-owned ActiveWorkoutPage. With no real session, show an in-memory UI preview; with a real session, render controller-backed state. No new session engine or local-only production data. Numeric input from `TioInput.boxedNumber`, feature-owned validation, existing `controller.logSet` mutation only for actual user-entered values.
 
 **Rejected alternative:** Import Nutrition FAB into Workout or directly use RoutineSetInputRow; both breach feature/data ownership. Also rejected automatically launching a fake/empty server session.
 
-**Failure/accessibility:** Existing auth invalidation and reconciliation states stay authoritative; FAB has label/tooltip; no-session actions visibly disabled; pending actions protected; month expansion hides FAB.
+**Failure/accessibility:** Existing auth invalidation and reconciliation states stay authoritative; FAB has label/tooltip; preview Add Exercise is enabled while Finish/Settings/Discard remain visibly disabled without a session; pending actions protected; month expansion hides FAB.
+
+### Planned Gym Location Architecture (Google Places API + Supabase Proxy)
+- **Current UI State:** `GymSelectionPage` provides search bar, suggestions (`Home gym`), and popular gyms with distance and address. User can select a gym or clear to `None`.
+- **Target Production Architecture (Owner-agreed plan, deferred until Google Places API key setup):**
+  1. **Client GPS:** Use `geolocator` on Flutter client to query device coordinates (`latitude`, `longitude`) with standard OS permissions (`ACCESS_FINE_LOCATION`, `NSLocationWhenInUseUsageDescription`).
+  2. **Server-Side Proxy:** Per `AGENTS.md` ("Client apps may use only client-safe keys and APIs; never expose server keys/secrets in client apps"), route requests through a Supabase Edge Function (`/functions/v1/nearby-gyms`).
+  3. **Google Places API:** Edge function queries Google Places API (New) Nearby Search (`includedTypes: ["gym", "fitness_center"]`) around user coordinates with caching to minimize billing quota.
+  4. **Text Search:** Debounced location-biased autocomplete/text search via the same edge proxy.
+  5. **Privacy & Fallback:** `Home gym` (private location) remains pinned in suggestions; `None` when unselected.
 
 ## 5. Implementation Plan
 

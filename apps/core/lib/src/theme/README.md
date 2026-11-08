@@ -150,6 +150,8 @@ const SizedBox(width: TioSize.dp20);
 
 Do not add arbitrary values “just in case”. A new primitive must be evidenced by current UI or an approved design decision.
 
+`TioSize.dp34` is the owner-approved compact visual height for the Active Workout preview top-bar `Finish` action. It is a feature composition value, not a global `TioButton` height change.
+
 ### Foundation geometry
 
 Use semantic geometry when the role honestly matches:

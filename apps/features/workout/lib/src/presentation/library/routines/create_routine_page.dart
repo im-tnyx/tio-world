@@ -859,7 +859,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     RoutineCompositionSet set,
     int index,
   ) =>
-      RoutineSetInputRow(
+      WorkoutSetInputRow(
         key: ValueKey('create-routine-set-${set.id}'),
         set: set,
         index: index,
