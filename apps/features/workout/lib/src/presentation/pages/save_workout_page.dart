@@ -67,7 +67,7 @@ Future<DateTime?> showWorkoutDateTimePickerSheet({
                       width: TioSize.dp40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: colors.textSecondary.withValues(alpha: 0.4),
+                        color: colors.textSecondary.withValues(alpha: TioOpacity.opacity40),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -357,12 +357,12 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                       focusedErrorBorder: InputBorder.none,
                       disabledBorder: InputBorder.none,
                       filled: false,
-                      fillColor: Colors.transparent,
+                      fillColor: TioPalette.transparent,
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
                       hintText: 'Workout name',
                       hintStyle: textTheme.headlineSmall?.copyWith(
-                        color: colors.textSecondary.withValues(alpha: 0.5),
+                        color: colors.textSecondary.withValues(alpha: TioOpacity.opacity50),
                         fontWeight: TioFontWeight.w700,
                       ),
                     ),
@@ -419,7 +419,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
-            Divider(height: 1, color: colors.surfaceVariant.withValues(alpha: 0.5)),
+            Divider(height: 1, color: colors.surfaceVariant.withValues(alpha: TioOpacity.opacity50)),
             const SizedBox(height: TioSpacing.lg),
 
             // Add a photo / video dashed box
@@ -478,17 +478,17 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                 focusedErrorBorder: InputBorder.none,
                 disabledBorder: InputBorder.none,
                 filled: false,
-                fillColor: Colors.transparent,
+                fillColor: TioPalette.transparent,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: TioSpacing.xs),
                 hintText: 'How did your workout go? Leave some notes here...',
                 hintStyle: textTheme.bodyMedium?.copyWith(
-                  color: colors.textSecondary.withValues(alpha: 0.5),
+                  color: colors.textSecondary.withValues(alpha: TioOpacity.opacity50),
                 ),
               ),
             ),
             const SizedBox(height: TioSpacing.md),
-            Divider(height: 1, color: colors.surfaceVariant.withValues(alpha: 0.5)),
+            Divider(height: 1, color: colors.surfaceVariant.withValues(alpha: TioOpacity.opacity50)),
 
             // Options List
             _SaveOptionTile(
@@ -568,7 +568,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                 child: Text(
                   'Discard Workout',
                   style: textTheme.bodyLarge?.copyWith(
-                    color: const Color(0xFFE53935),
+                    color: colors.danger,
                     fontWeight: TioFontWeight.w600,
                   ),
                 ),
@@ -666,7 +666,7 @@ class _SaveOptionTile extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: colors.surfaceVariant.withValues(alpha: 0.5),
+              color: colors.surfaceVariant.withValues(alpha: TioOpacity.opacity50),
               width: 1,
             ),
           ),
@@ -712,7 +712,7 @@ class _SaveOptionTile extends StatelessWidget {
                       Icon(
                         Icons.chevron_right_rounded,
                         size: TioSize.dp20,
-                        color: colors.textSecondary.withValues(alpha: 0.7),
+                        color: colors.textSecondary.withValues(alpha: TioOpacity.opacity70),
                       ),
                 ],
               ),
@@ -744,7 +744,7 @@ class _DashedBorderCard extends StatelessWidget {
       onTap: onTap,
       child: CustomPaint(
         painter: _DashedRRectPainter(
-          color: colors.textSecondary.withValues(alpha: 0.35),
+          color: colors.textSecondary.withValues(alpha: TioOpacity.opacity35),
           radius: TioRadius.lg,
           strokeWidth: 1.5,
           dashWidth: 6,

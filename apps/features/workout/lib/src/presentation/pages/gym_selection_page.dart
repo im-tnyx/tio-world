@@ -105,7 +105,7 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
     setState(() => _query = text);
 
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+    _debounceTimer = Timer(const Duration(milliseconds: TioDuration.ms310), () {
       _executeSearch(text);
     });
   }
@@ -119,13 +119,13 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
         pos = await widget.positionProvider!();
       } else {
         final serviceEnabled = await Geolocator.isLocationServiceEnabled()
-            .timeout(const Duration(milliseconds: 1000));
+            .timeout(const Duration(seconds: 1));
         if (serviceEnabled) {
           var permission = await Geolocator.checkPermission()
-              .timeout(const Duration(milliseconds: 1000));
+              .timeout(const Duration(seconds: 1));
           if (permission == LocationPermission.denied) {
             permission = await Geolocator.requestPermission()
-                .timeout(const Duration(milliseconds: 1000));
+                .timeout(const Duration(seconds: 1));
           }
           if (permission == LocationPermission.always ||
               permission == LocationPermission.whileInUse) {
@@ -291,7 +291,7 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
                         focusedErrorBorder: InputBorder.none,
                         disabledBorder: InputBorder.none,
                         filled: false,
-                        fillColor: Colors.transparent,
+                        fillColor: TioPalette.transparent,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                         hintText: 'Search gyms',
@@ -451,7 +451,7 @@ class _GymTile extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected
-                    ? colors.primary.withValues(alpha: 0.15)
+                    ? colors.primary.withValues(alpha: TioOpacity.opacity15)
                     : colors.surfaceVariant,
               ),
               child: Icon(
@@ -525,7 +525,7 @@ class _CustomSearchTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(TioSpacing.md),
         decoration: BoxDecoration(
-          color: colors.surfaceVariant.withValues(alpha: 0.5),
+          color: colors.surfaceVariant.withValues(alpha: TioOpacity.opacity50),
           borderRadius: BorderRadius.circular(TioRadius.md),
           border: Border.all(
             color: colors.surfaceVariant,

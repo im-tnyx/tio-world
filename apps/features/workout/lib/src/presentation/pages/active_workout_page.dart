@@ -752,7 +752,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
                   filledButtonTheme: isComplete
                       ? FilledButtonThemeData(
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF43A047),
+                            backgroundColor: context.tioColors.success,
                             foregroundColor: TioPalette.white,
                           ),
                         )
@@ -1254,7 +1254,7 @@ class _SessionStateState extends State<_SessionState> {
                     filledButtonTheme: isComplete
                         ? FilledButtonThemeData(
                             style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF43A047),
+                              backgroundColor: context.tioColors.success,
                               foregroundColor: TioPalette.white,
                             ),
                           )
@@ -1582,7 +1582,7 @@ class _WorkoutProgressBar extends StatelessWidget {
         color: colors.surfaceVariant,
         alignment: Alignment.centerLeft,
         child: TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: TioDuration.ms310),
           curve: Curves.easeOutCubic,
           tween: Tween<double>(begin: 0.0, end: clamped),
           builder: (context, value, _) {

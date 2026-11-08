@@ -165,7 +165,7 @@ class WorkoutActivityTypeSheet extends StatelessWidget {
                 width: TioSize.dp40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: colors.textSecondary.withValues(alpha: 0.4),
+                  color: colors.textSecondary.withValues(alpha: TioOpacity.opacity40),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -208,13 +208,12 @@ class WorkoutActivityTypeSheet extends StatelessWidget {
                           style: textTheme.labelSmall?.copyWith(
                             color: colors.textSecondary,
                             fontWeight: TioFontWeight.w700,
-                            letterSpacing: 1.1,
                           ),
                         ),
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          color: colors.surfaceVariant.withValues(alpha: 0.35),
+                          color: colors.surfaceVariant.withValues(alpha: TioOpacity.opacity35),
                           borderRadius: BorderRadius.circular(TioRadius.lg),
                         ),
                         child: Column(
@@ -244,7 +243,7 @@ class WorkoutActivityTypeSheet extends StatelessWidget {
                                         decoration: BoxDecoration(
                                           color: item.name == currentActivityType
                                               ? colors.primary
-                                                  .withValues(alpha: 0.15)
+                                                  .withValues(alpha: TioOpacity.opacity15)
                                               : colors.surfaceVariant,
                                           shape: BoxShape.circle,
                                         ),

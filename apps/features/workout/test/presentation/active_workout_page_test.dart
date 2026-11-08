@@ -1118,7 +1118,7 @@ void main() {
     final theme = tester.widget<Theme>(themeFinder.first);
     expect(
       theme.data.filledButtonTheme.style?.backgroundColor?.resolve({}),
-      const Color(0xFF43A047),
+      tester.element(finishFinder).tioColors.success,
     );
   });
 }

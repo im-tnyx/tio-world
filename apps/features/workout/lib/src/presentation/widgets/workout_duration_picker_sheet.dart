@@ -117,7 +117,7 @@ class _WorkoutDurationPickerSheetState
                 width: TioSize.dp40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: colors.textSecondary.withValues(alpha: 0.4),
+                  color: colors.textSecondary.withValues(alpha: TioOpacity.opacity40),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

@@ -183,7 +183,7 @@ class _WorkoutRpeSheetState extends State<WorkoutRpeSheet> {
               width: TioSize.dp40,
               height: 4,
               decoration: BoxDecoration(
-                color: colors.textSecondary.withValues(alpha: 0.4),
+                color: colors.textSecondary.withValues(alpha: TioOpacity.opacity40),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -211,13 +211,13 @@ class _WorkoutRpeSheetState extends State<WorkoutRpeSheet> {
             // Large Number (0 in muted grey or selected RPE in white)
             Text(
               isSelected ? RpeMetadata.format(_selectedRpe!) : '0',
-              style: TextStyle(
-                fontSize: 64,
+              style: (Theme.of(context).textTheme.displayLarge ??
+                      const TextStyle())
+                  .copyWith(
                 fontWeight: TioFontWeight.w700,
                 color: isSelected
                     ? colors.textPrimary
-                    : colors.textSecondary.withValues(alpha: 0.5),
-                letterSpacing: -1.0,
+                    : colors.textSecondary.withValues(alpha: TioOpacity.opacity50),
                 height: 1.1,
               ),
             ),
@@ -273,7 +273,7 @@ class _WorkoutRpeSheetState extends State<WorkoutRpeSheet> {
                       children: [
                         if (selectedIndex != -1)
                           AnimatedPositioned(
-                            duration: const Duration(milliseconds: 150),
+                            duration: const Duration(milliseconds: TioDuration.ms150),
                             curve: Curves.easeOutCubic,
                             left: selectedIndex * slotWidth +
                                 (slotWidth - TioSize.dp40) / 2,
@@ -304,7 +304,9 @@ class _WorkoutRpeSheetState extends State<WorkoutRpeSheet> {
                                         color: i == selectedIndex
                                             ? TioPalette.white
                                             : colors.textPrimary,
-                                        fontSize: i == selectedIndex ? 15 : 14,
+                                        fontSize: i == selectedIndex
+                                            ? TioFontSize.size15
+                                            : TioFontSize.size14,
                                         fontWeight: i == selectedIndex
                                             ? TioFontWeight.w700
                                             : TioFontWeight.w500,
@@ -329,7 +331,7 @@ class _WorkoutRpeSheetState extends State<WorkoutRpeSheet> {
                 filledButtonTheme: FilledButtonThemeData(
                   style: FilledButton.styleFrom(
                     backgroundColor: isSelected
-                        ? const Color(0xFF43A047)
+                        ? colors.success
                         : colors.surfaceVariant,
                     foregroundColor: TioPalette.white,
                   ),
