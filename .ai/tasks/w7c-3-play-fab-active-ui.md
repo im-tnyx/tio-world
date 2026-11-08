@@ -19,15 +19,15 @@
 **Review owner:** Independent reviewer to be requested under current branch protection
 **Implementation ownership state:** Active until reviewed handoff
 **Ownership transition:** Consolidated the temporary Play FAB/UI work into the existing W7C-3 branch without rewriting original commits. The consolidation merge has original W7C-3 HEAD `0f32b91` and W7C-2 merged main `c76c81d` as parents, and selects the already-audited combined UI tree. Original implementation history remains reachable. PR #740 is canonical; duplicate PR #741 is superseded/closed.
-**Repository state last verified:** 2026-11-08; local and remote W7C-3 are aligned at `d3d68fa998b6479ddef0fadabd81e00fe855cb39`; remote main is `c76c81d79395bb7f242e321a9fdde1d1fc08e270`; worktree is clean.
+**Repository state last verified:** 2026-11-08; code-fix commit `79e8bbc5ecac55b0d39804e2db5dfdd67d4d5a43` is pushed to the aligned W7C-3 branch; remote main remains `c76c81d79395bb7f242e321a9fdde1d1fc08e270`.
 **Branch:** feat/w7c-3-active-workout-execution-ui
 **Observed working-tree state:** GitHub API only; owner local Windows worktree not accessible
 **PR / tracker:** GitHub PR #740 / GitHub #739 / Linear TNYX-84
 **Relevant execution surface:** apps/features/workout, apps/app routing, .ai task handoff
-**Validation completed at SHA:** Uncommitted local fix validated with `G:\dev\flutter-sdk\bin\flutter.bat analyze` in `apps/features/workout` (PASS); focused Active Workout/Home/controller suites (95 tests PASS); and affected app provider/Workout-route suites (97 tests PASS). The Active Workout widget suite covers immediate typed `12 KG × 6 Reps` logging, blank immediate drafts, restored actual values, controller-backed state update, and a `320×640` dark scrollable execution view without exceptions. Prior exact-head GitHub CI at `d3d68fa998b6479ddef0fadabd81e00fe855cb39` remains historical failure evidence only.
-**Validation remaining:** Exact pushed-head required CI, independent review, owner-approved merge, and real-device visual QA. The compact light/dark evidence is a local widget test, not device acceptance.
-**Current blocker:** Required CI and review are pending; no automatic merge. Root cause of the typed-set failure was render-time KG/Reps parsing captured by the completion-button callback before an input edit's scheduled rebuild, so it could submit a previous prescribed rep value.
-**Next exact action:** Commit and push this focused correction to the canonical branch, then evaluate CI and review on the exact pushed SHA before any owner-authorized merge.
+**Validation completed at SHA:** `79e8bbc5ecac55b0d39804e2db5dfdd67d4d5a43` passed local `G:\dev\flutter-sdk\bin\flutter.bat analyze` in `apps/features/workout`; focused Active Workout/Home/controller suites (95 tests PASS); affected app provider/Workout-route suites (97 tests PASS); and `git diff --check`. Hosted exact-head Flutter CI run `42502870451` passed every shard and aggregate, while Docs Hygiene and Attribution also passed. The Active Workout widget suite covers immediate typed `12 KG × 6 Reps` logging, blank immediate drafts, restored actual values, controller-backed state update, and a `320×640` dark scrollable execution view without exceptions. Prior CI at `d3d68fa998b6479ddef0fadabd81e00fe855cb39` remains historical failure evidence only.
+**Validation remaining:** Independent review, owner-approved merge, and real-device visual QA. The compact light/dark evidence is a local widget test, not device acceptance.
+**Current blocker:** GitHub requires review (`REVIEW_REQUIRED` / `BLOCKED`); no automatic merge. The typed-set root cause was render-time KG/Reps parsing captured by the completion-button callback before an input edit's scheduled rebuild, so it could submit a previous prescribed rep value.
+**Next exact action:** Refresh CI on this handoff-only commit, then obtain independent review and explicit owner merge authorization; do not merge automatically.
 
 ## 1. Discovery
 
@@ -76,6 +76,6 @@ Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> fe
 
 ## 7. Final Handoff
 
-**Status:** REVIEW PENDING
+**Status:** REVIEW — source-fix exact-head CI passed; independent review, owner authorization, and real-device QA remain separate gates.
 
 No changes to Supabase or protected server contracts. No merge or deployment authorization.
