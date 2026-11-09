@@ -3,6 +3,8 @@ import 'package:tio_shared/shared.dart';
 import 'routine_composition_limits.dart';
 import 'routine_rest_timer_preset.dart';
 
+const _unchanged = Object();
+
 /// Device-local, versioned workout state. Its identity is never a server session ID.
 /// Per-exercise notes are intentionally absent from this persistence contract.
 final class ActiveWorkoutDraft {
@@ -81,6 +83,59 @@ final class ActiveWorkoutDraft {
   final String? gymName;
   final String? activityType;
   final double? overallRpe;
+
+  ActiveWorkoutDraft copyWith({
+    WorkoutTime? time,
+    int? revision,
+    List<ActiveWorkoutDraftExercise>? exercises,
+    Object? canonicalSessionId = _unchanged,
+    Object? canonicalRevision = _unchanged,
+    Object? workoutTitle = _unchanged,
+    Object? description = _unchanged,
+    Object? workoutAtUtc = _unchanged,
+    Object? workoutUtcOffsetMinutes = _unchanged,
+    Object? selectedDurationSeconds = _unchanged,
+    Object? gymName = _unchanged,
+    Object? activityType = _unchanged,
+    Object? overallRpe = _unchanged,
+  }) =>
+      ActiveWorkoutDraft(
+        id: id,
+        ownerId: ownerId,
+        saveRequestId: saveRequestId,
+        time: time ?? this.time,
+        revision: revision ?? this.revision,
+        exercises: exercises ?? this.exercises,
+        canonicalSessionId: identical(canonicalSessionId, _unchanged)
+            ? this.canonicalSessionId
+            : canonicalSessionId as WorkoutSessionId?,
+        canonicalRevision: identical(canonicalRevision, _unchanged)
+            ? this.canonicalRevision
+            : canonicalRevision as int?,
+        workoutTitle: identical(workoutTitle, _unchanged)
+            ? this.workoutTitle
+            : workoutTitle as String?,
+        description: identical(description, _unchanged)
+            ? this.description
+            : description as String?,
+        workoutAtUtc: identical(workoutAtUtc, _unchanged)
+            ? this.workoutAtUtc
+            : workoutAtUtc as DateTime?,
+        workoutUtcOffsetMinutes: identical(workoutUtcOffsetMinutes, _unchanged)
+            ? this.workoutUtcOffsetMinutes
+            : workoutUtcOffsetMinutes as int?,
+        selectedDurationSeconds: identical(selectedDurationSeconds, _unchanged)
+            ? this.selectedDurationSeconds
+            : selectedDurationSeconds as int?,
+        gymName:
+            identical(gymName, _unchanged) ? this.gymName : gymName as String?,
+        activityType: identical(activityType, _unchanged)
+            ? this.activityType
+            : activityType as String?,
+        overallRpe: identical(overallRpe, _unchanged)
+            ? this.overallRpe
+            : overallRpe as double?,
+      );
 
   Map<String, Object?> toJson() => {
         'version': schemaVersion,
@@ -164,6 +219,7 @@ final class ActiveWorkoutDraftExercise {
     required this.exerciseRef,
     required String displayName,
     this.exerciseType,
+    this.thumbnailUrl,
     this.restPreset = const RoutineRestTimerPreset(),
     List<ActiveWorkoutDraftSet> sets = const [],
   })  : id = _uuid(id),
@@ -184,14 +240,30 @@ final class ActiveWorkoutDraftExercise {
   final ExerciseRef exerciseRef;
   final String displayName;
   final ExerciseType? exerciseType;
+  final Uri? thumbnailUrl;
   final RoutineRestTimerPreset restPreset;
   final List<ActiveWorkoutDraftSet> sets;
+
+  ActiveWorkoutDraftExercise copyWith({
+    List<ActiveWorkoutDraftSet>? sets,
+    RoutineRestTimerPreset? restPreset,
+  }) =>
+      ActiveWorkoutDraftExercise(
+        id: id,
+        exerciseRef: exerciseRef,
+        displayName: displayName,
+        exerciseType: exerciseType,
+        thumbnailUrl: thumbnailUrl,
+        restPreset: restPreset ?? this.restPreset,
+        sets: sets ?? this.sets,
+      );
 
   Map<String, Object?> toJson() => {
         'id': id,
         'exercise_ref': exerciseRef.value,
         'display_name': displayName,
         'exercise_type': exerciseType?.storageValue,
+        'thumbnail_url': thumbnailUrl?.toString(),
         'rest_normal_seconds': restPreset.normalRestSeconds,
         'rest_warm_up_seconds': restPreset.warmUpRestSeconds,
         'sets': sets.map((set) => set.toJson()).toList(),
@@ -206,6 +278,9 @@ final class ActiveWorkoutDraftExercise {
         exerciseType: json['exercise_type'] == null
             ? null
             : ExerciseType.fromStorageValue(json['exercise_type'] as String),
+        thumbnailUrl: json['thumbnail_url'] == null
+            ? null
+            : Uri.parse(json['thumbnail_url'] as String),
         restPreset: RoutineRestTimerPreset(
           normalRestSeconds: json['rest_normal_seconds'] as int?,
           warmUpRestSeconds: json['rest_warm_up_seconds'] as int?,
@@ -232,6 +307,7 @@ final class ActiveWorkoutDraftSet {
     this.distanceMeters,
     this.rpe,
     this.loggedAtUtc,
+    this.isSkipped = false,
   }) : id = _uuid(id) {
     if (reps != null && reps! < 0 ||
         loadKg != null && (!loadKg!.isFinite || loadKg! < 0) ||
@@ -246,7 +322,8 @@ final class ActiveWorkoutDraftSet {
         (reps != null ||
             loadKg != null ||
             durationSeconds != null ||
-            distanceMeters != null)) {
+            distanceMeters != null ||
+            isSkipped)) {
       throw ArgumentError('Unlogged set has performed values.');
     }
   }
@@ -259,6 +336,35 @@ final class ActiveWorkoutDraftSet {
   final double? distanceMeters;
   final double? rpe;
   final DateTime? loggedAtUtc;
+  final bool isSkipped;
+
+  ActiveWorkoutDraftSet copyWith({
+    SetPrescription? prescription,
+    Object? reps = _unchanged,
+    Object? loadKg = _unchanged,
+    Object? durationSeconds = _unchanged,
+    Object? distanceMeters = _unchanged,
+    Object? rpe = _unchanged,
+    Object? loggedAtUtc = _unchanged,
+    bool? isSkipped,
+  }) =>
+      ActiveWorkoutDraftSet(
+        id: id,
+        prescription: prescription ?? this.prescription,
+        reps: identical(reps, _unchanged) ? this.reps : reps as int?,
+        loadKg: identical(loadKg, _unchanged) ? this.loadKg : loadKg as double?,
+        durationSeconds: identical(durationSeconds, _unchanged)
+            ? this.durationSeconds
+            : durationSeconds as int?,
+        distanceMeters: identical(distanceMeters, _unchanged)
+            ? this.distanceMeters
+            : distanceMeters as double?,
+        rpe: identical(rpe, _unchanged) ? this.rpe : rpe as double?,
+        loggedAtUtc: identical(loggedAtUtc, _unchanged)
+            ? this.loggedAtUtc
+            : loggedAtUtc as DateTime?,
+        isSkipped: isSkipped ?? this.isSkipped,
+      );
 
   Map<String, Object?> toJson() => {
         'id': id,
@@ -277,6 +383,7 @@ final class ActiveWorkoutDraftSet {
         'distance_meters': distanceMeters,
         'rpe': rpe,
         'logged_at_utc': loggedAtUtc?.toIso8601String(),
+        'is_skipped': isSkipped,
       };
 
   factory ActiveWorkoutDraftSet.fromJson(Map<String, dynamic> json) {
@@ -301,6 +408,7 @@ final class ActiveWorkoutDraftSet {
         loggedAtUtc: json['logged_at_utc'] == null
             ? null
             : DateTime.parse(json['logged_at_utc'] as String).toUtc(),
+        isSkipped: json['is_skipped'] as bool? ?? false,
       );
     } catch (_) {
       throw const FormatException('Invalid draft set.');

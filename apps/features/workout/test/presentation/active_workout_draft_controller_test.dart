@@ -1,0 +1,167 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_shared/shared.dart';
+
+final class _Store implements ActiveWorkoutDraftStore {
+  ActiveWorkoutDraft? saved;
+  bool failSave = false;
+  bool failLoad = false;
+  int writes = 0;
+
+  @override
+  Future<ActiveWorkoutDraft?> load() async {
+    if (failLoad) throw StateError('secure draft unavailable');
+    return saved;
+  }
+
+  @override
+  Future<void> save(ActiveWorkoutDraft draft) async {
+    if (failSave) throw StateError('secure write failed');
+    saved = draft;
+    writes++;
+  }
+
+  @override
+  Future<void> delete() async => saved = null;
+}
+
+String _id(int n) =>
+    '00000000-0000-4000-8000-${n.toRadixString(16).padLeft(12, '0')}';
+
+Exercise _exercise(String ref, String name) => Exercise(
+      ref: ExerciseRef.catalog(ref),
+      displayName: name,
+      exerciseType: ExerciseType.weightReps,
+      status: ExerciseStatus.active,
+    );
+
+void main() {
+  const owner = '00000000-0000-4000-8000-000000000001';
+
+  test('local actions retain stable identities, actual values and paused time',
+      () async {
+    final store = _Store();
+    var now = DateTime.utc(2026, 11, 9, 10);
+    var nextId = 10;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    final draftId = controller.draft!.id;
+    final saveRequestId = controller.draft!.saveRequestId;
+    expect(draftId, isNot(saveRequestId));
+    expect(
+        await controller.addExercises([
+          _exercise('ex_first', 'First'),
+          _exercise('ex_second', 'Second'),
+        ]),
+        isTrue);
+    final first = controller.draft!.exercises.first;
+    final second = controller.draft!.exercises.last;
+    final secondSetId = second.sets.single.id;
+    expect(await controller.setRpe(second.id, secondSetId, 8.5), isTrue);
+    expect(
+        await controller.setRestPreset(
+          second.id,
+          const RoutineRestTimerPreset(normalRestSeconds: 40),
+        ),
+        isTrue);
+    now = now.add(const Duration(minutes: 1));
+    expect(
+        await controller.toggleLogged(
+          second.id,
+          secondSetId,
+          reps: 12,
+          loadKg: 40,
+        ),
+        isTrue);
+    expect(await controller.removeExercise(first.id), isTrue);
+    expect(await controller.addSet(second.id), isTrue);
+    expect(controller.draft!.exercises.single.sets.first.id, secondSetId);
+    expect(controller.draft!.exercises.single.sets.last.id, isNot(secondSetId));
+
+    now = now.add(const Duration(minutes: 1));
+    expect(await controller.pause(), isTrue);
+    now = now.add(const Duration(minutes: 5));
+    expect(await controller.resume(), isTrue);
+    now = now.add(const Duration(minutes: 1));
+    expect(controller.draft!.time.elapsedActiveDuration(now),
+        const Duration(minutes: 3));
+    expect(
+        await controller.updateSaveMetadata(
+          title: '  Custom  Title  ',
+          description: 'Description',
+          workoutAtUtc: DateTime.utc(2026, 11, 8, 23, 30),
+          workoutUtcOffsetMinutes: 330,
+          selectedDurationSeconds: 180,
+          gymName: 'Gym',
+          activityType: 'Weight Training',
+          overallRpe: 7.5,
+        ),
+        isTrue);
+    controller.dispose();
+
+    final reopened = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+    );
+    expect(await reopened.restoreOrStart(), isTrue);
+    expect(reopened.draft!.id, draftId);
+    expect(reopened.draft!.saveRequestId, saveRequestId);
+    expect(reopened.draft!.exercises.single.id, second.id);
+    expect(reopened.draft!.exercises.single.sets.first.reps, 12);
+    expect(reopened.draft!.exercises.single.sets.first.loadKg, 40);
+    expect(reopened.draft!.exercises.single.sets.first.rpe, 8.5);
+    expect(reopened.draft!.exercises.single.restPreset.normalRestSeconds, 40);
+    expect(reopened.draft!.time.elapsedActiveDuration(now),
+        const Duration(minutes: 3));
+    expect(reopened.draft!.workoutTitle, '  Custom  Title  ');
+    expect(reopened.draft!.workoutAtUtc, DateTime.utc(2026, 11, 8, 23, 30));
+    expect(reopened.draft!.workoutUtcOffsetMinutes, 330);
+    expect(await reopened.discard(), isTrue);
+    expect(store.saved, isNull);
+    reopened.dispose();
+  });
+
+  test('failed mutation retains last durable draft and stable retry identity',
+      () async {
+    final store = _Store();
+    var nextId = 10;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => DateTime.utc(2026, 11, 9),
+      newUuid: () => _id(nextId++),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    final requestId = controller.draft!.saveRequestId;
+    store.failSave = true;
+    expect(await controller.addExercises([_exercise('ex_first', 'First')]),
+        isFalse);
+    expect(controller.error, isA<StateError>());
+    expect(controller.draft!.exercises, isEmpty);
+    expect(store.saved!.exercises, isEmpty);
+    store.failSave = false;
+    expect(await controller.addExercises([_exercise('ex_first', 'First')]),
+        isTrue);
+    expect(controller.draft!.saveRequestId, requestId);
+    controller.dispose();
+  });
+
+  test('secure read failure never starts a replacement workout', () async {
+    final store = _Store()..failLoad = true;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => DateTime.utc(2026, 11, 9),
+    );
+    expect(await controller.restoreOrStart(), isFalse);
+    expect(controller.draft, isNull);
+    expect(store.writes, 0);
+    controller.dispose();
+  });
+}

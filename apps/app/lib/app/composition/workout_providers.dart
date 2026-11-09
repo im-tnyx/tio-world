@@ -40,6 +40,23 @@ final activeWorkoutDraftStoreProvider =
   return SecureActiveWorkoutDraftStore(currentUserId: currentUserId);
 });
 
+/// Local execution controller for the authenticated Save-only draft.
+/// Its lifecycle is separate from the legacy online W7B session controller.
+final activeWorkoutDraftControllerProvider =
+    Provider.autoDispose<ActiveWorkoutDraftController?>((ref) {
+  final store = ref.watch(activeWorkoutDraftStoreProvider);
+  final identity = ref.watch(
+    authSessionStateProvider.select(_selectWorkoutAuthIdentity),
+  );
+  if (store == null || identity == null) return null;
+  final controller = ActiveWorkoutDraftController(
+    store: store,
+    ownerId: identity.ownerId,
+  );
+  ref.onDispose(controller.dispose);
+  return controller;
+});
+
 /// The only Auth fields that define Workout mutation authority and lifecycle.
 ///
 /// Profile/verification metadata can legitimately change during the same

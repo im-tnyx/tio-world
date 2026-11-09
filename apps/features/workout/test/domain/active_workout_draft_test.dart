@@ -33,6 +33,7 @@ void main() {
           exerciseRef: ExerciseRef.catalog('ex_test'),
           displayName: 'Test Exercise',
           exerciseType: ExerciseType.weightReps,
+          thumbnailUrl: Uri.parse('https://example.com/bench.png'),
           restPreset: const RoutineRestTimerPreset(normalRestSeconds: 40),
           sets: [
             ActiveWorkoutDraftSet(
@@ -65,6 +66,8 @@ void main() {
     expect(restored.exercises.single.sets.single.prescription.repsMax, 12);
     expect(restored.exercises.single.sets.single.rpe, 8.5);
     expect(restored.exercises.single.restPreset.normalRestSeconds, 40);
+    expect(restored.exercises.single.thumbnailUrl,
+        Uri.parse('https://example.com/bench.png'));
     expect(draft.toJson().toString(), isNot(contains('notes')));
   });
 
@@ -128,5 +131,19 @@ void main() {
       ),
       throwsArgumentError,
     );
+  });
+
+  test('skipped completion survives restoration without fabricated metrics',
+      () {
+    final skipped = ActiveWorkoutDraftSet(
+      id: _id(9),
+      prescription: SetPrescription(),
+      loggedAtUtc: started,
+      isSkipped: true,
+    );
+    final restored = ActiveWorkoutDraftSet.fromJson(skipped.toJson());
+    expect(restored.isSkipped, isTrue);
+    expect(restored.reps, isNull);
+    expect(restored.loggedAtUtc, started);
   });
 }
