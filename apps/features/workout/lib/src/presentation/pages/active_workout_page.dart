@@ -206,9 +206,21 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     final controller = _controller;
     if (controller == null || state.isActionPending || !state.isRunning) return;
 
-    final session = state.session;
+    // Save review is not active training. Preserve the authoritative paused
+    // duration on Back and let the user explicitly resume from Active Workout.
+    if (state.status == ActiveWorkoutStatus.active) {
+      final paused = await controller.pauseSession();
+      if (!mounted || !identical(controller, _controller) || !paused) return;
+    }
+    final reviewState = controller.state;
+    if (reviewState.status != ActiveWorkoutStatus.paused ||
+        reviewState.isActionPending) {
+      return;
+    }
+
+    final session = reviewState.session;
     var totalVolumeKg = 0.0;
-    for (final s in state.performedSets) {
+    for (final s in reviewState.performedSets) {
       final w = s.loadKg;
       final r = s.reps;
       if (w != null && r != null) totalVolumeKg += w * r;
@@ -218,9 +230,9 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
       MaterialPageRoute<bool>(
         builder: (_) => SaveWorkoutPage(
           initialTitle: session?.workoutTitle,
-          duration: state.activeElapsedDuration,
+          duration: reviewState.activeElapsedDuration,
           volumeKg: totalVolumeKg,
-          completedSets: state.performedSets.length,
+          completedSets: reviewState.performedSets.length,
           startedAt: session?.time.startedAtUtc.toLocal(),
           initialWorkoutDateTime: session?.workoutAtUtc == null ||
                   session?.workoutUtcOffsetMinutes == null

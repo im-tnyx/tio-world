@@ -19,6 +19,8 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
   Completer<WorkoutSessionRecord?>? activeSessionCompleter;
   Exception? pauseError;
   Completer<WorkoutSessionRecord>? pauseCompleter;
+  bool applyPause = false;
+  int pauseCalls = 0;
   WorkoutSessionRecord? completeResult;
   WorkoutSessionRecord? discardResult;
   PerformedSet? lastLoggedSet;
@@ -48,10 +50,19 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     required WorkoutSessionId sessionId,
     required int expectedRevision,
     required DateTime pausedAtUtc,
-  }) async =>
-      pauseError != null
-          ? Future<WorkoutSessionRecord>.error(pauseError!)
-          : pauseCompleter?.future ?? active!;
+  }) async {
+    pauseCalls++;
+    if (pauseError != null) throw pauseError!;
+    if (pauseCompleter != null) return pauseCompleter!.future;
+    if (applyPause) {
+      final current = active!;
+      active = current.copyWith(
+        session: current.session.pause(pausedAtUtc),
+        revision: current.revision + 1,
+      );
+    }
+    return active!;
+  }
 
   @override
   Future<WorkoutSessionRecord> resumeSession({
@@ -1246,6 +1257,59 @@ void main() {
         findsOneWidget);
   });
 
+  testWidgets('Finish pauses before Save review and Back keeps paused duration',
+      (tester) async {
+    var now = DateTime.utc(2026, 11, 7, 10, 30);
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1)
+      ..applyPause = true;
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+      clock: () => now,
+    );
+
+    await _pumpPage(tester, controller: controller, clock: () => now);
+    await tester.tap(find.byKey(const ValueKey('active-workout-complete')));
+    await tester.pumpAndSettle();
+
+    expect(repository.pauseCalls, 1);
+    expect(controller.state.status, ActiveWorkoutStatus.paused);
+    expect(
+        tester.widget<SaveWorkoutPage>(find.byType(SaveWorkoutPage)).duration,
+        const Duration(minutes: 30));
+
+    now = now.add(const Duration(minutes: 5));
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+    expect(controller.state.status, ActiveWorkoutStatus.paused);
+    expect(controller.state.activeElapsedDuration, const Duration(minutes: 30));
+    expect(find.text('Resume workout'), findsOneWidget);
+  });
+
+  testWidgets('Finish does not open Save review when pause fails',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1)
+      ..pauseError = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Pause failed',
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+      clock: () => DateTime.utc(2026, 11, 7, 10, 30),
+    );
+
+    await _pumpPage(tester, controller: controller);
+    await tester.tap(find.byKey(const ValueKey('active-workout-complete')));
+    await tester.pumpAndSettle();
+    expect(repository.pauseCalls, 1);
+    expect(find.byType(SaveWorkoutPage), findsNothing);
+    expect(controller.state.status, ActiveWorkoutStatus.active);
+    expect(find.text('Pause failed'), findsOneWidget);
+  });
+
   testWidgets(
       'disables duplicate actions while a controller command is pending',
       (tester) async {
@@ -1692,6 +1756,7 @@ void main() {
     };
     final repository = _FakeSessionRepository()
       ..active = WorkoutSessionRecord(session: _session(), revision: 1)
+      ..applyPause = true
       ..completeResult = WorkoutSessionRecord(
         session: _session(status: WorkoutSessionStatus.completed),
         revision: 2,
@@ -1731,6 +1796,7 @@ void main() {
     );
     final repository = _FakeSessionRepository()
       ..active = WorkoutSessionRecord(session: _session(), revision: 1)
+      ..applyPause = true
       ..completeResult = terminalRecord;
     final controller = ActiveWorkoutController(
       repository: repository,
