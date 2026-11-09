@@ -278,6 +278,7 @@ void main() {
             duration: const Duration(minutes: 30),
             volumeKg: 0,
             completedSets: 1,
+            sessionMetadataOnly: true,
             onSave: ({
               required String title,
               required String? description,
@@ -312,6 +313,9 @@ void main() {
       expect(saveButton.enabled, isFalse);
       expect(discardButton.onPressed, isNull);
       expect(find.text('Discard workout?'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('save-workout-date-tile')));
+      await tester.pumpAndSettle();
+      expect(find.text('Workout Date & Time'), findsNothing);
 
       saveResult.complete(true);
       await tester.pumpAndSettle();

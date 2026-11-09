@@ -236,6 +236,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _pickDateTime() async {
+    if (_isSaving || _isDiscarding) return;
     final picked = await showWorkoutDateTimePickerSheet(
       context: context,
       initialDateTime: _workoutDate,
@@ -574,7 +575,9 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               icon: Icons.calendar_month_outlined,
               title: 'Date',
               value: _formatDateTile(_workoutDate),
-              onTap: widget.notesOnly ? null : _pickDateTime,
+              onTap: widget.notesOnly || _isSaving || _isDiscarding
+                  ? null
+                  : _pickDateTime,
             ),
             _SaveOptionTile(
               key: const ValueKey('save-workout-gym-tile'),
