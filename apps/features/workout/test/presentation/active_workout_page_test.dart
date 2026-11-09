@@ -401,6 +401,106 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('removing a preview exercise keeps remaining logged state',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      catalogRepository: _PreviewReplacementCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-add-exercise')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_barbell_back_squat')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    Future<void> logPreviewSet({
+      required String loadKey,
+      required String repsKey,
+      required String toggleKey,
+      required String load,
+      required String reps,
+    }) async {
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(ValueKey(loadKey)),
+          matching: find.byType(EditableText),
+        ),
+        load,
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(ValueKey(repsKey)),
+          matching: find.byType(EditableText),
+        ),
+        reps,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey(toggleKey)));
+      await tester.pumpAndSettle();
+    }
+
+    await logPreviewSet(
+      loadKey: 'active-workout-preview-load-0-0',
+      repsKey: 'active-workout-preview-reps-0-0',
+      toggleKey: 'active-workout-preview-set-toggle-0-0',
+      load: '45',
+      reps: '8',
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-1-0')),
+    );
+    await logPreviewSet(
+      loadKey: 'active-workout-preview-load-1-0',
+      repsKey: 'active-workout-preview-reps-1-0',
+      toggleKey: 'active-workout-preview-set-toggle-1-0',
+      load: '100',
+      reps: '5',
+    );
+
+    final firstExercise =
+        find.byKey(const ValueKey('active-workout-preview-exercise-0'));
+    await tester.ensureVisible(firstExercise);
+    await tester.tap(
+      find.descendant(
+        of: firstExercise,
+        matching: find.byTooltip('Exercise options'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-exercise-option-remove')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bench Press'), findsNothing);
+    expect(find.text('Back Squat'), findsOneWidget);
+    expect(find.text('100'), findsOneWidget);
+    expect(find.text('5'), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(
+            find.byKey(const ValueKey('active-workout-progress-bar')),
+          )
+          .value,
+      '100%',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('replacing an edited preview exercise clears its local drafts',
       (tester) async {
     final controller = ActiveWorkoutController(
@@ -812,6 +912,34 @@ void main() {
     expect(find.byKey(const ValueKey('active-workout-reps-0')), findsNothing);
     expect(controller.state.performedSets.single.loadKg, 12);
     expect(controller.state.performedSets.single.reps, 6);
+  });
+
+  testWidgets('restored real sessions do not expose unpersisted RPE or type',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(withPerformedSet: false),
+        revision: 1,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(tester, controller: controller);
+
+    final setType = tester.widget<InkWell>(
+      find.byKey(const ValueKey('active-workout-set-number-0')),
+    );
+    final rpe = tester.widget<InkWell>(
+      find.byKey(const ValueKey('active-workout-rpe-0')),
+    );
+    expect(setType.onTap, isNull);
+    expect(rpe.onTap, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('active-workout-rpe-0')));
+    await tester.pumpAndSettle();
+    expect(find.text('Log Set RPE'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('restores all additional performed sets beyond the snapshot',
