@@ -6,6 +6,43 @@ import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
+  testWidgets('execution row without remove callback ignores swipe',
+      (tester) async {
+    const id = '55555555-5555-4555-a555-555555555555';
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: WorkoutSetInputRow(
+          set: RoutineCompositionSet(
+            id: id,
+            prescription: SetPrescription(reps: 8, loadKg: 20),
+          ),
+          index: 0,
+          normalNumber: 1,
+          unit: WeightUnit.kg,
+          enabled: true,
+          exerciseType: ExerciseType.weightReps,
+          isExecution: true,
+          rowKey: const ValueKey('test-execution-row'),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final swipeSurface = find.byKey(const ValueKey('routine-set-swipe-$id'));
+    final row = find.byKey(const ValueKey('test-execution-row'));
+    final before = tester.getRect(row);
+    await tester.drag(swipeSurface, const Offset(-600, 0));
+    await tester.pumpAndSettle();
+
+    expect(tester.getRect(row), before);
+    expect(find.byKey(const ValueKey('routine-set-remove-$id')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
     testWidgets(
         'Set 1 and 2 have visible filled rounded boxes in '

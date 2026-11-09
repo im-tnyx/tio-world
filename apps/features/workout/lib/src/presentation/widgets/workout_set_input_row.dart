@@ -538,6 +538,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
     super.build(context);
     final colors = context.tioColors;
     final setNumber = widget.index + 1;
+    final canRemove = widget.enabled && widget.onRemove != null;
 
     final isLoggedState = widget.isExecution && widget.isLogged;
     final rowBgColor = isLoggedState
@@ -552,10 +553,10 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
         child: Listener(
           key: ValueKey('routine-set-swipe-${widget.set.id}'),
           behavior: HitTestBehavior.opaque,
-          onPointerDown: widget.enabled ? _pointerDown : null,
-          onPointerMove: widget.enabled ? _pointerMove : null,
-          onPointerUp: widget.enabled ? _pointerUp : null,
-          onPointerCancel: widget.enabled ? _pointerCancel : null,
+          onPointerDown: canRemove ? _pointerDown : null,
+          onPointerMove: canRemove ? _pointerMove : null,
+          onPointerUp: canRemove ? _pointerUp : null,
+          onPointerCancel: canRemove ? _pointerCancel : null,
           child: Padding(
             padding: EdgeInsets.only(
               left: widget.isExecution ? TioSpacing.lg : TioSpacing.none,
@@ -570,7 +571,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
     );
 
     return Semantics(
-      customSemanticsActions: widget.enabled
+      customSemanticsActions: canRemove
           ? {
               CustomSemanticsAction(label: 'Delete Set $setNumber'): _delete,
             }
