@@ -61,9 +61,9 @@
 **Relevant execution surface:** apps/features/workout, apps/app routing, .ai task handoff
 **Validation at takeover:** Exact-head GitHub Actions runs for `38d2b631` report Docs Hygiene, Supabase Functions, Flutter, Supabase Database, and Android Native CI all successful. This slice later passed Workout analysis and all 1,333 Workout tests, app analysis and 101 focused app provider/routing tests.
 **Prior local delta now committed:** `38d2b631` makes Save Workout await canonical discard confirmation and retain the page on a failed persistence result; two focused regressions passed. No migration or W7 persistence code changed.
-**Current blockers:** Hosted project ledger ends at `20261031142025`; merged W7B `20261106073920_user_workout_sessions.sql` is not deployed. The proposed W7C nullable columns/V2 RPC require explicit shape approval. No real ad-hoc start or history-list contract exists; preview cannot report Save success. Google Places remains undeployed with quota/billing/abuse controls unverified. PR #740 had 18 threads at takeover; after 12 evidence-backed dispositions, the new `b9914f62` review added two more findings, for 20 total and 8 unresolved before the local follow-up. Fresh exact-head CI and independent review remain pending.
+**Current blockers:** Hosted project ledger ends at `20261031142025`; merged W7B `20261106073920_user_workout_sessions.sql` is not deployed. The proposed W7C nullable columns/V2 RPC require explicit shape approval. No real ad-hoc start or history-list contract exists; preview cannot report Save success. Google Places remains undeployed with quota/billing/abuse controls unverified. PR #740 has 20 threads: 14 resolved with code/test replies and 6 older threads remain open for backend approval or targeted-test/independent-review disposition. Two newer findings added on `b9914f62` were fixed and resolved on `d00a9989`. Fresh exact-head CI is pending only the database migration replay at last poll; independent `im-tio` review is requested on `d00a9989`.
 **Tracker state:** Linear TNYX-84 remains `In Progress`; it is blocked by TNYX-80/TNYX-81 and blocks TNYX-85/TNYX-88. GitHub #739's historical UI-only wording is superseded for the real-save product goal, while schema/deployment approval remains separate. Refresh PR #740 HEAD, checks, reviews and thread dispositions after publication.
-**Next exact action:** Publish the tested reconciliation Retry/Back and mutually exclusive Save/Discard fixes to PR #740, then update their review threads and request fresh independent review. Do not merge or deploy.
+**Next exact action:** Verify final exact-head CI, obtain independent `im-tio` disposition for the 6 remaining threads, then update GitHub #739 and Linear TNYX-84. Do not merge or deploy.
 
 ## 1. Discovery
 
@@ -148,14 +148,14 @@ The older P2 Save-metadata thread remains a real backend gate: current completio
 1. P1 reconciliation recovery actions — `ActiveWorkoutPage` now exposes Retry (`controller.reconcileState()`) and Back; both are disabled during reconciliation. Focused `active_workout_page_test.dart` covers successful retry, pending guards, Back, and hidden raw backend errors.
 2. P2 Save/Discard race — both callbacks now share `_isSaving`/`_isDiscarding` guards and are disabled while the opposite operation is pending. Focused `save_workout_page_test.dart` verifies Save pending blocks Discard; discard-pending also verifies Save disabled.
 
-The follow-up focused suite passed (47 tests), Workout analysis passed, and the updated full Workout suite passed (1,335 tests). These follow-up edits are not yet committed/pushed. Their new GitHub threads remain open until the tested source is published and the thread replies are recorded.
+The follow-up focused suite passed (47 tests), Workout analysis passed, and the updated full Workout suite passed (1,335 tests). These fixes were committed as `d00a998925afc83a9257550ef8225ddd288d8256` and pushed to PR #740. Both new thread replies were posted and both threads were resolved. Exact-head `d00a9989` CI has Analyze/test, Flutter package suites, docs, parser, Android, and attribution checks passing; database migration replay remained `in_progress` at the latest poll. A fresh independent `im-tio` review has been requested on this HEAD.
 
 **Nearby-gyms security:** Auth verification, bounded request validation, generic errors, and checked-in `verify_jwt` are present in source. Deno tests did not execute. Persistent rate/abuse limits and Google quota/billing controls remain unverified; hosted function is absent and deployment is blocked.
 
-**Review provenance:** Awaiting evidence-backed dispositions for remaining old threads, publication of the two latest fixes, and a fresh independent `im-tio` review on the eventual pushed HEAD. ChatGPT implementation/self-inspection is not independent approval.
+**Review provenance:** Six old threads remain open for reviewer disposition (one backend-contract blocker and five paths lacking dedicated regression tests); a fresh independent `im-tio` review is requested on `d00a9989`. ChatGPT implementation/self-inspection is not independent approval.
 
 ## 7. Final Handoff
 
-**Status:** REVIEW — seven priority review fixes are published and validated; two newer review fixes are locally validated but unpublished. Exact-head CI and independent review remain pending; real-save title/date-time approval and hosted migrations remain separate blockers.
+**Status:** REVIEW — seven priority review fixes plus two newer recovery/action-race findings are published and locally validated. Exact-head database migration CI and independent review remain pending; six older review threads, real-save title/date-time approval, and hosted migrations remain open gates.
 
 No hosted Supabase schema/RPC changes or deployments were made. Source changes do touch the checked-in Edge Function and `supabase/config.toml`. No merge authorization was given.
