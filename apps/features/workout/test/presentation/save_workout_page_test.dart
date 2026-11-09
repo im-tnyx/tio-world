@@ -314,7 +314,7 @@ void main() {
       expect(discardButton.onPressed, isNull);
       expect(find.text('Discard workout?'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('save-workout-date-tile')));
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(find.text('Workout Date & Time'), findsNothing);
 
       saveResult.complete(true);
