@@ -159,3 +159,15 @@ The follow-up focused suite passed (47 tests), Workout analysis passed, and the 
 **Status:** REVIEW — seven priority review fixes plus two newer recovery/action-race findings are published and locally validated. Exact-head database migration CI and independent review remain pending; six older review threads, real-save title/date-time approval, and hosted migrations remain open gates.
 
 No hosted Supabase schema/RPC changes or deployments were made. Source changes do touch the checked-in Edge Function and `supabase/config.toml`. No merge authorization was given.
+
+## Review-fix follow-up — 2026-11-09
+
+The latest `im-tio` review on `875bafc2` added one P2 finding: replacing a preview exercise retained index-keyed local notes/rest settings. Commit `84c0fa1d` clears both when replacement succeeds. `active_workout_page_test.dart` now covers edit-then-replace so the prior exercise's draft is not carried to the replacement. These notes remain local UI drafts; this change does not persist Log Workout notes.
+
+The owner also clarified that logging a set should start rest only when a rest duration is configured. For a real session, after canonical `logSet` succeeds, `ActiveWorkoutPage` starts the controller's in-memory `ActiveRestTimerState` using that set's effective preset and preserves exercise/set identity. A set with rest off leaves the timer off; failed logging does not start it. Focused configured/off widget regressions were added. No backend or session persistence contract changed.
+
+**Current local evidence:** Dart formatter check passed with the SDK's bundled Dart 3.12.2; targeted `dart analyze --fatal-infos` on `active_workout_page.dart` and its widget test passed with no issues; `git diff --check` passed. Flutter widget tests could not run locally: Flutter tool invokes Git with the shared SDK as working directory, and access to `G:\dev\flutter-sdk` is denied; no alternate writable Flutter SDK/cache was available. The exact-head `app-workout` CI must validate the new focused widget tests after push. Previous 1,335 Workout / 47 focused / 101 app test counts apply to `d00a9989`, not the new tests.
+
+**Review gate at `875bafc2`:** 21 threads, 14 resolved, 7 open (six older dispositions plus the new replacement-state finding). The new code fix is pushed in `84c0fa1d`; the new thread remains open pending reviewer confirmation. The reviewer submitted `CHANGES_REQUESTED`; a fresh independent review is required after the next exact-head CI. `84c0fa1d` was pushed to the existing branch/PR; no branch creation, merge, or hosted change occurred.
+
+**Rest timer limitation:** automatic timer activation is now wired to the canonical in-memory controller state. This PR change does not add a new timer presentation/control surface. Verify the current approved timer presentation separately before claiming the visible countdown UI is complete.
