@@ -112,7 +112,8 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
   SetPrescription? _lastInlineEdit;
   bool _valid = true;
   bool get _rangeMode =>
-      widget.showRangeDraft || widget.set.prescription.isRepRange;
+      !widget.isExecution &&
+      (widget.showRangeDraft || widget.set.prescription.isRepRange);
 
   static const double _revealWidth = TioSize.dp48 + TioSize.dp48;
   static const double _threshold = _revealWidth / 2;
@@ -159,14 +160,16 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
     _originalWeightText = _displayWeight(_originalKg);
     _weight = TextEditingController(text: _originalWeightText);
 
-    _originalMeters = widget.set.prescription.distanceMeters;
+    _originalMeters = widget.performedDistanceMeters ??
+        widget.set.prescription.distanceMeters;
     _originalDistanceText =
         RoutineSetInputLimits.displayDistanceKm(_originalMeters);
     _distance = TextEditingController(text: _originalDistanceText);
 
     _duration = TextEditingController(
       text: RoutineSetInputLimits.displayDurationSeconds(
-        widget.set.prescription.durationSeconds,
+        widget.performedDurationSeconds ??
+            widget.set.prescription.durationSeconds,
       ),
     );
   }
@@ -221,6 +224,37 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
       _duration.text = RoutineSetInputLimits.displayDurationSeconds(
         after.durationSeconds,
       );
+    }
+    final performedChanged = oldWidget.performedLoadKg !=
+            widget.performedLoadKg ||
+        oldWidget.performedReps != widget.performedReps ||
+        oldWidget.performedDistanceMeters != widget.performedDistanceMeters ||
+        oldWidget.performedDurationSeconds != widget.performedDurationSeconds;
+    if (widget.isExecution &&
+        (oldWidget.isLogged != widget.isLogged || performedChanged)) {
+      final source = widget.isLogged
+          ? widget
+          : oldWidget.isLogged
+              ? oldWidget
+              : widget;
+      _reps.text = source.performedReps?.toString() ?? '';
+      _weight.text = _displayWeight(source.performedLoadKg);
+      _originalKg = source.performedLoadKg;
+      _originalWeightText = _displayWeight(_originalKg);
+      _distance.text = source.performedDistanceMeters == null
+          ? ''
+          : RoutineSetInputLimits.displayDistanceKm(
+              source.performedDistanceMeters,
+            );
+      _originalMeters = source.performedDistanceMeters;
+      _originalDistanceText = RoutineSetInputLimits.displayDistanceKm(
+        _originalMeters,
+      );
+      _duration.text = source.performedDurationSeconds == null
+          ? ''
+          : RoutineSetInputLimits.displayDurationSeconds(
+              source.performedDurationSeconds,
+            );
     }
     if (modeChanged ||
         changedExternally ||
@@ -626,9 +660,10 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
     final isComplete = widget.isExecution && widget.isLogged;
 
     final performedKg =
-        widget.performedLoadKg ?? widget.set.prescription.loadKg;
+        isComplete ? widget.performedLoadKg : widget.set.prescription.loadKg;
     final performedLoadText = _displayWeight(performedKg);
-    final performedReps = widget.performedReps ?? widget.set.prescription.reps;
+    final performedReps =
+        isComplete ? widget.performedReps : widget.set.prescription.reps;
     final performedRepsText = performedReps?.toString() ?? '–';
 
     return Row(
@@ -695,7 +730,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
                             ? RoutineSetInputLimits.displayDistanceKm(
                                 widget.performedDistanceMeters,
                               )
-                            : (_distance.text.isEmpty ? '–' : _distance.text),
+                            : '–',
                         style: const TextStyle(
                           color: TioPalette.white,
                           fontWeight: TioFontWeight.w600,
@@ -731,7 +766,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
                             ? RoutineSetInputLimits.displayDurationSeconds(
                                 widget.performedDurationSeconds,
                               )
-                            : (_duration.text.isEmpty ? '–' : _duration.text),
+                            : '–',
                         style: const TextStyle(
                           color: TioPalette.white,
                           fontWeight: TioFontWeight.w600,

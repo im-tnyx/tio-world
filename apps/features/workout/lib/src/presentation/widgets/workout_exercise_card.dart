@@ -302,7 +302,43 @@ class WorkoutExerciseCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: TioSpacing.sm),
-              if (isLog) ...[
+              if (isLog && exerciseType == ExerciseType.distanceDuration) ...[
+                const Expanded(
+                  child: Text('KM', textAlign: TextAlign.center),
+                ),
+                const SizedBox(width: TioSpacing.sm),
+                const Expanded(
+                  child: Text('TIME', textAlign: TextAlign.center),
+                ),
+                if (showRpe) ...[
+                  const SizedBox(width: TioSpacing.sm),
+                  const SizedBox(
+                    width: TioSize.dp44,
+                    child: Text('RPE', textAlign: TextAlign.center),
+                  ),
+                ],
+                const SizedBox(width: TioSpacing.sm),
+                const SizedBox(
+                  width: TioSize.dp40,
+                  child: Text('✓', textAlign: TextAlign.center),
+                ),
+              ] else if (isLog && exerciseType == ExerciseType.duration) ...[
+                const Expanded(
+                  child: Text('TIME', textAlign: TextAlign.center),
+                ),
+                if (showRpe) ...[
+                  const SizedBox(width: TioSpacing.sm),
+                  const SizedBox(
+                    width: TioSize.dp44,
+                    child: Text('RPE', textAlign: TextAlign.center),
+                  ),
+                ],
+                const SizedBox(width: TioSpacing.sm),
+                const SizedBox(
+                  width: TioSize.dp40,
+                  child: Text('✓', textAlign: TextAlign.center),
+                ),
+              ] else if (isLog) ...[
                 const Expanded(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,

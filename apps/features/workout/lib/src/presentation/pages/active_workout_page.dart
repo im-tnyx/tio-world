@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../domain/exercises/exercise_catalog_repository.dart';
 import '../../domain/exercises/user_exercise_repository.dart';
@@ -477,7 +478,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       exerciseIndex,
       () => [
         RoutineCompositionSet(
-          id: _syntheticUuid(exerciseIndex, 0),
+          id: const Uuid().v4(),
           prescription: SetPrescription(setType: RoutineSetType.normal),
         ),
       ],
@@ -488,10 +489,9 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     final sets = _setsForExercise(exerciseIndex);
     if (sets.length >= RoutineCompositionLimits.maxSetsPerExercise) return;
     setState(() {
-      final newIndex = sets.length;
       sets.add(
         RoutineCompositionSet(
-          id: _syntheticUuid(exerciseIndex, newIndex),
+          id: const Uuid().v4(),
           prescription: SetPrescription(setType: RoutineSetType.normal),
         ),
       );
@@ -521,8 +521,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
         }
       } else if (chosen == 'remove') {
         sets.removeWhere((s) => s.id == set.id);
-        _loggedSets.remove('$exerciseIndex-$setIndex');
-        _setRpes.remove('$exerciseIndex-$setIndex');
+        _loggedSets.remove(set.id);
+        _setRpes.remove(set.id);
       }
     });
   }
@@ -532,7 +532,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     int setIndex,
     RoutineCompositionSet set,
   ) async {
-    final setId = '$exerciseIndex-$setIndex';
+    final setId = set.id;
     final currentRpe = _setRpes[setId];
     final logged = _loggedSets[setId];
     final loadKg = logged?.loadKg ?? set.prescription.loadKg;
@@ -561,12 +561,15 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     if (!mounted || action == null) return;
     if (action == RoutineExerciseOption.remove) {
       setState(() {
+        final removedSets = _previewExerciseSets[exerciseIndex] ?? const [];
+        for (final set in removedSets) {
+          _loggedSets.remove(set.id);
+          _setRpes.remove(set.id);
+        }
         _previewExercises.removeAt(exerciseIndex);
         _reindexMapAfterRemoval(_previewExerciseSets, exerciseIndex);
         _reindexMapAfterRemoval(_restPresets, exerciseIndex);
         _reindexMapAfterRemoval(_exerciseNotes, exerciseIndex);
-        _reindexSetMapAfterRemoval(_loggedSets, exerciseIndex);
-        _reindexSetMapAfterRemoval(_setRpes, exerciseIndex);
       });
     } else if (action == RoutineExerciseOption.replace) {
       final repo = widget.catalogRepository;
@@ -585,9 +588,12 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       );
       if (selected != null && selected.isNotEmpty && mounted) {
         setState(() {
+          for (final set in _previewExerciseSets[exerciseIndex] ?? const []) {
+            _loggedSets.remove(set.id);
+            _setRpes.remove(set.id);
+          }
           _previewExercises[exerciseIndex] = selected.first;
-          _loggedSets.removeWhere((k, _) => k.startsWith('$exerciseIndex-'));
-          _setRpes.removeWhere((k, _) => k.startsWith('$exerciseIndex-'));
+          _previewExerciseSets.remove(exerciseIndex);
         });
       }
     }
@@ -646,22 +652,6 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       if (entry.key == removedIndex) continue;
       shifted[entry.key > removedIndex ? entry.key - 1 : entry.key] =
           entry.value;
-    }
-    values
-      ..clear()
-      ..addAll(shifted);
-  }
-
-  void _reindexSetMapAfterRemoval<T>(Map<String, T> values, int removedIndex) {
-    final shifted = <String, T>{};
-    for (final entry in values.entries) {
-      final parts = entry.key.split('-');
-      if (parts.length != 2) continue;
-      final exerciseIndex = int.tryParse(parts.first);
-      if (exerciseIndex == null || exerciseIndex == removedIndex) continue;
-      final nextIndex =
-          exerciseIndex > removedIndex ? exerciseIndex - 1 : exerciseIndex;
-      shifted['$nextIndex-${parts.last}'] = entry.value;
     }
     values
       ..clear()
@@ -934,12 +924,12 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
         });
       },
       buildSetRow: (set, setIndex) {
-        final setId = '$exerciseIndex-$setIndex';
+        final setId = set.id;
         final logged = _loggedSets[setId];
         final isLogged = logged != null;
 
         return WorkoutSetInputRow(
-          key: ValueKey('preview-set-input-$exerciseIndex-$setIndex'),
+          key: ValueKey('preview-set-input-${set.id}'),
           set: set,
           index: setIndex,
           normalNumber: setIndex + 1,
@@ -1097,13 +1087,45 @@ class _SessionState extends StatefulWidget {
 class _SessionStateState extends State<_SessionState> {
   final Map<int, RoutineRestTimerPreset> _restPresets = {};
   final Map<int, List<ExerciseNoteDraftSnapshot>> _exerciseNotes = {};
-  final Map<int, List<RoutineCompositionSet>> _extraSessionSets = {};
+  final Map<int, Map<int, RoutineCompositionSet>> _extraSessionSets = {};
   ExerciseCatalog? _catalog;
 
   @override
   void initState() {
     super.initState();
+    _retainPersistedAdditionalSets(widget.state);
     _loadCatalog();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SessionState oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _retainPersistedAdditionalSets(widget.state);
+  }
+
+  void _retainPersistedAdditionalSets(ActiveWorkoutState state) {
+    final session = state.session;
+    if (session == null) return;
+    for (final performed in state.performedSets) {
+      final occurrenceIndex = performed.sessionExerciseIndex;
+      if (occurrenceIndex >= session.snapshot.exercises.length) continue;
+      final occurrence = session.snapshot.exercises[occurrenceIndex];
+      if (performed.setIndex < occurrence.prescribedSets.length) {
+        continue;
+      }
+      _extraSessionSets
+          .putIfAbsent(occurrence.occurrenceIndex, () => {})
+          .putIfAbsent(
+            performed.setIndex,
+            () => RoutineCompositionSet(
+              id: _syntheticUuid(
+                occurrence.occurrenceIndex,
+                performed.setIndex,
+              ),
+              prescription: SetPrescription(setType: RoutineSetType.normal),
+            ),
+          );
+    }
   }
 
   Future<void> _loadCatalog() async {
@@ -1123,12 +1145,14 @@ class _SessionStateState extends State<_SessionState> {
   void _addSet(int occurrenceIndex, int currentSetCount) {
     if (currentSetCount >= RoutineCompositionLimits.maxSetsPerExercise) return;
     setState(() {
-      final extra = _extraSessionSets.putIfAbsent(occurrenceIndex, () => []);
-      extra.add(
-        RoutineCompositionSet(
-          id: _syntheticUuid(occurrenceIndex, currentSetCount),
-          prescription: SetPrescription(setType: RoutineSetType.normal),
-        ),
+      final extra = _extraSessionSets.putIfAbsent(occurrenceIndex, () => {});
+      var newIndex = currentSetCount;
+      while (extra.containsKey(newIndex)) {
+        newIndex++;
+      }
+      extra[newIndex] = RoutineCompositionSet(
+        id: const Uuid().v4(),
+        prescription: SetPrescription(setType: RoutineSetType.normal),
       );
     });
   }
@@ -1436,8 +1460,32 @@ class _SessionStateState extends State<_SessionState> {
               prescription: e.value,
             ))
         .toList();
-    final extra = _extraSessionSets[exercise.occurrenceIndex] ?? const [];
-    final sets = [...prescribed, ...extra];
+    final extra = _extraSessionSets[exercise.occurrenceIndex] ?? const {};
+    final maxPerformedIndex = state.performedSets
+        .where((set) => set.sessionExerciseIndex == exercise.occurrenceIndex)
+        .fold<int>(
+            -1,
+            (maxIndex, set) =>
+                set.setIndex > maxIndex ? set.setIndex : maxIndex);
+    final maxExtraIndex = extra.keys.fold<int>(
+      -1,
+      (maxIndex, setIndex) => setIndex > maxIndex ? setIndex : maxIndex,
+    );
+    final lastSetIndex = <int>[
+      prescribed.length - 1,
+      maxPerformedIndex,
+      maxExtraIndex,
+    ].reduce((a, b) => a > b ? a : b);
+    final sets = List<RoutineCompositionSet>.generate(
+      lastSetIndex + 1,
+      (setIndex) => setIndex < prescribed.length
+          ? prescribed[setIndex]
+          : extra[setIndex] ??
+              RoutineCompositionSet(
+                id: _syntheticUuid(exercise.occurrenceIndex, setIndex),
+                prescription: SetPrescription(setType: RoutineSetType.normal),
+              ),
+    );
     final hasWarmUpSets =
         sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
     final restPreset = _restPresets[exercise.occurrenceIndex] ??

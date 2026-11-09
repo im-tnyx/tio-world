@@ -1022,6 +1022,200 @@ void main() {
     expect(loggedDuration, 489);
   });
 
+  testWidgets('completed rows render only non-null performed measurements',
+      (tester) async {
+    const repsOnlyId = '99999999-9999-4999-a999-999999999991';
+    const loadOnlyId = '99999999-9999-4999-a999-999999999992';
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: Column(
+          children: [
+            WorkoutSetInputRow(
+              set: RoutineCompositionSet(
+                id: repsOnlyId,
+                prescription: SetPrescription(reps: 12, loadKg: 50),
+              ),
+              index: 0,
+              normalNumber: 1,
+              unit: WeightUnit.kg,
+              enabled: true,
+              isExecution: true,
+              isLogged: true,
+              performedReps: 9,
+              performedLoadKg: null,
+              rowKey: const ValueKey('performed-reps-only-row'),
+            ),
+            WorkoutSetInputRow(
+              set: RoutineCompositionSet(
+                id: loadOnlyId,
+                prescription: SetPrescription(reps: 14, loadKg: 35),
+              ),
+              index: 1,
+              normalNumber: 2,
+              unit: WeightUnit.kg,
+              enabled: true,
+              isExecution: true,
+              isLogged: true,
+              performedReps: null,
+              performedLoadKg: 22,
+              rowKey: const ValueKey('performed-load-only-row'),
+            ),
+          ],
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final repsOnly = find.byKey(const ValueKey('performed-reps-only-row'));
+    final loadOnly = find.byKey(const ValueKey('performed-load-only-row'));
+    expect(
+        find.descendant(of: repsOnly, matching: find.text('50')), findsNothing);
+    expect(
+        find.descendant(of: repsOnly, matching: find.text('12')), findsNothing);
+    expect(find.descendant(of: repsOnly, matching: find.text('9')),
+        findsOneWidget);
+    expect(
+        find.descendant(of: loadOnly, matching: find.text('35')), findsNothing);
+    expect(
+        find.descendant(of: loadOnly, matching: find.text('14')), findsNothing);
+    expect(find.descendant(of: loadOnly, matching: find.text('22')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('restored cardio values remain in inputs for retry',
+      (tester) async {
+    const id = '99999999-9999-4999-a999-999999999993';
+    var isLogged = true;
+    double? performedDistance = 2500;
+    int? performedDuration = 905;
+    int? retriedDuration;
+    double? retriedDistance;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: StatefulBuilder(
+          builder: (context, setState) => WorkoutSetInputRow(
+            key: const ValueKey('restored-cardio-row'),
+            set: RoutineCompositionSet(
+              id: id,
+              prescription: SetPrescription(
+                distanceMeters: 1200,
+                durationSeconds: 60,
+              ),
+            ),
+            index: 0,
+            normalNumber: 1,
+            unit: WeightUnit.kg,
+            exerciseType: ExerciseType.distanceDuration,
+            enabled: true,
+            isExecution: true,
+            isLogged: isLogged,
+            performedDistanceMeters: performedDistance,
+            performedDurationSeconds: performedDuration,
+            toggleKey: const ValueKey('restored-cardio-toggle'),
+            onToggleLogged: ({
+              reps,
+              loadKg,
+              durationSeconds,
+              distanceMeters,
+            }) async {
+              if (isLogged) {
+                setState(() {
+                  isLogged = false;
+                  performedDistance = null;
+                  performedDuration = null;
+                });
+              } else {
+                retriedDistance = distanceMeters;
+                retriedDuration = durationSeconds;
+                setState(() {
+                  isLogged = true;
+                  performedDistance = distanceMeters;
+                  performedDuration = durationSeconds;
+                });
+              }
+            },
+          ),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('restored-cardio-toggle')));
+    await tester.pumpAndSettle();
+
+    final distanceField = tester.widget<EditableText>(find.descendant(
+      of: find.byKey(const ValueKey('routine-set-distance-$id')),
+      matching: find.byType(EditableText),
+    ));
+    final durationField = tester.widget<EditableText>(find.descendant(
+      of: find.byKey(const ValueKey('routine-set-duration-$id')),
+      matching: find.byType(EditableText),
+    ));
+    expect(distanceField.controller.text, '2.5');
+    expect(durationField.controller.text, '15:05');
+
+    await tester.tap(find.byKey(const ValueKey('restored-cardio-toggle')));
+    await tester.pumpAndSettle();
+    expect(retriedDistance, 2500);
+    expect(retriedDuration, 905);
+  });
+
+  testWidgets('rep-range execution uses one actual-reps input', (tester) async {
+    const id = '99999999-9999-4999-a999-999999999994';
+    int? loggedReps;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.light),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: WorkoutSetInputRow(
+          set: RoutineCompositionSet(
+            id: id,
+            prescription: SetPrescription(reps: 8, repsMax: 12, loadKg: 20),
+          ),
+          index: 0,
+          normalNumber: 1,
+          unit: WeightUnit.kg,
+          enabled: true,
+          isExecution: true,
+          toggleKey: const ValueKey('rep-range-execution-toggle'),
+          onToggleLogged: (
+              {reps, loadKg, durationSeconds, distanceMeters}) async {
+            loggedReps = reps;
+          },
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('routine-set-reps-$id')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('routine-set-reps-max-$id')),
+      findsNothing,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('routine-set-reps-$id')),
+      '10',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('rep-range-execution-toggle')));
+    await tester.pumpAndSettle();
+    expect(loggedReps, 10);
+  });
+
   testWidgets('Create fixed Set has outlined blank Reps without fabricated Max',
       (tester) async {
     tester.view.physicalSize = const Size(320, 720);

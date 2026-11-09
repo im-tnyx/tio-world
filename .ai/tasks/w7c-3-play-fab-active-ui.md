@@ -1,7 +1,7 @@
 # Feature Task: W7C-3 Active Workout execution and completion
 
-**Status:** In progress — exact Save metadata contract is proposed; separate schema approval, pending review fixes, and merge gates remain
-**Primary owner:** Current Codex implementation owner, continuing PR #740 on the existing branch
+**Status:** In progress — exact Save metadata contract is proposed; seven review fixes and the merge gate remain
+**Primary owner:** Current local Codex implementation owner, continuing PR #740 on the existing branch
 **Affected platforms:** Flutter Android and iOS phone
 
 ## Owner Approval and Scope Boundary
@@ -13,11 +13,11 @@
 
 **Approved Save-title addendum (2026-11-09):** Workout Title is optional. At Save submission, trim surrounding whitespace from a nonblank custom title; otherwise derive `Morning Workout` (05:00–11:59), `Afternoon Workout` (12:00–16:59), `Evening Workout` (17:00–20:59), or `Night Workout` (21:00–04:59) from the selected local workout Date & Time. Never block Save for an empty title. Preserve the resolved value through canonical persistence, retry, restore, and history/detail reads. Keep the existing UI unchanged. The checked-in W7 session RPC/repository currently has no title argument/field and does not persist the editable Save Date & Time. Exact owner approval for a minimal owner-scoped schema/RPC extension is pending; do not implement a UI-only title or claim it was saved.
 
-## Live Reconciliation and Save Contract Proposal — 2026-11-09
+## Live Reconciliation and Save Contract Proposal — 2026-11-09 (review-fix handoff)
 
-**Git / PR:** Repository root `G:\projects\Tio-World`; branch `feat/w7c-3-active-workout-execution-ui`; local HEAD and GitHub PR #740 HEAD are `df9a3fa7c06f7e820a600d234b262de4bed1a9fa`. Worktree clean, no stashes. GitHub API confirms `main@c76c81d79395bb7f242e321a9fdde1d1fc08e270`, also the PR base. `git fetch origin --prune` could not update `.git/FETCH_HEAD` (`Permission denied`); GitHub API is the verified remote source. PR #740 remains open and unmerged.
+**Git / PR:** Repository root `G:\projects\Tio-World`; branch `feat/w7c-3-active-workout-execution-ui`; local HEAD and GitHub PR #740 HEAD are `38d2b631156bd74e799d0522cf9aee01815d515b`. Worktree clean, no stashes. GitHub API confirms `main@c76c81d79395bb7f242e321a9fdde1d1fc08e270`, also the PR base. `git fetch origin --prune` could not update `.git/FETCH_HEAD` in the prior session; this audit used GitHub API as the verified remote source. PR #740 remains open and unmerged.
 
-**Review / CI:** Latest GitHub snapshot has 17/17 unresolved review threads, 8 current and 9 outdated; none were resolved in this audit. Independent review remains `CHANGES_REQUESTED`; there is no independent approval on the latest eligible HEAD. All five PR-triggered workflows on `df9a3fa7` succeeded: Docs Hygiene CI, Supabase Functions CI, Flutter CI (analyze and app-workout/nutrition/core-wear tests), Supabase Database CI (migration replay), and Android Native CI (debug APKs). The separate commit-attribution guard also succeeded. Cursor automated review/security checks are neutral because the connected automation reached its usage limit; they are not independent approval. PR requests `i-the` review.
+**Review / CI:** Latest GitHub snapshot has 18/18 unresolved review threads, 8 current and 10 outdated. The latest `im-tio` review on `38d2b631` is `CHANGES_REQUESTED` and names seven P2 execution regressions; its seven-item list excludes the earlier duration/distance P1, which source and tests already address. All five PR-triggered workflows on `38d2b631` succeeded: Docs Hygiene CI, Supabase Functions CI, Flutter CI, Supabase Database CI, and Android Native CI. A later infrastructure-only Android attempt briefly hit GitHub release HTTP 504s; the third attempt passed and the exact-head run is green. The separate commit-attribution guard and automated Cursor/Codex checks are not independent approval. No review threads were resolved in this audit; request a fresh `im-tio` review after verified fixes.
 
 **Linear / Issue:** TNYX-84 is `In Progress`, blocked by TNYX-80 and TNYX-81 and blocks TNYX-85 and TNYX-88. GitHub #739 still has its historical UI-only scope text; current owner direction supersedes that restriction only for real-save product behavior. A new table/column shape and hosted migration still need separate exact approval.
 
@@ -47,23 +47,23 @@
 
 ## Active Handoff
 
-**Planning owner:** Current Codex agent (preflight and scope reconciliation complete)
-**Implementation owner:** Current local Codex agent
+**Planning owner:** Current Codex agent (latest PR/tracker/source reconciliation complete)
+**Implementation owner:** Current local Codex agent (seven-finding review-fix slice)
 **Review owner:** Independent GitHub reviewer (`i-the` currently requested); must review the latest eligible HEAD
 **Implementation ownership state:** Taken over from the prior ChatGPT GitHub implementation agent after repository/tracker reconstruction; no concurrent implementation owner is known.
 **Ownership transfer record:** Previous Implementation Owner `ChatGPT GitHub implementation agent` → Receiving Implementation Owner `current local Codex implementation owner`. At transfer, verified clean worktree, branch `feat/w7c-3-active-workout-execution-ui`, PR HEAD `0c23e8fd5acafc09a5b97fb720c6f833fc9c602a`, base `c76c81d79395bb7f242e321a9fdde1d1fc08e270`, and no stashes. Scope continues the owner-approved W7C-3 task and does not grant the separate Supabase shape/deployment gate.
-**Latest ownership transfer record (2026-11-09):** Previous Implementation Owner `prior local Codex session` → Receiving Implementation Owner `current Codex session`. Reconstructed from clean branch `feat/w7c-3-active-workout-execution-ui` at local/PR HEAD `df9a3fa7c06f7e820a600d234b262de4bed1a9fa`, base `main@c76c81d79395bb7f242e321a9fdde1d1fc08e270`, no stashes, and no concurrent implementation agent. Scope is this existing W7C-3 task only; no table/column shape or hosted-deployment authority is transferred.
+**Latest ownership transfer record (2026-11-09):** Previous Implementation Owner `prior local Codex session` → Receiving Implementation Owner `current local Codex session`. Reconstructed from clean local/PR HEAD `38d2b631156bd74e799d0522cf9aee01815d515b`, branch `feat/w7c-3-active-workout-execution-ui`, base `main@c76c81d79395bb7f242e321a9fdde1d1fc08e270`, no stashes, and no other active local implementation owner known. Scope is only the seven latest review fixes and their regression tests. This does not grant the separately gated Supabase shape/deployment authority or permission to merge.
 **Ownership transition:** Consolidated the temporary Play FAB/UI work into the existing W7C-3 branch without rewriting original commits. The consolidation merge has original W7C-3 HEAD `0f32b91` and W7C-2 merged main `c76c81d` as parents, and selects the already-audited combined UI tree. Original implementation history remains reachable. PR #740 is canonical; duplicate PR #741 is superseded/closed.
-**Repository state last verified:** Preflight was clean at `df9a3fa7c06f7e820a600d234b262de4bed1a9fa`, matching GitHub PR #740 HEAD; base is `main@c76c81d79395bb7f242e321a9fdde1d1fc08e270`. Local fetch could not update `.git/FETCH_HEAD` due permission; remote main and PR head were read directly through GitHub API. This session now has a scoped, uncommitted local diff described below.
+**Repository state before this slice:** Clean at `38d2b631156bd74e799d0522cf9aee01815d515b`, matching GitHub PR #740 HEAD; base is `main@c76c81d79395bb7f242e321a9fdde1d1fc08e270`; no stashes. GitHub API verified the remote refs because git fetch was unavailable in the prior session. This task had no unrelated user changes to preserve.
 **Branch:** feat/w7c-3-active-workout-execution-ui
-**Observed working-tree state:** Scoped uncommitted changes are limited to `.ai/tasks/README.md`, `.ai/tasks/w7c-3-play-fab-active-ui.md`, `apps/features/workout/lib/src/presentation/pages/active_workout_page.dart`, `apps/features/workout/lib/src/presentation/pages/save_workout_page.dart`, and `apps/features/workout/test/presentation/save_workout_page_test.dart`. No stashes listed.
+**Observed working-tree state at takeover:** Clean at `38d2b631`; no untracked changes or stashes.
 **PR / tracker:** GitHub PR #740 / GitHub #739 / Linear TNYX-84
 **Relevant execution surface:** apps/features/workout, apps/app routing, .ai task handoff
-**Validation on exact source HEAD:** GitHub reports five successful PR-triggered workflows for `df9a3fa7` and a successful attribution guard. Local validation on the same source state passed `flutter test --no-pub` in `apps/features/workout` (**1,322 tests**), focused workout widgets (**66 tests**), `flutter analyze --no-pub` in `apps/features/workout` and `apps/app`, and `git diff --check`. Nearby-gyms Deno runtime tests and device/hosted integration were not run; previous Deno attempt was blocked fetching JSR `@std/assert`.
-**Local delta after `df9a3fa7` (not yet committed/pushed):** `SaveWorkoutPage.onDiscard` awaits the canonical discard result, remains open and shows an error when persistence returns false, and only pops after confirmed success. `ActiveWorkoutPage` returns the controller's actual result. Two focused regression tests cover pending and failed discard persistence. The task brief records the exact proposed W7C metadata contract; no migration or W7 persistence code changed. `dart format` ran on changed Dart files; `flutter analyze --no-pub` in `apps/features/workout` reports no issues; focused Save/Active page tests passed (**39 tests**). Re-run `git diff --check` before commit/push.
-**Current blockers:** Hosted project has only the ledger through `20261031142025`; W7B `20261106073920_user_workout_sessions.sql` is merged source but not deployed. The proposed W7C nullable metadata columns/V2 RPC require explicit shape approval. No real ad-hoc start or history-list contract exists; preview cannot report Save success. Google Places remains undeployed with quota/billing/abuse controls unverified. PR #740 has 17 unresolved threads and the independent review is `CHANGES_REQUESTED`; do not resolve threads without evidence or claim merge readiness.
-**Tracker update:** Linear TNYX-84 remains `In Progress`; its live dependency relation blocks on TNYX-80/TNYX-81 and blocks TNYX-85/TNYX-88. GitHub #739 still carries historical UI-only scope; record the superseding real-save direction plus the separate schema/deployment gate. PR #740 remains open on `df9a3fa7`; latest review is `CHANGES_REQUESTED`, all 17 threads unresolved, and five workflows pass.
-**Next exact action:** Obtain explicit owner approval/rejection of the exact additive W7C columns and V2 completion RPC proposal in this handoff before schema or Flutter persistence implementation; keep independent review fixes in the existing branch and retain the no-automatic-merge gate.
+**Validation at takeover:** Exact-head GitHub Actions runs for `38d2b631` report Docs Hygiene, Supabase Functions, Flutter, Supabase Database, and Android Native CI all successful. This slice later passed Workout analysis and all 1,333 Workout tests, app analysis and 101 focused app provider/routing tests.
+**Prior local delta now committed:** `38d2b631` makes Save Workout await canonical discard confirmation and retain the page on a failed persistence result; two focused regressions passed. No migration or W7 persistence code changed.
+**Current blockers:** Hosted project ledger ends at `20261031142025`; merged W7B `20261106073920_user_workout_sessions.sql` is not deployed. The proposed W7C nullable columns/V2 RPC require explicit shape approval. No real ad-hoc start or history-list contract exists; preview cannot report Save success. Google Places remains undeployed with quota/billing/abuse controls unverified. PR #740 had 18 unresolved threads at takeover; latest `im-tio` review on `38d2b631` requested changes. Exact thread dispositions, current-head CI and fresh independent review remain pending.
+**Tracker state:** Linear TNYX-84 remains `In Progress`; it is blocked by TNYX-80/TNYX-81 and blocks TNYX-85/TNYX-88. GitHub #739's historical UI-only wording is superseded for the real-save product goal, while schema/deployment approval remains separate. Refresh PR #740 HEAD, checks, reviews and thread dispositions after publication.
+**Next exact action:** Finish evidence-backed thread replies/dispositions, commit and push the validated seven-finding slice to PR #740, verify exact-head CI and request a fresh independent review. Do not merge or deploy.
 
 ## 1. Discovery
 
@@ -110,14 +110,24 @@ Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> fe
 - [x] Truthful no-session preview on Play entry, without mutating data.
 - [x] Preserve W7C-3 screenshot-inspired stats/set UI and accept entered actual set values.
 - [x] Focused widget regression tests authored for duration, save truthfulness, execution measurements, and preview completion.
-- [ ] Focused regression tests completed and run on this working tree, including title boundaries/persistence after backend approval.
-- [ ] Exact-head CI, independent review, compact-width device validation.
+- [x] Focused regression tests completed and run for the seven review findings; title persistence tests remain gated on the approved backend contract.
+- [ ] Exact-head CI, independent review, compact-width device visual comparison.
 
 ## 6. Quality Review
 
-**Validation:** Commit `b888b084c51564a20450658e6d7a4674fd370993` is published but its Flutter CI failed. The local correction passes all 1,322 workout tests and both Workout/app analysis; the corrected state is pending push and exact-head CI. Deno test, device comparison, hosted persistence, and independent review remain pending.
+**Validation for the seven-finding local delta (not yet committed):** `dart format` completed on the touched Dart paths except `workout_exercise_card.dart`, whose pre-existing formatting is intentionally preserved to keep the diff limited to the header correction; `git diff --check` passed. Focused Active Workout/Set Input tests: 57 passed. Full `apps/features/workout` suite: 1,333 passed. Workout and app `flutter analyze --no-pub`: no issues. Relevant app provider/routing tests: 101 passed. The first non-escalated SDK invocation produced no output and was stopped; the same checks passed with the authorized writable SDK/cache. Compact 320dp light/dark header widget checks ran, but screenshot/device baseline comparison, Android build, Deno tests, hosted persistence, and fresh PR-head CI/review remain pending.
 
-**Review-thread source dispositions (not independently validated; leave all threads unresolved):**
+**Seven current `im-tio` findings and regression evidence:**
+
+1. Additional persisted performed sets render after restore: `active_workout_page_test.dart` — `restores all additional performed sets beyond the snapshot`.
+2. Preview set removal keeps later performed state attached to its UUID: `active_workout_page_test.dart` — `removing a preview Set preserves performed state on later Sets`.
+3. Removed/re-added preview sets use a fresh UUID: `active_workout_page_test.dart` — `re-adding a preview Set after removal creates a unique UUID`.
+4. Completed rows show only actual non-null performed values: `routine_set_input_row_test.dart` — `completed rows render only non-null performed measurements`.
+5. Restored cardio values seed editing and survive re-log: `active_workout_page_test.dart` — `restored cardio values seed inputs and survive re-log at 320dp`.
+6. Cardio execution headers match TIME/KM fields in both themes at compact width: `active_workout_page_test.dart` — light and dark `execution headers follow cardio measurement columns` tests.
+7. Execution rep-range prescriptions use one actual-reps input: `routine_set_input_row_test.dart` — `rep-range execution uses one actual-reps input`.
+
+**Earlier review findings:**
 
 1. P1 false preview Save success — removed preview Save navigation; Finish explains the draft is not saved and retains it. Regression test authored, not run.
 2. P1 session hidden by empty preview during reconciliation — reconciliation state remains authoritative even when entry requested preview. Test not run.
@@ -128,14 +138,17 @@ Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> fe
 7. P2 gym response race — initial and typed searches share request-generation guards for result/loading updates. Race regression test not yet authored/run.
 8. P2 permission prompt timeout — timeout removed from `requestPermission`; position acquisition remains bounded. Permission-path test not yet authored/run.
 9. P2 Set Type/RPE lost on restore — persisted-session override callbacks are unavailable; immutable snapshot type remains and widget-only overrides are not offered. Restoration test not yet authored/run.
-10. P2 fabricated Jaipur proximity — hardcoded gyms/distances removed; denied/network failure returns no fabricated nearby list. Deno tests authored but blocked before execution by unavailable JSR access.
+10. P2 fabricated Jaipur proximity — hardcoded gyms/distances removed; denied/network failure returns no fabricated nearby list. Full Flutter suite passed; no dedicated fallback-widget test was found in this slice.
+11. P2 discard persistence — Save Workout awaits discard confirmation and keeps the page open on persistence failure; `save_workout_page_test.dart` has success/failure regressions included in the passing full Workout suite.
+
+The older P2 Save-metadata thread remains a real backend gate: current completion persists only notes, and title/selected date-time need the separately approved schema/RPC contract above. Do not resolve it as complete or claim auto-title persistence.
 
 **Nearby-gyms security:** Auth verification, bounded request validation, generic errors, and checked-in `verify_jwt` are present in source. Deno tests did not execute. Persistent rate/abuse limits and Google quota/billing controls remain unverified; hosted function is absent and deployment is blocked.
 
-**Review provenance:** Pending independent GitHub review. ChatGPT implementation/self-inspection is not independent approval.
+**Review provenance:** Awaiting evidence-backed thread updates and a fresh independent `im-tio` review on the eventual pushed HEAD. ChatGPT implementation/self-inspection is not independent approval.
 
 ## 7. Final Handoff
 
-**Status:** BLOCKED — source correction is locally validated but not yet published; exact-head CI/re-review are pending, and real-save title/date-time contract approval remains outstanding.
+**Status:** REVIEW — seven review fixes are locally validated; changes are not yet published, exact-head CI/review are pending, and real-save title/date-time approval and hosted migrations remain separate blockers.
 
 No hosted Supabase schema/RPC changes or deployments were made. Source changes do touch the checked-in Edge Function and `supabase/config.toml`. No merge authorization was given.

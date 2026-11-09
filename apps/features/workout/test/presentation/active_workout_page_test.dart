@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
+import 'package:tio_feature_workout/src/presentation/widgets/workout_exercise_card.dart';
 
 const _userId = '11111111-1111-4111-a111-111111111111';
 final _sessionId = WorkoutSessionId('22222222-2222-4222-a222-222222222222');
@@ -76,8 +77,14 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     required WorkoutSessionId sessionId,
     required int expectedRevision,
     required String setId,
-  }) async =>
-      active!;
+  }) async {
+    final record = active!;
+    active = record.copyWith(
+      session: record.session.removeSet(setId),
+      revision: record.revision + 1,
+    );
+    return active!;
+  }
 
   @override
   Future<WorkoutSessionRecord> completeSession({
@@ -180,6 +187,48 @@ WorkoutSession _session({
   );
 }
 
+WorkoutSession _cardioSession() {
+  final start = DateTime.utc(2026, 11, 7, 10);
+  final snapshot = WorkoutSessionSnapshot(
+    routineId: _routineId,
+    routineName: 'Cardio Day',
+    programId: _programId,
+    capturedAtUtc: start,
+    exercises: [
+      SessionExerciseSnapshot(
+        exerciseRef: _exerciseRef,
+        displayName: 'Treadmill',
+        exerciseType: ExerciseType.distanceDuration,
+        occurrenceIndex: 0,
+        prescribedSets: [
+          SetPrescription(distanceMeters: 1200, durationSeconds: 60),
+        ],
+      ),
+    ],
+  );
+  return WorkoutSession(
+    id: _sessionId,
+    userId: _userId,
+    programId: _programId,
+    routineId: _routineId,
+    status: WorkoutSessionStatus.active,
+    time: WorkoutTime.start(startedAtUtc: start),
+    localDate: '2026-11-07',
+    snapshot: snapshot,
+    performedSets: [
+      PerformedSet(
+        id: '88888888-8888-4888-a888-888888888888',
+        exerciseRef: _exerciseRef,
+        sessionExerciseIndex: 0,
+        setIndex: 0,
+        distanceMeters: 2500,
+        durationSeconds: 905,
+        completedAtUtc: start.add(const Duration(minutes: 1)),
+      ),
+    ],
+  );
+}
+
 Future<void> _pumpPage(
   WidgetTester tester, {
   required ActiveWorkoutController controller,
@@ -208,7 +257,114 @@ Future<void> _pumpPage(
   await tester.pump(const Duration(milliseconds: 100));
 }
 
+Future<void> _addPreviewBench(WidgetTester tester) async {
+  await tester
+      .tap(find.byKey(const ValueKey('active-workout-preview-add-exercise')));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 350));
+  await tester
+      .tap(find.byKey(const ValueKey('exercise-row-ex_barbell_bench_press')));
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
+  testWidgets('removing a preview Set preserves performed state on later Sets',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+    await tester.tap(find.widgetWithText(TioButton, 'Add Set'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TioButton, 'Add Set'));
+    await tester.pumpAndSettle();
+
+    Future<void> logSet(String suffix, String load, String reps) async {
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(ValueKey('active-workout-preview-load-$suffix')),
+          matching: find.byType(EditableText),
+        ),
+        load,
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(ValueKey('active-workout-preview-reps-$suffix')),
+          matching: find.byType(EditableText),
+        ),
+        reps,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey('active-workout-preview-set-toggle-$suffix')),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await logSet('0-0', '40', '8');
+    await logSet('0-2', '45', '9');
+    await tester.tap(
+        find.byKey(const ValueKey('active-workout-preview-set-number-0-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-type-remove-set')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .getSemantics(
+            find.byKey(const ValueKey('active-workout-progress-bar')),
+          )
+          .value,
+      '100%',
+    );
+    expect(find.text('45'), findsOneWidget);
+    expect(find.text('9'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('re-adding a preview Set after removal creates a unique UUID',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+    await tester.tap(find.widgetWithText(TioButton, 'Add Set'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TioButton, 'Add Set'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+        find.byKey(const ValueKey('active-workout-preview-set-number-0-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-type-remove-set')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TioButton, 'Add Set'));
+    await tester.pumpAndSettle();
+
+    final card = tester.widget<WorkoutExerciseCard>(
+      find.byKey(const ValueKey('active-workout-preview-exercise-0')),
+    );
+    final setIds = card.entry.sets.map((set) => set.id).toList();
+    expect(setIds, hasLength(3));
+    expect(setIds.toSet(), hasLength(3));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Play preview has no fabricated session or exercise',
       (tester) async {
     final controller = ActiveWorkoutController(
@@ -492,6 +648,185 @@ void main() {
     expect(controller.state.performedSets.single.loadKg, 12);
     expect(controller.state.performedSets.single.reps, 6);
   });
+
+  testWidgets('restores all additional performed sets beyond the snapshot',
+      (tester) async {
+    final start = DateTime.utc(2026, 11, 7, 10);
+    final session = _session(withPerformedSet: false)
+        .logSet(
+          PerformedSet(
+            id: '66666666-6666-4666-a666-666666666666',
+            exerciseRef: _exerciseRef,
+            sessionExerciseIndex: 0,
+            setIndex: 1,
+            reps: 7,
+            loadKg: 31,
+            completedAtUtc: start.add(const Duration(minutes: 1)),
+          ),
+        )
+        .logSet(
+          PerformedSet(
+            id: '77777777-7777-4777-a777-777777777777',
+            exerciseRef: _exerciseRef,
+            sessionExerciseIndex: 0,
+            setIndex: 2,
+            reps: 9,
+            loadKg: 33,
+            completedAtUtc: start.add(const Duration(minutes: 2)),
+          ),
+        );
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: session, revision: 3);
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+
+    await _pumpPage(tester, controller: controller);
+    await tester.drag(
+      find.byType(SingleChildScrollView).last,
+      const Offset(0, -280),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('active-workout-set-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-set-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-set-2')), findsOneWidget);
+    expect(find.text('31'), findsOneWidget);
+    expect(find.text('33'), findsOneWidget);
+  });
+
+  testWidgets('restored cardio values seed inputs and survive re-log at 320dp',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _cardioSession(), revision: 2);
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      themeMode: TioThemeMode.light,
+    );
+    await tester.drag(
+      find.byType(SingleChildScrollView).last,
+      const Offset(0, -280),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('2.5'), findsOneWidget);
+    expect(find.text('15:05'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-0')));
+    await tester.pumpAndSettle();
+
+    const setRowId = '00000000-0000-4000-0000-000000000000';
+    final distanceInput = tester.widget<EditableText>(find.descendant(
+      of: find.byKey(const ValueKey('routine-set-distance-$setRowId')),
+      matching: find.byType(EditableText),
+    ));
+    final durationInput = tester.widget<EditableText>(find.descendant(
+      of: find.byKey(const ValueKey('routine-set-duration-$setRowId')),
+      matching: find.byType(EditableText),
+    ));
+    expect(distanceInput.controller.text, '2.5');
+    expect(durationInput.controller.text, '15:05');
+
+    await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-0')));
+    await tester.pumpAndSettle();
+    expect(repository.lastLoggedSet?.distanceMeters, 2500);
+    expect(repository.lastLoggedSet?.durationSeconds, 905);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final themeMode in [TioThemeMode.light, TioThemeMode.dark]) {
+    testWidgets(
+        'execution headers follow cardio measurement columns in ${themeMode.name}',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: TioThemeConfig(mode: themeMode),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: ListView(
+            children: [
+              for (final type in [
+                ExerciseType.distanceDuration,
+                ExerciseType.duration,
+              ])
+                WorkoutExerciseCard(
+                  key: ValueKey('cardio-header-${type.name}'),
+                  mode: WorkoutExerciseCardMode.log,
+                  entry: RoutineCompositionEntry(
+                    id: type == ExerciseType.distanceDuration
+                        ? '11111111-1111-4111-a111-111111111111'
+                        : '22222222-2222-4222-a222-222222222222',
+                    exercise: _exerciseRef,
+                    sets: [
+                      RoutineCompositionSet(
+                        id: type == ExerciseType.distanceDuration
+                            ? '33333333-3333-4333-a333-333333333333'
+                            : '44444444-4444-4444-a444-444444444444',
+                        prescription: SetPrescription(),
+                      ),
+                    ],
+                  ),
+                  index: type.index,
+                  totalEntries: 2,
+                  title: 'Cardio ${type.name}',
+                  thumbnailUrl: null,
+                  exerciseType: type,
+                  showRangeDraft: false,
+                  unit: WeightUnit.kg,
+                  enabled: true,
+                  buildSetRow: (_, __) => const SizedBox(height: 40),
+                  addSet: () {},
+                  keyPrefix: 'header-${type.name}',
+                ),
+            ],
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final distanceCard = find.byKey(
+        const ValueKey('cardio-header-distanceDuration'),
+      );
+      final timeCard = find.byKey(
+        const ValueKey('cardio-header-duration'),
+      );
+      expect(distanceCard, findsOneWidget);
+      expect(timeCard, findsOneWidget);
+      expect(find.descendant(of: distanceCard, matching: find.text('KM')),
+          findsOneWidget);
+      expect(find.descendant(of: distanceCard, matching: find.text('TIME')),
+          findsOneWidget);
+      expect(find.descendant(of: distanceCard, matching: find.text('KG')),
+          findsNothing);
+      expect(find.descendant(of: distanceCard, matching: find.text('REPS')),
+          findsNothing);
+      expect(find.descendant(of: timeCard, matching: find.text('TIME')),
+          findsOneWidget);
+      expect(find.descendant(of: timeCard, matching: find.text('KM')),
+          findsNothing);
+      expect(find.descendant(of: timeCard, matching: find.text('KG')),
+          findsNothing);
+      expect(find.descendant(of: timeCard, matching: find.text('REPS')),
+          findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('renders active snapshot and controller-backed actions',
       (tester) async {
