@@ -8,8 +8,37 @@ import 'package:tio_shared/shared.dart';
 import 'auth_providers.dart';
 
 import 'runtime_providers.dart';
+import 'secure_active_workout_draft_store.dart';
 
 typedef _WorkoutAuthIdentity = ({String ownerId, String loginCycleId});
+
+/// Device-local Save-only draft, bound to the current authenticated login.
+/// Logout hides but does not delete it; the same owner can restore after login.
+final activeWorkoutDraftStoreProvider =
+    Provider<ActiveWorkoutDraftStore?>((ref) {
+  final identity = ref.watch(
+    authSessionStateProvider.select(_selectWorkoutAuthIdentity),
+  );
+  if (identity == null) return null;
+
+  String? currentUserId() {
+    try {
+      final current = ref.read(authSessionStateProvider);
+      final auth =
+          current.isLoading || current.hasError ? null : current.valueOrNull;
+      if (auth is AuthSessionAuthenticated &&
+          auth.session.userId == identity.ownerId &&
+          auth.session.loginCycleId == identity.loginCycleId) {
+        return identity.ownerId;
+      }
+    } catch (_) {
+      // A stale adapter cannot read a draft after its provider is disposed.
+    }
+    return null;
+  }
+
+  return SecureActiveWorkoutDraftStore(currentUserId: currentUserId);
+});
 
 /// The only Auth fields that define Workout mutation authority and lifecycle.
 ///
