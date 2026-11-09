@@ -25,6 +25,9 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
   int completeCalls = 0;
   int discardCalls = 0;
   int getSessionCalls = 0;
+  String? lastWorkoutTitle;
+  DateTime? lastWorkoutAtUtc;
+  int? lastWorkoutUtcOffsetMinutes;
 
   @override
   Future<WorkoutSessionRecord?> getActiveSession() async {
@@ -176,8 +179,14 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
     required int expectedRevision,
     required DateTime completedAtUtc,
     String? notes,
+    required String workoutTitle,
+    required DateTime workoutAtUtc,
+    required int workoutUtcOffsetMinutes,
   }) async {
     completeCalls++;
+    lastWorkoutTitle = workoutTitle;
+    lastWorkoutAtUtc = workoutAtUtc;
+    lastWorkoutUtcOffsetMinutes = workoutUtcOffsetMinutes;
     if (errorToThrow != null) throw errorToThrow!;
     if (pendingCompleter != null) return pendingCompleter!.future;
     if (customMutationRecordToReturn != null) {
@@ -188,7 +197,13 @@ final class _FakeWorkoutSessionRepository implements WorkoutSessionRepository {
       return ret;
     }
     final current = sessionsById[sessionId.value] ?? activeSessionToReturn!;
-    final updatedSession = current.session.complete(completedAtUtc, notes: notes);
+    final updatedSession = current.session.complete(
+      completedAtUtc,
+      notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
+    );
     final updated = current.copyWith(
       session: updatedSession,
       revision: expectedRevision + 1,
@@ -613,6 +628,29 @@ void main() {
         reps: 10,
       );
       expect(logAfterComplete, isFalse);
+    });
+
+    test('fallback title uses selected UTC offset instead of device time zone',
+        () async {
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn =
+          WorkoutSessionRecord(session: session, revision: 1);
+      final controller = createController();
+      await controller.restoreActiveSession();
+
+      final selectedWorkoutAtUtc = DateTime.utc(2026, 11, 7, 8);
+      final completedAtUtc = DateTime.utc(2026, 11, 7, 10);
+      currentTime = completedAtUtc;
+      final success = await controller.completeSession(
+        completedAtUtc: completedAtUtc,
+        workoutAtUtc: selectedWorkoutAtUtc,
+        workoutUtcOffsetMinutes: -300,
+      );
+
+      expect(success, isTrue);
+      expect(fakeRepo.lastWorkoutTitle, 'Night Workout');
+      expect(fakeRepo.lastWorkoutAtUtc, selectedWorkoutAtUtc);
+      expect(fakeRepo.lastWorkoutUtcOffsetMinutes, -300);
     });
 
     test('discards session with valid non-blank reason', () async {

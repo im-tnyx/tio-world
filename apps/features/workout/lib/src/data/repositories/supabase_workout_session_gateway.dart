@@ -48,7 +48,7 @@ abstract interface class WorkoutSessionGateway {
     Map<String, dynamic> params,
   );
 
-  /// Invokes `public.rpc_complete_workout_session`.
+  /// Invokes `public.rpc_complete_workout_session_v2`.
   Future<Map<String, dynamic>> rpcCompleteWorkoutSession(
     Map<String, dynamic> params,
   );
@@ -181,9 +181,9 @@ final class SupabaseWorkoutSessionGateway implements WorkoutSessionGateway {
     Map<String, dynamic> params,
   ) async {
     final response = await _client
-        .rpc<Object?>('rpc_complete_workout_session', params: params)
+        .rpc<Object?>('rpc_complete_workout_session_v2', params: params)
         .retry(enabled: false);
-    return _toMap(response, 'rpc_complete_workout_session');
+    return _toMap(response, 'rpc_complete_workout_session_v2');
   }
 
   @override

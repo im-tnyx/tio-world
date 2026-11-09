@@ -5,6 +5,7 @@ import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/models/workout_execution_readiness.dart';
+import '../../domain/models/workout_title_resolver.dart';
 import '../../domain/models/workout_session_record.dart';
 import '../../domain/repositories/workout_session_repository.dart';
 import 'active_workout_state.dart';
@@ -123,10 +124,9 @@ final class ActiveWorkoutController extends ChangeNotifier {
       status: status,
       record: record,
       activeElapsedDuration: elapsed,
-      activeRestTimer:
-          (clearRestTimer || session.isTerminal || changesSession)
-              ? null
-              : (restTimer ?? state.activeRestTimer),
+      activeRestTimer: (clearRestTimer || session.isTerminal || changesSession)
+          ? null
+          : (restTimer ?? state.activeRestTimer),
       lastKnownSessionId: session.id,
     ));
   }
@@ -300,7 +300,8 @@ final class ActiveWorkoutController extends ChangeNotifier {
     }
 
     if (sessionExerciseIndex < 0) {
-      _emit(state.copyWith(errorMessage: 'sessionExerciseIndex must be non-negative'));
+      _emit(state.copyWith(
+          errorMessage: 'sessionExerciseIndex must be non-negative'));
       return false;
     }
     if (setIndex < 0) {
@@ -311,7 +312,8 @@ final class ActiveWorkoutController extends ChangeNotifier {
     final snapshot = currentRecord.session.snapshot;
     if (sessionExerciseIndex >= snapshot.exercises.length) {
       _emit(state.copyWith(
-        errorMessage: 'Invalid exercise occurrence index: $sessionExerciseIndex',
+        errorMessage:
+            'Invalid exercise occurrence index: $sessionExerciseIndex',
       ));
       return false;
     }
@@ -335,7 +337,8 @@ final class ActiveWorkoutController extends ChangeNotifier {
         notes: notes,
       );
     } on ArgumentError catch (e) {
-      _emit(state.copyWith(errorMessage: e.message?.toString() ?? e.toString()));
+      _emit(
+          state.copyWith(errorMessage: e.message?.toString() ?? e.toString()));
       return false;
     }
 
@@ -435,6 +438,9 @@ final class ActiveWorkoutController extends ChangeNotifier {
   Future<bool> completeSession({
     DateTime? completedAtUtc,
     String? notes,
+    String? workoutTitle,
+    DateTime? workoutAtUtc,
+    int? workoutUtcOffsetMinutes,
   }) async {
     final currentRecord = state.record;
     if (currentRecord == null || !state.isRunning) {
@@ -447,6 +453,25 @@ final class ActiveWorkoutController extends ChangeNotifier {
     final expectedRevision = currentRecord.revision;
     final sessionId = currentRecord.session.id;
     final completeInstant = completedAtUtc ?? _nowUtc();
+    final selectedDeviceLocalTime =
+        workoutAtUtc?.toLocal() ?? _nowUtc().toLocal();
+    final offsetMinutes = workoutUtcOffsetMinutes ??
+        selectedDeviceLocalTime.timeZoneOffset.inMinutes;
+    final selectedWallTime = workoutAtUtc == null
+        ? selectedDeviceLocalTime
+        : workoutAtUtc.toUtc().add(Duration(minutes: offsetMinutes));
+    final selectedInstant = workoutAtUtc ??
+        DateTime.utc(
+          selectedWallTime.year,
+          selectedWallTime.month,
+          selectedWallTime.day,
+          selectedWallTime.hour,
+          selectedWallTime.minute,
+        ).subtract(Duration(minutes: offsetMinutes));
+    final resolvedTitle = resolveWorkoutTitle(
+      customTitle: workoutTitle,
+      selectedLocalDateTime: selectedWallTime,
+    );
 
     return _executeMutation(
       actionName: 'completeSession',
@@ -456,6 +481,9 @@ final class ActiveWorkoutController extends ChangeNotifier {
         expectedRevision: expectedRevision,
         completedAtUtc: completeInstant,
         notes: notes,
+        workoutTitle: resolvedTitle,
+        workoutAtUtc: selectedInstant,
+        workoutUtcOffsetMinutes: offsetMinutes,
       ),
       onSuccess: (finalRecord) {
         _applyAuthoritativeRecord(finalRecord, clearRestTimer: true);
@@ -762,7 +790,8 @@ final class ActiveWorkoutController extends ChangeNotifier {
       }
       if (isNewSession &&
           actionName == 'startSession' &&
-          e.kind == WorkoutSessionPersistenceFailureKind.duplicateActiveSession) {
+          e.kind ==
+              WorkoutSessionPersistenceFailureKind.duplicateActiveSession) {
         // This is a known rejected start, not an unknown mutation outcome.
         // The user still has an authoritative active/paused session that must
         // be discovered before another start can be attempted.
@@ -778,9 +807,12 @@ final class ActiveWorkoutController extends ChangeNotifier {
         ));
         return false;
       }
-      if (e.kind == WorkoutSessionPersistenceFailureKind.staleRevisionConflict ||
-          e.kind == WorkoutSessionPersistenceFailureKind.terminalSessionImmutable ||
-          e.kind == WorkoutSessionPersistenceFailureKind.invalidStateTransition) {
+      if (e.kind ==
+              WorkoutSessionPersistenceFailureKind.staleRevisionConflict ||
+          e.kind ==
+              WorkoutSessionPersistenceFailureKind.terminalSessionImmutable ||
+          e.kind ==
+              WorkoutSessionPersistenceFailureKind.invalidStateTransition) {
         stopDurationTicker();
         _emit(state.copyWith(
           status: ActiveWorkoutStatus.reconciliationRequired,
@@ -789,10 +821,10 @@ final class ActiveWorkoutController extends ChangeNotifier {
           clearRecord: isNewSession,
           lastKnownSessionId: targetSessionId,
           clearRestTimer: true,
-          reconciliationReason:
-              e.kind == WorkoutSessionPersistenceFailureKind.staleRevisionConflict
-                  ? 'stale_revision_conflict'
-                  : e.kind.name,
+          reconciliationReason: e.kind ==
+                  WorkoutSessionPersistenceFailureKind.staleRevisionConflict
+              ? 'stale_revision_conflict'
+              : e.kind.name,
           errorMessage:
               'Workout lifecycle changed on another device. Please reconcile before continuing.',
         ));

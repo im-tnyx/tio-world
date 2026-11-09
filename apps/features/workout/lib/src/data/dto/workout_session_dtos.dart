@@ -73,15 +73,13 @@ abstract final class WorkoutSessionSnapshotDto {
             exerciseMap['prescribed_sets'] as List<dynamic>? ?? const [];
         final prescribedSets = rawSets.map((s) {
           final setMap = Map<String, dynamic>.from(s as Map);
-          final setType =
-              RoutineSetType.fromWire(setMap['set_type'] as String);
+          final setType = RoutineSetType.fromWire(setMap['set_type'] as String);
           final reps = (setMap['reps'] as num?)?.toInt();
           final repsMax = (setMap['reps_max'] as num?)?.toInt();
           final loadKg = (setMap['load_kg'] as num?)?.toDouble();
           final distanceMeters =
               (setMap['distance_meters'] as num?)?.toDouble();
-          final durationSeconds =
-              (setMap['duration_seconds'] as num?)?.toInt();
+          final durationSeconds = (setMap['duration_seconds'] as num?)?.toInt();
           final restSeconds = (setMap['rest_seconds'] as num?)?.toInt();
 
           return SetPrescription(
@@ -246,6 +244,9 @@ final class WorkoutSessionRowDto {
     required this.localDate,
     required this.routineSnapshot,
     this.notes,
+    this.workoutTitle,
+    this.workoutAtUtc,
+    this.workoutUtcOffsetMinutes,
     this.discardReason,
     required this.revision,
     this.createdAt,
@@ -265,6 +266,9 @@ final class WorkoutSessionRowDto {
   final String localDate;
   final Map<String, dynamic> routineSnapshot;
   final String? notes;
+  final String? workoutTitle;
+  final DateTime? workoutAtUtc;
+  final int? workoutUtcOffsetMinutes;
   final String? discardReason;
   final int revision;
   final DateTime? createdAt;
@@ -302,6 +306,12 @@ final class WorkoutSessionRowDto {
         localDate: json['local_date'] as String,
         routineSnapshot: snapshotMap,
         notes: json['notes'] as String?,
+        workoutTitle: json['workout_title'] as String?,
+        workoutAtUtc: json['workout_at_utc'] != null
+            ? DateTime.parse(json['workout_at_utc'] as String).toUtc()
+            : null,
+        workoutUtcOffsetMinutes:
+            (json['workout_utc_offset_minutes'] as num?)?.toInt(),
         discardReason: json['discard_reason'] as String?,
         revision: (json['revision'] as num).toInt(),
         createdAt: json['created_at'] != null
@@ -326,8 +336,8 @@ final class WorkoutSessionRowDto {
     List<PerformedSet> performedSets = const [],
     WorkoutSessionSnapshot? snapshotOverride,
   }) {
-    final parsedSnapshot = snapshotOverride ??
-        WorkoutSessionSnapshotDto.fromJson(routineSnapshot);
+    final parsedSnapshot =
+        snapshotOverride ?? WorkoutSessionSnapshotDto.fromJson(routineSnapshot);
 
     final domainStatus = WorkoutSessionStatus.fromWire(status);
 
@@ -352,6 +362,9 @@ final class WorkoutSessionRowDto {
       snapshot: parsedSnapshot,
       performedSets: performedSets,
       notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
       discardReason: discardReason,
     );
   }
@@ -372,4 +385,26 @@ final class WorkoutSessionRowDto {
         createdAt: createdAt,
         updatedAt: updatedAt,
       );
+}
+
+/// Parameters for the owner-scoped canonical completion RPC V2.
+abstract final class WorkoutSessionCompletionDto {
+  static Map<String, dynamic> toRpcParams({
+    required String sessionId,
+    required int expectedRevision,
+    required DateTime completedAtUtc,
+    required String? notes,
+    required String workoutTitle,
+    required DateTime workoutAtUtc,
+    required int workoutUtcOffsetMinutes,
+  }) =>
+      {
+        'p_session_id': sessionId,
+        'p_expected_revision': expectedRevision,
+        'p_completed_at_utc': completedAtUtc.toUtc().toIso8601String(),
+        'p_notes': notes,
+        'p_workout_title': workoutTitle.trim(),
+        'p_workout_at_utc': workoutAtUtc.toUtc().toIso8601String(),
+        'p_workout_utc_offset_minutes': workoutUtcOffsetMinutes,
+      };
 }

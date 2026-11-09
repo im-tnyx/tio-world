@@ -12,4 +12,5 @@ export 'workout_target_goal.dart';
 export 'workout_targets_data.dart';
 export 'workout_training_day.dart';
 export 'workout_session_record.dart';
+export 'workout_title_resolver.dart';
 export 'gym_location.dart';

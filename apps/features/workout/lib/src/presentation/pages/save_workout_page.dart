@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
+import '../../domain/models/workout_title_resolver.dart';
 import '../widgets/workout_activity_type_sheet.dart';
 import '../widgets/workout_duration_picker_sheet.dart';
 import '../widgets/workout_rpe_sheet.dart';
@@ -124,11 +125,14 @@ class SaveWorkoutPage extends StatefulWidget {
     this.initialTitle,
     this.initialDescription,
     this.startedAt,
+    this.initialWorkoutDateTime,
+    this.initialWorkoutUtcOffsetMinutes,
     this.onSave,
     this.onDiscard,
     this.clock,
     this.gymLocationRepository,
     this.notesOnly = false,
+    this.sessionMetadataOnly = false,
     super.key,
   });
 
@@ -138,14 +142,22 @@ class SaveWorkoutPage extends StatefulWidget {
   final double volumeKg;
   final int completedSets;
   final DateTime? startedAt;
+
+  /// Wall-clock fields restored from the saved instant and UTC offset.
+  final DateTime? initialWorkoutDateTime;
+  final int? initialWorkoutUtcOffsetMinutes;
   final DateTime Function()? clock;
   final GymLocationRepository? gymLocationRepository;
   final bool notesOnly;
+
+  /// Enables title/date editing while keeping unsupported Save fields read-only.
+  final bool sessionMetadataOnly;
 
   final FutureOr<bool> Function({
     required String title,
     required String? description,
     required DateTime date,
+    required int utcOffsetMinutes,
     required double? rpe,
     required String activityType,
     required String? gym,
@@ -162,6 +174,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late DateTime _workoutDate;
+  late int _workoutUtcOffsetMinutes;
   late Duration _workoutDuration;
   double? _workoutRpe;
   String _activityType = 'Weight Training';
@@ -185,8 +198,22 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
     );
     _workoutDuration = widget.duration;
     final now = _currentNow();
-    final initial = widget.startedAt?.toLocal() ?? now;
-    _workoutDate = initial.isAfter(now) ? now : initial;
+    final restored = widget.initialWorkoutDateTime;
+    if (restored != null) {
+      _workoutDate = DateTime(
+        restored.year,
+        restored.month,
+        restored.day,
+        restored.hour,
+        restored.minute,
+      );
+      _workoutUtcOffsetMinutes = widget.initialWorkoutUtcOffsetMinutes ??
+          restored.timeZoneOffset.inMinutes;
+    } else {
+      final initial = widget.startedAt?.toLocal() ?? now;
+      _workoutDate = initial.isAfter(now) ? now : initial;
+      _workoutUtcOffsetMinutes = _workoutDate.timeZoneOffset.inMinutes;
+    }
   }
 
   @override
@@ -217,6 +244,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
     if (picked != null && mounted) {
       setState(() {
         _workoutDate = picked;
+        _workoutUtcOffsetMinutes = picked.timeZoneOffset.inMinutes;
       });
     }
   }
@@ -267,11 +295,10 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
     if (_isSaving || _isDiscarding) return;
     setState(() => _isSaving = true);
     try {
-      final title = _titleController.text.trim().isNotEmpty
-          ? _titleController.text.trim()
-          : (widget.initialTitle?.isNotEmpty == true
-              ? widget.initialTitle!
-              : 'Workout');
+      final title = resolveWorkoutTitle(
+        customTitle: _titleController.text,
+        selectedLocalDateTime: _workoutDate,
+      );
       final description = _descriptionController.text.trim().isNotEmpty
           ? _descriptionController.text.trim()
           : null;
@@ -281,6 +308,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
           title: title,
           description: description,
           date: _workoutDate,
+          utcOffsetMinutes: _workoutUtcOffsetMinutes,
           rpe: _workoutRpe,
           activityType: _activityType,
           gym: _selectedGym,
@@ -440,7 +468,9 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                     label: 'Duration',
                     value: _formatDuration(_workoutDuration),
                     valueColor: colors.primary,
-                    onTap: widget.notesOnly ? null : _pickDuration,
+                    onTap: (widget.notesOnly || widget.sessionMetadataOnly)
+                        ? null
+                        : _pickDuration,
                   ),
                 ),
                 Expanded(
@@ -571,14 +601,18 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                       ),
                     )
                   : null,
-              onTap: widget.notesOnly ? null : _pickGym,
+              onTap: (widget.notesOnly || widget.sessionMetadataOnly)
+                  ? null
+                  : _pickGym,
             ),
             _SaveOptionTile(
               key: const ValueKey('save-workout-activity-type-tile'),
               icon: Icons.fitness_center_rounded,
               title: 'Activity Type',
               value: _activityType,
-              onTap: widget.notesOnly ? null : _pickActivityType,
+              onTap: (widget.notesOnly || widget.sessionMetadataOnly)
+                  ? null
+                  : _pickActivityType,
             ),
             _SaveOptionTile(
               key: const ValueKey('save-workout-rpe-tile'),
@@ -589,7 +623,9 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                   : 'Rate workout',
               valueColor:
                   _workoutRpe != null ? colors.primary : colors.textSecondary,
-              onTap: widget.notesOnly ? null : _pickWorkoutRpe,
+              onTap: (widget.notesOnly || widget.sessionMetadataOnly)
+                  ? null
+                  : _pickWorkoutRpe,
             ),
             const _SaveOptionTile(
               key: ValueKey('save-workout-routine-settings-tile'),

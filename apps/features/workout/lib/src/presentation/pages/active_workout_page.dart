@@ -26,6 +26,20 @@ import '../widgets/workout_set_input_row.dart';
 import '../widgets/workout_set_type_sheet.dart';
 import 'save_workout_page.dart';
 
+DateTime _wallDateTime(DateTime instantUtc, int offsetMinutes) {
+  final wall = instantUtc.toUtc().add(Duration(minutes: offsetMinutes));
+  return DateTime(wall.year, wall.month, wall.day, wall.hour, wall.minute);
+}
+
+DateTime _utcFromWallDateTime(DateTime wallDateTime, int offsetMinutes) =>
+    DateTime.utc(
+      wallDateTime.year,
+      wallDateTime.month,
+      wallDateTime.day,
+      wallDateTime.hour,
+      wallDateTime.minute,
+    ).subtract(Duration(minutes: offsetMinutes));
+
 /// Focused Active Workout surface for resuming and recovering a persisted
 /// session. App composition supplies the auth-bound controller; the feature
 /// never reaches into Auth, Supabase or routing composition.
@@ -204,27 +218,68 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => SaveWorkoutPage(
-          initialTitle: routineTitle,
+          initialTitle: session?.workoutTitle ?? routineTitle,
           duration: state.activeElapsedDuration,
           volumeKg: totalVolumeKg,
           completedSets: state.performedSets.length,
           startedAt: session?.time.startedAtUtc.toLocal(),
+          initialWorkoutDateTime: session?.workoutAtUtc == null ||
+                  session?.workoutUtcOffsetMinutes == null
+              ? null
+              : _wallDateTime(
+                  session!.workoutAtUtc!,
+                  session.workoutUtcOffsetMinutes!,
+                ),
+          initialWorkoutUtcOffsetMinutes: session?.workoutUtcOffsetMinutes,
           initialDescription: session?.notes,
-          notesOnly: true,
+          sessionMetadataOnly: true,
           gymLocationRepository: widget.gymLocationRepository,
           clock: widget.clock,
           onSave: ({
             required String title,
             required String? description,
             required DateTime date,
+            required int utcOffsetMinutes,
             required double? rpe,
             required String activityType,
             required String? gym,
             Duration? duration,
           }) async {
-            return controller.completeSession(
+            final workoutAtUtc = _utcFromWallDateTime(date, utcOffsetMinutes);
+            bool matchesCompletedSave(WorkoutSession? persisted) =>
+                persisted != null &&
+                persisted.status == WorkoutSessionStatus.completed &&
+                persisted.workoutTitle == title.trim() &&
+                persisted.workoutAtUtc == workoutAtUtc &&
+                persisted.workoutUtcOffsetMinutes == utcOffsetMinutes &&
+                persisted.notes == description;
+
+            if (controller.state.status ==
+                ActiveWorkoutStatus.reconciliationRequired) {
+              final reconciled = await controller.reconcileState();
+              if (!reconciled) return false;
+              final canonical = controller.state.session;
+              if (matchesCompletedSave(canonical)) return true;
+              if (!controller.state.isRunning) return false;
+            }
+
+            final saved = await controller.completeSession(
               notes: description,
+              workoutTitle: title,
+              workoutAtUtc: workoutAtUtc,
+              workoutUtcOffsetMinutes: utcOffsetMinutes,
             );
+            if (saved) return true;
+
+            // Unknown outcomes are reconciled before retry. A matching canonical
+            // completed row confirms success without issuing a duplicate write.
+            if (controller.state.status ==
+                ActiveWorkoutStatus.reconciliationRequired) {
+              final reconciled = await controller.reconcileState();
+              return reconciled &&
+                  matchesCompletedSave(controller.state.session);
+            }
+            return false;
           },
           onDiscard: () => controller.discardSession(reason: 'user_cancelled'),
         ),

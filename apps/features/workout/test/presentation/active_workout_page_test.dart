@@ -95,6 +95,9 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     required int expectedRevision,
     required DateTime completedAtUtc,
     String? notes,
+    required String workoutTitle,
+    required DateTime workoutAtUtc,
+    required int workoutUtcOffsetMinutes,
   }) async =>
       completeResult ?? active!;
 

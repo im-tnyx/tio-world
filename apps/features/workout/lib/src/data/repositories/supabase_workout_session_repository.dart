@@ -239,15 +239,21 @@ final class SupabaseWorkoutSessionRepository
     required WorkoutSessionId sessionId,
     required int expectedRevision,
     required DateTime completedAtUtc,
-    String? notes,
+    required String? notes,
+    required String workoutTitle,
+    required DateTime workoutAtUtc,
+    required int workoutUtcOffsetMinutes,
   }) async {
     final owner = _owner();
-    final params = <String, dynamic>{
-      'p_session_id': sessionId.value,
-      'p_expected_revision': expectedRevision,
-      'p_completed_at_utc': completedAtUtc.toUtc().toIso8601String(),
-      'p_notes': notes,
-    };
+    final params = WorkoutSessionCompletionDto.toRpcParams(
+      sessionId: sessionId.value,
+      expectedRevision: expectedRevision,
+      completedAtUtc: completedAtUtc,
+      notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
+    );
 
     await _executeMutation(
       owner: owner,
@@ -255,11 +261,24 @@ final class SupabaseWorkoutSessionRepository
       operation: () => _gateway.rpcCompleteWorkoutSession(params),
     );
 
-    return _readbackAfterMutation(
+    final record = await _readbackAfterMutation(
       owner: owner,
       sessionId: sessionId,
       operationName: 'completeSession',
     );
+    final session = record.session;
+    if (session.status != WorkoutSessionStatus.completed ||
+        session.workoutTitle != workoutTitle.trim() ||
+        session.workoutAtUtc != workoutAtUtc.toUtc() ||
+        session.workoutUtcOffsetMinutes != workoutUtcOffsetMinutes) {
+      throw WorkoutSessionCommittedReadbackException(
+        sessionId: sessionId,
+        operationName: 'completeSession',
+        message:
+            'Completion readback did not match the submitted Save metadata',
+      );
+    }
+    return record;
   }
 
   @override

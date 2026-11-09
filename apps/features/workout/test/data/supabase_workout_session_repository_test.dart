@@ -35,6 +35,9 @@ WorkoutSession _mockSession({
   int pausedUs = 0,
   List<PerformedSet> sets = const [],
   String? notes,
+  String? workoutTitle,
+  DateTime? workoutAtUtc,
+  int? workoutUtcOffsetMinutes,
   String? discardReason,
 }) =>
     WorkoutSession(
@@ -54,6 +57,9 @@ WorkoutSession _mockSession({
       snapshot: _mockSnapshot(),
       performedSets: sets,
       notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
       discardReason: discardReason,
     );
 
@@ -65,6 +71,9 @@ Map<String, dynamic> _mockSessionRow({
   DateTime? lastTransitionAt,
   int pausedUs = 0,
   String? notes,
+  String? workoutTitle,
+  DateTime? workoutAtUtc,
+  int? workoutUtcOffsetMinutes,
   String? discardReason,
 }) =>
     {
@@ -83,6 +92,9 @@ Map<String, dynamic> _mockSessionRow({
       'local_date': '2026-11-07',
       'routine_snapshot': WorkoutSessionSnapshotDto.toJson(_mockSnapshot()),
       'notes': notes,
+      'workout_title': workoutTitle,
+      'workout_at_utc': workoutAtUtc?.toIso8601String(),
+      'workout_utc_offset_minutes': workoutUtcOffsetMinutes,
       'discard_reason': discardReason,
       'revision': revision,
       'created_at': _startedAt.toIso8601String(),
@@ -126,6 +138,7 @@ final class _FakeGateway implements WorkoutSessionGateway {
   int pauseCallCount = 0;
   int resumeCallCount = 0;
   int completeCallCount = 0;
+  Map<String, dynamic>? lastCompleteParams;
   int discardCallCount = 0;
   List<Map<String, dynamic>> Function()? onReadHeaderSequence;
   Future<Map<String, dynamic>?> Function()? onReadActiveHeader;
@@ -218,6 +231,7 @@ final class _FakeGateway implements WorkoutSessionGateway {
     Map<String, dynamic> params,
   ) async {
     completeCallCount++;
+    lastCompleteParams = Map<String, dynamic>.from(params);
     return onComplete != null
         ? await onComplete!(params)
         : _mockSessionRow(revision: 4, status: 'completed');
@@ -496,6 +510,9 @@ void main() {
         status: 'completed',
         completedAt: finishTime,
         notes: 'Great workout',
+        workoutTitle: 'Morning Workout',
+        workoutAtUtc: finishTime.subtract(const Duration(hours: 1)),
+        workoutUtcOffsetMinutes: 330,
       );
 
       final completedRecord = await repo.completeSession(
@@ -503,10 +520,29 @@ void main() {
         expectedRevision: 3,
         completedAtUtc: finishTime,
         notes: 'Great workout',
+        workoutTitle: 'Morning Workout',
+        workoutAtUtc: finishTime.subtract(const Duration(hours: 1)),
+        workoutUtcOffsetMinutes: 330,
       );
 
       expect(completedRecord.session.status, WorkoutSessionStatus.completed);
       expect(completedRecord.session.notes, 'Great workout');
+      expect(completedRecord.session.workoutTitle, 'Morning Workout');
+      expect(
+        completedRecord.session.workoutAtUtc,
+        finishTime.subtract(const Duration(hours: 1)),
+      );
+      expect(completedRecord.session.workoutUtcOffsetMinutes, 330);
+      expect(gateway.lastCompleteParams, {
+        'p_session_id': _sessionId.value,
+        'p_expected_revision': 3,
+        'p_completed_at_utc': finishTime.toIso8601String(),
+        'p_notes': 'Great workout',
+        'p_workout_title': 'Morning Workout',
+        'p_workout_at_utc':
+            finishTime.subtract(const Duration(hours: 1)).toIso8601String(),
+        'p_workout_utc_offset_minutes': 330,
+      });
       expect(completedRecord.session.isTerminal, isTrue);
 
       gateway.sessionHeader = _mockSessionRow(
@@ -526,6 +562,34 @@ void main() {
       expect(discardedRecord.session.status, WorkoutSessionStatus.discarded);
       expect(discardedRecord.session.discardReason, 'Torn bicep');
       expect(discardedRecord.session.isTerminal, isTrue);
+    });
+
+    test('completion metadata mismatch remains an unresolved committed write',
+        () async {
+      final finishTime = DateTime.utc(2026, 11, 7, 11);
+      gateway.sessionHeader = _mockSessionRow(
+        revision: 4,
+        status: 'completed',
+        completedAt: finishTime,
+        notes: 'Saved notes',
+        workoutTitle: 'Morning Workout',
+        workoutAtUtc: finishTime.subtract(const Duration(hours: 1)),
+        workoutUtcOffsetMinutes: 330,
+      );
+
+      await expectLater(
+        repo.completeSession(
+          sessionId: _sessionId,
+          expectedRevision: 3,
+          completedAtUtc: finishTime,
+          notes: 'Saved notes',
+          workoutTitle: 'Afternoon Workout',
+          workoutAtUtc: finishTime.subtract(const Duration(hours: 1)),
+          workoutUtcOffsetMinutes: 330,
+        ),
+        throwsA(isA<WorkoutSessionCommittedReadbackException>()),
+      );
+      expect(gateway.completeCallCount, 1);
     });
 
     test('terminal session immutability (P0001) maps to terminalSessionImmutable', () async {

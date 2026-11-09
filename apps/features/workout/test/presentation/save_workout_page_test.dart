@@ -197,6 +197,48 @@ void main() {
       expect(find.byType(WorkoutDurationPickerSheet), findsNothing);
     });
 
+    testWidgets('blank title uses selected past local time only at submission',
+        (tester) async {
+      String? submittedTitle;
+      DateTime? submittedDate;
+      await tester.pumpWidget(
+        _buildWrapper(
+          SaveWorkoutPage(
+            initialTitle: '',
+            startedAt: DateTime(2024, 2, 3, 21),
+            clock: () => DateTime(2025, 1, 1, 12),
+            duration: const Duration(minutes: 30),
+            volumeKg: 0,
+            completedSets: 1,
+            onSave: ({
+              required String title,
+              required String? description,
+              required DateTime date,
+              required int utcOffsetMinutes,
+              required double? rpe,
+              required String activityType,
+              required String? gym,
+              Duration? duration,
+            }) {
+              submittedTitle = title;
+              submittedDate = date;
+              return true;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(submittedTitle, isNull,
+          reason: 'fallback is not generated while editing');
+      await tester
+          .tap(find.byKey(const ValueKey('save-workout-submit-button')));
+      await tester.pumpAndSettle();
+
+      expect(submittedTitle, 'Night Workout');
+      expect(submittedDate, DateTime(2024, 2, 3, 21));
+    });
+
     testWidgets('does not pop or claim success when persistence rejects Save',
         (tester) async {
       await tester.pumpWidget(
@@ -209,6 +251,7 @@ void main() {
               required String title,
               required String? description,
               required DateTime date,
+              required int utcOffsetMinutes,
               required double? rpe,
               required String activityType,
               required String? gym,
@@ -239,6 +282,7 @@ void main() {
               required String title,
               required String? description,
               required DateTime date,
+              required int utcOffsetMinutes,
               required double? rpe,
               required String activityType,
               required String? gym,
@@ -471,6 +515,7 @@ void main() {
               required String title,
               required String? description,
               required DateTime date,
+              required int utcOffsetMinutes,
               required double? rpe,
               required String activityType,
               required String? gym,
@@ -490,6 +535,10 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
+        find.byKey(const ValueKey('save-workout-title-input')),
+        '  Legs  Day  ',
+      );
+      await tester.enterText(
         find.byKey(const ValueKey('save-workout-description-input')),
         'Great session, new PR!',
       );
@@ -505,7 +554,7 @@ void main() {
           .tap(find.byKey(const ValueKey('save-workout-submit-button')));
       await tester.pumpAndSettle();
 
-      expect(savedTitle, 'Legs Day');
+      expect(savedTitle, 'Legs  Day');
       expect(savedDesc, 'Great session, new PR!');
       expect(savedActivity, 'Weight Training');
       expect(savedGym, 'Home gym');
