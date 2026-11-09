@@ -152,7 +152,7 @@ class SaveWorkoutPage extends StatefulWidget {
     Duration? duration,
   })? onSave;
 
-  final VoidCallback? onDiscard;
+  final FutureOr<bool> Function()? onDiscard;
 
   @override
   State<SaveWorkoutPage> createState() => _SaveWorkoutPageState();
@@ -167,6 +167,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   String _activityType = 'Weight Training';
   String? _selectedGym;
   bool _isSaving = false;
+  bool _isDiscarding = false;
 
   DateTime _currentNow() => (widget.clock?.call() ?? DateTime.now()).toLocal();
 
@@ -303,6 +304,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _confirmDiscard() async {
+    if (_isDiscarding) return;
     final confirmed = await showTioConfirmationBottomSheet(
       context: context,
       title: 'Discard workout?',
@@ -311,9 +313,27 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
       cancelLabel: 'Keep working out',
       intent: TioConfirmationIntent.destructive,
     );
-    if (confirmed == true && mounted) {
-      widget.onDiscard?.call();
+    if (confirmed != true || !mounted) return;
+
+    final onDiscard = widget.onDiscard;
+    if (onDiscard == null) {
       Navigator.of(context).pop(false);
+      return;
+    }
+
+    setState(() => _isDiscarding = true);
+    try {
+      final discarded = await onDiscard();
+      if (!mounted) return;
+      if (discarded) {
+        Navigator.of(context).pop(false);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Workout could not be discarded.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDiscarding = false);
     }
   }
 

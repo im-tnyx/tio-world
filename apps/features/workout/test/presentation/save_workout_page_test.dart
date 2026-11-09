@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -533,6 +535,67 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(discarded, isTrue);
+    });
+
+    testWidgets('waits for discard persistence before closing', (tester) async {
+      final discardResult = Completer<bool>();
+
+      await tester.pumpWidget(
+        _buildWrapper(
+          SaveWorkoutPage(
+            duration: const Duration(minutes: 20),
+            volumeKg: 1000.0,
+            completedSets: 4,
+            onDiscard: () => discardResult.future,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('save-workout-discard-button')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('save-workout-discard-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Discard workout').last);
+      await tester.pump();
+
+      expect(find.text('Save Workout'), findsOneWidget);
+
+      discardResult.complete(true);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Save Workout'), findsNothing);
+    });
+
+    testWidgets('keeps the screen open when discard persistence fails',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildWrapper(
+          SaveWorkoutPage(
+            duration: const Duration(minutes: 20),
+            volumeKg: 1000.0,
+            completedSets: 4,
+            onDiscard: () => false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('save-workout-discard-button')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('save-workout-discard-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Discard workout').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Save Workout'), findsOneWidget);
+      expect(find.text('Workout could not be discarded.'), findsOneWidget);
     });
   });
 }

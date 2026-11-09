@@ -225,9 +225,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
               notes: description,
             );
           },
-          onDiscard: () async {
-            await controller.discardSession(reason: 'user_cancelled');
-          },
+          onDiscard: () => controller.discardSession(reason: 'user_cancelled'),
         ),
       ),
     );
