@@ -26,10 +26,10 @@
 **Observed working-tree state:** Commit `9511f39941d544ef62e611607cd510636653d4f4` pushed; local branch matched origin and worktree was clean. No stashes listed.
 **PR / tracker:** GitHub PR #740 / GitHub #739 / Linear TNYX-84
 **Relevant execution surface:** apps/features/workout, apps/app routing, .ai task handoff
-**Validation completed at SHA:** Historical CI/test evidence at `79e8bbc5ecac55b0d39804e2db5dfdd67d4d5a43` is not current-head evidence. On `9511f39941d544ef62e611607cd510636653d4f4`, `dart format` completed on 12 Dart paths; `deno fmt --check` and `git diff --check` passed before commit. Flutter analyze/tests could not run because the shared Flutter SDK needs a writable `bin/cache/lockfile`; Deno tests stopped before execution because JSR `@std/assert` could not be fetched. No current Dart tests/analyze, Deno tests, app build, visual comparison, hosted persistence test, or exact-head CI result has been verified.
+**Validation completed on local CI-fix working tree (pending push):** Live PR CI for `b888b084c51564a20450658e6d7a4674fd370993` failed in `Analyze Flutter and Dart / test Dart` and `Test Flutter (app-workout)`. Analyzer output identified two callback signature mismatches in `routine_set_input_row_test.dart`, missing widget imports in `save_workout_page_test.dart`, and four `prefer_const_constructors` infos. Six workout test failures were: two obsolete duration-wheel scroll/boundary expectations; two test-file load failures from those compile errors; a preview-load test still expecting preview instead of reconciliation; and terminal completion route popping twice. These were fixed locally. `flutter test --no-pub` in `apps/features/workout` now passes **1,322 tests**; focused workout widgets pass **66 tests**; `flutter analyze --no-pub` reports no issues in both `apps/features/workout` and `apps/app`. `git diff --check` passes. Re-run exact-head CI after publishing this fix. Earlier Deno test was blocked by JSR fetch; no new Deno test result is claimed.
 **Current blockers:** Correct Supabase project `oykupyiitspujzpwwvuj` has migrations only through `20261031142025`; live metadata has no `public.user_workout_sessions`, `public.user_workout_performed_sets`, W7 session RPCs, or deployed `nearby-gyms`. Repo migration `20261106073920_user_workout_sessions.sql` and W7B contracts exist but are not hosted. The source completion RPC persists notes but not title or editable selected Save Date & Time; Save currently disables those unsupported fields for real sessions. No title-only or fabricated success path is permitted. The exact auto-title persistence schema/RPC proposal is awaiting owner decision. Google Places security source changes do not include deployment or verified quotas/billing/rate limiting. PR #740 still needs exact-head CI and independent approval; do not resolve review threads until source fixes are validated.
 **Tracker update:** Linear TNYX-84 received the verified title requirement and contract/validation blockers. GitHub #739 comment was rejected by automatic review because the available comment action was PR-scoped; no alternate GitHub Issue write was attempted. PR #740 now points to `9511f39941d544ef62e611607cd510636653d4f4`; the live review remains `CHANGES_REQUESTED` with 10 unresolved threads (some now outdated). Current-head combined status returned no rows.
-**Next exact action:** Obtain owner decision on the proposed title/date-time persistence contract; run Flutter/Deno validation in a writable/network-enabled environment; request independent review on the published head. Do not merge automatically.
+**Next exact action:** Commit/push the CI fixes on the same branch, then inspect exact-head CI and latest reviewer state. Obtain owner decision on title/date-time persistence and preserve the no-automatic-merge gate.
 
 ## 1. Discovery
 
@@ -81,7 +81,7 @@ Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> fe
 
 ## 6. Quality Review
 
-**Validation:** Commit `9511f39941d544ef62e611607cd510636653d4f4` is published. Flutter/Deno test attempts are blocked as recorded above; current-head CI status has not yet appeared in the connected status API. Device comparison, hosted persistence, and independent review are pending.
+**Validation:** Commit `b888b084c51564a20450658e6d7a4674fd370993` is published but its Flutter CI failed. The local correction passes all 1,322 workout tests and both Workout/app analysis; the corrected state is pending push and exact-head CI. Deno test, device comparison, hosted persistence, and independent review remain pending.
 
 **Review-thread source dispositions (not independently validated; leave all threads unresolved):**
 
@@ -102,6 +102,6 @@ Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> fe
 
 ## 7. Final Handoff
 
-**Status:** BLOCKED — source fixes are published, but required tests could not run, real-save title/date-time contract approval is pending, and exact-head CI/re-review are outstanding.
+**Status:** BLOCKED — source correction is locally validated but not yet published; exact-head CI/re-review are pending, and real-save title/date-time contract approval remains outstanding.
 
 No hosted Supabase schema/RPC changes or deployments were made. Source changes do touch the checked-in Edge Function and `supabase/config.toml`. No merge authorization was given.

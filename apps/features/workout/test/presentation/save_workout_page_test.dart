@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_feature_workout/src/presentation/widgets/workout_activity_type_sheet.dart';
+import 'package:tio_feature_workout/src/presentation/widgets/workout_duration_picker_sheet.dart';
+import 'package:tio_feature_workout/src/presentation/widgets/workout_rpe_sheet.dart';
 
 class _FakeGymLocationRepository implements GymLocationRepository {
   static const gyms = [
@@ -226,7 +229,7 @@ void main() {
       await tester.pumpWidget(
         _buildWrapper(
           SaveWorkoutPage(
-            duration: Duration(minutes: 45),
+            duration: const Duration(minutes: 45),
             volumeKg: 2500.0,
             completedSets: 10,
             gymLocationRepository: _FakeGymLocationRepository(),
@@ -480,19 +483,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Workout Duration'), findsOneWidget);
-      expect(find.text('Hours'), findsOneWidget);
-      expect(find.text('Minutes'), findsOneWidget);
-      expect(find.text('Seconds'), findsOneWidget);
-      expect(find.byKey(const ValueKey('workout-duration-hours-wheel')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('workout-duration-minutes-wheel')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('workout-duration-seconds-wheel')),
-          findsOneWidget);
+      expect(find.text('Hours'), findsNothing);
+      expect(find.text('Minutes'), findsNothing);
+      expect(find.text('Seconds'), findsNothing);
+      expect(
+          find.byKey(const ValueKey('workout-duration-wheel')), findsOneWidget);
 
-      // Drag minutes wheel forward by 1 item extent
+      // Advance the unified wheel by one minute.
       await tester.drag(
-        find.byKey(const ValueKey('workout-duration-minutes-wheel')),
+        find.byKey(const ValueKey('workout-duration-wheel')),
         const Offset(0, -44),
       );
       await tester.pumpAndSettle();

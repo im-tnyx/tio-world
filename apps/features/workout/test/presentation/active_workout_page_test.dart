@@ -703,7 +703,7 @@ void main() {
     expect(find.textContaining('PGRST205'), findsNothing);
   });
 
-  testWidgets('Play preview keeps the UI visible after a load failure',
+  testWidgets('load failure keeps reconciliation state instead of preview',
       (tester) async {
     final controller = ActiveWorkoutController(
       repository: _FakeSessionRepository()
@@ -719,12 +719,10 @@ void main() {
       showStartPreview: true,
     );
 
+    expect(find.byKey(const ValueKey('active-workout-reconciliation')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('active-workout-start-preview')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('active-workout-preview-add-exercise')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('active-workout-preview-discard')),
-        findsOneWidget);
+        findsNothing);
     expect(find.text('Retry'), findsNothing);
     expect(find.textContaining('PGRST205'), findsNothing);
   });

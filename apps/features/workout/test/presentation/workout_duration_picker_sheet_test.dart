@@ -53,7 +53,7 @@ void main() {
               onPressed: () async {
                 result = await showWorkoutDurationPickerSheet(
                   context: context,
-                  initialDuration: const Duration(hours: 1, minutes: 1),
+                  initialDuration: const Duration(minutes: 1),
                 );
               },
               child: const Text('Open'),
@@ -64,18 +64,12 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('1h 1min'), findsWidgets);
+      expect(find.text('1min'), findsWidgets);
       final wheel = find.byKey(const ValueKey('workout-duration-wheel'));
-      final scrollable = find.descendant(
-        of: wheel,
-        matching: find.byType(Scrollable),
-      );
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('workout-duration-option-0')),
-        250,
-        scrollable: scrollable.first,
-      );
+      await tester.drag(wheel, const Offset(0, 44));
       await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('workout-duration-option-0')),
+          findsOneWidget);
       expect(find.text('0min'), findsWidgets);
       await tester
           .tap(find.byKey(const ValueKey('workout-duration-picker-done')));
@@ -93,7 +87,9 @@ void main() {
         await tester.pumpWidget(
           _buildWrapper(
             WorkoutDurationPickerSheet(
-                initialDuration: Duration(minutes: minutes)),
+              key: ValueKey('duration-$minutes'),
+              initialDuration: Duration(minutes: minutes),
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -176,17 +172,10 @@ void main() {
       expect(result, isNull);
 
       final wheel = find.byKey(const ValueKey('workout-duration-wheel'));
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('workout-duration-option-299')),
-        100,
-        scrollable: find
-            .descendant(
-              of: wheel,
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
+      await tester.drag(wheel, const Offset(0, 44));
       await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('workout-duration-option-299')),
+          findsOneWidget);
       await tester
           .tap(find.byKey(const ValueKey('workout-duration-picker-done')));
       await tester.pumpAndSettle();

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
-import 'package:tio_feature_workout/src/presentation/widgets/workout_set_input_row.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
@@ -952,7 +951,12 @@ void main() {
           enabled: true,
           isExecution: true,
           toggleKey: const ValueKey('execution-toggle-distance-duration'),
-          onToggleLogged: ({durationSeconds, distanceMeters}) async {
+          onToggleLogged: ({
+            reps,
+            loadKg,
+            durationSeconds,
+            distanceMeters,
+          }) async {
             loggedDuration = durationSeconds;
             loggedDistance = distanceMeters;
           },
@@ -961,11 +965,11 @@ void main() {
     ));
 
     await tester.enterText(
-      find.byKey(ValueKey('routine-set-distance-$id')),
+      find.byKey(const ValueKey('routine-set-distance-$id')),
       '2.5',
     );
     await tester.enterText(
-      find.byKey(ValueKey('routine-set-duration-$id')),
+      find.byKey(const ValueKey('routine-set-duration-$id')),
       '15:05',
     );
     await tester.pump();
@@ -996,7 +1000,12 @@ void main() {
           enabled: true,
           isExecution: true,
           toggleKey: const ValueKey('execution-toggle-duration'),
-          onToggleLogged: ({durationSeconds}) async {
+          onToggleLogged: ({
+            reps,
+            loadKg,
+            durationSeconds,
+            distanceMeters,
+          }) async {
             loggedDuration = durationSeconds;
           },
         ),
@@ -1004,7 +1013,7 @@ void main() {
     ));
 
     await tester.enterText(
-      find.byKey(ValueKey('routine-set-duration-$id')),
+      find.byKey(const ValueKey('routine-set-duration-$id')),
       '8:09',
     );
     await tester.pump();

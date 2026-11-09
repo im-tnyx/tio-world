@@ -202,7 +202,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
 
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
-        builder: (routeContext) => SaveWorkoutPage(
+        builder: (_) => SaveWorkoutPage(
           initialTitle: routineTitle,
           duration: state.activeElapsedDuration,
           volumeKg: totalVolumeKg,
@@ -221,13 +221,9 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
             required String? gym,
             Duration? duration,
           }) async {
-            final completed = await controller.completeSession(
+            return controller.completeSession(
               notes: description,
             );
-            if (completed && routeContext.mounted) {
-              Navigator.of(routeContext).pop(true);
-            }
-            return completed;
           },
           onDiscard: () async {
             await controller.discardSession(reason: 'user_cancelled');
