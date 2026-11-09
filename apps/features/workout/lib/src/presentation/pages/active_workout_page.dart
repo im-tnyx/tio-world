@@ -601,6 +601,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
           }
           _previewExercises[exerciseIndex] = selected.first;
           _previewExerciseSets.remove(exerciseIndex);
+          _restPresets.remove(exerciseIndex);
+          _exerciseNotes.remove(exerciseIndex);
         });
       }
     }
@@ -1593,7 +1595,7 @@ class _SessionStateState extends State<_SessionState> {
             if (isComplete) {
               await controller.removeSet(performed.id);
             } else {
-              await controller.logSet(
+              final logged = await controller.logSet(
                 sessionExerciseIndex: exercise.occurrenceIndex,
                 setIndex: setIndex,
                 reps: reps,
@@ -1601,6 +1603,19 @@ class _SessionStateState extends State<_SessionState> {
                 durationSeconds: durationSeconds,
                 distanceMeters: distanceMeters,
               );
+              if (logged) {
+                final restSeconds =
+                    restPreset.effectiveRestFor(set.prescription.setType);
+                if (restSeconds == null) {
+                  controller.cancelRestTimer();
+                } else {
+                  controller.startRestTimer(
+                    durationSeconds: restSeconds,
+                    sessionExerciseIndex: exercise.occurrenceIndex,
+                    setIndex: setIndex,
+                  );
+                }
+              }
             }
           },
         );

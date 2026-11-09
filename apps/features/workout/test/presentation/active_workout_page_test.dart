@@ -129,7 +129,25 @@ final class _PreviewCatalogRepository implements ExerciseCatalogRepository {
       ]);
 }
 
-WorkoutSessionSnapshot _snapshot() => WorkoutSessionSnapshot(
+final class _PreviewReplacementCatalogRepository
+    implements ExerciseCatalogRepository {
+  @override
+  Future<ExerciseCatalog> load() async => ExerciseCatalog([
+        Exercise(
+          ref: ExerciseRef.catalog('ex_barbell_bench_press'),
+          displayName: 'Bench Press',
+          status: ExerciseStatus.active,
+        ),
+        Exercise(
+          ref: ExerciseRef.catalog('ex_barbell_back_squat'),
+          displayName: 'Back Squat',
+          status: ExerciseStatus.active,
+        ),
+      ]);
+}
+
+WorkoutSessionSnapshot _snapshot({int? restSeconds = 120}) =>
+    WorkoutSessionSnapshot(
       routineId: _routineId,
       routineName: 'Push Day A',
       programId: _programId,
@@ -145,7 +163,7 @@ WorkoutSessionSnapshot _snapshot() => WorkoutSessionSnapshot(
               setType: RoutineSetType.normal,
               reps: 8,
               loadKg: 80,
-              restSeconds: 120,
+              restSeconds: restSeconds,
             ),
           ],
         ),
@@ -155,6 +173,7 @@ WorkoutSessionSnapshot _snapshot() => WorkoutSessionSnapshot(
 WorkoutSession _session({
   WorkoutSessionStatus status = WorkoutSessionStatus.active,
   bool withPerformedSet = true,
+  int? restSeconds = 120,
 }) {
   final start = DateTime.utc(2026, 11, 7, 10);
   final paused = status == WorkoutSessionStatus.paused ? start : null;
@@ -171,7 +190,7 @@ WorkoutSession _session({
       lastTransitionAtUtc: start,
     ),
     localDate: '2026-11-07',
-    snapshot: _snapshot(),
+    snapshot: _snapshot(restSeconds: restSeconds),
     performedSets: withPerformedSet
         ? [
             PerformedSet(
@@ -368,6 +387,58 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('replacing an edited preview exercise clears its local drafts',
+      (tester) async {
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: controller,
+      catalogRepository: _PreviewReplacementCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-note-action-ex_barbell_bench_press')),
+    );
+    await tester.pumpAndSettle();
+    final noteInput = find.byKey(
+      const ValueKey('exercise-note-input-ex_barbell_bench_press'),
+    );
+    await tester.enterText(noteInput, 'Bench-specific draft');
+    await tester.pumpAndSettle();
+
+    final card = find.byKey(
+      const ValueKey('active-workout-preview-exercise-0'),
+    );
+    await tester.tap(
+      find.descendant(of: card, matching: find.byTooltip('Exercise options')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-exercise-option-replace')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_barbell_back_squat')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Back Squat'), findsOneWidget);
+    expect(find.text('Bench-specific draft'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('exercise-note-input-ex_barbell_back_squat')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Play preview has no fabricated session or exercise',
       (tester) async {
     final controller = ActiveWorkoutController(
@@ -448,6 +519,51 @@ void main() {
     expect(controller.state.performedSets.single.reps, 6);
     expect(find.byKey(const ValueKey('active-workout-load-0')), findsNothing);
     expect(find.byKey(const ValueKey('active-workout-reps-0')), findsNothing);
+  });
+
+  testWidgets('logging a set starts its configured rest timer', (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(withPerformedSet: false, restSeconds: 90),
+        revision: 1,
+      );
+    final now = DateTime.utc(2026, 11, 7, 10, 5);
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+      clock: () => now,
+    );
+    await _pumpPage(tester, controller: controller, clock: () => now);
+
+    await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-0')));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastLoggedSet, isNotNull);
+    expect(controller.state.activeRestTimer?.totalDurationSeconds, 90);
+    expect(controller.state.activeRestTimer?.sessionExerciseIndex, 0);
+    expect(controller.state.activeRestTimer?.setIndex, 0);
+  });
+
+  testWidgets('logging a set without a rest preset leaves timer off',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(withPerformedSet: false, restSeconds: null),
+        revision: 1,
+      );
+    final now = DateTime.utc(2026, 11, 7, 10, 5);
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+      clock: () => now,
+    );
+    await _pumpPage(tester, controller: controller, clock: () => now);
+
+    await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-0')));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastLoggedSet, isNotNull);
+    expect(controller.state.activeRestTimer, isNull);
   });
 
   testWidgets('adds selected exercises from the routine picker to preview',
