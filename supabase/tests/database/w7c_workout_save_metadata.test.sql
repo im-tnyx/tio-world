@@ -1,7 +1,8 @@
 \set ON_ERROR_STOP on
 BEGIN;
+SET LOCAL TIME ZONE 'UTC';
 CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
-SELECT plan(17);
+SELECT plan(25);
 
 INSERT INTO auth.users (id, email) VALUES
   ('11111111-1111-1111-1111-111111111111', 'owner_w7c@tio.test'),
@@ -104,6 +105,56 @@ SELECT throws_ok($conflict$
     'Afternoon Workout', '2026-11-07 21:30:00+00', 330
   )
 $conflict$, '23505', 'terminal_payload_conflict', 'conflicting terminal replay is rejected');
+
+SET LOCAL TIME ZONE 'America/Los_Angeles';
+SELECT lives_ok($replay_la$
+  SELECT public.rpc_complete_workout_session_v2(
+    'cccccccc-cccc-4ccc-accc-cccccccccccc', 1, '2026-11-07 22:00:00+00', 'notes',
+    'Morning Workout', '2026-11-07 21:30:00+00', 330
+  )
+$replay_la$, 'identical replay succeeds under a different database timezone');
+SELECT is((SELECT local_date FROM public.user_workout_sessions WHERE id = 'cccccccc-cccc-4ccc-accc-cccccccccccc'),
+  '2026-11-08'::date, 'timezone switch does not change the saved local date');
+
+SELECT lives_ok($start_la$
+  SELECT public.rpc_start_workout_session(
+    'dddddddd-dddd-4ddd-addd-dddddddddddd',
+    'aaaaaaaa-1111-0000-0000-000000000001',
+    'aaaaaaaa-1111-0000-0000-000000000002',
+    '2026-11-07 12:00:00+00', '2026-11-07',
+    (SELECT routine_snapshot FROM public.user_workout_sessions
+     WHERE id = 'cccccccc-cccc-4ccc-accc-cccccccccccc')
+  )
+$start_la$, 'second canonical session can start under America/Los_Angeles');
+SELECT lives_ok($complete_la$
+  SELECT public.rpc_complete_workout_session_v2(
+    'dddddddd-dddd-4ddd-addd-dddddddddddd', 1, '2026-11-07 22:00:00+00', null,
+    'Morning Workout', '2026-11-07 21:30:00+00', 330
+  )
+$complete_la$, 'same UTC instant and offset can complete under America/Los_Angeles');
+SELECT is((SELECT local_date FROM public.user_workout_sessions WHERE id = 'dddddddd-dddd-4ddd-addd-dddddddddddd'),
+  (SELECT local_date FROM public.user_workout_sessions WHERE id = 'cccccccc-cccc-4ccc-accc-cccccccccccc'),
+  'UTC and America/Los_Angeles produce the same +330 local date');
+
+SET LOCAL TIME ZONE 'Asia/Kolkata';
+SELECT lives_ok($start_negative$
+  SELECT public.rpc_start_workout_session(
+    'eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeee',
+    'aaaaaaaa-1111-0000-0000-000000000001',
+    'aaaaaaaa-1111-0000-0000-000000000002',
+    '2026-11-07 12:00:00+00', '2026-11-07',
+    (SELECT routine_snapshot FROM public.user_workout_sessions
+     WHERE id = 'cccccccc-cccc-4ccc-accc-cccccccccccc')
+  )
+$start_negative$, 'negative-offset session can start under Asia/Kolkata');
+SELECT lives_ok($complete_negative$
+  SELECT public.rpc_complete_workout_session_v2(
+    'eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeee', 1, '2026-11-08 03:00:00+00', null,
+    'Evening Workout', '2026-11-08 02:30:00+00', -420
+  )
+$complete_negative$, 'negative offset can complete across the UTC calendar boundary');
+SELECT is((SELECT local_date FROM public.user_workout_sessions WHERE id = 'eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeee'),
+  '2026-11-07'::date, 'negative offset preserves the selected previous calendar day');
 
 RESET ROLE;
 SELECT * FROM finish();

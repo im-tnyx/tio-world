@@ -67,7 +67,9 @@ begin
     raise exception 'invalid_workout_title' using errcode = '22023';
   end if;
   v_normalized_notes := nullif(btrim(p_notes), '');
-  v_local_date := (p_workout_at_utc + make_interval(mins => p_workout_utc_offset_minutes))::date;
+  -- Keep the selected wall date independent of the database connection TimeZone.
+  v_local_date := ((p_workout_at_utc at time zone 'UTC')
+    + make_interval(mins => p_workout_utc_offset_minutes))::date;
 
   select * into v_session
   from public.user_workout_sessions
