@@ -196,7 +196,9 @@ class WorkoutExerciseCard extends StatelessWidget {
           ),
           pad(
             ExerciseNotesInline(
-            key: ValueKey('$prefix-exercise-notes-${entry.id}'),
+            key: ValueKey(
+              '$prefix-exercise-notes-${entry.id}-${entry.exercise.value}',
+            ),
             exerciseRef: entry.exercise,
             routineId: routineId,
             repository: routineNotesRepository,
