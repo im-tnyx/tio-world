@@ -5,19 +5,10 @@ import '../../domain/repositories/gym_location_repository.dart';
 
 /// Supabase Edge Function-backed implementation for fetching nearby gyms from Google Places.
 class SupabaseGymLocationRepository implements GymLocationRepository {
-  SupabaseGymLocationRepository({SupabaseClient? client})
+  SupabaseGymLocationRepository({required SupabaseClient client})
       : _client = client;
 
-  final SupabaseClient? _client;
-
-  SupabaseClient? get _effectiveClient {
-    if (_client != null) return _client;
-    try {
-      return Supabase.instance.client;
-    } catch (_) {
-      return null;
-    }
-  }
+  final SupabaseClient _client;
 
   @override
   Future<List<GymLocation>> searchGyms({
@@ -26,16 +17,13 @@ class SupabaseGymLocationRepository implements GymLocationRepository {
     String? query,
     int? radiusMeters,
   }) async {
-    final client = _effectiveClient;
-    if (client == null) return const [];
     try {
-      final res = await client.functions.invoke(
+      final res = await _client.functions.invoke(
         'nearby-gyms',
         body: {
           if (latitude != null) 'latitude': latitude,
           if (longitude != null) 'longitude': longitude,
-          if (query != null && query.trim().isNotEmpty)
-            'query': query.trim(),
+          if (query != null && query.trim().isNotEmpty) 'query': query.trim(),
           if (radiusMeters != null) 'radiusMeters': radiusMeters,
         },
       );

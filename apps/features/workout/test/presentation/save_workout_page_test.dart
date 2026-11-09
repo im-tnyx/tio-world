@@ -3,6 +3,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
 
+class _FakeGymLocationRepository implements GymLocationRepository {
+  static const gyms = [
+    GymLocation(
+      id: 'test-gym',
+      name: 'Test Fitness',
+      address: 'Test Street',
+      distanceKm: 1.2,
+    ),
+  ];
+
+  @override
+  Future<List<GymLocation>> searchGyms({
+    double? latitude,
+    double? longitude,
+    String? query,
+    int? radiusMeters,
+  }) async {
+    if (query == null || query.isEmpty) return gyms;
+    return gyms
+        .where((gym) => gym.name.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+  }
+}
+
 Widget _buildWrapper(Widget child) {
   return MaterialApp(
     theme: ThemeData.dark().copyWith(
@@ -16,7 +40,8 @@ Widget _buildWrapper(Widget child) {
 
 void main() {
   group('SaveWorkoutPage', () {
-    testWidgets('renders initial title or empty placeholder, duration, volume, and sets',
+    testWidgets(
+        'renders initial title or empty placeholder, duration, volume, and sets',
         (tester) async {
       await tester.pumpWidget(
         _buildWrapper(
@@ -31,7 +56,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Save Workout'), findsOneWidget);
-      expect(find.byKey(const ValueKey('save-workout-title-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('save-workout-title-input')),
+          findsOneWidget);
       expect(find.text('Legs'), findsOneWidget);
       expect(find.text('1h 11min'), findsOneWidget);
       expect(find.text('6,960 kg'), findsOneWidget);
@@ -44,7 +70,8 @@ void main() {
       expect(find.text('Discard Workout'), findsOneWidget);
     });
 
-    testWidgets('renders empty title when initialTitle is null and user can type without box',
+    testWidgets(
+        'renders empty title when initialTitle is null and user can type without box',
         (tester) async {
       await tester.pumpWidget(
         _buildWrapper(
@@ -57,7 +84,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final titleFinder = find.byKey(const ValueKey('save-workout-title-input'));
+      final titleFinder =
+          find.byKey(const ValueKey('save-workout-title-input'));
       final textField = tester.widget<TextField>(titleFinder);
       expect(textField.controller?.text, isEmpty);
       expect(textField.decoration?.border, InputBorder.none);
@@ -67,7 +95,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('My Custom Workout'), findsOneWidget);
-      expect(find.byKey(const ValueKey('save-workout-title-clear')), findsOneWidget);
+      expect(find.byKey(const ValueKey('save-workout-title-clear')),
+          findsOneWidget);
     });
 
     testWidgets('clear button clears the workout title input', (tester) async {
@@ -88,10 +117,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Chest Day'), findsNothing);
-      expect(find.byKey(const ValueKey('save-workout-title-clear')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('save-workout-title-clear')), findsNothing);
     });
 
-    testWidgets('description input is borderless and filled=false', (tester) async {
+    testWidgets('description input is borderless and filled=false',
+        (tester) async {
       await tester.pumpWidget(
         _buildWrapper(
           const SaveWorkoutPage(
@@ -103,20 +134,102 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final descFinder = find.byKey(const ValueKey('save-workout-description-input'));
+      final descFinder =
+          find.byKey(const ValueKey('save-workout-description-input'));
       final textField = tester.widget<TextField>(descFinder);
       expect(textField.decoration?.border, InputBorder.none);
       expect(textField.decoration?.filled, isFalse);
     });
 
-    testWidgets('tapping Gym opens GymSelectionPage, searches and selects gym, then clears it',
+    testWidgets('notes-only session save keeps unsupported metadata read-only',
         (tester) async {
       await tester.pumpWidget(
         _buildWrapper(
           const SaveWorkoutPage(
+            initialTitle: 'Leg Day',
+            initialDescription: 'Earlier note',
+            duration: Duration(minutes: 45),
+            volumeKg: 2500,
+            completedSets: 10,
+            notesOnly: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('save-workout-title-input')),
+            )
+            .readOnly,
+        isTrue,
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('save-workout-description-input')),
+            )
+            .controller!
+            .text,
+        'Earlier note',
+      );
+      for (final key in [
+        'save-workout-date-tile',
+        'save-workout-gym-tile',
+        'save-workout-activity-type-tile',
+        'save-workout-rpe-tile',
+      ]) {
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+        expect(find.byType(GymSelectionPage), findsNothing);
+        expect(find.byType(WorkoutActivityTypeSheet), findsNothing);
+        expect(find.byType(WorkoutRpeSheet), findsNothing);
+      }
+      await tester
+          .tap(find.byKey(const ValueKey('save-workout-duration-stat')));
+      await tester.pumpAndSettle();
+      expect(find.byType(WorkoutDurationPickerSheet), findsNothing);
+    });
+
+    testWidgets('does not pop or claim success when persistence rejects Save',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildWrapper(
+          SaveWorkoutPage(
+            duration: const Duration(minutes: 30),
+            volumeKg: 0,
+            completedSets: 1,
+            onSave: ({
+              required String title,
+              required String? description,
+              required DateTime date,
+              required double? rpe,
+              required String activityType,
+              required String? gym,
+              Duration? duration,
+            }) async =>
+                false,
+          ),
+        ),
+      );
+      await tester
+          .tap(find.byKey(const ValueKey('save-workout-submit-button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Save Workout'), findsOneWidget);
+      expect(find.text('Workout could not be saved.'), findsOneWidget);
+    });
+
+    testWidgets(
+        'tapping Gym opens GymSelectionPage, searches and selects gym, then clears it',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildWrapper(
+          SaveWorkoutPage(
             duration: Duration(minutes: 45),
             volumeKg: 2500.0,
             completedSets: 10,
+            gymLocationRepository: _FakeGymLocationRepository(),
           ),
         ),
       );
@@ -134,19 +247,21 @@ void main() {
       expect(find.text('Popular gyms'), findsOneWidget);
 
       // Search gym
-      await tester.enterText(find.byKey(const ValueKey('gym-search-input')), 'Sky');
+      await tester.enterText(
+          find.byKey(const ValueKey('gym-search-input')), 'Test');
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
-      expect(find.text('Sky Fitness - Best Gym in Mangyawas, Mansarovar'), findsOneWidget);
+      expect(find.text('Test Fitness'), findsOneWidget);
 
       // Select Sky Fitness
-      await tester.tap(find.text('Sky Fitness - Best Gym in Mangyawas, Mansarovar'));
+      await tester.tap(find.text('Test Fitness'));
       await tester.pumpAndSettle();
 
       // Verified selected on SaveWorkoutPage
-      expect(find.text('Sky Fitness - Best Gym in Mangyawas, Mansarovar'), findsOneWidget);
-      expect(find.byKey(const ValueKey('save-workout-gym-clear')), findsOneWidget);
+      expect(find.text('Test Fitness'), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('save-workout-gym-clear')), findsOneWidget);
 
       // Clear gym back to None
       await tester.tap(find.byKey(const ValueKey('save-workout-gym-clear')));
@@ -170,7 +285,8 @@ void main() {
 
       expect(find.text('Weight Training'), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('save-workout-activity-type-tile')));
+      await tester
+          .tap(find.byKey(const ValueKey('save-workout-activity-type-tile')));
       await tester.pumpAndSettle();
 
       expect(find.text('Activity Type'), findsNWidgets(2));
@@ -179,13 +295,15 @@ void main() {
       expect(find.text('Yoga'), findsOneWidget);
 
       // Select Running
-      await tester.tap(find.byKey(const ValueKey('activity-type-option-running')));
+      await tester
+          .tap(find.byKey(const ValueKey('activity-type-option-running')));
       await tester.pumpAndSettle();
 
       expect(find.text('Running'), findsOneWidget);
     });
 
-    testWidgets('tapping Date tile opens date picker sheet and caps at current local time',
+    testWidgets(
+        'tapping Date tile opens date picker sheet and caps at current local time',
         (tester) async {
       final fixedNow = DateTime(2026, 8, 3, 10, 30);
       final testDate = DateTime(2026, 8, 3, 6, 21);
@@ -277,7 +395,8 @@ void main() {
       expect(find.text('8 • Hard Effort'), findsOneWidget);
     });
 
-    testWidgets('tapping Save button triggers onSave callback with values including gym',
+    testWidgets(
+        'tapping Save button triggers onSave callback with values including gym',
         (tester) async {
       String? savedTitle;
       String? savedDesc;
@@ -308,6 +427,7 @@ void main() {
               savedGym = gym;
               savedRpe = rpe;
               savedDuration = duration;
+              return true;
             },
           ),
         ),
@@ -326,7 +446,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('gym-option-home-gym')));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('save-workout-submit-button')));
+      await tester
+          .tap(find.byKey(const ValueKey('save-workout-submit-button')));
       await tester.pumpAndSettle();
 
       expect(savedTitle, 'Legs Day');
@@ -337,7 +458,8 @@ void main() {
       expect(savedDuration, const Duration(hours: 1));
     });
 
-    testWidgets('tapping Duration stat opens duration picker sheet and updates duration on Done',
+    testWidgets(
+        'tapping Duration stat opens duration picker sheet and updates duration on Done',
         (tester) async {
       await tester.pumpWidget(
         _buildWrapper(
@@ -353,16 +475,20 @@ void main() {
       expect(find.text('44min'), findsOneWidget);
 
       // Tap duration stat
-      await tester.tap(find.byKey(const ValueKey('save-workout-duration-stat')));
+      await tester
+          .tap(find.byKey(const ValueKey('save-workout-duration-stat')));
       await tester.pumpAndSettle();
 
       expect(find.text('Workout Duration'), findsOneWidget);
       expect(find.text('Hours'), findsOneWidget);
       expect(find.text('Minutes'), findsOneWidget);
       expect(find.text('Seconds'), findsOneWidget);
-      expect(find.byKey(const ValueKey('workout-duration-hours-wheel')), findsOneWidget);
-      expect(find.byKey(const ValueKey('workout-duration-minutes-wheel')), findsOneWidget);
-      expect(find.byKey(const ValueKey('workout-duration-seconds-wheel')), findsOneWidget);
+      expect(find.byKey(const ValueKey('workout-duration-hours-wheel')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('workout-duration-minutes-wheel')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('workout-duration-seconds-wheel')),
+          findsOneWidget);
 
       // Drag minutes wheel forward by 1 item extent
       await tester.drag(
@@ -372,7 +498,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Done
-      await tester.tap(find.byKey(const ValueKey('workout-duration-picker-done')));
+      await tester
+          .tap(find.byKey(const ValueKey('workout-duration-picker-done')));
       await tester.pumpAndSettle();
 
       expect(find.text('Workout Duration'), findsNothing);
@@ -395,8 +522,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.byKey(const ValueKey('save-workout-discard-button')));
-      await tester.tap(find.byKey(const ValueKey('save-workout-discard-button')));
+      await tester.ensureVisible(
+          find.byKey(const ValueKey('save-workout-discard-button')));
+      await tester
+          .tap(find.byKey(const ValueKey('save-workout-discard-button')));
       await tester.pumpAndSettle();
 
       expect(find.text('Discard workout?'), findsOneWidget);

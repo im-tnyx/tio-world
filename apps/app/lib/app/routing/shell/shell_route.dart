@@ -1821,6 +1821,7 @@ List<RouteBase> _shellBranchChildRoutes(
           controller: ref.watch(activeWorkoutControllerProvider),
           catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
           userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
+          gymLocationRepository: ref.watch(gymLocationRepositoryProvider),
           showStartPreview: state.uri.queryParameters['preview'] == '1',
         ),
       ),

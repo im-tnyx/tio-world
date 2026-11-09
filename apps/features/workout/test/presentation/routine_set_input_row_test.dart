@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_feature_workout/src/presentation/widgets/workout_set_input_row.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
   for (final mode in [TioThemeMode.dark, TioThemeMode.light]) {
-    testWidgets('Set 1 and 2 have visible filled rounded boxes in '
+    testWidgets(
+        'Set 1 and 2 have visible filled rounded boxes in '
         '${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);
       tester.view.devicePixelRatio = 1;
@@ -72,8 +74,8 @@ void main() {
       for (var index = 0; index < ids.length; index++) {
         final box = find.byKey(ValueKey('routine-set-type-box-${ids[index]}'));
         expect(box, findsOneWidget);
-        final decoration = tester.widget<Container>(box).decoration!
-            as BoxDecoration;
+        final decoration =
+            tester.widget<Container>(box).decoration! as BoxDecoration;
         expect(decoration.color, palette.surfaceVariant);
         expect(decoration.color, isNot(palette.background));
         final expectedRadius = BorderRadius.circular(TioInputTokens.radius);
@@ -97,7 +99,8 @@ void main() {
         // surrounding TioInput size. InputDecorator owns the outlined shape.
         for (final input in [weight, reps]) {
           final outline = find.descendant(
-            of: input, matching: find.byType(InputDecorator),
+            of: input,
+            matching: find.byType(InputDecorator),
           );
           expect(outline, findsOneWidget);
           expect(tester.getSize(outline).height, setHeight);
@@ -127,7 +130,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('swipe shows compact rounded Delete with tactile feedback in '
+    testWidgets(
+        'swipe shows compact rounded Delete with tactile feedback in '
         '${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);
       tester.view.devicePixelRatio = 1;
@@ -148,8 +152,8 @@ void main() {
       addTearDown(() => tester.binding.defaultBinaryMessenger
           .setMockMethodCallHandler(SystemChannels.platform, null));
       const id = '55555555-5555-4555-8555-555555555555';
-      final colors = mode == TioThemeMode.dark
-          ? TioColors.oled : TioColors.light;
+      final colors =
+          mode == TioThemeMode.dark ? TioColors.oled : TioColors.light;
       var open = false;
       var deletes = 0;
       await tester.pumpWidget(MaterialApp(
@@ -202,8 +206,7 @@ void main() {
       expect(tester.getTopLeft(delete).dx,
           closeTo(tester.getTopRight(swipe).dx + TioSpacing.sm, 1),
           reason: 'Delete needs the same 8dp gap as adjacent numeric fields');
-      expect(deletes, 0,
-          reason: 'Drag movement alone must not delete the Set');
+      expect(deletes, 0, reason: 'Drag movement alone must not delete the Set');
       await gesture.up();
       await tester.pumpAndSettle();
       // The settled 96dp reveal includes 8dp of exposed background gap.
@@ -217,18 +220,18 @@ void main() {
       expect(action.onPressed, isNotNull);
       expect(action.style!.backgroundColor!.resolve({}), colors.danger);
       expect(action.style!.foregroundColor!.resolve({}), Colors.white);
-      expect(action.style!.foregroundColor!
-          .resolve({WidgetState.disabled}), Colors.white);
+      expect(action.style!.foregroundColor!.resolve({WidgetState.disabled}),
+          Colors.white);
       final whiteLabel = find.descendant(
-        of: delete, matching: find.text('Delete'),
+        of: delete,
+        matching: find.text('Delete'),
       );
       expect(whiteLabel, findsOneWidget,
           reason: 'Delete label remains visible after settling');
       expect(tester.widget<Text>(whiteLabel).style!.color, Colors.white);
-      expect(action.style!.minimumSize!.resolve({}),
-          const Size(0, TioSize.dp38));
-      expect(action.style!.fixedSize!.resolve({})!.height,
-          TioSize.dp38,
+      expect(
+          action.style!.minimumSize!.resolve({}), const Size(0, TioSize.dp38));
+      expect(action.style!.fixedSize!.resolve({})!.height, TioSize.dp38,
           reason: 'Painted Delete surface must be 38dp, not only minimum');
       expect(action.style!.tapTargetSize, MaterialTapTargetSize.padded,
           reason: 'Keep standard Material tap-target policy');
@@ -238,8 +241,9 @@ void main() {
           BorderRadius.circular(TioInputTokens.radius));
       // The row behind the action must stay black/normal surface; only
       // the Delete button may paint the destructive fill.
-      expect(find.byWidgetPredicate((widget) =>
-          widget is ColoredBox && widget.color == colors.danger),
+      expect(
+          find.byWidgetPredicate((widget) =>
+              widget is ColoredBox && widget.color == colors.danger),
           findsNothing);
       final material = find.descendant(
         of: delete,
@@ -260,7 +264,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('Edit PREVIOUS Set number is blue on matching filled '
+    testWidgets(
+        'Edit PREVIOUS Set number is blue on matching filled '
         '38dp Create badge in ${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);
       tester.view.devicePixelRatio = 1;
@@ -319,7 +324,8 @@ void main() {
       for (final input in [weight, reps]) {
         expect(tester.getSize(input).height, TioSize.dp38);
         final outline = find.descendant(
-          of: input, matching: find.byType(InputDecorator),
+          of: input,
+          matching: find.byType(InputDecorator),
         );
         expect(outline, findsOneWidget);
         expect(tester.getSize(outline).height, TioSize.dp38);
@@ -331,13 +337,15 @@ void main() {
       }
       await tester.tap(find.byKey(const ValueKey('routine-set-type-$id')));
       expect(selections, 1,
-          reason: 'Edit blue number inside filled badge must open Set Type selection');
+          reason:
+              'Edit blue number inside filled badge must open Set Type selection');
       expect(tester.takeException(), isNull);
     });
   }
 
   for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
-    testWidgets('PREVIOUS visibility does not recolor Create or Edit Set badge '
+    testWidgets(
+        'PREVIOUS visibility does not recolor Create or Edit Set badge '
         'in ${mode.name}', (tester) async {
       tester.view.physicalSize = const Size(320, 720);
       tester.view.devicePixelRatio = 1;
@@ -416,7 +424,8 @@ void main() {
     TioThemeMode.tioDark,
   ]) {
     for (final highContrast in [false, true]) {
-      testWidgets('Set type contrast >= 4.5 in ${mode.name} '
+      testWidgets(
+          'Set type contrast >= 4.5 in ${mode.name} '
           'highContrast=$highContrast for Create and Edit', (tester) async {
         tester.view.physicalSize = const Size(320, 720);
         tester.view.devicePixelRatio = 1;
@@ -427,9 +436,11 @@ void main() {
           TioThemeMode.light => TioColors.light,
           TioThemeMode.dark => TioColors.oled,
           TioThemeMode.tioDark => TioColors.dark,
-          TioThemeMode.system => throw StateError('Explicit test mode required'),
+          TioThemeMode.system =>
+            throw StateError('Explicit test mode required'),
         };
-        final expectedColors = highContrast ? baseColors.highContrast : baseColors;
+        final expectedColors =
+            highContrast ? baseColors.highContrast : baseColors;
 
         for (final showPrevious in [false, true]) {
           for (final setType in RoutineSetType.values) {
@@ -460,7 +471,8 @@ void main() {
               ),
             ));
             final box = find.byKey(const ValueKey('routine-set-type-box-$id'));
-            final surface = tester.widget<Container>(box).decoration! as BoxDecoration;
+            final surface =
+                tester.widget<Container>(box).decoration! as BoxDecoration;
             expect(surface.color, expectedColors.surfaceVariant);
             final badgeText = tester.widget<Text>(
               find.descendant(of: box, matching: find.byType(Text)),
@@ -472,7 +484,9 @@ void main() {
                     'showPrevious=$showPrevious, setType=${setType.name}');
             expect(tester.getSize(box).width, TioSize.dp38);
             expect(tester.getSize(box).height, TioSize.dp38);
-            if (showPrevious && setType == RoutineSetType.normal && !highContrast) {
+            if (showPrevious &&
+                setType == RoutineSetType.normal &&
+                !highContrast) {
               expect(ink, expectedColors.primary,
                   reason: 'Keep the current Edit number color where readable');
             }
@@ -483,7 +497,8 @@ void main() {
     }
   }
 
-  testWidgets('inline row preserves kg when lb display is unchanged', (tester) async {
+  testWidgets('inline row preserves kg when lb display is unchanged',
+      (tester) async {
     final values = <SetPrescription>[];
     final validity = <bool>[];
     const id = '55555555-5555-4555-8555-555555555555';
@@ -492,9 +507,12 @@ void main() {
         config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: Scaffold(body: RoutineSetInputRow(
-        set: RoutineCompositionSet(id: id,
-          prescription: SetPrescription(reps: 8, loadKg: 12.54321, restSeconds: 60)),
+      home: Scaffold(
+          body: RoutineSetInputRow(
+        set: RoutineCompositionSet(
+            id: id,
+            prescription:
+                SetPrescription(reps: 8, loadKg: 12.54321, restSeconds: 60)),
         index: 0,
         normalNumber: 1,
         onTypePressed: () {},
@@ -531,9 +549,9 @@ void main() {
         config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: Scaffold(body: RoutineSetInputRow(
-        set: RoutineCompositionSet(
-          id: id, prescription: SetPrescription()),
+      home: Scaffold(
+          body: RoutineSetInputRow(
+        set: RoutineCompositionSet(id: id, prescription: SetPrescription()),
         index: 0,
         normalNumber: 1,
         onTypePressed: () {},
@@ -613,15 +631,16 @@ void main() {
         of: input,
         matching: find.byType(TextField),
       ));
-      expect(tester.widget<TioInput>(input).variant,
-          TioInputVariant.boxedNumber);
+      expect(
+          tester.widget<TioInput>(input).variant, TioInputVariant.boxedNumber);
       expect(field.decoration!.enabledBorder, isA<OutlineInputBorder>());
       expect(field.decoration!.focusedBorder, isA<OutlineInputBorder>());
       expect(field.decoration!.hintText, '–');
       expect(field.textAlign, TextAlign.center);
       expect(tester.getSize(input).height, TioSize.dp38);
       final outline = find.descendant(
-        of: input, matching: find.byType(InputDecorator),
+        of: input,
+        matching: find.byType(InputDecorator),
       );
       expect(outline, findsOneWidget);
       expect(tester.getSize(outline).height, TioSize.dp38);
@@ -630,14 +649,17 @@ void main() {
         findsOneWidget);
     // The Edit/PREVIOUS Rep Range already occupies the full available row.
     final swipe = find.byKey(const ValueKey('routine-set-swipe-$id'));
-    expect(tester.getTopRight(
-        find.byKey(const ValueKey('routine-set-reps-max-$id'))).dx,
+    expect(
+        tester
+            .getTopRight(find.byKey(const ValueKey('routine-set-reps-max-$id')))
+            .dx,
         closeTo(tester.getTopRight(swipe).dx, 0.01));
     expect(find.text('to'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('External Set edit refreshes inline values without overwriting weight',
+  testWidgets(
+      'External Set edit refreshes inline values without overwriting weight',
       (tester) async {
     const id = '55555555-5555-4555-8555-555555555555';
     final current = ValueNotifier<SetPrescription>(
@@ -650,7 +672,8 @@ void main() {
         config: const TioThemeConfig(mode: TioThemeMode.light),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+      home: Scaffold(
+          body: ValueListenableBuilder<SetPrescription>(
         valueListenable: current,
         builder: (_, prescription, __) => RoutineSetInputRow(
           set: RoutineCompositionSet(id: id, prescription: prescription),
@@ -698,7 +721,8 @@ void main() {
         config: const TioThemeConfig(mode: TioThemeMode.light),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+      home: Scaffold(
+          body: ValueListenableBuilder<SetPrescription>(
         valueListenable: current,
         builder: (_, prescription, __) => RoutineSetInputRow(
           set: RoutineCompositionSet(id: id, prescription: prescription),
@@ -754,7 +778,8 @@ void main() {
         config: const TioThemeConfig(mode: TioThemeMode.light),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+      home: Scaffold(
+          body: ValueListenableBuilder<SetPrescription>(
         valueListenable: current,
         builder: (_, prescription, __) => RoutineSetInputRow(
           set: RoutineCompositionSet(id: id, prescription: prescription),
@@ -788,7 +813,8 @@ void main() {
     expect(current.value.repsMax, 12);
   });
 
-  testWidgets('Treadmill uses optional KM/TIME with canonical meters and seconds',
+  testWidgets(
+      'Treadmill uses optional KM/TIME with canonical meters and seconds',
       (tester) async {
     const id = '55555555-5555-4555-8555-555555555555';
     final current = ValueNotifier<SetPrescription>(SetPrescription());
@@ -799,7 +825,8 @@ void main() {
         config: const TioThemeConfig(mode: TioThemeMode.dark),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+      home: Scaffold(
+          body: ValueListenableBuilder<SetPrescription>(
         valueListenable: current,
         builder: (_, value, __) => RoutineSetInputRow(
           set: RoutineCompositionSet(id: id, prescription: value),
@@ -828,7 +855,8 @@ void main() {
         closeTo(tester.getTopRight(swipe).dx, 0.01));
     for (final input in [km, time]) {
       final outline = find.descendant(
-        of: input, matching: find.byType(InputDecorator),
+        of: input,
+        matching: find.byType(InputDecorator),
       );
       expect(outline, findsOneWidget);
       expect(tester.getSize(outline).height, TioSize.dp38);
@@ -862,7 +890,8 @@ void main() {
         config: const TioThemeConfig(mode: TioThemeMode.light),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: Scaffold(body: ValueListenableBuilder<SetPrescription>(
+      home: Scaffold(
+          body: ValueListenableBuilder<SetPrescription>(
         valueListenable: current,
         builder: (_, value, __) => RoutineSetInputRow(
           set: RoutineCompositionSet(id: id, prescription: value),
@@ -890,7 +919,8 @@ void main() {
     expect(tester.getTopRight(time).dx,
         closeTo(tester.getTopRight(swipe).dx, 0.01));
     final timeOutline = find.descendant(
-      of: time, matching: find.byType(InputDecorator),
+      of: time,
+      matching: find.byType(InputDecorator),
     );
     expect(timeOutline, findsOneWidget);
     expect(tester.getSize(timeOutline).height, TioSize.dp38);
@@ -900,6 +930,87 @@ void main() {
     expect(current.value.reps, isNull);
     expect(current.value.loadKg, isNull);
     expect(current.value.distanceMeters, isNull);
+  });
+
+  testWidgets('Workout execution logs distance and duration measurements',
+      (tester) async {
+    const id = '77777777-7777-4777-8777-777777777777';
+    int? loggedDuration;
+    double? loggedDistance;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: WorkoutSetInputRow(
+          set: RoutineCompositionSet(id: id, prescription: SetPrescription()),
+          index: 0,
+          normalNumber: 1,
+          unit: WeightUnit.kg,
+          exerciseType: ExerciseType.distanceDuration,
+          enabled: true,
+          isExecution: true,
+          toggleKey: const ValueKey('execution-toggle-distance-duration'),
+          onToggleLogged: ({durationSeconds, distanceMeters}) async {
+            loggedDuration = durationSeconds;
+            loggedDistance = distanceMeters;
+          },
+        ),
+      ),
+    ));
+
+    await tester.enterText(
+      find.byKey(ValueKey('routine-set-distance-$id')),
+      '2.5',
+    );
+    await tester.enterText(
+      find.byKey(ValueKey('routine-set-duration-$id')),
+      '15:05',
+    );
+    await tester.pump();
+    await tester
+        .tap(find.byKey(const ValueKey('execution-toggle-distance-duration')));
+    await tester.pumpAndSettle();
+
+    expect(loggedDistance, 2500.0);
+    expect(loggedDuration, 905);
+  });
+
+  testWidgets('Workout execution logs duration-only measurements',
+      (tester) async {
+    const id = '88888888-8888-4888-8888-888888888888';
+    int? loggedDuration;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: WorkoutSetInputRow(
+          set: RoutineCompositionSet(id: id, prescription: SetPrescription()),
+          index: 0,
+          normalNumber: 1,
+          unit: WeightUnit.kg,
+          exerciseType: ExerciseType.duration,
+          enabled: true,
+          isExecution: true,
+          toggleKey: const ValueKey('execution-toggle-duration'),
+          onToggleLogged: ({durationSeconds}) async {
+            loggedDuration = durationSeconds;
+          },
+        ),
+      ),
+    ));
+
+    await tester.enterText(
+      find.byKey(ValueKey('routine-set-duration-$id')),
+      '8:09',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('execution-toggle-duration')));
+    await tester.pumpAndSettle();
+    expect(loggedDuration, 489);
   });
 
   testWidgets('Create fixed Set has outlined blank Reps without fabricated Max',
@@ -941,8 +1052,8 @@ void main() {
     expect(cell.controller!.text, isEmpty);
     expect(cell.textAlign, TextAlign.center);
     expect(cell.variant, TioInputVariant.boxedNumber);
-    expect(find.byKey(const ValueKey('routine-set-reps-max-$id')),
-        findsNothing);
+    expect(
+        find.byKey(const ValueKey('routine-set-reps-max-$id')), findsNothing);
     expect(find.byKey(const ValueKey('routine-set-range-separator-$id')),
         findsNothing);
     final field = tester.widget<TextField>(find.descendant(

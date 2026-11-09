@@ -37,6 +37,8 @@ class WorkoutSetInputRow extends StatefulWidget {
     this.onToggleLogged,
     this.performedLoadKg,
     this.performedReps,
+    this.performedDurationSeconds,
+    this.performedDistanceMeters,
     this.performedRpe,
     this.showRpe = false,
     this.onRpePressed,
@@ -67,9 +69,16 @@ class WorkoutSetInputRow extends StatefulWidget {
   final bool showRangeDraft;
   final bool isExecution;
   final bool isLogged;
-  final Future<void> Function(int? reps, double? loadKg)? onToggleLogged;
+  final Future<void> Function({
+    int? reps,
+    double? loadKg,
+    int? durationSeconds,
+    double? distanceMeters,
+  })? onToggleLogged;
   final double? performedLoadKg;
   final int? performedReps;
+  final int? performedDurationSeconds;
+  final double? performedDistanceMeters;
   final double? performedRpe;
   final bool showRpe;
   final VoidCallback? onRpePressed;
@@ -202,15 +211,13 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
       _originalWeightText = _displayWeight(_originalKg);
       _weight.text = _originalWeightText;
     }
-    if (changedExternally &&
-        before.distanceMeters != after.distanceMeters) {
+    if (changedExternally && before.distanceMeters != after.distanceMeters) {
       _originalMeters = after.distanceMeters;
       _originalDistanceText =
           RoutineSetInputLimits.displayDistanceKm(_originalMeters);
       _distance.text = _originalDistanceText;
     }
-    if (changedExternally &&
-        before.durationSeconds != after.durationSeconds) {
+    if (changedExternally && before.durationSeconds != after.durationSeconds) {
       _duration.text = RoutineSetInputLimits.displayDurationSeconds(
         after.durationSeconds,
       );
@@ -226,8 +233,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
 
   void _update() {
     final source = widget.set.prescription;
-    final isDistanceTime =
-        widget.exerciseType == ExerciseType.distanceDuration;
+    final isDistanceTime = widget.exerciseType == ExerciseType.distanceDuration;
     final isTimeOnly = widget.exerciseType == ExerciseType.duration;
     final isWeightReps = !isDistanceTime && !isTimeOnly;
 
@@ -275,13 +281,11 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
     if (isDistanceTime) {
       final raw = _distance.text.trim();
       final parsed = double.tryParse(raw);
-      valid = raw.isEmpty ||
-          (parsed != null && parsed.isFinite && parsed >= 0);
+      valid = raw.isEmpty || (parsed != null && parsed.isFinite && parsed >= 0);
       if (raw == _originalDistanceText) {
         meters = _originalMeters;
       } else {
-        meters =
-            raw.isEmpty ? null : (parsed == null ? null : parsed * 1000);
+        meters = raw.isEmpty ? null : (parsed == null ? null : parsed * 1000);
       }
     }
     if (isDistanceTime || isTimeOnly) {
@@ -355,8 +359,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
       _swipeActive = true;
     }
     final dx = event.position.dx - _swipeLast!.dx;
-    final elapsed =
-        event.timeStamp - (_swipeLastTime ?? event.timeStamp);
+    final elapsed = event.timeStamp - (_swipeLastTime ?? event.timeStamp);
     if (elapsed.inMicroseconds > 0) {
       _swipeVelocity =
           dx * Duration.microsecondsPerSecond / elapsed.inMicroseconds;
@@ -445,28 +448,50 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
   Future<void> _toggleExecutionLog() async {
     if (widget.onToggleLogged == null) return;
     if (widget.isLogged) {
-      await widget.onToggleLogged!(null, null);
+      await widget.onToggleLogged!();
       return;
     }
     final loadDraft = _weight.text.trim();
     final repsDraft = _reps.text.trim();
+    final distanceDraft = _distance.text.trim();
+    final durationDraft = _duration.text.trim();
     final loadKg = loadDraft.isEmpty ? null : double.tryParse(loadDraft);
     final reps = repsDraft.isEmpty ? null : int.tryParse(repsDraft);
+    final distanceKm =
+        distanceDraft.isEmpty ? null : double.tryParse(distanceDraft);
+    final distanceMeters = distanceKm == null ? null : distanceKm * 1000;
+    final durationSeconds =
+        RoutineSetInputLimits.parseDurationSeconds(durationDraft);
 
-    final isValid = (loadDraft.isEmpty ||
-            (loadKg != null && loadKg.isFinite && loadKg >= 0)) &&
-        (repsDraft.isEmpty ||
-            (reps != null &&
-                reps >= 0 &&
-                reps <= RoutineSetInputLimits.maxReps)) &&
-        (loadKg != null || reps != null);
+    final isDistanceDuration =
+        widget.exerciseType == ExerciseType.distanceDuration;
+    final isDurationOnly = widget.exerciseType == ExerciseType.duration;
+    final isValid = isDistanceDuration
+        ? distanceKm != null &&
+            distanceKm.isFinite &&
+            distanceKm >= 0 &&
+            durationSeconds != null
+        : isDurationOnly
+            ? durationSeconds != null
+            : (loadDraft.isEmpty ||
+                    (loadKg != null && loadKg.isFinite && loadKg >= 0)) &&
+                (repsDraft.isEmpty ||
+                    (reps != null &&
+                        reps >= 0 &&
+                        reps <= RoutineSetInputLimits.maxReps)) &&
+                (loadKg != null || reps != null);
 
     if (!isValid) {
       if (mounted) setState(() {});
       return;
     }
 
-    await widget.onToggleLogged!(reps, loadKg);
+    await widget.onToggleLogged!(
+      reps: reps,
+      loadKg: loadKg,
+      durationSeconds: durationSeconds,
+      distanceMeters: distanceMeters,
+    );
   }
 
   static String _formatNumber(double value) {
@@ -525,17 +550,18 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
           curve: Curves.easeOutCubic,
           child: foreground,
           builder: (context, revealed, child) {
-            final actionWidth = revealed > TioSpacing.sm
-                ? revealed - TioSpacing.sm
-                : 0.0;
+            final actionWidth =
+                revealed > TioSpacing.sm ? revealed - TioSpacing.sm : 0.0;
             return Stack(
               children: [
                 Positioned.fill(
                   child: Padding(
                     padding: EdgeInsets.only(
-                      right: widget.isExecution ? TioSpacing.lg : TioSpacing.none,
+                      right:
+                          widget.isExecution ? TioSpacing.lg : TioSpacing.none,
                       top: widget.isExecution ? TioSpacing.xs : 0,
-                      bottom: widget.isExecution ? TioSpacing.xs : TioSpacing.sm,
+                      bottom:
+                          widget.isExecution ? TioSpacing.xs : TioSpacing.sm,
                     ),
                     child: Align(
                       alignment: Alignment.topRight,
@@ -552,15 +578,13 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
                                   disabledBackgroundColor: colors.danger,
                                   foregroundColor: TioPalette.white,
                                   disabledForegroundColor: TioPalette.white,
-                                  minimumSize:
-                                      const Size(0, TioSize.dp38),
-                                  fixedSize:
-                                      MediaQuery.textScalerOf(context).scale(TioSize.dp16) <=
-                                              TioSize.dp24
-                                          ? const Size.fromHeight(TioSize.dp38)
-                                          : null,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.padded,
+                                  minimumSize: const Size(0, TioSize.dp38),
+                                  fixedSize: MediaQuery.textScalerOf(context)
+                                              .scale(TioSize.dp16) <=
+                                          TioSize.dp24
+                                      ? const Size.fromHeight(TioSize.dp38)
+                                      : null,
+                                  tapTargetSize: MaterialTapTargetSize.padded,
                                   padding: EdgeInsets.zero,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(
@@ -601,7 +625,8 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
     final setNumber = widget.index + 1;
     final isComplete = widget.isExecution && widget.isLogged;
 
-    final performedKg = widget.performedLoadKg ?? widget.set.prescription.loadKg;
+    final performedKg =
+        widget.performedLoadKg ?? widget.set.prescription.loadKg;
     final performedLoadText = _displayWeight(performedKg);
     final performedReps = widget.performedReps ?? widget.set.prescription.reps;
     final performedRepsText = performedReps?.toString() ?? '–';
@@ -627,8 +652,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
                   setType: widget.set.prescription.setType,
                   normalNumber: widget.normalNumber,
                   useEditSetNumberColor: widget.useEditSetNumberColor,
-                  backgroundColor:
-                      isComplete ? TioPalette.transparent : null,
+                  backgroundColor: isComplete ? TioPalette.transparent : null,
                   textColor: isComplete ? TioPalette.white : null,
                 ),
               ),
@@ -667,7 +691,11 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
                     height: TioSize.dp38,
                     child: Center(
                       child: Text(
-                        _distance.text.isEmpty ? '–' : _distance.text,
+                        widget.performedDistanceMeters != null
+                            ? RoutineSetInputLimits.displayDistanceKm(
+                                widget.performedDistanceMeters,
+                              )
+                            : (_distance.text.isEmpty ? '–' : _distance.text),
                         style: const TextStyle(
                           color: TioPalette.white,
                           fontWeight: TioFontWeight.w600,
@@ -699,7 +727,11 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
                     height: TioSize.dp38,
                     child: Center(
                       child: Text(
-                        _duration.text.isEmpty ? '–' : _duration.text,
+                        widget.performedDurationSeconds != null
+                            ? RoutineSetInputLimits.displayDurationSeconds(
+                                widget.performedDurationSeconds,
+                              )
+                            : (_duration.text.isEmpty ? '–' : _duration.text),
                         style: const TextStyle(
                           color: TioPalette.white,
                           fontWeight: TioFontWeight.w600,
@@ -903,8 +935,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
                 foregroundColor:
                     isComplete ? TioPalette.white : colors.textSecondary,
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(TioInputTokens.radius),
+                  borderRadius: BorderRadius.circular(TioInputTokens.radius),
                 ),
                 minimumSize: const Size(TioSize.dp40, TioSize.dp38),
                 padding: EdgeInsets.zero,
@@ -913,8 +944,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
               onPressed: widget.enabled ? _toggleExecutionLog : null,
               icon: Icon(
                 Icons.check_rounded,
-                color:
-                    isComplete ? TioPalette.white : colors.textSecondary,
+                color: isComplete ? TioPalette.white : colors.textSecondary,
                 size: TioSize.dp20,
               ),
             ),

@@ -419,8 +419,10 @@ void main() {
     expect(row0, findsOneWidget);
     expect(row1, findsOneWidget);
 
-    final check0 = find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0'));
-    final check1 = find.byKey(const ValueKey('active-workout-preview-set-toggle-0-1'));
+    final check0 =
+        find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0'));
+    final check1 =
+        find.byKey(const ValueKey('active-workout-preview-set-toggle-0-1'));
     final c0Rect = tester.getRect(check0);
     final c1Rect = tester.getRect(check1);
     // Row 0 checkmark height is 38dp, row minHeight is 48dp with 5dp vertical padding.
@@ -752,7 +754,8 @@ void main() {
     expect(find.text('1h 47min 47s'), findsOneWidget);
   });
 
-  testWidgets('preview timer pause and resume toggles via timer click and bottom sheet',
+  testWidgets(
+      'preview timer pause and resume toggles via timer click and bottom sheet',
       (tester) async {
     final controller = ActiveWorkoutController(
       repository: _FakeSessionRepository(),
@@ -771,7 +774,8 @@ void main() {
     expect(runningDuration.style?.color, TioColors.light.primary);
 
     // Tap Duration stat to open bottom sheet
-    await tester.tap(find.byKey(const ValueKey('active-workout-duration-stat')));
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-duration-stat')));
     await tester.pumpAndSettle();
 
     expect(find.text('Duration'), findsWidgets);
@@ -796,7 +800,8 @@ void main() {
     );
 
     // Tap Pause Workout Timer
-    await tester.tap(find.byKey(const ValueKey('active-workout-pause-sheet-action')));
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-pause-sheet-action')));
     await tester.pumpAndSettle();
 
     expect(find.text('Pause Workout Timer'), findsNothing);
@@ -809,7 +814,8 @@ void main() {
     expect(pausedDuration.style?.color, TioColors.light.textSecondary);
 
     // Tap top timer icon to open bottom sheet again
-    await tester.tap(find.byKey(const ValueKey('active-workout-preview-timer')));
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-preview-timer')));
     await tester.pumpAndSettle();
 
     expect(find.text('Resume Workout Timer'), findsOneWidget);
@@ -822,7 +828,8 @@ void main() {
     expect(sheetPausedDuration.style?.color, TioColors.light.textSecondary);
 
     // Tap Resume Workout Timer
-    await tester.tap(find.byKey(const ValueKey('active-workout-pause-sheet-action')));
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-pause-sheet-action')));
     await tester.pumpAndSettle();
 
     // Advance time by 5 seconds after resume
@@ -869,7 +876,8 @@ void main() {
     );
     expect(discard.enabled, isTrue);
 
-    await tester.tap(find.byKey(const ValueKey('active-workout-preview-discard')));
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-preview-discard')));
     await tester.pumpAndSettle();
 
     expect(find.text('Discard workout?'), findsOneWidget);
@@ -1038,18 +1046,22 @@ void main() {
     );
 
     // Add Bench Press exercise
-    await tester.tap(find.byKey(const ValueKey('active-workout-preview-add-exercise')));
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-preview-add-exercise')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_barbell_bench_press')));
+    await tester
+        .tap(find.byKey(const ValueKey('exercise-row-ex_barbell_bench_press')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('active-workout-progress-bar')), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-progress-bar')),
+        findsOneWidget);
 
     // Initial state: 0 of 1 set logged -> progress 0%
-    var semantics = tester.getSemantics(find.byKey(const ValueKey('active-workout-progress-bar')));
+    var semantics = tester.getSemantics(
+        find.byKey(const ValueKey('active-workout-progress-bar')));
     expect(semantics.value, '0%');
 
     // Add a second set so there are 2 sets in total
@@ -1057,7 +1069,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Log Set 1: progress becomes 1/2 = 50%
-    final toggle0 = find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0'));
+    final toggle0 =
+        find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0'));
     await tester.tap(toggle0);
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -1078,15 +1091,18 @@ void main() {
     await tester.tap(toggle0);
     await tester.pumpAndSettle();
 
-    semantics = tester.getSemantics(find.byKey(const ValueKey('active-workout-progress-bar')));
+    semantics = tester.getSemantics(
+        find.byKey(const ValueKey('active-workout-progress-bar')));
     expect(semantics.value, '50%');
 
     // Finish button should be enabled, but not yet green (workout is 50% complete)
-    final finishFinder = find.byKey(const ValueKey('active-workout-preview-finish'));
+    final finishFinder =
+        find.byKey(const ValueKey('active-workout-preview-finish'));
     expect(tester.widget<TioButton>(finishFinder).enabled, isTrue);
 
     // Now log Set 2: progress becomes 2/2 = 100%
-    final toggle1 = find.byKey(const ValueKey('active-workout-preview-set-toggle-0-1'));
+    final toggle1 =
+        find.byKey(const ValueKey('active-workout-preview-set-toggle-0-1'));
     await tester.tap(toggle1);
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -1107,7 +1123,8 @@ void main() {
     await tester.tap(toggle1);
     await tester.pumpAndSettle();
 
-    semantics = tester.getSemantics(find.byKey(const ValueKey('active-workout-progress-bar')));
+    semantics = tester.getSemantics(
+        find.byKey(const ValueKey('active-workout-progress-bar')));
     expect(semantics.value, '100%');
 
     // When 100% complete, Finish button's theme has green background (0xFF43A047)
@@ -1120,5 +1137,12 @@ void main() {
       theme.data.filledButtonTheme.style?.backgroundColor?.resolve({}),
       tester.element(finishFinder).tioColors.success,
     );
+
+    await tester.tap(finishFinder);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('active-workout-start-preview')),
+        findsOneWidget);
+    expect(find.textContaining('This preview is not a saved workout'),
+        findsOneWidget);
   });
 }

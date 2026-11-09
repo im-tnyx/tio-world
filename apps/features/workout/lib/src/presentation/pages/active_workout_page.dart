@@ -9,6 +9,7 @@ import '../../domain/exercises/exercise_catalog_repository.dart';
 import '../../domain/exercises/user_exercise_repository.dart';
 import '../../domain/models/routine_composition_limits.dart';
 import '../../domain/models/routine_rest_timer_preset.dart';
+import '../../domain/repositories/gym_location_repository.dart';
 import '../../domain/repositories/routine_composition_repository.dart';
 import '../../domain/exercises/exercise_catalog.dart';
 import '../controllers/active_workout_controller.dart';
@@ -35,6 +36,7 @@ class ActiveWorkoutPage extends StatelessWidget {
     this.showStartPreview = false,
     this.catalogRepository,
     this.userExerciseRepository,
+    this.gymLocationRepository,
     this.clock,
   });
 
@@ -49,6 +51,7 @@ class ActiveWorkoutPage extends StatelessWidget {
 
   /// Optional user exercise repository for custom exercises.
   final UserExerciseRepository? userExerciseRepository;
+  final GymLocationRepository? gymLocationRepository;
 
   /// Optional clock for deterministic time formatting and testing.
   final DateTime Function()? clock;
@@ -61,6 +64,7 @@ class ActiveWorkoutPage extends StatelessWidget {
       showStartPreview: showStartPreview,
       catalogRepository: catalogRepository,
       userExerciseRepository: userExerciseRepository,
+      gymLocationRepository: gymLocationRepository,
       clock: clock,
     );
   }
@@ -73,6 +77,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
     required this.showStartPreview,
     this.catalogRepository,
     this.userExerciseRepository,
+    this.gymLocationRepository,
     this.clock,
   });
 
@@ -81,6 +86,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
   final bool showStartPreview;
   final ExerciseCatalogRepository? catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  final GymLocationRepository? gymLocationRepository;
   final DateTime Function()? clock;
 
   @override
@@ -202,6 +208,9 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
           volumeKg: totalVolumeKg,
           completedSets: state.performedSets.length,
           startedAt: session?.time.startedAtUtc.toLocal(),
+          initialDescription: session?.notes,
+          notesOnly: true,
+          gymLocationRepository: widget.gymLocationRepository,
           clock: widget.clock,
           onSave: ({
             required String title,
@@ -212,7 +221,13 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
             required String? gym,
             Duration? duration,
           }) async {
-            Navigator.of(routeContext).pop(true);
+            final completed = await controller.completeSession(
+              notes: description,
+            );
+            if (completed && routeContext.mounted) {
+              Navigator.of(routeContext).pop(true);
+            }
+            return completed;
           },
           onDiscard: () async {
             await controller.discardSession(reason: 'user_cancelled');
@@ -227,7 +242,6 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
         !_sessionActive.value) {
       return;
     }
-    await controller.completeSession();
   }
 
   Future<void> _discard(ActiveWorkoutState state) async {
@@ -300,14 +314,6 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
           onAction: widget.onBack,
         );
       case ActiveWorkoutStatus.reconciliationRequired:
-        if (widget.showStartPreview) {
-          return _StartWorkoutPreview(
-            onBack: widget.onBack,
-            catalogRepository: widget.catalogRepository,
-            userExerciseRepository: widget.userExerciseRepository,
-            clock: widget.clock,
-          );
-        }
         return const _MessageState(
           key: ValueKey('active-workout-reconciliation'),
           title: 'Workout needs to reconnect',
@@ -390,7 +396,14 @@ class _StartWorkoutPreview extends StatefulWidget {
 class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
   final List<Exercise> _previewExercises = [];
   final Map<int, List<RoutineCompositionSet>> _previewExerciseSets = {};
-  final Map<String, ({double? loadKg, int? reps})> _loggedSets = {};
+  final Map<
+      String,
+      ({
+        double? loadKg,
+        int? reps,
+        int? durationSeconds,
+        double? distanceMeters,
+      })> _loggedSets = {};
   final Map<int, RoutineRestTimerPreset> _restPresets = {};
   final Map<int, List<ExerciseNoteDraftSnapshot>> _exerciseNotes = {};
   final Map<String, double?> _setRpes = {};
@@ -555,11 +568,11 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     if (action == RoutineExerciseOption.remove) {
       setState(() {
         _previewExercises.removeAt(exerciseIndex);
-        _previewExerciseSets.remove(exerciseIndex);
-        _restPresets.remove(exerciseIndex);
-        _exerciseNotes.remove(exerciseIndex);
-        _loggedSets.removeWhere((k, _) => k.startsWith('$exerciseIndex-'));
-        _setRpes.removeWhere((k, _) => k.startsWith('$exerciseIndex-'));
+        _reindexMapAfterRemoval(_previewExerciseSets, exerciseIndex);
+        _reindexMapAfterRemoval(_restPresets, exerciseIndex);
+        _reindexMapAfterRemoval(_exerciseNotes, exerciseIndex);
+        _reindexSetMapAfterRemoval(_loggedSets, exerciseIndex);
+        _reindexSetMapAfterRemoval(_setRpes, exerciseIndex);
       });
     } else if (action == RoutineExerciseOption.replace) {
       final repo = widget.catalogRepository;
@@ -633,41 +646,32 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     }
   }
 
-  Future<void> _navigateToSaveWorkout() async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (routeContext) => SaveWorkoutPage(
-          initialTitle: null,
-          duration: _elapsed,
-          volumeKg: _totalVolumeKg,
-          completedSets: _loggedSets.length,
-          startedAt: _startedAtUtc.toLocal(),
-          clock: widget.clock,
-          onSave: ({
-            required String title,
-            required String? description,
-            required DateTime date,
-            required double? rpe,
-            required String activityType,
-            required String? gym,
-            Duration? duration,
-          }) {
-            Navigator.of(routeContext).pop(true);
-          },
-          onDiscard: () {
-            _ticker?.cancel();
-            _ticker = null;
-            widget.onBack();
-          },
-        ),
-      ),
-    );
-
-    if (result == true && mounted) {
-      _ticker?.cancel();
-      _ticker = null;
-      widget.onBack();
+  void _reindexMapAfterRemoval<T>(Map<int, T> values, int removedIndex) {
+    final shifted = <int, T>{};
+    for (final entry in values.entries) {
+      if (entry.key == removedIndex) continue;
+      shifted[entry.key > removedIndex ? entry.key - 1 : entry.key] =
+          entry.value;
     }
+    values
+      ..clear()
+      ..addAll(shifted);
+  }
+
+  void _reindexSetMapAfterRemoval<T>(Map<String, T> values, int removedIndex) {
+    final shifted = <String, T>{};
+    for (final entry in values.entries) {
+      final parts = entry.key.split('-');
+      if (parts.length != 2) continue;
+      final exerciseIndex = int.tryParse(parts.first);
+      if (exerciseIndex == null || exerciseIndex == removedIndex) continue;
+      final nextIndex =
+          exerciseIndex > removedIndex ? exerciseIndex - 1 : exerciseIndex;
+      shifted['$nextIndex-${parts.last}'] = entry.value;
+    }
+    values
+      ..clear()
+      ..addAll(shifted);
   }
 
   Future<void> _discard() async {
@@ -701,6 +705,16 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       if (load != null && reps != null) volume += load * reps;
     }
     return volume;
+  }
+
+  void _showPreviewSaveUnavailable() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'This preview is not a saved workout. Start a supported workout session before saving.',
+        ),
+      ),
+    );
   }
 
   int get _totalPlannedSets {
@@ -762,9 +776,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
                   key: const ValueKey('active-workout-preview-finish'),
                   label: 'Finish',
                   enabled: canFinish,
-                  onPressed: canFinish
-                      ? () => _navigateToSaveWorkout()
-                      : null,
+                  onPressed: canFinish ? _showPreviewSaveUnavailable : null,
                 ),
               ),
             ),
@@ -778,12 +790,14 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
           Expanded(
             child: SingleChildScrollView(
               key: const ValueKey('active-workout-start-preview'),
-              padding: const EdgeInsets.only(top: TioSpacing.lg, bottom: TioSpacing.lg),
+              padding: const EdgeInsets.only(
+                  top: TioSpacing.lg, bottom: TioSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
                     child: _WorkoutStats(
                       duration: _elapsed,
                       volumeKg: _totalVolumeKg,
@@ -792,74 +806,86 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
                       isPaused: _isPaused,
                     ),
                   ),
-            const SizedBox(height: TioSpacing.lg),
-            if (_previewExercises.isEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Get started',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: TioSpacing.sm),
-                    Text(
-                      'Add an exercise to start your workout',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: context.tioColors.textSecondary,
+                  const SizedBox(height: TioSpacing.lg),
+                  if (_previewExercises.isEmpty) ...[
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Get started',
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
+                          const SizedBox(height: TioSpacing.sm),
+                          Text(
+                            'Add an exercise to start your workout',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: context.tioColors.textSecondary,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(height: TioSpacing.xl),
+                  ] else ...[
+                    for (var i = 0; i < _previewExercises.length; i++) ...[
+                      _buildPreviewExerciseCard(
+                          i, _previewExercises[i], showRpe),
+                      const SizedBox(height: TioSpacing.lg),
+                    ],
                   ],
-                ),
-              ),
-              const SizedBox(height: TioSpacing.xl),
-            ] else ...[
-              for (var i = 0; i < _previewExercises.length; i++) ...[
-                _buildPreviewExerciseCard(i, _previewExercises[i], showRpe),
-                const SizedBox(height: TioSpacing.lg),
-              ],
-            ],
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-              child: TioButton.primary(
-                key: const ValueKey('active-workout-preview-add-exercise'),
-                label: 'Add Exercise',
-                leading: const Icon(Icons.add_rounded),
-                onPressed: _addExercise,
-                expand: true,
-              ),
-            ),
-            const SizedBox(height: TioSpacing.md),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TioButton.secondary(
-                      key: const ValueKey('active-workout-preview-settings'),
-                      label: 'Settings',
-                      onPressed: () => _showDeferredAction(context, 'Settings'),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                    child: TioButton.primary(
+                      key:
+                          const ValueKey('active-workout-preview-add-exercise'),
+                      label: 'Add Exercise',
+                      leading: const Icon(Icons.add_rounded),
+                      onPressed: _addExercise,
+                      expand: true,
                     ),
                   ),
-                  const SizedBox(width: TioSpacing.md),
-                  Expanded(
-                    child: TioButton.secondary(
-                      key: const ValueKey('active-workout-preview-discard'),
-                      label: 'Discard workout',
-                      enabled: _previewExercises.isNotEmpty,
-                      onPressed: _previewExercises.isNotEmpty ? _discard : null,
+                  const SizedBox(height: TioSpacing.md),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TioButton.secondary(
+                            key: const ValueKey(
+                                'active-workout-preview-settings'),
+                            label: 'Settings',
+                            onPressed: () =>
+                                _showDeferredAction(context, 'Settings'),
+                          ),
+                        ),
+                        const SizedBox(width: TioSpacing.md),
+                        Expanded(
+                          child: TioButton.secondary(
+                            key: const ValueKey(
+                                'active-workout-preview-discard'),
+                            label: 'Discard workout',
+                            enabled: _previewExercises.isNotEmpty,
+                            onPressed:
+                                _previewExercises.isNotEmpty ? _discard : null,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ),
-  ],
-),
     );
   }
 
@@ -925,12 +951,15 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
           normalNumber: setIndex + 1,
           unit: WeightUnit.kg,
           enabled: true,
+          exerciseType: _previewExercises[exerciseIndex].exerciseType,
           showPrevious: true,
           isExecution: true,
           isLogged: isLogged,
           showRpe: showRpe,
           performedLoadKg: logged?.loadKg,
           performedReps: logged?.reps,
+          performedDurationSeconds: logged?.durationSeconds,
+          performedDistanceMeters: logged?.distanceMeters,
           performedRpe: _setRpes[setId],
           onRpePressed: () => _selectSetRpe(exerciseIndex, setIndex, set),
           onTypePressed: () => _selectSetType(exerciseIndex, setIndex, set),
@@ -952,12 +981,18 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
           rpeKey: ValueKey(
             'active-workout-preview-rpe-$exerciseIndex-$setIndex',
           ),
-          onToggleLogged: (reps, loadKg) async {
+          onToggleLogged: (
+              {reps, loadKg, durationSeconds, distanceMeters}) async {
             setState(() {
               if (isLogged) {
                 _loggedSets.remove(setId);
               } else {
-                _loggedSets[setId] = (loadKg: loadKg, reps: reps);
+                _loggedSets[setId] = (
+                  loadKg: loadKg,
+                  reps: reps,
+                  durationSeconds: durationSeconds,
+                  distanceMeters: distanceMeters,
+                );
               }
             });
           },
@@ -1068,9 +1103,7 @@ class _SessionState extends StatefulWidget {
 class _SessionStateState extends State<_SessionState> {
   final Map<int, RoutineRestTimerPreset> _restPresets = {};
   final Map<int, List<ExerciseNoteDraftSnapshot>> _exerciseNotes = {};
-  final Map<String, double?> _setRpes = {};
   final Map<int, List<RoutineCompositionSet>> _extraSessionSets = {};
-  final Map<String, RoutineSetType> _sessionSetTypeOverrides = {};
   ExerciseCatalog? _catalog;
 
   @override
@@ -1110,58 +1143,12 @@ class _SessionStateState extends State<_SessionState> {
     final action = await showRoutineExerciseOptionsSheet(context);
     if (!mounted || action == null) return;
     if (action == RoutineExerciseOption.remove) {
-      unawaited(_showDeferredAction(context, 'Remove exercise from active session'));
+      unawaited(
+          _showDeferredAction(context, 'Remove exercise from active session'));
     } else if (action == RoutineExerciseOption.replace) {
-      unawaited(_showDeferredAction(context, 'Replace exercise in active session'));
+      unawaited(
+          _showDeferredAction(context, 'Replace exercise in active session'));
     }
-  }
-
-  Future<void> _selectSetType(
-    int occurrenceIndex,
-    int setIndex,
-    RoutineCompositionSet set,
-    List<RoutineCompositionSet> sets,
-  ) async {
-    final chosen = await showWorkoutSetTypeSheet(
-      context: context,
-      sets: sets,
-      targetSet: set,
-    );
-    if (!mounted || chosen == null) return;
-    setState(() {
-      if (chosen is RoutineSetType) {
-        _sessionSetTypeOverrides['$occurrenceIndex-$setIndex'] = chosen;
-      }
-    });
-  }
-
-  Future<void> _selectSessionSetRpe(
-    int occurrenceIndex,
-    int setIndex,
-    RoutineCompositionSet set,
-    PerformedSet? performed,
-  ) async {
-    final setId = '$occurrenceIndex-$setIndex';
-    final currentRpe = _setRpes[setId];
-    final loadKg = performed?.loadKg ?? set.prescription.loadKg;
-    final reps = performed?.reps ?? set.prescription.reps;
-
-    final selected = await showWorkoutRpeSheet(
-      context: context,
-      setNumber: setIndex + 1,
-      loadKg: loadKg,
-      reps: reps,
-      initialRpe: currentRpe,
-    );
-
-    if (!mounted || selected == null) return;
-    setState(() {
-      if (selected > 0) {
-        _setRpes[setId] = selected;
-      } else {
-        _setRpes.remove(setId);
-      }
-    });
   }
 
   PerformedSet? _performedFor(
@@ -1279,155 +1266,164 @@ class _SessionStateState extends State<_SessionState> {
           _WorkoutProgressBar(progress: workoutProgress),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(top: TioSpacing.xs, bottom: TioSpacing.lg),
+              padding: const EdgeInsets.only(
+                  top: TioSpacing.xs, bottom: TioSpacing.lg),
               child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: Text(
-                      snapshot.routineName,
-                      style: Theme.of(context).textTheme.headlineSmall,
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            snapshot.routineName,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                        ),
+                        Text(statusLabel),
+                      ],
                     ),
                   ),
-                  Text(statusLabel),
-                ],
-              ),
-            ),
-            const SizedBox(height: TioSpacing.xs),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-              child: _WorkoutStats(
-                duration: state.activeElapsedDuration,
-                volumeKg: _volumeKg(state.performedSets),
-                completedSets: state.performedSets.length,
-                onDurationPressed: widget.onDurationPressed,
-                isPaused: isPaused,
-              ),
-            ),
-            if (state.errorMessage case final message?) ...[
-              const SizedBox(height: TioSpacing.xs),
-              Semantics(
-                liveRegion: true,
-                child: TioCard(
-                  key: const ValueKey('active-workout-action-error'),
-                  child: Text(
-                    message,
-                    style: TextStyle(color: context.tioColors.danger),
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: TioSpacing.sm),
-            if (snapshot.exercises.isEmpty)
-              const TioCard(
-                child: Text('No exercises were captured for this session.'),
-              )
-            else
-              for (var i = 0; i < snapshot.exercises.length; i++) ...[
-                _buildExerciseCard(
-                  i,
-                  snapshot.exercises[i],
-                  state,
-                  controller,
-                  showRpe,
-                ),
-                const SizedBox(height: TioSpacing.sm),
-              ],
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-              child: TioButton.supporting(
-                key: const ValueKey('active-workout-add-set'),
-                label: 'Add Set',
-                leading: const Icon(Icons.add_rounded),
-                enabled: !state.isTerminal && !state.isActionPending,
-                onPressed: state.isTerminal || state.isActionPending
-                    ? null
-                    : () => _showDeferredAction(context, 'Add Set'),
-                expand: true,
-              ),
-            ),
-            const SizedBox(height: TioSpacing.sm),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-              child: TioButton.primary(
-                key: const ValueKey('active-workout-add-exercise'),
-                label: 'Add Exercise',
-                leading: const Icon(Icons.add_rounded),
-                enabled: !state.isTerminal && !state.isActionPending,
-                onPressed: state.isTerminal || state.isActionPending
-                    ? null
-                    : () => _showDeferredAction(context, 'Add Exercise'),
-                expand: true,
-              ),
-            ),
-            const SizedBox(height: TioSpacing.sm),
-            if (!state.isTerminal) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-                child: TioButton.secondary(
-                  key: const ValueKey('active-workout-pause-resume'),
-                  label: state.status == ActiveWorkoutStatus.active
-                      ? 'Pause workout'
-                      : 'Resume workout',
-                  enabled: widget.onPauseOrResume != null,
-                  onPressed: widget.onPauseOrResume,
-                  loading: state.isActionPending,
-                  expand: true,
-                ),
-              ),
-              const SizedBox(height: TioSpacing.sm),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TioButton.secondary(
-                        key: const ValueKey('active-workout-settings'),
-                        label: 'Settings',
-                        onPressed: () =>
-                            _showDeferredAction(context, 'Settings'),
-                      ),
+                  const SizedBox(height: TioSpacing.xs),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                    child: _WorkoutStats(
+                      duration: state.activeElapsedDuration,
+                      volumeKg: _volumeKg(state.performedSets),
+                      completedSets: state.performedSets.length,
+                      onDurationPressed: widget.onDurationPressed,
+                      isPaused: isPaused,
                     ),
-                    const SizedBox(width: TioSpacing.md),
-                    Expanded(
-                      child: TioButton.secondary(
-                        key: const ValueKey('active-workout-discard'),
-                        label: 'Discard workout',
-                        enabled: widget.onDiscard != null,
-                        onPressed: widget.onDiscard,
+                  ),
+                  if (state.errorMessage case final message?) ...[
+                    const SizedBox(height: TioSpacing.xs),
+                    Semantics(
+                      liveRegion: true,
+                      child: TioCard(
+                        key: const ValueKey('active-workout-action-error'),
+                        child: Text(
+                          message,
+                          style: TextStyle(color: context.tioColors.danger),
+                        ),
                       ),
                     ),
                   ],
-                ),
-              ),
-              if (state.performedSets.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: TioSpacing.xs),
-                  child: Text(
-                    'Log at least one set before finishing this workout.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.tioColors.textSecondary,
-                        ),
+                  const SizedBox(height: TioSpacing.sm),
+                  if (snapshot.exercises.isEmpty)
+                    const TioCard(
+                      child:
+                          Text('No exercises were captured for this session.'),
+                    )
+                  else
+                    for (var i = 0; i < snapshot.exercises.length; i++) ...[
+                      _buildExerciseCard(
+                        i,
+                        snapshot.exercises[i],
+                        state,
+                        controller,
+                        showRpe,
+                      ),
+                      const SizedBox(height: TioSpacing.sm),
+                    ],
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                    child: TioButton.supporting(
+                      key: const ValueKey('active-workout-add-set'),
+                      label: 'Add Set',
+                      leading: const Icon(Icons.add_rounded),
+                      enabled: !state.isTerminal && !state.isActionPending,
+                      onPressed: state.isTerminal || state.isActionPending
+                          ? null
+                          : () => _showDeferredAction(context, 'Add Set'),
+                      expand: true,
+                    ),
                   ),
-                ),
-            ] else ...[
-              TioButton.secondary(
-                label: 'Back to Workout',
-                onPressed: widget.onBack,
-                expand: true,
+                  const SizedBox(height: TioSpacing.sm),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                    child: TioButton.primary(
+                      key: const ValueKey('active-workout-add-exercise'),
+                      label: 'Add Exercise',
+                      leading: const Icon(Icons.add_rounded),
+                      enabled: !state.isTerminal && !state.isActionPending,
+                      onPressed: state.isTerminal || state.isActionPending
+                          ? null
+                          : () => _showDeferredAction(context, 'Add Exercise'),
+                      expand: true,
+                    ),
+                  ),
+                  const SizedBox(height: TioSpacing.sm),
+                  if (!state.isTerminal) ...[
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                      child: TioButton.secondary(
+                        key: const ValueKey('active-workout-pause-resume'),
+                        label: state.status == ActiveWorkoutStatus.active
+                            ? 'Pause workout'
+                            : 'Resume workout',
+                        enabled: widget.onPauseOrResume != null,
+                        onPressed: widget.onPauseOrResume,
+                        loading: state.isActionPending,
+                        expand: true,
+                      ),
+                    ),
+                    const SizedBox(height: TioSpacing.sm),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TioButton.secondary(
+                              key: const ValueKey('active-workout-settings'),
+                              label: 'Settings',
+                              onPressed: () =>
+                                  _showDeferredAction(context, 'Settings'),
+                            ),
+                          ),
+                          const SizedBox(width: TioSpacing.md),
+                          Expanded(
+                            child: TioButton.secondary(
+                              key: const ValueKey('active-workout-discard'),
+                              label: 'Discard workout',
+                              enabled: widget.onDiscard != null,
+                              onPressed: widget.onDiscard,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (state.performedSets.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: TioSpacing.xs),
+                        child: Text(
+                          'Log at least one set before finishing this workout.',
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: context.tioColors.textSecondary,
+                                  ),
+                        ),
+                      ),
+                  ] else ...[
+                    TioButton.secondary(
+                      label: 'Back to Workout',
+                      onPressed: widget.onBack,
+                      expand: true,
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
-    ),
-  ],
-),
     );
   }
 
@@ -1441,21 +1437,12 @@ class _SessionStateState extends State<_SessionState> {
     final prescribed = exercise.prescribedSets
         .asMap()
         .entries
-        .map(
-          (e) {
-            final override = _sessionSetTypeOverrides[
-                '${exercise.occurrenceIndex}-${e.key}'];
-            return RoutineCompositionSet(
+        .map((e) => RoutineCompositionSet(
               id: _syntheticUuid(exercise.occurrenceIndex, e.key),
-              prescription: override != null
-                  ? _withSetType(e.value, override)
-                  : e.value,
-            );
-          },
-        )
+              prescription: e.value,
+            ))
         .toList();
-    final extra =
-        _extraSessionSets[exercise.occurrenceIndex] ?? const [];
+    final extra = _extraSessionSets[exercise.occurrenceIndex] ?? const [];
     final sets = [...prescribed, ...extra];
     final hasWarmUpSets =
         sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
@@ -1516,32 +1503,28 @@ class _SessionStateState extends State<_SessionState> {
           normalNumber: setIndex + 1,
           unit: WeightUnit.kg,
           enabled: !state.isTerminal && !state.isActionPending,
+          exerciseType: exercise.exerciseType,
           showPrevious: true,
           isExecution: true,
           isLogged: isComplete,
           showRpe: showRpe,
           performedLoadKg: performed?.loadKg,
           performedReps: performed?.reps,
-          performedRpe: _setRpes['${exercise.occurrenceIndex}-$setIndex'],
-          onRpePressed: () => _selectSessionSetRpe(
-            exercise.occurrenceIndex,
-            setIndex,
-            set,
-            performed,
-          ),
-          onTypePressed: () => _selectSetType(
-            exercise.occurrenceIndex,
-            setIndex,
-            set,
-            sets,
-          ),
+          performedDurationSeconds: performed?.durationSeconds,
+          performedDistanceMeters: performed?.distanceMeters,
+          performedRpe: null,
+          // Set type is part of the immutable start snapshot. This session
+          // contract does not persist performed RPE/type overrides.
+          onRpePressed: null,
+          onTypePressed: null,
           rowKey: ValueKey('active-workout-set-$setIndex'),
           setNumberKey: ValueKey('active-workout-set-number-$setIndex'),
           loadKey: ValueKey('active-workout-load-$setIndex'),
           repsKey: ValueKey('active-workout-reps-$setIndex'),
           toggleKey: ValueKey('active-workout-set-toggle-$setIndex'),
           rpeKey: ValueKey('active-workout-rpe-$setIndex'),
-          onToggleLogged: (reps, loadKg) async {
+          onToggleLogged: (
+              {reps, loadKg, durationSeconds, distanceMeters}) async {
             if (isComplete) {
               await controller.removeSet(performed.id);
             } else {
@@ -1550,6 +1533,8 @@ class _SessionStateState extends State<_SessionState> {
                 setIndex: setIndex,
                 reps: reps,
                 loadKg: loadKg,
+                durationSeconds: durationSeconds,
+                distanceMeters: distanceMeters,
               );
             }
           },

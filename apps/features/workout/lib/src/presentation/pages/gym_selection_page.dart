@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:tio_core/core.dart';
 
-import '../../data/repositories/supabase_gym_location_repository.dart';
 import '../../domain/models/gym_location.dart';
 import '../../domain/repositories/gym_location_repository.dart';
 
@@ -31,13 +30,14 @@ class GymSelectionPage extends StatefulWidget {
 
 class _GymSelectionPageState extends State<GymSelectionPage> {
   final TextEditingController _searchController = TextEditingController();
-  late final GymLocationRepository _repository;
+  GymLocationRepository? get _repository => widget.repository;
 
   String _query = '';
   bool _isLoading = false;
   double? _currentLat;
   double? _currentLng;
   Timer? _debounceTimer;
+  var _requestGeneration = 0;
 
   static const homeGym = GymLocation(
     id: 'home_gym',
@@ -45,48 +45,11 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
     address: 'Private location',
   );
 
-  static const List<GymLocation> _fallbackPopularGyms = [
-    GymLocation(
-      id: 'sky_mangyawas',
-      name: 'Sky Fitness - Best Gym in Mangyawas, Mansarovar',
-      address:
-          'Maharani Garden Road, Mansarovar, Rajat Path, Jaipur, Rajasthan',
-      distanceKm: 1.86,
-    ),
-    GymLocation(
-      id: 'sky_ajmer_road',
-      name: 'Sky Fitness - Best Gym In Ajmer Road, Jaipur',
-      address:
-          '1st Floor, ML Tower, Metro Pillar No-01, Teja Circle, Gopalpura Bypass Rd, Jaipur',
-      distanceKm: 2.68,
-    ),
-    GymLocation(
-      id: 'm_fit_studio',
-      name: 'M-Fit Studio',
-      address:
-          '9/216, Chitrakoot Marg, Akruti Apartments, Vaishali Nagar, Jaipur, Rajasthan',
-      distanceKm: 4.88,
-    ),
-    GymLocation(
-      id: 'golds_gym',
-      name: "Gold's Gym",
-      address: 'Malviya Nagar, Jaipur, Rajasthan',
-      distanceKm: 6.20,
-    ),
-    GymLocation(
-      id: 'anytime_fitness',
-      name: 'Anytime Fitness',
-      address: 'C-Scheme, Ashok Nagar, Jaipur, Rajasthan',
-      distanceKm: 7.50,
-    ),
-  ];
-
-  List<GymLocation> _gyms = _fallbackPopularGyms;
+  List<GymLocation> _gyms = const [];
 
   @override
   void initState() {
     super.initState();
-    _repository = widget.repository ?? SupabaseGymLocationRepository();
     _searchController.addListener(_onSearchInputChanged);
     _loadInitialGyms();
   }
@@ -94,6 +57,7 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _requestGeneration++;
     _searchController.removeListener(_onSearchInputChanged);
     _searchController.dispose();
     super.dispose();
@@ -111,7 +75,19 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
   }
 
   Future<void> _loadInitialGyms() async {
+    final requestGeneration = ++_requestGeneration;
     setState(() => _isLoading = true);
+
+    final repository = _repository;
+    if (repository == null) {
+      if (mounted && requestGeneration == _requestGeneration) {
+        setState(() {
+          _gyms = const [];
+          _isLoading = false;
+        });
+      }
+      return;
+    }
 
     Position? pos;
     try {
@@ -124,8 +100,7 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
           var permission = await Geolocator.checkPermission()
               .timeout(const Duration(seconds: 1));
           if (permission == LocationPermission.denied) {
-            permission = await Geolocator.requestPermission()
-                .timeout(const Duration(seconds: 1));
+            permission = await Geolocator.requestPermission();
           }
           if (permission == LocationPermission.always ||
               permission == LocationPermission.whileInUse) {
@@ -147,28 +122,28 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
     }
 
     try {
-      final results = await _repository.searchGyms(
-        latitude: _currentLat,
-        longitude: _currentLng,
-      ).timeout(const Duration(seconds: 4));
+      final results = await repository
+          .searchGyms(
+            latitude: _currentLat,
+            longitude: _currentLng,
+          )
+          .timeout(const Duration(seconds: 4));
 
-      if (mounted) {
+      if (mounted &&
+          requestGeneration == _requestGeneration &&
+          _query.isEmpty) {
         setState(() {
-          if (results.isNotEmpty) {
-            _gyms = results;
-          } else {
-            _gyms = _fallbackPopularGyms;
-          }
+          _gyms = results;
         });
       }
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _gyms = _fallbackPopularGyms;
-        });
+      if (mounted &&
+          requestGeneration == _requestGeneration &&
+          _query.isEmpty) {
+        setState(() => _gyms = const []);
       }
     } finally {
-      if (mounted) {
+      if (mounted && requestGeneration == _requestGeneration) {
         setState(() => _isLoading = false);
       }
     }
@@ -180,41 +155,40 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
       return;
     }
 
+    final requestGeneration = ++_requestGeneration;
+    final repository = _repository;
+    if (repository == null) {
+      setState(() {
+        _gyms = const [];
+        _isLoading = false;
+      });
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      final results = await _repository.searchGyms(
-        query: query,
-        latitude: _currentLat,
-        longitude: _currentLng,
-      ).timeout(const Duration(seconds: 4));
+      final results = await repository
+          .searchGyms(
+            query: query,
+            latitude: _currentLat,
+            longitude: _currentLng,
+          )
+          .timeout(const Duration(seconds: 4));
 
-      if (mounted) {
-        setState(() {
-          if (results.isNotEmpty) {
-            _gyms = results;
-          } else {
-            // If remote search has no matches, filter fallback list
-            final lower = query.toLowerCase();
-            final filteredFallback = _fallbackPopularGyms.where((g) {
-              return g.name.toLowerCase().contains(lower) ||
-                  g.address.toLowerCase().contains(lower);
-            }).toList();
-            _gyms = filteredFallback;
-          }
-        });
+      if (mounted &&
+          requestGeneration == _requestGeneration &&
+          _query == query) {
+        setState(() => _gyms = results);
       }
     } catch (_) {
-      if (mounted) {
-        final lower = query.toLowerCase();
-        final filteredFallback = _fallbackPopularGyms.where((g) {
-          return g.name.toLowerCase().contains(lower) ||
-              g.address.toLowerCase().contains(lower);
-        }).toList();
-        _gyms = filteredFallback;
+      if (mounted &&
+          requestGeneration == _requestGeneration &&
+          _query == query) {
+        setState(() => _gyms = const []);
       }
     } finally {
-      if (mounted) {
+      if (mounted && requestGeneration == _requestGeneration) {
         setState(() => _isLoading = false);
       }
     }
@@ -394,7 +368,8 @@ class _GymSelectionPageState extends State<GymSelectionPage> {
                     ),
                 ] else if (!_matchesHomeGym && !_isLoading) ...[
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: TioSpacing.xl),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: TioSpacing.xl),
                     child: Center(
                       child: Text(
                         'No gyms found',

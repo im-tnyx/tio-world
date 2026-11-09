@@ -67,7 +67,8 @@ Future<DateTime?> showWorkoutDateTimePickerSheet({
                       width: TioSize.dp40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: colors.textSecondary.withValues(alpha: TioOpacity.opacity40),
+                        color: colors.textSecondary
+                            .withValues(alpha: TioOpacity.opacity40),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -121,23 +122,27 @@ class SaveWorkoutPage extends StatefulWidget {
     required this.volumeKg,
     required this.completedSets,
     this.initialTitle,
+    this.initialDescription,
     this.startedAt,
     this.onSave,
     this.onDiscard,
     this.clock,
     this.gymLocationRepository,
+    this.notesOnly = false,
     super.key,
   });
 
   final String? initialTitle;
+  final String? initialDescription;
   final Duration duration;
   final double volumeKg;
   final int completedSets;
   final DateTime? startedAt;
   final DateTime Function()? clock;
   final GymLocationRepository? gymLocationRepository;
+  final bool notesOnly;
 
-  final FutureOr<void> Function({
+  final FutureOr<bool> Function({
     required String title,
     required String? description,
     required DateTime date,
@@ -174,7 +179,9 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
     _titleController.addListener(() {
       if (mounted) setState(() {});
     });
-    _descriptionController = TextEditingController();
+    _descriptionController = TextEditingController(
+      text: widget.initialDescription ?? '',
+    );
     _workoutDuration = widget.duration;
     final now = _currentNow();
     final initial = widget.startedAt?.toLocal() ?? now;
@@ -269,7 +276,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
           : null;
 
       if (widget.onSave != null) {
-        await widget.onSave!(
+        final saved = await widget.onSave!(
           title: title,
           description: description,
           date: _workoutDate,
@@ -278,8 +285,17 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
           gym: _selectedGym,
           duration: _workoutDuration,
         );
+        if (saved == true && mounted) {
+          Navigator.of(context).pop(true);
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Workout could not be saved.')),
+          );
+        }
       } else if (mounted) {
-        Navigator.of(context).pop(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Workout could not be saved.')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -344,6 +360,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                   child: TextField(
                     key: const ValueKey('save-workout-title-input'),
                     controller: _titleController,
+                    readOnly: widget.notesOnly,
                     style: textTheme.headlineSmall?.copyWith(
                       fontWeight: TioFontWeight.w700,
                       color: colors.textPrimary,
@@ -362,13 +379,14 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                       contentPadding: EdgeInsets.zero,
                       hintText: 'Workout name',
                       hintStyle: textTheme.headlineSmall?.copyWith(
-                        color: colors.textSecondary.withValues(alpha: TioOpacity.opacity50),
+                        color: colors.textSecondary
+                            .withValues(alpha: TioOpacity.opacity50),
                         fontWeight: TioFontWeight.w700,
                       ),
                     ),
                   ),
                 ),
-                if (_titleController.text.isNotEmpty)
+                if (!widget.notesOnly && _titleController.text.isNotEmpty)
                   GestureDetector(
                     key: const ValueKey('save-workout-title-clear'),
                     onTap: () {
@@ -401,7 +419,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                     label: 'Duration',
                     value: _formatDuration(_workoutDuration),
                     valueColor: colors.primary,
-                    onTap: _pickDuration,
+                    onTap: widget.notesOnly ? null : _pickDuration,
                   ),
                 ),
                 Expanded(
@@ -419,7 +437,10 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
-            Divider(height: 1, color: colors.surfaceVariant.withValues(alpha: TioOpacity.opacity50)),
+            Divider(
+                height: 1,
+                color: colors.surfaceVariant
+                    .withValues(alpha: TioOpacity.opacity50)),
             const SizedBox(height: TioSpacing.lg),
 
             // Add a photo / video dashed box
@@ -428,7 +449,8 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               onTap: () {
                 HapticFeedback.selectionClick();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Photo / Video upload coming soon')),
+                  const SnackBar(
+                      content: Text('Photo / Video upload coming soon')),
                 );
               },
               child: Row(
@@ -480,15 +502,20 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                 filled: false,
                 fillColor: TioPalette.transparent,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: TioSpacing.xs),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: TioSpacing.xs),
                 hintText: 'How did your workout go? Leave some notes here...',
                 hintStyle: textTheme.bodyMedium?.copyWith(
-                  color: colors.textSecondary.withValues(alpha: TioOpacity.opacity50),
+                  color: colors.textSecondary
+                      .withValues(alpha: TioOpacity.opacity50),
                 ),
               ),
             ),
             const SizedBox(height: TioSpacing.md),
-            Divider(height: 1, color: colors.surfaceVariant.withValues(alpha: TioOpacity.opacity50)),
+            Divider(
+                height: 1,
+                color: colors.surfaceVariant
+                    .withValues(alpha: TioOpacity.opacity50)),
 
             // Options List
             _SaveOptionTile(
@@ -496,16 +523,17 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               icon: Icons.calendar_month_outlined,
               title: 'Date',
               value: _formatDateTile(_workoutDate),
-              onTap: _pickDateTime,
+              onTap: widget.notesOnly ? null : _pickDateTime,
             ),
             _SaveOptionTile(
               key: const ValueKey('save-workout-gym-tile'),
               icon: Icons.location_on_outlined,
               title: 'Gym',
               value: _selectedGym ?? 'None',
-              valueColor:
-                  _selectedGym != null ? colors.textPrimary : colors.textSecondary,
-              trailingWidget: _selectedGym != null
+              valueColor: _selectedGym != null
+                  ? colors.textPrimary
+                  : colors.textSecondary,
+              trailingWidget: !widget.notesOnly && _selectedGym != null
                   ? GestureDetector(
                       key: const ValueKey('save-workout-gym-clear'),
                       onTap: () {
@@ -522,14 +550,14 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                       ),
                     )
                   : null,
-              onTap: _pickGym,
+              onTap: widget.notesOnly ? null : _pickGym,
             ),
             _SaveOptionTile(
               key: const ValueKey('save-workout-activity-type-tile'),
               icon: Icons.fitness_center_rounded,
               title: 'Activity Type',
               value: _activityType,
-              onTap: _pickActivityType,
+              onTap: widget.notesOnly ? null : _pickActivityType,
             ),
             _SaveOptionTile(
               key: const ValueKey('save-workout-rpe-tile'),
@@ -540,7 +568,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                   : 'Rate workout',
               valueColor:
                   _workoutRpe != null ? colors.primary : colors.textSecondary,
-              onTap: _pickWorkoutRpe,
+              onTap: widget.notesOnly ? null : _pickWorkoutRpe,
             ),
             const _SaveOptionTile(
               key: ValueKey('save-workout-routine-settings-tile'),
@@ -666,7 +694,8 @@ class _SaveOptionTile extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: colors.surfaceVariant.withValues(alpha: TioOpacity.opacity50),
+              color:
+                  colors.surfaceVariant.withValues(alpha: TioOpacity.opacity50),
               width: 1,
             ),
           ),
@@ -712,7 +741,8 @@ class _SaveOptionTile extends StatelessWidget {
                       Icon(
                         Icons.chevron_right_rounded,
                         size: TioSize.dp20,
-                        color: colors.textSecondary.withValues(alpha: TioOpacity.opacity70),
+                        color: colors.textSecondary
+                            .withValues(alpha: TioOpacity.opacity70),
                       ),
                 ],
               ),
@@ -853,9 +883,8 @@ String _formatDateTile(DateTime date) {
     'Nov',
     'Dec'
   ];
-  final hour = date.hour == 0
-      ? 12
-      : (date.hour > 12 ? date.hour - 12 : date.hour);
+  final hour =
+      date.hour == 0 ? 12 : (date.hour > 12 ? date.hour - 12 : date.hour);
   final ampm = date.hour >= 12 ? 'PM' : 'AM';
   final minute = date.minute.toString().padLeft(2, '0');
   return '${date.day} ${months[date.month - 1]} ${date.year}, $hour:$minute $ampm';
