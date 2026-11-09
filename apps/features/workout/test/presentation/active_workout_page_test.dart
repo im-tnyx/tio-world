@@ -146,7 +146,10 @@ final class _PreviewReplacementCatalogRepository
       ]);
 }
 
-WorkoutSessionSnapshot _snapshot({int? restSeconds = 120}) =>
+WorkoutSessionSnapshot _snapshot({
+  int? restSeconds = 120,
+  int? secondRestSeconds,
+}) =>
     WorkoutSessionSnapshot(
       routineId: _routineId,
       routineName: 'Push Day A',
@@ -165,6 +168,13 @@ WorkoutSessionSnapshot _snapshot({int? restSeconds = 120}) =>
               loadKg: 80,
               restSeconds: restSeconds,
             ),
+            if (secondRestSeconds != null)
+              SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 8,
+                loadKg: 80,
+                restSeconds: secondRestSeconds,
+              ),
           ],
         ),
       ],
@@ -174,6 +184,7 @@ WorkoutSession _session({
   WorkoutSessionStatus status = WorkoutSessionStatus.active,
   bool withPerformedSet = true,
   int? restSeconds = 120,
+  int? secondRestSeconds,
 }) {
   final start = DateTime.utc(2026, 11, 7, 10);
   final paused = status == WorkoutSessionStatus.paused ? start : null;
@@ -190,7 +201,10 @@ WorkoutSession _session({
       lastTransitionAtUtc: start,
     ),
     localDate: '2026-11-07',
-    snapshot: _snapshot(restSeconds: restSeconds),
+    snapshot: _snapshot(
+      restSeconds: restSeconds,
+      secondRestSeconds: secondRestSeconds,
+    ),
     performedSets: withPerformedSet
         ? [
             PerformedSet(
@@ -564,6 +578,38 @@ void main() {
 
     expect(repository.lastLoggedSet, isNotNull);
     expect(controller.state.activeRestTimer, isNull);
+  });
+
+  testWidgets('logging sets uses each mixed prescribed rest duration',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(
+          withPerformedSet: false,
+          restSeconds: 60,
+          secondRestSeconds: 90,
+        ),
+        revision: 1,
+      );
+    final now = DateTime.utc(2026, 11, 7, 10, 5);
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+      clock: () => now,
+    );
+    await _pumpPage(tester, controller: controller, clock: () => now);
+
+    await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-0')));
+    await tester.pumpAndSettle();
+    expect(controller.state.activeRestTimer?.totalDurationSeconds, 60);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('active-workout-set-toggle-1')),
+    );
+    await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-1')));
+    await tester.pumpAndSettle();
+    expect(controller.state.activeRestTimer?.totalDurationSeconds, 90);
+    expect(controller.state.activeRestTimer?.setIndex, 1);
   });
 
   testWidgets('adds selected exercises from the routine picker to preview',

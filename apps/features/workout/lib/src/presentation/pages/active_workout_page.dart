@@ -1513,7 +1513,8 @@ class _SessionStateState extends State<_SessionState> {
     );
     final hasWarmUpSets =
         sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
-    final restPreset = _restPresets[exercise.occurrenceIndex] ??
+    final exerciseRestOverride = _restPresets[exercise.occurrenceIndex];
+    final restPreset = exerciseRestOverride ??
         RoutineRestTimerPreset.fromPrescriptions(
           sets.map((s) => s.prescription),
         );
@@ -1604,8 +1605,11 @@ class _SessionStateState extends State<_SessionState> {
                 distanceMeters: distanceMeters,
               );
               if (logged) {
-                final restSeconds =
-                    restPreset.effectiveRestFor(set.prescription.setType);
+                final restSeconds = exerciseRestOverride == null
+                    ? set.prescription.restSeconds
+                    : exerciseRestOverride.effectiveRestFor(
+                        set.prescription.setType,
+                      );
                 if (restSeconds == null) {
                   controller.cancelRestTimer();
                 } else {
