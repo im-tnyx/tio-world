@@ -207,7 +207,6 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     if (controller == null || state.isActionPending || !state.isRunning) return;
 
     final session = state.session;
-    final routineTitle = session?.snapshot.routineName ?? 'Workout';
     var totalVolumeKg = 0.0;
     for (final s in state.performedSets) {
       final w = s.loadKg;
@@ -218,7 +217,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => SaveWorkoutPage(
-          initialTitle: session?.workoutTitle ?? routineTitle,
+          initialTitle: session?.workoutTitle,
           duration: state.activeElapsedDuration,
           volumeKg: totalVolumeKg,
           completedSets: state.performedSets.length,

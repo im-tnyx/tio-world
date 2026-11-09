@@ -22,6 +22,7 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
   WorkoutSessionRecord? completeResult;
   WorkoutSessionRecord? discardResult;
   PerformedSet? lastLoggedSet;
+  String? lastCompletedWorkoutTitle;
   var getActiveCalls = 0;
 
   @override
@@ -98,8 +99,10 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     required String workoutTitle,
     required DateTime workoutAtUtc,
     required int workoutUtcOffsetMinutes,
-  }) async =>
-      completeResult ?? active!;
+  }) async {
+    lastCompletedWorkoutTitle = workoutTitle;
+    return completeResult ?? active!;
+  }
 
   @override
   Future<WorkoutSessionRecord> discardSession({
@@ -1676,6 +1679,49 @@ void main() {
     );
     expect(find.text('Push Day A'), findsNothing);
     expect(find.text('Bench Press'), findsNothing);
+  });
+
+  testWidgets('blank workout title reaches Save fallback from selected time',
+      (tester) async {
+    final selectedLocal = DateTime.utc(2026, 11, 7, 10).toLocal();
+    final expectedTitle = switch (selectedLocal.hour) {
+      >= 5 && < 12 => 'Morning Workout',
+      >= 12 && < 17 => 'Afternoon Workout',
+      >= 17 && < 21 => 'Evening Workout',
+      _ => 'Night Workout',
+    };
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1)
+      ..completeResult = WorkoutSessionRecord(
+        session: _session(status: WorkoutSessionStatus.completed),
+        revision: 2,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+      clock: () => DateTime.utc(2026, 11, 8, 20),
+    );
+
+    await _pumpPage(
+      tester,
+      controller: controller,
+      clock: () => DateTime.utc(2026, 11, 8, 20),
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('active-workout-complete')),
+    );
+    await tester.tap(find.byKey(const ValueKey('active-workout-complete')));
+    await tester.pumpAndSettle();
+
+    final titleField = tester.widget<TextField>(
+      find.byKey(const ValueKey('save-workout-title-input')),
+    );
+    expect(titleField.controller!.text, isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('save-workout-submit-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastCompletedWorkoutTitle, expectedTitle);
   });
 
   testWidgets('terminal state restricts mutating actions', (tester) async {
