@@ -264,7 +264,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _handleSave() async {
-    if (_isSaving) return;
+    if (_isSaving || _isDiscarding) return;
     setState(() => _isSaving = true);
     try {
       final title = _titleController.text.trim().isNotEmpty
@@ -304,7 +304,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _confirmDiscard() async {
-    if (_isDiscarding) return;
+    if (_isSaving || _isDiscarding) return;
     final confirmed = await showTioConfirmationBottomSheet(
       context: context,
       title: 'Discard workout?',
@@ -358,8 +358,9 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               child: TioButton.primary(
                 key: const ValueKey('save-workout-submit-button'),
                 label: 'Save',
-                enabled: !_isSaving,
+                enabled: !_isSaving && !_isDiscarding,
                 onPressed: _handleSave,
+                loading: _isSaving,
               ),
             ),
           ),
@@ -612,7 +613,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
             Center(
               child: TextButton(
                 key: const ValueKey('save-workout-discard-button'),
-                onPressed: _confirmDiscard,
+                onPressed: _isSaving || _isDiscarding ? null : _confirmDiscard,
                 child: Text(
                   'Discard Workout',
                   style: textTheme.bodyLarge?.copyWith(

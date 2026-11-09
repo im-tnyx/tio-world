@@ -225,6 +225,56 @@ void main() {
       expect(find.text('Workout could not be saved.'), findsOneWidget);
     });
 
+    testWidgets('Save pending blocks Discard until Save resolves',
+        (tester) async {
+      final saveResult = Completer<bool>();
+      var discardCalls = 0;
+      await tester.pumpWidget(
+        _buildWrapper(
+          SaveWorkoutPage(
+            duration: const Duration(minutes: 30),
+            volumeKg: 0,
+            completedSets: 1,
+            onSave: ({
+              required String title,
+              required String? description,
+              required DateTime date,
+              required double? rpe,
+              required String activityType,
+              required String? gym,
+              Duration? duration,
+            }) =>
+                saveResult.future,
+            onDiscard: () {
+              discardCalls++;
+              return true;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester
+          .tap(find.byKey(const ValueKey('save-workout-submit-button')));
+      await tester.pump();
+
+      final saveButton = tester.widget<TioButton>(
+        find.byKey(const ValueKey('save-workout-submit-button')),
+      );
+      final discardButton = tester.widget<TextButton>(
+        find.byKey(const ValueKey('save-workout-discard-button')),
+      );
+      expect(saveButton.loading, isTrue);
+      expect(saveButton.enabled, isFalse);
+      expect(discardButton.onPressed, isNull);
+      expect(find.text('Discard workout?'), findsNothing);
+
+      saveResult.complete(true);
+      await tester.pumpAndSettle();
+      expect(discardCalls, 0);
+      expect(find.text('Workout could not be saved.'), findsNothing);
+    });
+
     testWidgets(
         'tapping Gym opens GymSelectionPage, searches and selects gym, then clears it',
         (tester) async {
@@ -563,6 +613,14 @@ void main() {
       await tester.pump();
 
       expect(find.text('Save Workout'), findsOneWidget);
+      expect(
+        tester
+            .widget<TioButton>(
+              find.byKey(const ValueKey('save-workout-submit-button')),
+            )
+            .enabled,
+        isFalse,
+      );
 
       discardResult.complete(true);
       await tester.pumpAndSettle();

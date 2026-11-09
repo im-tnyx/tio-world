@@ -309,10 +309,17 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
           onAction: widget.onBack,
         );
       case ActiveWorkoutStatus.reconciliationRequired:
-        return const _MessageState(
-          key: ValueKey('active-workout-reconciliation'),
+        return _MessageState(
+          key: const ValueKey('active-workout-reconciliation'),
           title: 'Workout needs to reconnect',
           message: 'We could not confirm the latest workout state.',
+          actionLabel: 'Retry',
+          onAction: state.isActionPending
+              ? null
+              : () => unawaited(controller.reconcileState()),
+          actionLoading: state.isActionPending,
+          secondaryActionLabel: 'Back',
+          onSecondaryAction: state.isActionPending ? null : widget.onBack,
         );
       case ActiveWorkoutStatus.completed:
       case ActiveWorkoutStatus.discarded:
@@ -1010,6 +1017,9 @@ class _MessageState extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.actionLoading = false,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
     super.key,
   });
 
@@ -1017,6 +1027,9 @@ class _MessageState extends StatelessWidget {
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final bool actionLoading;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -1046,6 +1059,16 @@ class _MessageState extends StatelessWidget {
                   key: ValueKey('active-workout-$label'),
                   label: label,
                   onPressed: onAction,
+                  loading: actionLoading,
+                  expand: true,
+                ),
+              ],
+              if (secondaryActionLabel case final label?) ...[
+                const SizedBox(height: TioSpacing.sm),
+                TioButton.secondary(
+                  key: ValueKey('active-workout-$label'),
+                  label: label,
+                  onPressed: onSecondaryAction,
                   expand: true,
                 ),
               ],

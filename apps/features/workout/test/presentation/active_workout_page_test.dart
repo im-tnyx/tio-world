@@ -16,6 +16,7 @@ final _exerciseRef = ExerciseRef.catalog('ex_barbell_bench_press');
 final class _FakeSessionRepository implements WorkoutSessionRepository {
   WorkoutSessionRecord? active;
   Exception? restoreError;
+  Completer<WorkoutSessionRecord?>? activeSessionCompleter;
   Exception? pauseError;
   Completer<WorkoutSessionRecord>? pauseCompleter;
   WorkoutSessionRecord? completeResult;
@@ -28,6 +29,8 @@ final class _FakeSessionRepository implements WorkoutSessionRepository {
     getActiveCalls++;
     final error = restoreError;
     if (error != null) throw error;
+    final pending = activeSessionCompleter;
+    if (pending != null) return pending.future;
     return active;
   }
 
@@ -1016,26 +1019,74 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets('does not expose recovery controls or backend error text',
+  testWidgets('reconciliation provides guarded Retry and Back actions',
       (tester) async {
     final repository = _FakeSessionRepository()
       ..restoreError = const WorkoutSessionPersistenceException(
         WorkoutSessionPersistenceFailureKind.networkUnavailable,
         message: 'PGRST205: user_workout_sessions is unavailable',
-      );
+      )
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1);
     final controller = ActiveWorkoutController(
       repository: repository,
       currentUserId: () => _userId,
     );
 
     await _pumpPage(tester, controller: controller);
+    final back = tester.widget<TioButton>(
+      find.byKey(const ValueKey('active-workout-Back')),
+    );
     expect(
       find.byKey(const ValueKey('active-workout-reconciliation')),
       findsOneWidget,
     );
-    expect(find.text('Retry'), findsNothing);
-    expect(find.text('Back'), findsNothing);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Back'), findsOneWidget);
+    expect(back.onPressed, isNotNull);
     expect(find.textContaining('PGRST205'), findsNothing);
+
+    final pending = Completer<WorkoutSessionRecord?>();
+    repository
+      ..restoreError = null
+      ..activeSessionCompleter = pending;
+    await tester.tap(find.byKey(const ValueKey('active-workout-Retry')));
+    await tester.pump();
+
+    final retry = tester.widget<TioButton>(
+      find.byKey(const ValueKey('active-workout-Retry')),
+    );
+    final backWhilePending = tester.widget<TioButton>(
+      find.byKey(const ValueKey('active-workout-Back')),
+    );
+    expect(retry.loading, isTrue);
+    expect(backWhilePending.onPressed, isNull);
+
+    pending.complete(repository.active);
+    await tester.pumpAndSettle();
+    expect(find.text('Push Day A'), findsOneWidget);
+    expect(controller.state.status, ActiveWorkoutStatus.active);
+  });
+
+  testWidgets('reconciliation Back returns control to the caller',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..restoreError = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    var backed = false;
+    await _pumpPage(
+      tester,
+      controller: controller,
+      onBack: () => backed = true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('active-workout-Back')));
+
+    expect(backed, isTrue);
   });
 
   testWidgets('load failure keeps reconciliation state instead of preview',
@@ -1058,7 +1109,7 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('active-workout-start-preview')),
         findsNothing);
-    expect(find.text('Retry'), findsNothing);
+    expect(find.text('Retry'), findsOneWidget);
     expect(find.textContaining('PGRST205'), findsNothing);
   });
 

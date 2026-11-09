@@ -61,9 +61,9 @@
 **Relevant execution surface:** apps/features/workout, apps/app routing, .ai task handoff
 **Validation at takeover:** Exact-head GitHub Actions runs for `38d2b631` report Docs Hygiene, Supabase Functions, Flutter, Supabase Database, and Android Native CI all successful. This slice later passed Workout analysis and all 1,333 Workout tests, app analysis and 101 focused app provider/routing tests.
 **Prior local delta now committed:** `38d2b631` makes Save Workout await canonical discard confirmation and retain the page on a failed persistence result; two focused regressions passed. No migration or W7 persistence code changed.
-**Current blockers:** Hosted project ledger ends at `20261031142025`; merged W7B `20261106073920_user_workout_sessions.sql` is not deployed. The proposed W7C nullable columns/V2 RPC require explicit shape approval. No real ad-hoc start or history-list contract exists; preview cannot report Save success. Google Places remains undeployed with quota/billing/abuse controls unverified. PR #740 had 18 unresolved threads at takeover; latest `im-tio` review on `38d2b631` requested changes. Exact thread dispositions, current-head CI and fresh independent review remain pending.
+**Current blockers:** Hosted project ledger ends at `20261031142025`; merged W7B `20261106073920_user_workout_sessions.sql` is not deployed. The proposed W7C nullable columns/V2 RPC require explicit shape approval. No real ad-hoc start or history-list contract exists; preview cannot report Save success. Google Places remains undeployed with quota/billing/abuse controls unverified. PR #740 had 18 threads at takeover; after 12 evidence-backed dispositions, the new `b9914f62` review added two more findings, for 20 total and 8 unresolved before the local follow-up. Fresh exact-head CI and independent review remain pending.
 **Tracker state:** Linear TNYX-84 remains `In Progress`; it is blocked by TNYX-80/TNYX-81 and blocks TNYX-85/TNYX-88. GitHub #739's historical UI-only wording is superseded for the real-save product goal, while schema/deployment approval remains separate. Refresh PR #740 HEAD, checks, reviews and thread dispositions after publication.
-**Next exact action:** Finish evidence-backed thread replies/dispositions, commit and push the validated seven-finding slice to PR #740, verify exact-head CI and request a fresh independent review. Do not merge or deploy.
+**Next exact action:** Publish the tested reconciliation Retry/Back and mutually exclusive Save/Discard fixes to PR #740, then update their review threads and request fresh independent review. Do not merge or deploy.
 
 ## 1. Discovery
 
@@ -115,7 +115,7 @@ Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> fe
 
 ## 6. Quality Review
 
-**Validation for the seven-finding local delta (not yet committed):** `dart format` completed on the touched Dart paths except `workout_exercise_card.dart`, whose pre-existing formatting is intentionally preserved to keep the diff limited to the header correction; `git diff --check` passed. Focused Active Workout/Set Input tests: 57 passed. Full `apps/features/workout` suite: 1,333 passed. Workout and app `flutter analyze --no-pub`: no issues. Relevant app provider/routing tests: 101 passed. The first non-escalated SDK invocation produced no output and was stopped; the same checks passed with the authorized writable SDK/cache. Compact 320dp light/dark header widget checks ran, but screenshot/device baseline comparison, Android build, Deno tests, hosted persistence, and fresh PR-head CI/review remain pending.
+**Validation for commit `b9914f62` (pushed to PR #740):** `dart format` and `git diff --check` passed. Focused Active Workout/Set Input tests: 57 passed. Full `apps/features/workout` suite: 1,333 passed. Workout and app `flutter analyze --no-pub`: no issues. Relevant app provider/routing tests: 101 passed. Compact 320dp light/dark header widget checks ran. Exact-head CI was green for Flutter, docs, parser, attribution and most feature jobs; Android and database replay were still running when the two new findings arrived. The connected status API can verify job-level checks by exact SHA. Screenshot/device baseline comparison, Android device build/install, Deno tests, hosted persistence and independent review remain pending.
 
 **Seven current `im-tio` findings and regression evidence:**
 
@@ -143,12 +143,19 @@ Workout Home action -> app-owned navigation to `/workout/active?preview=1` -> fe
 
 The older P2 Save-metadata thread remains a real backend gate: current completion persists only notes, and title/selected date-time need the separately approved schema/RPC contract above. Do not resolve it as complete or claim auto-title persistence.
 
+**Additional review received on `b9914f62` (two findings, now fixed locally and awaiting publication):**
+
+1. P1 reconciliation recovery actions — `ActiveWorkoutPage` now exposes Retry (`controller.reconcileState()`) and Back; both are disabled during reconciliation. Focused `active_workout_page_test.dart` covers successful retry, pending guards, Back, and hidden raw backend errors.
+2. P2 Save/Discard race — both callbacks now share `_isSaving`/`_isDiscarding` guards and are disabled while the opposite operation is pending. Focused `save_workout_page_test.dart` verifies Save pending blocks Discard; discard-pending also verifies Save disabled.
+
+The follow-up focused suite passed (47 tests), Workout analysis passed, and the updated full Workout suite passed (1,335 tests). These follow-up edits are not yet committed/pushed. Their new GitHub threads remain open until the tested source is published and the thread replies are recorded.
+
 **Nearby-gyms security:** Auth verification, bounded request validation, generic errors, and checked-in `verify_jwt` are present in source. Deno tests did not execute. Persistent rate/abuse limits and Google quota/billing controls remain unverified; hosted function is absent and deployment is blocked.
 
-**Review provenance:** Awaiting evidence-backed thread updates and a fresh independent `im-tio` review on the eventual pushed HEAD. ChatGPT implementation/self-inspection is not independent approval.
+**Review provenance:** Awaiting evidence-backed dispositions for remaining old threads, publication of the two latest fixes, and a fresh independent `im-tio` review on the eventual pushed HEAD. ChatGPT implementation/self-inspection is not independent approval.
 
 ## 7. Final Handoff
 
-**Status:** REVIEW — seven review fixes are locally validated; changes are not yet published, exact-head CI/review are pending, and real-save title/date-time approval and hosted migrations remain separate blockers.
+**Status:** REVIEW — seven priority review fixes are published and validated; two newer review fixes are locally validated but unpublished. Exact-head CI and independent review remain pending; real-save title/date-time approval and hosted migrations remain separate blockers.
 
 No hosted Supabase schema/RPC changes or deployments were made. Source changes do touch the checked-in Edge Function and `supabase/config.toml`. No merge authorization was given.
