@@ -172,6 +172,34 @@ void main() {
     controller.dispose();
   });
 
+  test('stale pending backgrounding does not break a later fresh Play start',
+      () async {
+    final store = _Store();
+    var now = DateTime.utc(2026, 11, 10, 8);
+    final loadGate = Completer<void>();
+    store.loadGate = loadGate;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(112),
+    );
+    final emptyRestore = controller.restoreExisting();
+    await Future<void>.delayed(Duration.zero);
+    expect(await controller.markBackgrounded(), isTrue);
+    now = now.add(const Duration(hours: 3));
+    loadGate.complete();
+    expect(await emptyRestore, isTrue);
+    expect(controller.draft, isNull);
+
+    store.loadGate = null;
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(controller.draft, isNotNull);
+    expect(controller.draft!.time.isPaused, isFalse);
+    expect(controller.draft!.backgroundedAtUtc, isNull);
+    controller.dispose();
+  });
+
   test('oversized Save title is rejected before the submission freezes',
       () async {
     final store = _Store();

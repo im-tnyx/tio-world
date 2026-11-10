@@ -83,7 +83,12 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       if (restored != null && restored.ownerId != _ownerId) {
         throw StateError('Workout draft belongs to another account.');
       }
-      if (restored == null && !createIfMissing) return true;
+      if (restored == null && !createIfMissing) {
+        // No draft to attach to; drop stale backgrounding so a later fresh
+        // Play start cannot inherit an older pending marker.
+        _pendingBackgroundedAtUtc = null;
+        return true;
+      }
       final startedAt = _nowUtc();
       var candidate = restored ??
           ActiveWorkoutDraft(
@@ -95,7 +100,12 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
           );
       final pendingBackground = _pendingBackgroundedAtUtc;
       _pendingBackgroundedAtUtc = null;
-      final backgroundedAt = candidate.backgroundedAtUtc ?? pendingBackground;
+      // Only keep pending backgrounding that belongs to this workout window.
+      final usablePending = pendingBackground != null &&
+              !pendingBackground.isBefore(candidate.time.startedAtUtc)
+          ? pendingBackground
+          : null;
+      final backgroundedAt = candidate.backgroundedAtUtc ?? usablePending;
       final lastActivity = candidate.lastActivityAtUtc ??
           candidate.exercises
               .expand((exercise) => exercise.sets)
@@ -110,7 +120,10 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       if (unattendedSince != null) {
         final now = _nowUtc();
         if (!now.isBefore(unattendedSince)) {
-          final cutoff = unattendedSince.add(unattendedLimit);
+          final rawCutoff = unattendedSince.add(unattendedLimit);
+          final cutoff = rawCutoff.isBefore(candidate.time.startedAtUtc)
+              ? candidate.time.startedAtUtc
+              : rawCutoff;
           final shouldPause = !now.isBefore(cutoff);
           if (backgroundedAt != null || shouldPause) {
             candidate = candidate.copyWith(
