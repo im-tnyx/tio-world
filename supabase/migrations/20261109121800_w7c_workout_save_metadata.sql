@@ -122,7 +122,7 @@ begin
       workout_utc_offset_minutes = p_workout_utc_offset_minutes,
       local_date = v_local_date,
       revision = revision + 1,
-      updated_at = timezone('utc'::text, now())
+      updated_at = now()
   where id = p_session_id and user_id = v_user_id
   returning * into v_session;
 
