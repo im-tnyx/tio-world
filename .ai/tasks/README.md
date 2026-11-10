@@ -220,7 +220,7 @@ Mandatory Owner Approval applies only to a new independently scoped product task
 
 ## Multi-Agent Active Handoff
 
-Chat history is not canonical project state. Repository source, canonical docs and ADRs, the active task brief, Git state, live PR/tracker state, and exact validation evidence are the shared project memory. This contract is role-based and must not assign fixed capabilities to particular models or agent products. The task file names which agent is doing the work: `Implementation owner` is that agent.
+Chat history is not canonical project state. Repository source, canonical docs and ADRs, the active task brief, Git state, live PR/tracker state, and exact validation evidence are the shared project memory. This contract is role-based and must not assign fixed capabilities to particular models or agent products. The task file names which agent is doing the work. When that agent changes, the same file keeps the previous agent, the new owner, and which agent made the last commit.
 
 ### Roles And Single Implementation Ownership
 

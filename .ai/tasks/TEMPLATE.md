@@ -22,6 +22,9 @@ This is a compact recovery checkpoint, not a live activity log. Refresh it only 
 
 **Planning owner:**
 **Implementation owner:** the agent doing this work, such as Cursor, Codex, or Claude
+**Previous agent:** Not applicable, or the agent who owned the slice before this change
+**Last commit agent:** the agent that made the latest slice commit
+**Last commit SHA:**
 **Review owner:**
 **Implementation ownership state:** Not started | Active | Handoff pending | Paused | Blocked | Complete
 **Ownership transition:** Previous Implementation Owner → Receiving Implementation Owner | Not applicable
