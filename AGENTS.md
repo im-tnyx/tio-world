@@ -77,6 +77,7 @@ Keep task-level state current without turning project status into a per-task act
 - Follow `.ai/workflow.md` in order: Discovery → Codebase Exploration → Clarification → Architecture Design → Implementation → Quality Review → Final Handoff.
 - Keep only one implementation slice active at a time. Do not implement a large GitHub issue or epic as one broad change.
 - Keep at most one active `Implementation owner` for a task slice. Only that owner may modify implementation/source files for the slice. Planning and review owners may inspect, reason, and update task/review governance records, but must not modify implementation/source files unless implementation ownership is explicitly transferred.
+- This repository is multi-agent. Do not write one person or one agent product as a fixed owner in this file. The name to follow for a slice is the `Implementation owner` recorded in that slice's task file under `.ai/tasks/`. Record the working agent's name only in the task file, not in the commit author, committer, or a `Co-authored-by` trailer.
 - Follow `.ai/tasks/README.md` for planned handoff, unexpected takeover, repository-state reconstruction, and ownership-transfer rules.
 - GitHub Issues are backlog/tracking. `.ai/tasks` files are compact execution context and must not become transcript dumps.
 - Each task brief must record verified evidence, exact in-scope/out-of-scope boundaries, non-goals, decisions, validation, and handoff status.

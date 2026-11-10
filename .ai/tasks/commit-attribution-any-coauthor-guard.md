@@ -1,8 +1,16 @@
 # Commit attribution guard: any co-author trailer
 
 **Status:** In review on PR #742
-**Primary owner:** Repository governance
+**Primary owner:** Cursor
 **Affected platforms:** GitHub Actions attribution guard only
+
+## Active Handoff
+
+**Planning owner:** Cursor
+**Implementation owner:** Cursor
+**Review owner:** independent GitHub reviewer
+**Implementation ownership state:** Active
+**Next exact action:** Keep the guard fix on PR #742. Do not merge from this slice.
 
 ## Owner Approval and Scope Boundary
 
