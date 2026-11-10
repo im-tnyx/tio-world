@@ -100,8 +100,10 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
           );
       final pendingBackground = _pendingBackgroundedAtUtc;
       _pendingBackgroundedAtUtc = null;
-      // Only keep pending backgrounding that belongs to this workout window.
+      // Only keep pending backgrounding that belongs to this running workout.
+      // Already-paused drafts must never call pause() again.
       final usablePending = pendingBackground != null &&
+              !candidate.time.isPaused &&
               !pendingBackground.isBefore(candidate.time.startedAtUtc)
           ? pendingBackground
           : null;
@@ -117,7 +119,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
           (restored != null && _draft == null && !candidate.time.isPaused
               ? lastActivity
               : null);
-      if (unattendedSince != null) {
+      if (unattendedSince != null && !candidate.time.isPaused) {
         final now = _nowUtc();
         if (!now.isBefore(unattendedSince)) {
           final rawCutoff = unattendedSince.add(unattendedLimit);
@@ -136,6 +138,13 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             await _store.save(candidate);
           }
         }
+      } else if (candidate.time.isPaused &&
+          candidate.backgroundedAtUtc != null) {
+        candidate = candidate.copyWith(
+          backgroundedAtUtc: null,
+          revision: candidate.revision + 1,
+        );
+        await _store.save(candidate);
       }
       // Publish the in-memory draft before durable write so UI can open.
       if (_disposed) return false;
@@ -245,6 +254,12 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       return Future<bool>.value(true);
     }
     if (draft.time.isPaused || draft.backgroundedAtUtc != null) {
+      return Future<bool>.value(true);
+    }
+    // `_change` rejects while restore holds `_busy` with no queued mutations.
+    // Preserve the instant so the same draft still gets capped after restore.
+    if (_busy && _pendingMutations == 0) {
+      _pendingBackgroundedAtUtc ??= _nowUtc();
       return Future<bool>.value(true);
     }
     return _change((current) => current.copyWith(

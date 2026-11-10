@@ -200,6 +200,70 @@ void main() {
     controller.dispose();
   });
 
+  test('pending backgrounding is ignored for an already-paused restored draft',
+      () async {
+    final started = DateTime.utc(2026, 11, 10, 8);
+    final pausedAt = DateTime.utc(2026, 11, 10, 8, 20);
+    final store = _Store()
+      ..saved = ActiveWorkoutDraft(
+        id: _id(113),
+        ownerId: owner,
+        saveRequestId: _id(114),
+        time: WorkoutTime.start(startedAtUtc: started).pause(pausedAt),
+      );
+    var now = pausedAt;
+    final loadGate = Completer<void>();
+    store.loadGate = loadGate;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+    );
+    final restore = controller.restoreExisting();
+    await Future<void>.delayed(Duration.zero);
+    expect(await controller.markBackgrounded(), isTrue);
+    now = now.add(const Duration(hours: 3));
+    loadGate.complete();
+    expect(await restore, isTrue);
+    expect(controller.draft, isNotNull);
+    expect(controller.draft!.time.isPaused, isTrue);
+    expect(controller.draft!.time.pausedAtUtc, pausedAt);
+    expect(controller.draft!.backgroundedAtUtc, isNull);
+    controller.dispose();
+  });
+
+  test('backgrounding during busy restore still caps an in-memory running draft',
+      () async {
+    final store = _Store();
+    var now = DateTime.utc(2026, 11, 10, 8);
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(115),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    final draftId = controller.draft!.id;
+    now = now.add(const Duration(minutes: 10));
+    final loadGate = Completer<void>();
+    store.loadGate = loadGate;
+    final restore = controller.restoreExisting();
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.isBusy, isTrue);
+    expect(await controller.markBackgrounded(), isTrue);
+    expect(store.saved!.backgroundedAtUtc, isNull);
+    now = now.add(const Duration(hours: 3));
+    loadGate.complete();
+    expect(await restore, isTrue);
+    expect(controller.draft!.id, draftId);
+    expect(controller.draft!.time.isPaused, isTrue);
+    expect(
+      controller.draft!.time.pausedAtUtc,
+      DateTime.utc(2026, 11, 10, 10, 10),
+    );
+    controller.dispose();
+  });
+
   test('oversized Save title is rejected before the submission freezes',
       () async {
     final store = _Store();
