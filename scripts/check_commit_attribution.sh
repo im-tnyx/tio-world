@@ -200,11 +200,12 @@ if [ -n "$commit_list" ]; then
     fi
 
     # A Co-authored-by line outside the formal trailer block is still a
-    # trailer. Skip this when the parser already reported one, so a normal
-    # trailer is not printed twice.
-    if [ "$parsed_coauthor" -eq 0 ] && printf '%s\n' "$message" | grep -qiE '^[[:space:]]*co-authored-by[[:space:]]*:'; then
+    # trailer. Read "$message" through a here-string. A pipe into grep -q
+    # can exit 141 under pipefail when grep closes early, which hides a
+    # real match. Skip this when the parser already reported one.
+    if [ "$parsed_coauthor" -eq 0 ] && grep -qiE '^[[:space:]]*co-authored-by[[:space:]]*:' <<< "$message"; then
       found_violation=1
-      raw_line="$(printf '%s\n' "$message" | grep -iE '^[[:space:]]*co-authored-by[[:space:]]*:' | head -n 1)"
+      raw_line="$(grep -iE -m 1 '^[[:space:]]*co-authored-by[[:space:]]*:' <<< "$message" || true)"
       echo "PROHIBITED ATTRIBUTION: commit ${short_sha} -- Co-authored-by trailer (${raw_line})"
     fi
   done <<<"$commit_list"

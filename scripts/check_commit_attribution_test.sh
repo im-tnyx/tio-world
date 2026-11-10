@@ -78,6 +78,25 @@ run_case() {
   report "$expect" "$expected_rc" "$rc" "$desc" "$output"
 }
 
+# Same as run_case, but the message is passed through a file so a large
+# body does not exceed the process argument limit.
+run_case_file() {
+  local expect="$1" desc="$2" message="$3"
+  local expected_rc
+  expected_rc="$(expected_rc_for "$expect")"
+
+  (cd "$repo" && git reset -q --hard "$base_sha")
+  printf '%s\n' "$message" > "$workdir/commit-message.txt"
+  (cd "$repo" && git commit --allow-empty -q -F "$workdir/commit-message.txt")
+  local head_sha
+  head_sha="$(cd "$repo" && git rev-parse HEAD)"
+
+  local output rc=0
+  output="$(cd "$repo" && bash "$checker" "$base_sha" "$head_sha" 2>&1)" || rc=$?
+
+  report "$expect" "$expected_rc" "$rc" "$desc" "$output"
+}
+
 # Four-argument exception-aware fixtures.
 run_case_ex() {
   local expect="$1" desc="$2" message="$3" pr_number="$4" exception_pr="$5"
@@ -166,6 +185,13 @@ run_case fail "Cursor with cursor.com email" \
 # --- FAIL: the PR #742 identity, any case of the trailer key ---
 run_case fail "Cursor Agent co-author trailer" \
   "$(printf 'feat: x\n\nBody.\n\nCo-authored-by: Cursor Agent <cursoragent@cursor.com>')"
+
+# --- FAIL: early co-author line in a large body is not a formal trailer ---
+# interpret-trailers ignores this line. The raw scan must still fail, including
+# when the message is large enough for grep -q to close a pipe early.
+large_pad="$(printf 'ordinary body text\n%.0s' {1..8000})"
+run_case_file fail "large message with early non-trailer co-author line" \
+  "$(printf 'Co-authored-by: Cursor Agent <cursoragent@cursor.com>\n\n%s' "$large_pad")"
 
 run_identity_case() {
   local expect="$1" desc="$2" author_name="$3" author_email="$4" committer_name="$5" committer_email="$6" message="$7"
