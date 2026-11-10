@@ -1,8 +1,12 @@
 # Feature Task: W7C-3 Active Workout execution and completion
 
-**Status:** In progress — Save-only local-draft and atomic-save contract approved for local source implementation; current PR runtime still writes session mutations before Save
+**Status:** In progress — Save-only local-draft and atomic-save source is on PR #740; hosted rollout and independent review remain pending
 **Primary owner:** Current local Codex implementation owner, continuing PR #740 on the existing branch
 **Affected platforms:** Flutter Android and iOS phone
+
+## Note type selection follow-up (2026-11-10)
+
+Owner approved a scoped Note sheet change on the existing PR #740: Workout Log offers Workout Note alongside the existing pinned types and defaults a new note draft to Workout Note. Routine Add/Edit continues to show only Pinned Exercise Note and Pinned Routine Note, with Pinned Routine Note selected by default. The choice remains editable. This changes presentation and inline draft type only. Per-exercise Workout Log notes are absent from the current durable draft and Save payload, so this change does not claim they are saved or visible in workout posts. No schema change or hosted deployment is included.
 
 ## Owner Approval and Scope Boundary
 

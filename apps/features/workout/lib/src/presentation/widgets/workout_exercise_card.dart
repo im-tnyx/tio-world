@@ -200,6 +200,7 @@ class WorkoutExerciseCard extends StatelessWidget {
               '$prefix-exercise-notes-${entry.id}-${entry.exercise.value}',
             ),
             exerciseRef: entry.exercise,
+            isWorkoutLog: isLog,
             routineId: routineId,
             repository: routineNotesRepository,
             ownerId: routineNotesOwnerId,

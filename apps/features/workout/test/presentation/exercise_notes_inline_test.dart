@@ -31,6 +31,7 @@ Future<void> _pump(
   WidgetTester tester,
   _FakeRoutineNotesRepository repository, {
   RoutineId? routineId,
+  bool isWorkoutLog = false,
   Widget restControl = const SizedBox(key: ValueKey('rest-control')),
   List<ExerciseNoteDraftSnapshot> initialDrafts = const [],
 }) async {
@@ -45,6 +46,7 @@ Future<void> _pump(
           child: ExerciseNotesInline(
             exerciseRef: ExerciseRef.catalog(_exercise),
             routineId: routineId,
+            isWorkoutLog: isWorkoutLog,
             restControl: restControl,
             repository: repository,
             ownerId: _owner,
@@ -83,6 +85,61 @@ Future<void> _pumpPreview(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('Workout Log defaults to Workout Note and shows three types',
+      (tester) async {
+    await _pump(tester, _FakeRoutineNotesRepository(),
+        routineId: RoutineId(_routine), isWorkoutLog: true);
+    await tester
+        .tap(find.byKey(const ValueKey('exercise-note-action-$_exercise')));
+    await tester.pump();
+    expect(
+        tester
+            .widget<TextField>(
+                find.byKey(const ValueKey('exercise-note-input-$_exercise')))
+            .decoration!
+            .hintText,
+        'Add a workout note');
+    await tester.tap(find.byKey(const ValueKey('exercise-note-draft-type')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('exercise-note-type-workout')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-type-routine')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-type-exercise')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-note-type-exercise')));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<Icon>(
+                find.byKey(const ValueKey('exercise-note-draft-type-icon')))
+            .icon,
+        Icons.push_pin_outlined);
+  });
+
+  testWidgets('Routine draft defaults to Routine Note and hides Workout Note',
+      (tester) async {
+    await _pump(tester, _FakeRoutineNotesRepository());
+    await tester
+        .tap(find.byKey(const ValueKey('exercise-note-action-$_exercise')));
+    await tester.pump();
+    expect(
+        tester
+            .widget<TextField>(
+                find.byKey(const ValueKey('exercise-note-input-$_exercise')))
+            .decoration!
+            .hintText,
+        'Add a note pinned to the routine');
+    await tester.tap(find.byKey(const ValueKey('exercise-note-draft-type')));
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const ValueKey('exercise-note-type-workout')), findsNothing);
+    expect(find.byKey(const ValueKey('exercise-note-type-routine')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-type-exercise')),
+        findsOneWidget);
+  });
+
   testWidgets('Note stays on the right of Rest in the action row',
       (tester) async {
     await _pump(
@@ -184,16 +241,16 @@ void main() {
     final icon = find.byKey(
       const ValueKey('exercise-note-draft-type-icon'),
     );
-    expect(tester.widget<Icon>(icon).icon, Icons.push_pin_outlined);
+    expect(tester.widget<Icon>(icon).icon, Icons.assignment_outlined);
 
     await tester.tap(find.byKey(const ValueKey('exercise-note-draft-type')));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const ValueKey('exercise-note-type-routine')),
+      find.byKey(const ValueKey('exercise-note-type-exercise')),
     );
     await tester.pumpAndSettle();
 
-    expect(tester.widget<Icon>(icon).icon, Icons.assignment_outlined);
+    expect(tester.widget<Icon>(icon).icon, Icons.push_pin_outlined);
   });
 
   testWidgets('tapping Note adds another inline draft field', (tester) async {
