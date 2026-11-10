@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-# Detect prohibited AI Co-Authored-By trailers in a commit range.
+# Detect prohibited commit attribution in a commit range.
 #
 # Usage:
 #   check_commit_attribution.sh <base-sha> <head-sha>
 #   check_commit_attribution.sh <base-sha> <head-sha> <pr-number> <exception-pr>
 #
-# Inspects every commit in base..head, parses each commit message's
-# trailers with `git interpret-trailers`, and rejects any Co-Authored-By
-# trailer that identifies a known AI provider (by trailer email domain or
-# by an exact known AI display name). Ordinary human co-authors, including
-# a human whose first name happens to be "Claude", are left untouched.
+# Inspects every commit in base..head. Rejects:
+# - any Co-authored-by trailer, in any case, whoever it names
+# - any other message trailer, author, or committer that matches a known
+#   AI/agent name or provider email domain
+#
+# A human author whose name merely resembles a provider (for example a
+# person named Claude) is not rejected. Agent names written inside task
+# files are not commit metadata and are not scanned.
 #
 # The optional 4-argument form carries the owner-approved exception
 # decision inside this tested script rather than in untested workflow
@@ -63,11 +66,10 @@ ai_domains=(
   "cursoragent.com"
 )
 
-# Known AI display identities (checked as an exact, case-insensitive match on
-# the trailer's name field). Deliberately does NOT include a bare "claude" or
-# "codex" first-name match, so a real human co-author is never rejected only
-# because their name resembles a provider name. "cursor" matches the exact
-# Cursor agent trailer display name only.
+# Known AI display identities (exact, case-insensitive). Deliberately does
+# NOT include a bare "claude" or "codex" first name, so a human author is
+# not rejected only because their name resembles a provider. "cursor" and
+# "cursor agent" match those display names exactly.
 ai_names=(
   "anthropic"
   "codex"
@@ -78,6 +80,7 @@ ai_names=(
   "claude opus"
   "claude haiku"
   "cursor"
+  "cursor agent"
 )
 
 to_lower() {
@@ -104,6 +107,27 @@ is_ai_name() {
   return 1
 }
 
+# Prints a reason and returns 0 when the identity is a known AI/agent.
+# Returns 1 for a human or empty identity.
+identity_violation_reason() {
+  local name="$1" email="$2"
+  local domain="" name_lc email_lc
+  name_lc="$(to_lower "$name")"
+  email_lc="$(to_lower "$email")"
+  if [[ "$email_lc" == *"@"* ]]; then
+    domain="${email_lc##*@}"
+  fi
+  if [ -n "$domain" ] && is_ai_domain "$domain"; then
+    printf 'provider-domain identity (%s)' "$domain"
+    return 0
+  fi
+  if [ -n "$name_lc" ] && is_ai_name "$name_lc"; then
+    printf 'known AI display identity (%s)' "$name"
+    return 0
+  fi
+  return 1
+}
+
 commit_list="$(git rev-list --reverse "${base_sha}..${head_sha}")"
 
 found_violation=0
@@ -113,6 +137,20 @@ if [ -n "$commit_list" ]; then
     [ -z "$sha" ] && continue
 
     message="$(git show -s --format=%B "$sha")"
+    short_sha="$(git rev-parse --short "$sha")"
+    author_name="$(git show -s --format='%an' "$sha")"
+    author_email="$(git show -s --format='%ae' "$sha")"
+    committer_name="$(git show -s --format='%cn' "$sha")"
+    committer_email="$(git show -s --format='%ce' "$sha")"
+
+    if reason="$(identity_violation_reason "$author_name" "$author_email")"; then
+      found_violation=1
+      echo "PROHIBITED ATTRIBUTION: commit ${short_sha} -- author ${author_name} <${author_email}> (${reason})"
+    fi
+    if reason="$(identity_violation_reason "$committer_name" "$committer_email")"; then
+      found_violation=1
+      echo "PROHIBITED ATTRIBUTION: commit ${short_sha} -- committer ${committer_name} <${committer_email}> (${reason})"
+    fi
 
     # Trailer parsing must fail CLOSED: a genuine `git interpret-trailers`
     # failure is a technical error (exit 2), never silently treated as "no
@@ -128,55 +166,53 @@ if [ -n "$commit_list" ]; then
       exit 2
     fi
 
-    [ -z "$trailers" ] && continue
+    parsed_coauthor=0
+    if [ -n "$trailers" ]; then
+      while IFS= read -r trailer_line; do
+        [ -z "$trailer_line" ] && continue
 
-    while IFS= read -r trailer_line; do
-      [ -z "$trailer_line" ] && continue
+        key="${trailer_line%%:*}"
+        value="${trailer_line#*:}"
+        value="$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+        key_lc="$(to_lower "$key")"
 
-      key="${trailer_line%%:*}"
-      value="${trailer_line#*:}"
-      value="$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-      key_lc="$(to_lower "$key")"
+        if [ "$key_lc" = "co-authored-by" ]; then
+          parsed_coauthor=1
+          found_violation=1
+          echo "PROHIBITED ATTRIBUTION: commit ${short_sha} -- Co-authored-by trailer (${value})"
+          continue
+        fi
 
-      if [ "$key_lc" != "co-authored-by" ]; then
-        continue
-      fi
+        name="$value"
+        email=""
+        if [[ "$value" == *"<"*">"* ]]; then
+          email="${value##*<}"
+          email="${email%%>*}"
+          name="${value%%<*}"
+          name="$(printf '%s' "$name" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+        fi
 
-      name="$value"
-      email=""
-      if [[ "$value" == *"<"*">"* ]]; then
-        email="${value##*<}"
-        email="${email%%>*}"
-        name="${value%%<*}"
-        name="$(printf '%s' "$name" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-      fi
+        if reason="$(identity_violation_reason "$name" "$email")"; then
+          found_violation=1
+          echo "PROHIBITED ATTRIBUTION: commit ${short_sha} -- ${key}: ${value} (${reason})"
+        fi
+      done <<<"$trailers"
+    fi
 
-      domain=""
-      if [[ "$email" == *"@"* ]]; then
-        domain="${email##*@}"
-      fi
-
-      violation=0
-      reason=""
-      if [ -n "$domain" ] && is_ai_domain "$(to_lower "$domain")"; then
-        violation=1
-        reason="provider-domain identity (${domain})"
-      elif [ -n "$name" ] && is_ai_name "$(to_lower "$name")"; then
-        violation=1
-        reason="known AI display identity (${name})"
-      fi
-
-      if [ "$violation" -eq 1 ]; then
-        found_violation=1
-        short_sha="$(git rev-parse --short "$sha")"
-        echo "PROHIBITED AI ATTRIBUTION: commit ${short_sha} -- Co-Authored-By: ${name} <${email}> (${reason})"
-      fi
-    done <<<"$trailers"
+    # A Co-authored-by line outside the formal trailer block is still a
+    # trailer. Read "$message" through a here-string. A pipe into grep -q
+    # can exit 141 under pipefail when grep closes early, which hides a
+    # real match. Skip this when the parser already reported one.
+    if [ "$parsed_coauthor" -eq 0 ] && grep -qiE '^[[:space:]]*co-authored-by[[:space:]]*:' <<< "$message"; then
+      found_violation=1
+      raw_line="$(grep -iE -m 1 '^[[:space:]]*co-authored-by[[:space:]]*:' <<< "$message" || true)"
+      echo "PROHIBITED ATTRIBUTION: commit ${short_sha} -- Co-authored-by trailer (${raw_line})"
+    fi
   done <<<"$commit_list"
 fi
 
 if [ "$found_violation" -eq 0 ]; then
-  echo "check_commit_attribution: no prohibited AI attribution found in ${base_sha}..${head_sha}."
+  echo "check_commit_attribution: no prohibited attribution found in ${base_sha}..${head_sha}."
   exit 0
 fi
 
@@ -186,5 +222,5 @@ if [ -n "$pr_number" ] && [ -n "$exception_pr" ] && [ "$pr_number" = "$exception
   exit 0
 fi
 
-echo "check_commit_attribution: prohibited AI Co-Authored-By attribution detected in ${base_sha}..${head_sha}."
+echo "check_commit_attribution: prohibited attribution detected in ${base_sha}..${head_sha}."
 exit 1

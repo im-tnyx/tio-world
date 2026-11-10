@@ -4,7 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
-[#739 W7C-3 Play FAB + Active Workout execution](w7c-3-play-fab-active-ui.md) is the active owner-approved task under [Linear TNYX-84](https://linear.app/tnyx/issue/TNYX-84) and [GitHub #739](https://github.com/im-tnyx/tio-world/issues/739). The real-save goal means an account-bound local draft until Save, with Back retaining the paused draft and Discard clearing it; successful Save is terminal. Preserve the approved presentation except for the duration wheel. Current W7B repository mutations are online-first and do not meet this lifecycle. The owner approved local source implementation of the brief's exact Save-only local-store/atomic-RPC proposal on 2026-11-09. No new shape is implemented yet; hosted migration, deployment, and merge remain separately gated. The single active PR is [#740](https://github.com/im-tnyx/tio-world/pull/740) on `feat/w7c-3-active-workout-execution-ui`; duplicate PR #741 is superseded and closed.
+[#739 W7C-3 Play FAB + Active Workout execution](w7c-3-play-fab-active-ui.md) is the active owner-approved task under [Linear TNYX-84](https://linear.app/tnyx/issue/TNYX-84) and [GitHub #739](https://github.com/im-tnyx/tio-world/issues/739). The real-save goal means an account-bound local draft until Save, with Back retaining the paused draft and Discard clearing it; successful Save is terminal. Preserve the approved presentation except for the duration wheel. Current W7B repository mutations are online-first and do not meet this lifecycle. The owner approved local source implementation of the brief's exact Save-only local-store/atomic-RPC proposal on 2026-11-09. Source is merged via [PR #740](https://github.com/im-tnyx/tio-world/pull/740), squash `975b6edd62dab505b66804aa80ac063073a6140d` on 2026-11-10. Hosted rollout remains pending. Duplicate PR #741 is superseded and closed.
 
 [#737 W7C-2 Active Workout resume/recovery screen and route foundation](w7c-2-active-workout-screen-route.md) is **merged** via [PR #738](https://github.com/im-tnyx/tio-world/pull/738) at `main@c76c81d79395bb7f242e321a9fdde1d1fc08e270`, independent `i-the` GitHub approval verified. Its old task brief contains a dated pre-merge handoff; reconcile or archive it separately instead of treating it as the active implementation owner.
 
@@ -220,7 +220,7 @@ Mandatory Owner Approval applies only to a new independently scoped product task
 
 ## Multi-Agent Active Handoff
 
-Chat history is not canonical project state. Repository source, canonical docs and ADRs, the active task brief, Git state, live PR/tracker state, and exact validation evidence are the shared project memory. This contract is role-based and must not assign fixed capabilities to particular models or agent products.
+Chat history is not canonical project state. Repository source, canonical docs and ADRs, the active task brief, Git state, live PR/tracker state, and exact validation evidence are the shared project memory. This contract is role-based and must not assign fixed capabilities to particular models or agent products. The task file names which agent is doing the work. When that agent changes, the same file keeps the previous agent, the new owner, and which agent made the last commit.
 
 ### Roles And Single Implementation Ownership
 
