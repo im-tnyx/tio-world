@@ -177,4 +177,91 @@ void main() {
     expect(find.text('Nearby gyms'), findsNothing);
     expect(find.textContaining('Jaipur'), findsNothing);
   });
+
+  testWidgets(
+      'denied location permission shows Allow location option and retries',
+      (tester) async {
+    const channel = MethodChannel('flutter.baseflow.com/geolocator');
+    var checkCalls = 0;
+    var requestCalls = 0;
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      switch (call.method) {
+        case 'isLocationServiceEnabled':
+          return true;
+        case 'checkPermission':
+          checkCalls++;
+          return 0; // denied until the user grants via requestPermission
+        case 'requestPermission':
+          requestCalls++;
+          return requestCalls >= 2 ? 2 : 0;
+        case 'getCurrentPosition':
+          return _position().toJson();
+        default:
+          throw PlatformException(code: 'unexpected_method');
+      }
+    });
+
+    final repository = _RecordingGymRepository();
+    await tester.pumpWidget(
+      _wrap(GymSelectionPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Allow location'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('gym-location-permission-option')),
+      findsOneWidget,
+    );
+    expect(repository.latitude, isNull);
+    expect(requestCalls, 1);
+
+    await tester
+        .tap(find.byKey(const ValueKey('gym-location-permission-option')));
+    await tester.pumpAndSettle();
+
+    expect(requestCalls, 2);
+    expect(checkCalls, greaterThanOrEqualTo(2));
+    expect(repository.latitude, 28.6);
+    expect(find.text('Allow location'), findsNothing);
+  });
+
+  testWidgets(
+      'permanently denied location shows Open settings option', (tester) async {
+    const channel = MethodChannel('flutter.baseflow.com/geolocator');
+    var openedSettings = false;
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      switch (call.method) {
+        case 'isLocationServiceEnabled':
+          return true;
+        case 'checkPermission':
+          return 1; // deniedForever
+        case 'openAppSettings':
+          openedSettings = true;
+          return true;
+        default:
+          throw PlatformException(code: 'unexpected_method');
+      }
+    });
+
+    await tester.pumpWidget(
+      _wrap(GymSelectionPage(repository: _EmptyGymRepository())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open settings'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey('gym-location-permission-option')));
+    await tester.pumpAndSettle();
+    expect(openedSettings, isTrue);
+  });
 }

@@ -422,4 +422,29 @@ void main() {
     expect(store.saved, isNull);
     controller.dispose();
   });
+
+  test('removing the last set drops the empty exercise from the draft',
+      () async {
+    final store = _Store();
+    var nextId = 60;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      newUuid: () => _id(nextId++),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(
+      await controller.addExercises([
+        _exercise('ex_a', 'A'),
+        _exercise('ex_b', 'B'),
+      ]),
+      isTrue,
+    );
+    final first = controller.draft!.exercises.first;
+    final second = controller.draft!.exercises.last;
+    expect(await controller.removeSet(first.id, first.sets.single.id), isTrue);
+    expect(controller.draft!.exercises.map((e) => e.id), [second.id]);
+    expect(controller.draft!.exercises.single.sets, isNotEmpty);
+    controller.dispose();
+  });
 }

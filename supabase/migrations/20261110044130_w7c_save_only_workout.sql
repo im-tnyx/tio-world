@@ -287,25 +287,15 @@ begin
     end if;
   else
     if p_expected_revision is null or p_expected_revision < 1
-       or v_paused_us is not null or
-       not (private.is_valid_workout_session_snapshot_v1(v_snapshot)
+       or (v_paused_us is not null and v_paused_us < 0)
+       or (v_paused_us is not null
+           and v_paused_us > (extract(epoch from (v_completed - v_started)) * 1000000)::bigint)
+       or not (private.is_valid_workout_session_snapshot_v1(v_snapshot)
             or private.is_valid_workout_session_snapshot_v2(v_snapshot)) then
       raise exception 'invalid_existing_workout_payload' using errcode = '22023';
     end if;
   end if;
 
-  -- Validate all slots and custom Exercise ownership before any write.
-  if v_snapshot->>'origin' = 'ad_hoc' then
-    for v_ex in select value from jsonb_array_elements(v_snapshot->'exercises') loop
-      v_ref := v_ex->>'exercise_ref';
-      if v_ref ~ '^[0-9a-f]{8}-' and not exists (
-        select 1 from public.user_workout_exercises
-        where id = v_ref::uuid and user_id = v_owner and status = 'active'
-      ) then
-        raise exception 'exercise_not_owned' using errcode = '42501';
-      end if;
-    end loop;
-  end if;
   for v_set in select value from jsonb_array_elements(p_payload->'performed_sets') loop
     if jsonb_typeof(v_set) <> 'object'
        or exists (select 1 from jsonb_object_keys(v_set) k
@@ -368,6 +358,20 @@ begin
       raise exception 'save_request_payload_conflict' using errcode = '23505';
     end if;
     return v_session;
+  end if;
+
+  -- Ownership is only required for a new commit. Identical request-key replay
+  -- above must succeed even if a custom exercise was archived after the first Save.
+  if v_snapshot->>'origin' = 'ad_hoc' then
+    for v_ex in select value from jsonb_array_elements(v_snapshot->'exercises') loop
+      v_ref := v_ex->>'exercise_ref';
+      if v_ref ~ '^[0-9a-f]{8}-' and not exists (
+        select 1 from public.user_workout_exercises
+        where id = v_ref::uuid and user_id = v_owner and status = 'active'
+      ) then
+        raise exception 'exercise_not_owned' using errcode = '42501';
+      end if;
+    end loop;
   end if;
 
   if p_existing_session_id is null then

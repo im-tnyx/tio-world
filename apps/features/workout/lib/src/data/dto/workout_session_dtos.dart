@@ -5,9 +5,17 @@ import '../../domain/repositories/workout_session_repository.dart';
 
 /// DTO mapping for frozen routine snapshots stored in `user_workout_sessions.routine_snapshot`.
 ///
-/// Adheres strictly to the schema validated by `private.is_valid_workout_session_snapshot_v1`.
+/// Supports v1 routine snapshots and Save-only v2 `ad_hoc` snapshots.
 abstract final class WorkoutSessionSnapshotDto {
   static const int currentSchemaVersion = 1;
+  static const int adHocSchemaVersion = 2;
+
+  /// Stable placeholders so ad-hoc Save-only rows can round-trip through the
+  /// existing [WorkoutSession] aggregate that still requires program/routine IDs.
+  static final ProgramId adHocProgramId =
+      ProgramId('00000000-0000-4000-a000-0000000000ad');
+  static final RoutineId adHocRoutineId =
+      RoutineId('00000000-0000-4000-a000-0000000000ae');
 
   /// Serializes a [WorkoutSessionSnapshot] to a JSON-compatible map.
   static Map<String, dynamic> toJson(WorkoutSessionSnapshot snapshot) => {
@@ -45,15 +53,23 @@ abstract final class WorkoutSessionSnapshotDto {
   static WorkoutSessionSnapshot fromJson(Map<String, dynamic> json) {
     try {
       final schemaVersion = json['schema_version'];
-      if (schemaVersion != currentSchemaVersion) {
+      final isAdHoc = schemaVersion == adHocSchemaVersion &&
+          json['origin'] == 'ad_hoc';
+      if (schemaVersion != currentSchemaVersion && !isAdHoc) {
         throw FormatException(
-          'Unsupported snapshot schema_version: $schemaVersion (expected $currentSchemaVersion)',
+          'Unsupported snapshot schema_version: $schemaVersion',
         );
       }
 
-      final routineId = RoutineId(json['routine_id'] as String);
-      final routineName = json['routine_name'] as String;
-      final programId = ProgramId(json['program_id'] as String);
+      final routineId = isAdHoc
+          ? adHocRoutineId
+          : RoutineId(json['routine_id'] as String);
+      final routineName = isAdHoc
+          ? (json['routine_name'] as String? ?? 'Workout')
+          : json['routine_name'] as String;
+      final programId = isAdHoc
+          ? adHocProgramId
+          : ProgramId(json['program_id'] as String);
       final capturedAtUtc =
           DateTime.parse(json['captured_at_utc'] as String).toUtc();
 
@@ -255,8 +271,8 @@ final class WorkoutSessionRowDto {
 
   final String id;
   final String userId;
-  final String programId;
-  final String routineId;
+  final String? programId;
+  final String? routineId;
   final String status;
   final DateTime startedAtUtc;
   final DateTime? pausedAtUtc;
@@ -289,8 +305,8 @@ final class WorkoutSessionRowDto {
       return WorkoutSessionRowDto(
         id: json['id'] as String,
         userId: json['user_id'] as String,
-        programId: json['program_id'] as String,
-        routineId: json['routine_id'] as String,
+        programId: json['program_id'] as String?,
+        routineId: json['routine_id'] as String?,
         status: json['status'] as String,
         startedAtUtc: DateTime.parse(json['started_at_utc'] as String).toUtc(),
         pausedAtUtc: json['paused_at_utc'] != null
@@ -351,11 +367,25 @@ final class WorkoutSessionRowDto {
       lastTransitionAtUtc: lastTransitionAtUtc,
     );
 
+    final rowProgramId = programId;
+    final rowRoutineId = routineId;
+    final isAdHoc = rowProgramId == null &&
+        rowRoutineId == null &&
+        routineSnapshot['schema_version'] ==
+            WorkoutSessionSnapshotDto.adHocSchemaVersion;
     return WorkoutSession(
       id: WorkoutSessionId(id),
       userId: userId,
-      programId: ProgramId(programId),
-      routineId: RoutineId(routineId),
+      programId: rowProgramId != null
+          ? ProgramId(rowProgramId)
+          : (isAdHoc
+              ? WorkoutSessionSnapshotDto.adHocProgramId
+              : parsedSnapshot.programId),
+      routineId: rowRoutineId != null
+          ? RoutineId(rowRoutineId)
+          : (isAdHoc
+              ? WorkoutSessionSnapshotDto.adHocRoutineId
+              : parsedSnapshot.routineId),
       status: domainStatus,
       time: time,
       localDate: localDate,

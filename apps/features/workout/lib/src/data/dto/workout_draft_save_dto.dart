@@ -64,11 +64,15 @@ abstract final class WorkoutDraftSaveDto {
       });
     }
     if (performed.isEmpty) throw StateError('Workout has no logged sets.');
-    return {
+    if (exercises.any((exercise) {
+      final sets = exercise['prescribed_sets'] as List;
+      return sets.isEmpty;
+    })) {
+      throw StateError('Workout has an exercise with no sets.');
+    }
+    final payload = <String, dynamic>{
       'started_at_utc': draft.time.startedAtUtc.toIso8601String(),
       'completed_at_utc': completedAtUtc.toIso8601String(),
-      'accumulated_paused_microseconds':
-          completedTime.accumulatedPausedDuration.inMicroseconds,
       'workout_title': title.trim(),
       'workout_at_utc': workoutAtUtc.toIso8601String(),
       'workout_utc_offset_minutes': offset,
@@ -87,21 +91,30 @@ abstract final class WorkoutDraftSaveDto {
       },
       'performed_sets': performed,
     };
+    // Linked legacy sessions reject a non-null pause field in the Save RPC.
+    if (draft.canonicalSessionId == null) {
+      payload['accumulated_paused_microseconds'] =
+          completedTime.accumulatedPausedDuration.inMicroseconds;
+    }
+    return payload;
   }
 
   static SavedWorkoutDraftRecord record(
     Map<String, dynamic> row,
     List<Map<String, dynamic>> setRows,
   ) {
-    if (row['status'] != 'completed' ||
-        row['program_id'] != null ||
-        row['routine_id'] != null ||
-        row['save_request_id'] == null) {
+    if (row['status'] != 'completed' || row['save_request_id'] == null) {
       throw const FormatException('Not a completed Save-only workout.');
     }
     final snapshot = Map<String, dynamic>.from(row['routine_snapshot'] as Map);
-    if (snapshot['schema_version'] != 2 || snapshot['origin'] != 'ad_hoc') {
-      throw const FormatException('Not an ad-hoc workout snapshot.');
+    final isAdHoc = row['program_id'] == null && row['routine_id'] == null;
+    if (isAdHoc) {
+      if (snapshot['schema_version'] != 2 || snapshot['origin'] != 'ad_hoc') {
+        throw const FormatException('Not an ad-hoc workout snapshot.');
+      }
+    } else if (snapshot['schema_version'] != 1 &&
+        snapshot['schema_version'] != 2) {
+      throw const FormatException('Unsupported linked workout snapshot.');
     }
     return SavedWorkoutDraftRecord(
       sessionId: WorkoutSessionId(row['id'] as String),

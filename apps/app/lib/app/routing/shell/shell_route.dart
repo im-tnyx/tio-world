@@ -142,26 +142,35 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
     // date surface. The feature owns only its selected date and navigation
     // range; no Workout domain truth is fabricated in this shell.
     return Consumer(
-      builder: (context, ref, _) => WorkoutHomePage(
-        resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
-        onLibraryPressed: () => context.push(AppRoutes.workoutLibrary.path),
-        onPlayPressed: () {
-          unawaited(
-            runWorkoutPlayStart(
-              context: context,
-              draftController: ref.read(activeWorkoutDraftControllerProvider),
-              draftStore: ref.read(activeWorkoutDraftStoreProvider),
-              sessionController: ref.read(activeWorkoutControllerProvider),
-              openActive: ({required bool resumeExisting}) {
-                final query = resumeExisting
-                    ? '?preview=1&resume=1'
-                    : '?preview=1';
-                context.push('${AppRoutes.workoutActive.path}$query');
-              },
-            ),
-          );
-        },
-      ),
+      builder: (context, ref, _) {
+        // Keep autoDispose Play controllers alive for the whole Workout tab,
+        // including while the in-progress confirmation dialog is open.
+        final draftController =
+            ref.watch(activeWorkoutDraftControllerProvider);
+        final draftStore = ref.watch(activeWorkoutDraftStoreProvider);
+        final sessionController =
+            ref.watch(activeWorkoutControllerProvider);
+        return WorkoutHomePage(
+          resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
+          onLibraryPressed: () => context.push(AppRoutes.workoutLibrary.path),
+          onPlayPressed: () {
+            unawaited(
+              runWorkoutPlayStart(
+                context: context,
+                draftController: draftController,
+                draftStore: draftStore,
+                sessionController: sessionController,
+                openActive: ({required bool resumeExisting}) {
+                  final query = resumeExisting
+                      ? '?preview=1&resume=1'
+                      : '?preview=1';
+                  context.push('${AppRoutes.workoutActive.path}$query');
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

@@ -263,11 +263,20 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         if (remaining.length == next[index].sets.length) {
           throw StateError('Set is missing.');
         }
-        next[index] = next[index].copyWith(sets: remaining);
+        // Save snapshot validation requires 1–8 sets per exercise. Removing the
+        // last set drops the empty exercise instead of leaving prescribed_sets:[].
+        if (remaining.isEmpty) {
+          next.removeAt(index);
+        } else {
+          next[index] = next[index].copyWith(sets: remaining);
+        }
         return draft.copyWith(
           exercises: next,
           activeRest:
-              draft.activeRest?.setId == setId ? null : draft.activeRest,
+              draft.activeRest?.setId == setId ||
+                      draft.activeRest?.exerciseId == exerciseId
+                  ? null
+                  : draft.activeRest,
         );
       });
 
