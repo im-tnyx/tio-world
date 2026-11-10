@@ -595,6 +595,10 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/run_pgtap.sh supabase/tests/database/w7c_workout_save_metadata.test.sql
 
+      - name: Run W7C Save-only atomic SQL matrix
+        shell: bash
+        run: bash supabase/tests/database/run_pgtap.sh supabase/tests/database/w7c_save_only_workout.test.sql
+
       - name: Reject unsafe W7B-1 concurrency fixture connection overrides
         shell: bash
         run: bash supabase/tests/database/w7b_session_concurrency_guard.test.sh
