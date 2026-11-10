@@ -27,6 +27,12 @@ void main() {
       gymName: 'Gym',
       activityType: 'strength',
       overallRpe: 7.5,
+      activeRest: ActiveWorkoutDraftRest(
+        targetAtUtc: started.add(const Duration(minutes: 4)),
+        totalDurationSeconds: 40,
+        exerciseId: _id(4),
+        setId: _id(5),
+      ),
       exercises: [
         ActiveWorkoutDraftExercise(
           id: _id(4),
@@ -68,6 +74,7 @@ void main() {
     expect(restored.exercises.single.restPreset.normalRestSeconds, 40);
     expect(restored.exercises.single.thumbnailUrl,
         Uri.parse('https://example.com/bench.png'));
+    expect(restored.activeRest!.setId, _id(5));
     expect(draft.toJson().toString(), isNot(contains('notes')));
   });
 

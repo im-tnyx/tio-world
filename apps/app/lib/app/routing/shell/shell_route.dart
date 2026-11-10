@@ -1819,6 +1819,7 @@ List<RouteBase> _shellBranchChildRoutes(
       builder: (context, state) => Consumer(
         builder: (context, ref, _) => ActiveWorkoutPage(
           controller: ref.watch(activeWorkoutControllerProvider),
+          draftController: ref.watch(activeWorkoutDraftControllerProvider),
           catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
           userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
           gymLocationRepository: ref.watch(gymLocationRepositoryProvider),

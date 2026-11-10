@@ -129,7 +129,12 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         if (next.length == draft.exercises.length) {
           throw StateError('Exercise occurrence is missing.');
         }
-        return draft.copyWith(exercises: next);
+        return draft.copyWith(
+          exercises: next,
+          activeRest: draft.activeRest?.exerciseId == exerciseId
+              ? null
+              : draft.activeRest,
+        );
       });
 
   Future<bool> replaceExercise(String exerciseId, Exercise replacement) =>
@@ -154,7 +159,12 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             ),
           ],
         );
-        return draft.copyWith(exercises: next);
+        return draft.copyWith(
+          exercises: next,
+          activeRest: draft.activeRest?.exerciseId == exerciseId
+              ? null
+              : draft.activeRest,
+        );
       });
 
   Future<bool> addSet(String exerciseId) =>
@@ -172,13 +182,20 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         ]);
       });
 
-  Future<bool> removeSet(String exerciseId, String setId) =>
-      _editExercise(exerciseId, (exercise) {
-        final next = exercise.sets.where((s) => s.id != setId).toList();
-        if (next.length == exercise.sets.length) {
+  Future<bool> removeSet(String exerciseId, String setId) => _change((draft) {
+        final next = [...draft.exercises];
+        final index = next.indexWhere((e) => e.id == exerciseId);
+        if (index < 0) throw StateError('Exercise occurrence is missing.');
+        final remaining = next[index].sets.where((s) => s.id != setId).toList();
+        if (remaining.length == next[index].sets.length) {
           throw StateError('Set is missing.');
         }
-        return exercise.copyWith(sets: next);
+        next[index] = next[index].copyWith(sets: remaining);
+        return draft.copyWith(
+          exercises: next,
+          activeRest:
+              draft.activeRest?.setId == setId ? null : draft.activeRest,
+        );
       });
 
   Future<bool> setType(String exerciseId, String setId, RoutineSetType type) =>
@@ -206,7 +223,10 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   ) =>
       _editExercise(
         exerciseId,
-        (exercise) => exercise.copyWith(restPreset: preset),
+        (exercise) => exercise.copyWith(
+          restPreset: preset,
+          hasRestOverride: true,
+        ),
       );
 
   /// Keeps Save-screen edits local until the atomic backend submission is
@@ -241,9 +261,20 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     double? distanceMeters,
     bool isSkipped = false,
   }) =>
-      _editSet(exerciseId, setId, (set) {
+      _change((draft) {
+        final next = [...draft.exercises];
+        final exerciseIndex = next.indexWhere((e) => e.id == exerciseId);
+        if (exerciseIndex < 0) {
+          throw StateError('Exercise occurrence is missing.');
+        }
+        final exercise = next[exerciseIndex];
+        final sets = [...exercise.sets];
+        final setIndex = sets.indexWhere((set) => set.id == setId);
+        if (setIndex < 0) throw StateError('Set is missing.');
+        final set = sets[setIndex];
+        ActiveWorkoutDraftRest? rest = draft.activeRest;
         if (set.loggedAtUtc != null) {
-          return set.copyWith(
+          sets[setIndex] = set.copyWith(
             reps: null,
             loadKg: null,
             durationSeconds: null,
@@ -251,14 +282,47 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             loggedAtUtc: null,
             isSkipped: false,
           );
+          if (rest?.setId == setId) rest = null;
+        } else {
+          sets[setIndex] = set.copyWith(
+            reps: reps,
+            loadKg: loadKg,
+            durationSeconds: durationSeconds,
+            distanceMeters: distanceMeters,
+            loggedAtUtc: _nowUtc(),
+            isSkipped: isSkipped,
+          );
+          final restSeconds = exercise.hasRestOverride
+              ? exercise.restPreset.effectiveRestFor(set.prescription.setType)
+              : set.prescription.restSeconds;
+          rest = restSeconds == null || restSeconds <= 0
+              ? null
+              : ActiveWorkoutDraftRest(
+                  targetAtUtc: _nowUtc().add(Duration(seconds: restSeconds)),
+                  totalDurationSeconds: restSeconds,
+                  exerciseId: exerciseId,
+                  setId: setId,
+                );
         }
-        return set.copyWith(
-          reps: reps,
-          loadKg: loadKg,
-          durationSeconds: durationSeconds,
-          distanceMeters: distanceMeters,
-          loggedAtUtc: _nowUtc(),
-          isSkipped: isSkipped,
+        next[exerciseIndex] = exercise.copyWith(sets: sets);
+        return draft.copyWith(exercises: next, activeRest: rest);
+      });
+
+  Future<bool> skipRest() =>
+      _change((draft) => draft.copyWith(activeRest: null));
+
+  Future<bool> adjustRest(int seconds) => _change((draft) {
+        final rest = draft.activeRest;
+        if (rest == null) throw StateError('No active rest timer.');
+        final total = rest.totalDurationSeconds + seconds;
+        if (total <= 0) return draft.copyWith(activeRest: null);
+        return draft.copyWith(
+          activeRest: ActiveWorkoutDraftRest(
+            targetAtUtc: rest.targetAtUtc.add(Duration(seconds: seconds)),
+            totalDurationSeconds: total,
+            exerciseId: rest.exerciseId,
+            setId: rest.setId,
+          ),
         );
       });
 

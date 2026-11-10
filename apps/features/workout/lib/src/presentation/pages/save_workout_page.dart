@@ -127,7 +127,11 @@ class SaveWorkoutPage extends StatefulWidget {
     this.startedAt,
     this.initialWorkoutDateTime,
     this.initialWorkoutUtcOffsetMinutes,
+    this.initialRpe,
+    this.initialActivityType,
+    this.initialGym,
     this.onSave,
+    this.onLeaveDraft,
     this.onDiscard,
     this.clock,
     this.gymLocationRepository,
@@ -146,6 +150,9 @@ class SaveWorkoutPage extends StatefulWidget {
   /// Wall-clock fields restored from the saved instant and UTC offset.
   final DateTime? initialWorkoutDateTime;
   final int? initialWorkoutUtcOffsetMinutes;
+  final double? initialRpe;
+  final String? initialActivityType;
+  final String? initialGym;
   final DateTime Function()? clock;
   final GymLocationRepository? gymLocationRepository;
   final bool notesOnly;
@@ -164,6 +171,19 @@ class SaveWorkoutPage extends StatefulWidget {
     Duration? duration,
   })? onSave;
 
+  /// Persists unsaved Save-screen edits into the local workout draft on Back.
+  /// Unlike [onSave], [title] is the raw input and must not be auto-generated.
+  final FutureOr<bool> Function({
+    required String title,
+    required String? description,
+    required DateTime date,
+    required int utcOffsetMinutes,
+    required double? rpe,
+    required String activityType,
+    required String? gym,
+    required Duration duration,
+  })? onLeaveDraft;
+
   final FutureOr<bool> Function()? onDiscard;
 
   @override
@@ -181,6 +201,45 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   String? _selectedGym;
   bool _isSaving = false;
   bool _isDiscarding = false;
+  bool _isLeaving = false;
+  bool _allowPop = false;
+
+  void _popWithResult([bool? result]) {
+    setState(() => _allowPop = true);
+    Navigator.of(context).pop(result);
+  }
+
+  Future<void> _leaveDraft() async {
+    if (_isSaving || _isDiscarding || _isLeaving) return;
+    final onLeaveDraft = widget.onLeaveDraft;
+    if (onLeaveDraft == null) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _isLeaving = true);
+    try {
+      final saved = await onLeaveDraft(
+        title: _titleController.text,
+        description: _descriptionController.text,
+        date: _workoutDate,
+        utcOffsetMinutes: _workoutUtcOffsetMinutes,
+        rpe: _workoutRpe,
+        activityType: _activityType,
+        gym: _selectedGym,
+        duration: _workoutDuration,
+      );
+      if (!mounted) return;
+      if (saved) {
+        _popWithResult();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Workout draft could not be saved.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLeaving = false);
+    }
+  }
 
   DateTime _currentNow() => (widget.clock?.call() ?? DateTime.now()).toLocal();
 
@@ -197,6 +256,9 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
       text: widget.initialDescription ?? '',
     );
     _workoutDuration = widget.duration;
+    _workoutRpe = widget.initialRpe;
+    _activityType = widget.initialActivityType ?? _activityType;
+    _selectedGym = widget.initialGym;
     final now = _currentNow();
     final restored = widget.initialWorkoutDateTime;
     if (restored != null) {
@@ -316,7 +378,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
           duration: _workoutDuration,
         );
         if (saved == true && mounted) {
-          Navigator.of(context).pop(true);
+          _popWithResult(true);
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Workout could not be saved.')),
@@ -346,7 +408,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
 
     final onDiscard = widget.onDiscard;
     if (onDiscard == null) {
-      Navigator.of(context).pop(false);
+      _popWithResult(false);
       return;
     }
 
@@ -355,7 +417,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
       final discarded = await onDiscard();
       if (!mounted) return;
       if (discarded) {
-        Navigator.of(context).pop(false);
+        _popWithResult(false);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Workout could not be discarded.')),
@@ -374,9 +436,15 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
     return Scaffold(
       appBar: TioAppBar(
         automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).pop(),
+        leading: PopScope(
+          canPop: widget.onLeaveDraft == null || _allowPop,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) unawaited(_leaveDraft());
+          },
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: _leaveDraft,
+          ),
         ),
         title: const Text('Save Workout'),
         actions: [

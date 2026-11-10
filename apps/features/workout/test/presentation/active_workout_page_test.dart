@@ -13,6 +13,23 @@ final _programId = ProgramId('33333333-3333-4333-a333-333333333333');
 final _routineId = RoutineId('44444444-4444-4444-a444-444444444444');
 final _exerciseRef = ExerciseRef.catalog('ex_barbell_bench_press');
 
+final class _DraftStore implements ActiveWorkoutDraftStore {
+  ActiveWorkoutDraft? saved;
+  bool failLoad = false;
+
+  @override
+  Future<ActiveWorkoutDraft?> load() async {
+    if (failLoad) throw StateError('secure key unavailable');
+    return saved;
+  }
+
+  @override
+  Future<void> save(ActiveWorkoutDraft draft) async => saved = draft;
+
+  @override
+  Future<void> delete() async => saved = null;
+}
+
 final class _FakeSessionRepository implements WorkoutSessionRepository {
   WorkoutSessionRecord? active;
   Exception? restoreError;
@@ -290,7 +307,19 @@ Future<void> _pumpPage(
   TioThemeMode themeMode = TioThemeMode.light,
   VoidCallback? onBack,
   DateTime Function()? clock,
+  ActiveWorkoutDraftController? draftController,
 }) async {
+  final localController = draftController ??
+      (showStartPreview
+          ? ActiveWorkoutDraftController(
+              store: _DraftStore(),
+              ownerId: _userId,
+              clock: clock ?? () => tester.binding.clock.now(),
+            )
+          : null);
+  if (draftController == null && localController != null) {
+    addTearDown(localController.dispose);
+  }
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => TioTheme(
@@ -299,6 +328,7 @@ Future<void> _pumpPage(
       ),
       home: ActiveWorkoutPage(
         controller: controller,
+        draftController: localController,
         catalogRepository: catalogRepository,
         showStartPreview: showStartPreview,
         onBack: onBack,
@@ -1501,6 +1531,7 @@ void main() {
   testWidgets(
       'preview timer pause and resume toggles via timer click and bottom sheet',
       (tester) async {
+    var now = DateTime.utc(2026, 11, 9, 10);
     final controller = ActiveWorkoutController(
       repository: _FakeSessionRepository(),
       currentUserId: () => _userId,
@@ -1509,9 +1540,11 @@ void main() {
       tester,
       controller: controller,
       showStartPreview: true,
+      clock: () => now,
     );
 
     // Initial 10s
+    now = now.add(const Duration(seconds: 10));
     await tester.pump(const Duration(seconds: 10));
     expect(find.text('10s'), findsOneWidget);
     final runningDuration = tester.widget<Text>(find.text('10s'));
@@ -1534,6 +1567,7 @@ void main() {
     );
 
     // Live timer ticking inside open bottom sheet
+    now = now.add(const Duration(seconds: 3));
     await tester.pump(const Duration(seconds: 3));
     expect(
       find.descendant(
@@ -1551,6 +1585,7 @@ void main() {
     expect(find.text('Pause Workout Timer'), findsNothing);
 
     // Advance time by 15 seconds while paused
+    now = now.add(const Duration(seconds: 15));
     await tester.pump(const Duration(seconds: 15));
     // Time must remain frozen at 13s and show disabled color
     expect(find.text('13s'), findsOneWidget);
@@ -1577,6 +1612,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Advance time by 5 seconds after resume
+    now = now.add(const Duration(seconds: 5));
     await tester.pump(const Duration(seconds: 5));
     // Time resumed and reached 18s with active color
     expect(find.text('18s'), findsOneWidget);
@@ -1823,8 +1859,16 @@ void main() {
   testWidgets(
       'progress bar updates as sets are logged and Finish button turns green when workout is complete',
       (tester) async {
+    final repository = _FakeSessionRepository();
+    final draftStore = _DraftStore();
+    final draftController = ActiveWorkoutDraftController(
+      store: draftStore,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
     final controller = ActiveWorkoutController(
-      repository: _FakeSessionRepository(),
+      repository: repository,
       currentUserId: () => _userId,
     );
     await _pumpPage(
@@ -1832,6 +1876,7 @@ void main() {
       controller: controller,
       catalogRepository: _PreviewCatalogRepository(),
       showStartPreview: true,
+      draftController: draftController,
     );
 
     // Add Bench Press exercise
@@ -1929,9 +1974,319 @@ void main() {
 
     await tester.tap(finishFinder);
     await tester.pumpAndSettle();
+    expect(find.byType(SaveWorkoutPage), findsOneWidget);
+    expect(draftStore.saved!.time.isPaused, isTrue);
+    await tester.tap(find.byKey(const ValueKey('save-workout-submit-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Workout could not be saved.'), findsOneWidget);
+    expect(find.byType(SaveWorkoutPage), findsOneWidget);
+    expect(repository.lastCompletedWorkoutTitle, isNull);
+    expect(draftStore.saved!.workoutTitle, isNotEmpty);
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('active-workout-start-preview')),
         findsOneWidget);
-    expect(find.textContaining('This preview is not a saved workout'),
-        findsOneWidget);
+    expect(find.byType(SaveWorkoutPage), findsNothing);
+    expect(draftStore.saved!.time.isPaused, isTrue);
   });
+
+  testWidgets('local workout restores actual set and pause after page remount',
+      (tester) async {
+    final store = _DraftStore();
+    final first = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    final online = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(
+      tester,
+      controller: online,
+      draftController: first,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '42',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '10',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pumpAndSettle();
+    expect(await first.pause(), isTrue);
+    final id = store.saved!.id;
+    final setId = store.saved!.exercises.single.sets.single.id;
+    await tester.pumpWidget(const SizedBox.shrink());
+    first.dispose();
+
+    final restored = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(restored.dispose);
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: _FakeSessionRepository(),
+        currentUserId: () => _userId,
+      ),
+      draftController: restored,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+    expect(restored.draft!.id, id);
+    expect(restored.draft!.time.isPaused, isTrue);
+    expect(restored.draft!.exercises.single.sets.single.id, setId);
+    expect(restored.draft!.exercises.single.sets.single.loadKg, 42);
+    expect(restored.draft!.exercises.single.sets.single.reps, 10);
+    expect(find.text('Bench Press'), findsOneWidget);
+  });
+
+  testWidgets('Save review Discard deletes the local workout draft',
+      (tester) async {
+    final store = _DraftStore();
+    final draftController = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
+    var backed = false;
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: _FakeSessionRepository(),
+        currentUserId: () => _userId,
+      ),
+      draftController: draftController,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+      onBack: () => backed = true,
+    );
+    await _addPreviewBench(tester);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '10',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-preview-finish')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('save-workout-discard-button')),
+    );
+    await tester.tap(find.byKey(const ValueKey('save-workout-discard-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Discard workout').last);
+    await tester.pumpAndSettle();
+    expect(store.saved, isNull);
+    expect(backed, isTrue);
+  });
+
+  testWidgets('configured rest shows countdown controls and Skip removes it',
+      (tester) async {
+    final store = _DraftStore();
+    final draftController = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: _FakeSessionRepository(),
+        currentUserId: () => _userId,
+      ),
+      draftController: draftController,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+    expect(find.byKey(const ValueKey('active-workout-draft-rest-countdown')),
+        findsNothing);
+    final exerciseId = draftController.draft!.exercises.single.id;
+    expect(
+      await draftController.setRestPreset(
+        exerciseId,
+        const RoutineRestTimerPreset(normalRestSeconds: 40),
+      ),
+      isTrue,
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '8',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pump();
+    expect(find.byKey(const ValueKey('active-workout-draft-rest-countdown')),
+        findsOneWidget);
+    expect(find.text('00:40'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('active-workout-rest-plus-15')));
+    await tester.pump();
+    expect(find.text('00:55'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-rest-minus-15')));
+    await tester.pump();
+    expect(find.text('00:40'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('active-workout-rest-skip')));
+    await tester.pump();
+    expect(store.saved!.activeRest, isNull);
+    expect(find.byKey(const ValueKey('active-workout-draft-rest-countdown')),
+        findsNothing);
+  });
+
+  testWidgets('Save review Back keeps unsaved title and metadata in draft',
+      (tester) async {
+    final store = _DraftStore();
+    final draftController = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: _FakeSessionRepository(),
+        currentUserId: () => _userId,
+      ),
+      draftController: draftController,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '8',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-finish')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('save-workout-title-input')),
+      '  My Workout  ',
+    );
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+    expect(store.saved!.workoutTitle, '  My Workout  ');
+    expect(store.saved!.time.isPaused, isTrue);
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-finish')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('  My Workout  '), findsOneWidget);
+  });
+
+  testWidgets('draft restore failure never opens an empty workout',
+      (tester) async {
+    final store = _DraftStore()..failLoad = true;
+    final draftController = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: _FakeSessionRepository(),
+        currentUserId: () => _userId,
+      ),
+      draftController: draftController,
+      showStartPreview: true,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Workout draft unavailable'), findsOneWidget);
+    expect(find.text('Get started'), findsNothing);
+    expect(find.byKey(const ValueKey('active-workout-preview-add-exercise')),
+        findsNothing);
+    expect(store.saved, isNull);
+  });
+
+  for (final theme in [TioThemeMode.light, TioThemeMode.dark]) {
+    testWidgets('draft-backed preview keeps approved 320dp layout in $theme',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final draftController = ActiveWorkoutDraftController(
+        store: _DraftStore(),
+        ownerId: _userId,
+        clock: () => tester.binding.clock.now(),
+      );
+      addTearDown(draftController.dispose);
+      await _pumpPage(
+        tester,
+        controller: ActiveWorkoutController(
+          repository: _FakeSessionRepository(),
+          currentUserId: () => _userId,
+        ),
+        catalogRepository: _PreviewCatalogRepository(),
+        showStartPreview: true,
+        themeMode: theme,
+        draftController: draftController,
+      );
+      await _addPreviewBench(tester);
+      expect(find.byKey(const ValueKey('active-workout-preview-exercise-0')),
+          findsOneWidget);
+      expect(
+        await draftController.setRestPreset(
+          draftController.draft!.exercises.single.id,
+          const RoutineRestTimerPreset(normalRestSeconds: 40),
+        ),
+        isTrue,
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+          matching: find.byType(EditableText),
+        ),
+        '8',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+      );
+      await tester.pump();
+      expect(find.byKey(const ValueKey('active-workout-draft-rest-countdown')),
+          findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

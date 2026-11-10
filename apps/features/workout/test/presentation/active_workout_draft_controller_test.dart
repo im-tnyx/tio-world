@@ -164,4 +164,61 @@ void main() {
     expect(store.writes, 0);
     controller.dispose();
   });
+
+  test('rest starts only when configured and survives restart by UTC deadline',
+      () async {
+    var now = DateTime.utc(2026, 11, 9, 10);
+    final store = _Store()
+      ..saved = ActiveWorkoutDraft(
+        id: _id(4),
+        ownerId: owner,
+        saveRequestId: _id(5),
+        time: WorkoutTime.start(startedAtUtc: now),
+        exercises: [
+          ActiveWorkoutDraftExercise(
+            id: _id(6),
+            exerciseRef: ExerciseRef.catalog('ex_first'),
+            displayName: 'First',
+            sets: [
+              ActiveWorkoutDraftSet(
+                id: _id(7),
+                prescription: SetPrescription(restSeconds: 60),
+              ),
+            ],
+          ),
+        ],
+      );
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(await controller.toggleLogged(_id(6), _id(7), reps: 10), isTrue);
+    expect(controller.draft!.activeRest!.remaining(now),
+        const Duration(seconds: 60));
+    expect(await controller.adjustRest(15), isTrue);
+    now = now.add(const Duration(seconds: 30));
+    controller.dispose();
+    final reopened = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+    );
+    expect(await reopened.restoreOrStart(), isTrue);
+    expect(reopened.draft!.activeRest!.remaining(now),
+        const Duration(seconds: 45));
+    expect(await reopened.skipRest(), isTrue);
+    expect(reopened.draft!.activeRest, isNull);
+    expect(
+        await reopened.setRestPreset(
+          _id(6),
+          const RoutineRestTimerPreset(),
+        ),
+        isTrue);
+    expect(await reopened.toggleLogged(_id(6), _id(7)), isTrue);
+    expect(await reopened.toggleLogged(_id(6), _id(7), reps: 9), isTrue);
+    expect(reopened.draft!.activeRest, isNull);
+    reopened.dispose();
+  });
 }

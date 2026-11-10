@@ -44,6 +44,95 @@ Widget _buildWrapper(Widget child) {
 }
 
 void main() {
+  testWidgets(
+      'Back keeps raw blank title and blocks exit on draft write failure',
+      (tester) async {
+    var shouldPersist = false;
+    String? retainedTitle;
+    DateTime? retainedDate;
+    int? retainedOffset;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark().copyWith(extensions: const [TioColors.dark]),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => SaveWorkoutPage(
+                    duration: const Duration(minutes: 35),
+                    volumeKg: 0,
+                    completedSets: 1,
+                    initialWorkoutDateTime: DateTime(2026, 11, 1, 21),
+                    initialWorkoutUtcOffsetMinutes: 330,
+                    onLeaveDraft: ({
+                      required title,
+                      required description,
+                      required date,
+                      required utcOffsetMinutes,
+                      required rpe,
+                      required activityType,
+                      required gym,
+                      required duration,
+                    }) async {
+                      retainedTitle = title;
+                      retainedDate = date;
+                      retainedOffset = utcOffsetMinutes;
+                      return shouldPersist;
+                    },
+                  ),
+                ),
+              ),
+              child: const Text('Open Save'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open Save'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('save-workout-title-input')),
+      '   ',
+    );
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+    expect(retainedTitle, '   ');
+    expect(retainedDate, DateTime(2026, 11, 1, 21));
+    expect(retainedOffset, 330);
+    expect(find.byType(SaveWorkoutPage), findsOneWidget);
+    expect(find.text('Workout draft could not be saved.'), findsOneWidget);
+
+    shouldPersist = true;
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+    expect(find.byType(SaveWorkoutPage), findsNothing);
+  });
+
+  testWidgets('restores local Save review selections without visual changes',
+      (tester) async {
+    await tester.pumpWidget(
+      _buildWrapper(
+        const SaveWorkoutPage(
+          initialTitle: 'Custom Workout',
+          initialDescription: 'Description',
+          initialGym: 'Gym One',
+          initialActivityType: 'Cardio',
+          initialRpe: 7.5,
+          duration: Duration(minutes: 35),
+          volumeKg: 0,
+          completedSets: 1,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Custom Workout'), findsOneWidget);
+    expect(find.text('Gym One'), findsOneWidget);
+    expect(find.text('Cardio'), findsOneWidget);
+    expect(find.textContaining('7.5'), findsWidgets);
+    expect(find.text('35min'), findsWidgets);
+  });
+
   group('SaveWorkoutPage', () {
     testWidgets(
         'renders initial title or empty placeholder, duration, volume, and sets',

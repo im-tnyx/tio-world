@@ -25,6 +25,7 @@ final class ActiveWorkoutDraft {
     this.gymName,
     this.activityType,
     this.overallRpe,
+    this.activeRest,
   })  : id = _uuid(id),
         ownerId = _uuid(ownerId),
         saveRequestId = _uuid(saveRequestId),
@@ -64,6 +65,12 @@ final class ActiveWorkoutDraft {
         }
       }
     }
+    if (activeRest != null &&
+        !exercises.any((exercise) =>
+            exercise.id == activeRest!.exerciseId &&
+            exercise.sets.any((set) => set.id == activeRest!.setId))) {
+      throw ArgumentError('Rest timer references a removed draft set.');
+    }
   }
 
   static const schemaVersion = 1;
@@ -83,6 +90,7 @@ final class ActiveWorkoutDraft {
   final String? gymName;
   final String? activityType;
   final double? overallRpe;
+  final ActiveWorkoutDraftRest? activeRest;
 
   ActiveWorkoutDraft copyWith({
     WorkoutTime? time,
@@ -98,6 +106,7 @@ final class ActiveWorkoutDraft {
     Object? gymName = _unchanged,
     Object? activityType = _unchanged,
     Object? overallRpe = _unchanged,
+    Object? activeRest = _unchanged,
   }) =>
       ActiveWorkoutDraft(
         id: id,
@@ -135,6 +144,9 @@ final class ActiveWorkoutDraft {
         overallRpe: identical(overallRpe, _unchanged)
             ? this.overallRpe
             : overallRpe as double?,
+        activeRest: identical(activeRest, _unchanged)
+            ? this.activeRest
+            : activeRest as ActiveWorkoutDraftRest?,
       );
 
   Map<String, Object?> toJson() => {
@@ -160,6 +172,7 @@ final class ActiveWorkoutDraft {
         'gym_name': gymName,
         'activity_type': activityType,
         'overall_rpe': overallRpe,
+        'active_rest': activeRest?.toJson(),
         'exercises': exercises.map((exercise) => exercise.toJson()).toList(),
       };
 
@@ -199,6 +212,11 @@ final class ActiveWorkoutDraft {
         gymName: json['gym_name'] as String?,
         activityType: json['activity_type'] as String?,
         overallRpe: (json['overall_rpe'] as num?)?.toDouble(),
+        activeRest: json['active_rest'] == null
+            ? null
+            : ActiveWorkoutDraftRest.fromJson(
+                Map<String, dynamic>.from(json['active_rest'] as Map),
+              ),
         exercises: (json['exercises'] as List)
             .map((entry) => ActiveWorkoutDraftExercise.fromJson(
                   Map<String, dynamic>.from(entry as Map),
@@ -220,6 +238,7 @@ final class ActiveWorkoutDraftExercise {
     required String displayName,
     this.exerciseType,
     this.thumbnailUrl,
+    this.hasRestOverride = false,
     this.restPreset = const RoutineRestTimerPreset(),
     List<ActiveWorkoutDraftSet> sets = const [],
   })  : id = _uuid(id),
@@ -241,12 +260,14 @@ final class ActiveWorkoutDraftExercise {
   final String displayName;
   final ExerciseType? exerciseType;
   final Uri? thumbnailUrl;
+  final bool hasRestOverride;
   final RoutineRestTimerPreset restPreset;
   final List<ActiveWorkoutDraftSet> sets;
 
   ActiveWorkoutDraftExercise copyWith({
     List<ActiveWorkoutDraftSet>? sets,
     RoutineRestTimerPreset? restPreset,
+    bool? hasRestOverride,
   }) =>
       ActiveWorkoutDraftExercise(
         id: id,
@@ -254,6 +275,7 @@ final class ActiveWorkoutDraftExercise {
         displayName: displayName,
         exerciseType: exerciseType,
         thumbnailUrl: thumbnailUrl,
+        hasRestOverride: hasRestOverride ?? this.hasRestOverride,
         restPreset: restPreset ?? this.restPreset,
         sets: sets ?? this.sets,
       );
@@ -264,6 +286,7 @@ final class ActiveWorkoutDraftExercise {
         'display_name': displayName,
         'exercise_type': exerciseType?.storageValue,
         'thumbnail_url': thumbnailUrl?.toString(),
+        'has_rest_override': hasRestOverride,
         'rest_normal_seconds': restPreset.normalRestSeconds,
         'rest_warm_up_seconds': restPreset.warmUpRestSeconds,
         'sets': sets.map((set) => set.toJson()).toList(),
@@ -281,6 +304,7 @@ final class ActiveWorkoutDraftExercise {
         thumbnailUrl: json['thumbnail_url'] == null
             ? null
             : Uri.parse(json['thumbnail_url'] as String),
+        hasRestOverride: json['has_rest_override'] as bool? ?? false,
         restPreset: RoutineRestTimerPreset(
           normalRestSeconds: json['rest_normal_seconds'] as int?,
           warmUpRestSeconds: json['rest_warm_up_seconds'] as int?,
@@ -412,6 +436,51 @@ final class ActiveWorkoutDraftSet {
       );
     } catch (_) {
       throw const FormatException('Invalid draft set.');
+    }
+  }
+}
+
+/// A configured rest countdown, derived from an absolute UTC deadline.
+final class ActiveWorkoutDraftRest {
+  ActiveWorkoutDraftRest({
+    required this.targetAtUtc,
+    required this.totalDurationSeconds,
+    required String exerciseId,
+    required String setId,
+  })  : exerciseId = _uuid(exerciseId),
+        setId = _uuid(setId) {
+    if (!targetAtUtc.isUtc || totalDurationSeconds <= 0) {
+      throw ArgumentError('Invalid draft rest timer.');
+    }
+  }
+
+  final DateTime targetAtUtc;
+  final int totalDurationSeconds;
+  final String exerciseId;
+  final String setId;
+
+  Duration remaining(DateTime nowUtc) {
+    final value = targetAtUtc.difference(nowUtc.toUtc());
+    return value.isNegative ? Duration.zero : value;
+  }
+
+  Map<String, Object?> toJson() => {
+        'target_at_utc': targetAtUtc.toIso8601String(),
+        'total_duration_seconds': totalDurationSeconds,
+        'exercise_id': exerciseId,
+        'set_id': setId,
+      };
+
+  factory ActiveWorkoutDraftRest.fromJson(Map<String, dynamic> json) {
+    try {
+      return ActiveWorkoutDraftRest(
+        targetAtUtc: DateTime.parse(json['target_at_utc'] as String).toUtc(),
+        totalDurationSeconds: json['total_duration_seconds'] as int,
+        exerciseId: json['exercise_id'] as String,
+        setId: json['set_id'] as String,
+      );
+    } catch (_) {
+      throw const FormatException('Invalid draft rest timer.');
     }
   }
 }

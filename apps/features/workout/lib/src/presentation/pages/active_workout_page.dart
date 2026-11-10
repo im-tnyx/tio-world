@@ -9,11 +9,13 @@ import 'package:uuid/uuid.dart';
 import '../../domain/exercises/exercise_catalog_repository.dart';
 import '../../domain/exercises/user_exercise_repository.dart';
 import '../../domain/models/routine_composition_limits.dart';
+import '../../domain/models/active_workout_draft.dart';
 import '../../domain/models/routine_rest_timer_preset.dart';
 import '../../domain/repositories/gym_location_repository.dart';
 import '../../domain/repositories/routine_composition_repository.dart';
 import '../../domain/exercises/exercise_catalog.dart';
 import '../controllers/active_workout_controller.dart';
+import '../controllers/active_workout_draft_controller.dart';
 import '../controllers/active_workout_state.dart';
 import '../library/exercises/exercises_controller.dart';
 import '../library/exercises/exercises_page.dart';
@@ -53,6 +55,7 @@ class ActiveWorkoutPage extends StatelessWidget {
     this.userExerciseRepository,
     this.gymLocationRepository,
     this.clock,
+    this.draftController,
   });
 
   final ActiveWorkoutController? controller;
@@ -70,6 +73,7 @@ class ActiveWorkoutPage extends StatelessWidget {
 
   /// Optional clock for deterministic time formatting and testing.
   final DateTime Function()? clock;
+  final ActiveWorkoutDraftController? draftController;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +85,7 @@ class ActiveWorkoutPage extends StatelessWidget {
       userExerciseRepository: userExerciseRepository,
       gymLocationRepository: gymLocationRepository,
       clock: clock,
+      draftController: draftController,
     );
   }
 }
@@ -94,6 +99,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
     this.userExerciseRepository,
     this.gymLocationRepository,
     this.clock,
+    this.draftController,
   });
 
   final ActiveWorkoutController? controller;
@@ -103,6 +109,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
   final UserExerciseRepository? userExerciseRepository;
   final GymLocationRepository? gymLocationRepository;
   final DateTime Function()? clock;
+  final ActiveWorkoutDraftController? draftController;
 
   @override
   State<_ActiveWorkoutBody> createState() => _ActiveWorkoutBodyState();
@@ -356,7 +363,9 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
             onBack: widget.onBack,
             catalogRepository: widget.catalogRepository,
             userExerciseRepository: widget.userExerciseRepository,
+            gymLocationRepository: widget.gymLocationRepository,
             clock: widget.clock,
+            draftController: widget.draftController,
           );
         }
         return _MessageState(
@@ -433,85 +442,91 @@ class _LoadingState extends StatelessWidget {
   }
 }
 
-SetPrescription _withSetType(SetPrescription p, RoutineSetType type) =>
-    SetPrescription(
-      reps: p.reps,
-      repsMax: p.repsMax,
-      setType: type,
-      loadKg: p.loadKg,
-      distanceMeters: p.distanceMeters,
-      durationSeconds: p.durationSeconds,
-      restSeconds: p.restSeconds,
-    );
-
 class _StartWorkoutPreview extends StatefulWidget {
   const _StartWorkoutPreview({
     required this.onBack,
     this.catalogRepository,
     this.userExerciseRepository,
+    this.gymLocationRepository,
     this.clock,
+    this.draftController,
   });
 
   final VoidCallback onBack;
   final ExerciseCatalogRepository? catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+  final GymLocationRepository? gymLocationRepository;
   final DateTime Function()? clock;
+  final ActiveWorkoutDraftController? draftController;
 
   @override
   State<_StartWorkoutPreview> createState() => _StartWorkoutPreviewState();
 }
 
 class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
-  final List<Exercise> _previewExercises = [];
-  final Map<int, List<RoutineCompositionSet>> _previewExerciseSets = {};
-  final Map<
-      String,
-      ({
-        double? loadKg,
-        int? reps,
-        int? durationSeconds,
-        double? distanceMeters,
-      })> _loggedSets = {};
-  final Map<int, RoutineRestTimerPreset> _restPresets = {};
   final Map<int, List<ExerciseNoteDraftSnapshot>> _exerciseNotes = {};
-  final Map<String, double?> _setRpes = {};
-
-  late final DateTime _startedAtUtc;
-  Duration _elapsed = Duration.zero;
   Timer? _ticker;
-  bool _isPaused = false;
-  DateTime? _pausedAtUtc;
-  Duration _totalPausedDuration = Duration.zero;
+
+  ActiveWorkoutDraft? get _draft => widget.draftController?.draft;
+  List<ActiveWorkoutDraftExercise> get _previewExercises =>
+      _draft?.exercises ?? const [];
+  List<RoutineCompositionSet> _setsForExercise(int index) => [
+        for (final set in _previewExercises[index].sets)
+          RoutineCompositionSet(id: set.id, prescription: set.prescription),
+      ];
+  Map<String,
+          ({double? loadKg, int? reps, int? durationSeconds, double? distanceMeters})>
+      get _loggedSets => {
+            for (final exercise in _previewExercises)
+              for (final set in exercise.sets)
+                if (set.loggedAtUtc != null)
+                  set.id: (
+                    loadKg: set.loadKg,
+                    reps: set.reps,
+                    durationSeconds: set.durationSeconds,
+                    distanceMeters: set.distanceMeters,
+                  ),
+          };
+  Map<String, double?> get _setRpes => {
+        for (final exercise in _previewExercises)
+          for (final set in exercise.sets)
+            if (set.rpe != null) set.id: set.rpe,
+      };
+  bool get _isPaused => _draft?.time.isPaused ?? false;
+  DateTime get _startedAtUtc => _draft?.time.startedAtUtc ?? _nowUtc();
+  Duration get _elapsed =>
+      _draft?.time.elapsedActiveDuration(_nowUtc()) ?? Duration.zero;
 
   DateTime _nowUtc() => (widget.clock?.call() ?? DateTime.now()).toUtc();
 
   void _startTicker() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && !_isPaused) {
-        setState(() {
-          _elapsed = _nowUtc().difference(_startedAtUtc) - _totalPausedDuration;
-        });
-      }
-    });
-  }
-
-  void _togglePause() {
-    setState(() {
-      if (_isPaused) {
-        _isPaused = false;
-        if (_pausedAtUtc != null) {
-          _totalPausedDuration += _nowUtc().difference(_pausedAtUtc!);
-          _pausedAtUtc = null;
-        }
-        _startTicker();
-      } else {
-        _isPaused = true;
-        _pausedAtUtc = _nowUtc();
+      if (!mounted) return;
+      final restActive =
+          (_draft?.activeRest?.remaining(_nowUtc()) ?? Duration.zero) >
+              Duration.zero;
+      if (_isPaused && !restActive) {
         _ticker?.cancel();
         _ticker = null;
       }
+      setState(() {});
     });
+  }
+
+  Future<void> _togglePause() async {
+    final controller = widget.draftController;
+    if (controller == null) return;
+    if (_isPaused) {
+      if (await controller.resume()) _startTicker();
+    } else {
+      if (await controller.pause() &&
+          (_draft?.activeRest?.remaining(_nowUtc()) ?? Duration.zero) <=
+              Duration.zero) {
+        _ticker?.cancel();
+        _ticker = null;
+      }
+    }
   }
 
   Future<void> _showPauseDetails() async {
@@ -529,46 +544,54 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     );
 
     if (!mounted || shouldToggle != true) return;
-    _togglePause();
+    await _togglePause();
   }
 
   @override
   void initState() {
     super.initState();
-    _startedAtUtc = _nowUtc();
-    _startTicker();
+    widget.draftController?.addListener(_onDraftChanged);
+    if (widget.draftController != null) {
+      unawaited(widget.draftController!.restoreOrStart());
+    }
+  }
+
+  void _onDraftChanged() {
+    if (!mounted) return;
+    if (_draft != null &&
+        (!_isPaused ||
+            (_draft?.activeRest?.remaining(_nowUtc()) ?? Duration.zero) >
+                Duration.zero) &&
+        _ticker == null) {
+      _startTicker();
+    }
+    setState(() {});
+  }
+
+  @override
+  void didUpdateWidget(covariant _StartWorkoutPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.draftController, widget.draftController)) {
+      oldWidget.draftController?.removeListener(_onDraftChanged);
+      widget.draftController?.addListener(_onDraftChanged);
+      if (widget.draftController != null) {
+        unawaited(widget.draftController!.restoreOrStart());
+      }
+    }
   }
 
   @override
   void dispose() {
+    widget.draftController?.removeListener(_onDraftChanged);
     _ticker?.cancel();
     _ticker = null;
     super.dispose();
   }
 
-  List<RoutineCompositionSet> _setsForExercise(int exerciseIndex) {
-    return _previewExerciseSets.putIfAbsent(
-      exerciseIndex,
-      () => [
-        RoutineCompositionSet(
-          id: const Uuid().v4(),
-          prescription: SetPrescription(setType: RoutineSetType.normal),
-        ),
-      ],
-    );
-  }
-
-  void _addSet(int exerciseIndex) {
-    final sets = _setsForExercise(exerciseIndex);
-    if (sets.length >= RoutineCompositionLimits.maxSetsPerExercise) return;
-    setState(() {
-      sets.add(
-        RoutineCompositionSet(
-          id: const Uuid().v4(),
-          prescription: SetPrescription(setType: RoutineSetType.normal),
-        ),
-      );
-    });
+  Future<void> _addSet(int exerciseIndex) async {
+    final controller = widget.draftController;
+    if (controller == null || exerciseIndex >= _previewExercises.length) return;
+    await controller.addSet(_previewExercises[exerciseIndex].id);
   }
 
   Future<void> _selectSetType(
@@ -583,21 +606,14 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       targetSet: set,
     );
     if (!mounted || chosen == null) return;
-    setState(() {
-      if (chosen is RoutineSetType) {
-        final idx = sets.indexWhere((s) => s.id == set.id);
-        if (idx != -1) {
-          sets[idx] = RoutineCompositionSet(
-            id: set.id,
-            prescription: _withSetType(set.prescription, chosen),
-          );
-        }
-      } else if (chosen == 'remove') {
-        sets.removeWhere((s) => s.id == set.id);
-        _loggedSets.remove(set.id);
-        _setRpes.remove(set.id);
-      }
-    });
+    final controller = widget.draftController;
+    if (controller == null || exerciseIndex >= _previewExercises.length) return;
+    final exerciseId = _previewExercises[exerciseIndex].id;
+    if (chosen is RoutineSetType) {
+      await controller.setType(exerciseId, set.id, chosen);
+    } else if (chosen == 'remove') {
+      await controller.removeSet(exerciseId, set.id);
+    }
   }
 
   Future<void> _selectSetRpe(
@@ -620,30 +636,24 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     );
 
     if (!mounted || selected == null) return;
-    setState(() {
-      if (selected > 0) {
-        _setRpes[setId] = selected;
-      } else {
-        _setRpes.remove(setId);
-      }
-    });
+    if (exerciseIndex >= _previewExercises.length) return;
+    await widget.draftController?.setRpe(
+      _previewExercises[exerciseIndex].id,
+      setId,
+      selected > 0 ? selected : null,
+    );
   }
 
   Future<void> _showExerciseOptions(int exerciseIndex) async {
     final action = await showRoutineExerciseOptionsSheet(context);
     if (!mounted || action == null) return;
+    final controller = widget.draftController;
+    if (controller == null || exerciseIndex >= _previewExercises.length) return;
+    final exerciseId = _previewExercises[exerciseIndex].id;
     if (action == RoutineExerciseOption.remove) {
-      setState(() {
-        final removedSets = _previewExerciseSets[exerciseIndex] ?? const [];
-        for (final set in removedSets) {
-          _loggedSets.remove(set.id);
-          _setRpes.remove(set.id);
-        }
-        _previewExercises.removeAt(exerciseIndex);
-        _reindexMapAfterRemoval(_previewExerciseSets, exerciseIndex);
-        _reindexMapAfterRemoval(_restPresets, exerciseIndex);
-        _reindexMapAfterRemoval(_exerciseNotes, exerciseIndex);
-      });
+      if (await controller.removeExercise(exerciseId)) {
+        setState(() => _reindexMapAfterRemoval(_exerciseNotes, exerciseIndex));
+      }
     } else if (action == RoutineExerciseOption.replace) {
       final repo = widget.catalogRepository;
       if (repo == null) return;
@@ -660,16 +670,9 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
         ),
       );
       if (selected != null && selected.isNotEmpty && mounted) {
-        setState(() {
-          for (final set in _previewExerciseSets[exerciseIndex] ?? const []) {
-            _loggedSets.remove(set.id);
-            _setRpes.remove(set.id);
-          }
-          _previewExercises[exerciseIndex] = selected.first;
-          _previewExerciseSets.remove(exerciseIndex);
-          _restPresets.remove(exerciseIndex);
-          _exerciseNotes.remove(exerciseIndex);
-        });
+        if (await controller.replaceExercise(exerciseId, selected.first)) {
+          setState(() => _exerciseNotes.remove(exerciseIndex));
+        }
       }
     }
   }
@@ -693,9 +696,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       ),
     );
     if (selected != null && selected.isNotEmpty && mounted) {
-      setState(() {
-        _previewExercises.addAll(selected);
-      });
+      await widget.draftController?.addExercises(selected);
     }
   }
 
@@ -705,8 +706,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     bool hasWarmUpSets = false,
     RoutineRestTimerPreset? current,
   }) async {
-    final activePreset =
-        current ?? _restPresets[index] ?? const RoutineRestTimerPreset();
+    if (index >= _previewExercises.length) return;
+    final activePreset = current ?? _previewExercises[index].restPreset;
     final result = await showRoutineRestTimerSheet(
       context: context,
       initialNormalRestSeconds: activePreset.normalRestSeconds,
@@ -714,10 +715,11 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       exerciseName: exerciseName,
       hasWarmUpSets: hasWarmUpSets,
     );
-    if (result != null && mounted) {
-      setState(() {
-        _restPresets[index] = result;
-      });
+    if (result != null && mounted && index < _previewExercises.length) {
+      await widget.draftController?.setRestPreset(
+        _previewExercises[index].id,
+        result,
+      );
     }
   }
 
@@ -743,17 +745,12 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       intent: TioConfirmationIntent.destructive,
     );
     if (!mounted || confirmed != true) return;
-    _ticker?.cancel();
-    _ticker = null;
-    setState(() {
-      _previewExercises.clear();
-      _previewExerciseSets.clear();
-      _loggedSets.clear();
-      _setRpes.clear();
-      _restPresets.clear();
+    if (await widget.draftController?.discard() == true) {
+      _ticker?.cancel();
+      _ticker = null;
       _exerciseNotes.clear();
-    });
-    widget.onBack();
+      widget.onBack();
+    }
   }
 
   double get _totalVolumeKg {
@@ -766,14 +763,94 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     return volume;
   }
 
-  void _showPreviewSaveUnavailable() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'This preview is not a saved workout. Start a supported workout session before saving.',
+  Future<void> _openSaveReview() async {
+    final controller = widget.draftController;
+    if (controller == null || controller.isBusy || _loggedSets.isEmpty) return;
+    if (!_isPaused && !await controller.pause()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Workout could not be paused.')),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    final draft = controller.draft;
+    if (draft == null || !draft.time.isPaused) return;
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => SaveWorkoutPage(
+          initialTitle: draft.workoutTitle,
+          initialDescription: draft.description,
+          duration: draft.selectedDurationSeconds == null
+              ? _elapsed
+              : Duration(seconds: draft.selectedDurationSeconds!),
+          volumeKg: _totalVolumeKg,
+          completedSets: _loggedSets.length,
+          startedAt: draft.time.startedAtUtc.toLocal(),
+          initialWorkoutDateTime: draft.workoutAtUtc == null ||
+                  draft.workoutUtcOffsetMinutes == null
+              ? null
+              : _wallDateTime(
+                  draft.workoutAtUtc!,
+                  draft.workoutUtcOffsetMinutes!,
+                ),
+          initialWorkoutUtcOffsetMinutes: draft.workoutUtcOffsetMinutes,
+          initialRpe: draft.overallRpe,
+          initialActivityType: draft.activityType,
+          initialGym: draft.gymName,
+          gymLocationRepository: widget.gymLocationRepository,
+          clock: widget.clock,
+          onSave: ({
+            required String title,
+            required String? description,
+            required DateTime date,
+            required int utcOffsetMinutes,
+            required double? rpe,
+            required String activityType,
+            required String? gym,
+            Duration? duration,
+          }) async {
+            // Until the approved atomic Save RPC is wired, this only updates
+            // the encrypted local draft and never reports backend success.
+            await controller.updateSaveMetadata(
+              title: title,
+              description: description,
+              workoutAtUtc: _utcFromWallDateTime(date, utcOffsetMinutes),
+              workoutUtcOffsetMinutes: utcOffsetMinutes,
+              selectedDurationSeconds: (duration ?? _elapsed).inSeconds,
+              gymName: gym,
+              activityType: activityType,
+              overallRpe: rpe,
+            );
+            return false;
+          },
+          onLeaveDraft: ({
+            required String title,
+            required String? description,
+            required DateTime date,
+            required int utcOffsetMinutes,
+            required double? rpe,
+            required String activityType,
+            required String? gym,
+            required Duration duration,
+          }) =>
+              controller.updateSaveMetadata(
+            title: title,
+            description: description,
+            workoutAtUtc: _utcFromWallDateTime(date, utcOffsetMinutes),
+            workoutUtcOffsetMinutes: utcOffsetMinutes,
+            selectedDurationSeconds: duration.inSeconds,
+            gymName: gym,
+            activityType: activityType,
+            overallRpe: rpe,
+          ),
+          onDiscard: controller.discard,
         ),
       ),
     );
+    if (!mounted) return;
+    if (saved == false && controller.draft == null) widget.onBack();
   }
 
   int get _totalPlannedSets {
@@ -795,9 +872,29 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
 
   @override
   Widget build(BuildContext context) {
+    final draftController = widget.draftController;
+    if (draftController == null) {
+      return _UnavailableState(onBack: widget.onBack);
+    }
+    if (_draft == null && draftController.isBusy) {
+      return const _LoadingState();
+    }
+    if (_draft == null && draftController.error != null) {
+      return _MessageState(
+        title: 'Workout draft unavailable',
+        message:
+            'The saved draft could not be restored. It has not been deleted.',
+        actionLabel: 'Retry',
+        onAction: () => unawaited(draftController.restoreOrStart()),
+        secondaryActionLabel: 'Back',
+        onSecondaryAction: widget.onBack,
+      );
+    }
     final showRpe = MediaQuery.sizeOf(context).width >= 360;
     final canFinish = _loggedSets.isNotEmpty;
     final isComplete = _isWorkoutComplete;
+    final rest = _draft?.activeRest;
+    final restRemaining = rest?.remaining(_nowUtc()) ?? Duration.zero;
 
     return Scaffold(
       appBar: TioAppBar(
@@ -835,7 +932,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
                   key: const ValueKey('active-workout-preview-finish'),
                   label: 'Finish',
                   enabled: canFinish,
-                  onPressed: canFinish ? _showPreviewSaveUnavailable : null,
+                  onPressed: canFinish ? _openSaveReview : null,
                 ),
               ),
             ),
@@ -945,25 +1042,35 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
           ),
         ],
       ),
+      bottomNavigationBar: rest != null && restRemaining > Duration.zero
+          ? _DraftRestCountdown(
+              remaining: restRemaining,
+              totalSeconds: rest.totalDurationSeconds,
+              onSubtract: () => unawaited(draftController.adjustRest(-15)),
+              onAdd: () => unawaited(draftController.adjustRest(15)),
+              onSkip: () => unawaited(draftController.skipRest()),
+            )
+          : null,
     );
   }
 
   Widget _buildPreviewExerciseCard(
     int exerciseIndex,
-    Exercise exercise,
+    ActiveWorkoutDraftExercise exercise,
     bool showRpe,
   ) {
     final sets = _setsForExercise(exerciseIndex);
     final hasWarmUpSets =
         sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
-    final restPreset = _restPresets[exerciseIndex] ??
-        RoutineRestTimerPreset.fromPrescriptions(
-          sets.map((s) => s.prescription),
-        );
+    final restPreset = exercise.hasRestOverride
+        ? exercise.restPreset
+        : RoutineRestTimerPreset.fromPrescriptions(
+            sets.map((s) => s.prescription),
+          );
 
     final entry = RoutineCompositionEntry(
-      id: _syntheticUuid(exerciseIndex),
-      exercise: exercise.ref,
+      id: exercise.id,
+      exercise: exercise.exerciseRef,
       sets: sets,
     );
 
@@ -974,7 +1081,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       index: exerciseIndex,
       totalEntries: _previewExercises.length,
       title: exercise.displayName,
-      thumbnailUrl: ExercisesController.thumbnailUrlFor(exercise),
+      thumbnailUrl: exercise.thumbnailUrl,
       exerciseType: exercise.exerciseType,
       showRangeDraft: false,
       unit: WeightUnit.kg,
@@ -1042,22 +1149,102 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
           ),
           onToggleLogged: (
               {reps, loadKg, durationSeconds, distanceMeters}) async {
-            setState(() {
-              if (isLogged) {
-                _loggedSets.remove(setId);
-              } else {
-                _loggedSets[setId] = (
-                  loadKg: loadKg,
-                  reps: reps,
-                  durationSeconds: durationSeconds,
-                  distanceMeters: distanceMeters,
-                );
-              }
-            });
+            await widget.draftController?.toggleLogged(
+              exercise.id,
+              setId,
+              loadKg: loadKg,
+              reps: reps,
+              durationSeconds: durationSeconds,
+              distanceMeters: distanceMeters,
+            );
           },
         );
       },
       addSet: () => _addSet(exerciseIndex),
+    );
+  }
+}
+
+class _DraftRestCountdown extends StatelessWidget {
+  const _DraftRestCountdown({
+    required this.remaining,
+    required this.totalSeconds,
+    required this.onSubtract,
+    required this.onAdd,
+    required this.onSkip,
+  });
+
+  final Duration remaining;
+  final int totalSeconds;
+  final VoidCallback onSubtract;
+  final VoidCallback onAdd;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = (remaining.inMilliseconds + 999) ~/ 1000;
+    final minutesLabel = (seconds ~/ 60).toString().padLeft(2, '0');
+    final secondsLabel = (seconds % 60).toString().padLeft(2, '0');
+    return Material(
+      key: const ValueKey('active-workout-draft-rest-countdown'),
+      color: context.tioColors.surfaceVariant,
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LinearProgressIndicator(
+              value: (remaining.inMilliseconds / (totalSeconds * 1000))
+                  .clamp(0.0, 1.0),
+              color: context.tioColors.primary,
+              backgroundColor: context.tioColors.surface,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(TioSpacing.md),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TioButton.supporting(
+                      key: const ValueKey('active-workout-rest-minus-15'),
+                      label: '-15',
+                      onPressed: onSubtract,
+                      expand: true,
+                    ),
+                  ),
+                  const SizedBox(width: TioSpacing.xs),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      '$minutesLabel:$secondsLabel',
+                      key: const ValueKey('active-workout-rest-remaining'),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ),
+                  const SizedBox(width: TioSpacing.xs),
+                  Expanded(
+                    child: TioButton.supporting(
+                      key: const ValueKey('active-workout-rest-plus-15'),
+                      label: '+15',
+                      onPressed: onAdd,
+                      expand: true,
+                    ),
+                  ),
+                  const SizedBox(width: TioSpacing.xs),
+                  Expanded(
+                    child: TioButton.primary(
+                      key: const ValueKey('active-workout-rest-skip'),
+                      label: 'Skip',
+                      onPressed: onSkip,
+                      expand: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
