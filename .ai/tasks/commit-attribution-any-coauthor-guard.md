@@ -2,21 +2,26 @@
 
 **Status:** In review on PR #742
 **Primary owner:** Cursor
-**Working agent:** Cursor
+**Working agent:** Codex
 **Affected platforms:** GitHub Actions attribution guard only
 
 ## Active Handoff
 
 **Planning owner:** Cursor
-**Implementation owner:** Cursor
-**Previous agent:** Not applicable. Cursor has been the working agent for this PR #742 slice.
-**Last commit agent:** Cursor
-**Last commit SHA:** `de41ac4ebf69d97c7c685c5ab711acb8191f139f`
-**Review fix:** im-tio P2 on the raw co-author scan. The fix commit after that SHA is also Cursor.
+**Implementation owner:** Codex
+**Previous agent:** Cursor
+**Last commit agent:** Codex
+**Last commit SHA:** `759f0f15c1ed83a72f0c5c3d9d2cfe2a155e99ce` (fixture workflow commit; this handoff update is a later documentation commit)
+**Review fix:** im-tio P2 on the raw co-author scan is present at `7eef4c4bd44cb5a39ce3c5b50e1f4148a8417ac2`.
 **Review owner:** independent GitHub reviewer
 **Implementation ownership state:** Active
-**Ownership transition:** Not applicable. No agent change on this slice.
-**Next exact action:** Keep the guard fix on PR #742. Do not merge from this slice. If a different agent takes the slice, write that agent as `Implementation owner`, move Cursor to `Previous agent`, and set `Last commit agent` to whoever makes the next slice commit.
+**Ownership transition:** Cursor → Codex for the PR #742 review follow-up; no concurrent implementation owner is known.
+**Repository state last verified:** `tnyx/w7c-brief-merge-status-af26@759f0f15c1ed83a72f0c5c3d9d2cfe2a155e99ce`, with only this task brief modified after the fixture workflow commit; `origin/main@975b6edd62dab505b66804aa80ac063073a6140d` is an ancestor.
+**Current implementation state:** The new `pull_request` fixture workflow checks out the exact PR head with `contents: read` and no persisted checkout credentials. The trusted `pull_request_target` guard is unchanged.
+**Validation completed at SHA:** `759f0f15c1ed83a72f0c5c3d9d2cfe2a155e99ce` — `bash scripts/check_commit_attribution_test.sh`: 26 passed, 0 failed (verified Git Bash executable); `git diff --check origin/main...HEAD`: pass; workflow YAML structure parsed locally.
+**Validation remaining:** Hosted execution of the new workflow and independent re-review on the published head. Do not merge before both pass.
+**Open review finding IDs:** None. Outdated thread `PRRT_kwDOTOXwB861vScg` was resolved after the local test passed.
+**Next exact action:** Commit this handoff, push the same PR branch, inspect exact-head CI and request independent re-review if needed. Do not merge.
 
 ## Owner Approval and Scope Boundary
 
