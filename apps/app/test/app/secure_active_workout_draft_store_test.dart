@@ -6,6 +6,7 @@ import 'package:tio_shared/shared.dart';
 final class _Values implements WorkoutDraftSecureValues {
   final data = <String, String>{};
   String? failWriteSuffix;
+  String? failDeleteSuffix;
   bool failRead = false;
 
   @override
@@ -23,7 +24,12 @@ final class _Values implements WorkoutDraftSecureValues {
   }
 
   @override
-  Future<void> delete(String key) async => data.remove(key);
+  Future<void> delete(String key) async {
+    if (key.endsWith(failDeleteSuffix ?? '\u0000')) {
+      throw StateError('secure delete failed');
+    }
+    data.remove(key);
+  }
 }
 
 const ownerA = '00000000-0000-4000-8000-000000000001';
@@ -178,5 +184,47 @@ void main() {
         values.data.keys
             .where((key) => key.endsWith('.a') || key.endsWith('.b')),
         isEmpty);
+  });
+
+  for (final slot in ['a', 'b']) {
+    test('verified discard remains successful if slot $slot cleanup fails',
+        () async {
+      final values = _Values();
+      final store = SecureActiveWorkoutDraftStore(
+        currentUserId: () => ownerA,
+        values: values,
+      );
+      await store.save(_draft(0));
+      await store.save(_draft(1));
+      values.failDeleteSuffix = '.$slot';
+      await store.delete();
+      expect(values.data['active_workout_draft_v1.$ownerA.pointer'], 'deleted');
+      expect(await store.load(), isNull);
+      expect(values.data.containsKey('active_workout_draft_v1.$ownerA.$slot'),
+          isTrue);
+
+      values.failDeleteSuffix = null;
+      await store.save(_draft(0));
+      await store.save(_draft(1));
+      expect((await store.load())?.revision, 1);
+      await store.delete();
+      expect(await store.load(), isNull);
+      expect(
+          values.data.keys
+              .where((key) => key.endsWith('.a') || key.endsWith('.b')),
+          isEmpty);
+    });
+  }
+
+  test('tombstone write failure keeps the committed workout draft', () async {
+    final values = _Values();
+    final store = SecureActiveWorkoutDraftStore(
+      currentUserId: () => ownerA,
+      values: values,
+    );
+    await store.save(_draft(0));
+    values.failWriteSuffix = '.pointer';
+    await expectLater(store.delete(), throwsStateError);
+    expect((await store.load())?.id, draftId);
   });
 }

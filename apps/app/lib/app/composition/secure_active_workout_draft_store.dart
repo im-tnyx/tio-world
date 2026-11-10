@@ -175,8 +175,16 @@ final class SecureActiveWorkoutDraftStore implements ActiveWorkoutDraftStore {
         if (await _values.read(pointerKey) != 'deleted') {
           throw StateError('Workout draft discard verification failed.');
         }
-        await _values.delete(_key(owner, 'a'));
-        await _values.delete(_key(owner, 'b'));
-        _assertOwner(owner);
+        // The verified tombstone is the logical discard commit. A secure
+        // storage slot cleanup failure must not report discard failure after
+        // the draft is already hidden across restarts. Residual slots remain
+        // encrypted and owner-scoped, and later saves overwrite them.
+        for (final slot in ['a', 'b']) {
+          try {
+            await _values.delete(_key(owner, slot));
+          } catch (_) {
+            // Best-effort physical cleanup after the logical commit.
+          }
+        }
       });
 }
