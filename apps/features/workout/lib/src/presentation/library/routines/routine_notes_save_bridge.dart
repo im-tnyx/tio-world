@@ -18,7 +18,9 @@ final class ExerciseNoteDraftSnapshot {
 
   final String draftId;
   final ExerciseRef exerciseRef;
-  final RoutineNoteType type;
+
+  /// Null identifies a workout-only draft; it has no Routine Note scope.
+  final RoutineNoteType? type;
   final String body;
 }
 
@@ -99,6 +101,12 @@ final class RoutineNotesSaveBridge {
           !pending.unknown,
     );
     for (final draft in snapshots) {
+      if (draft.type == null) {
+        return const RoutineNotesSaveResult(
+          RoutineNotesSaveStatus.invalid,
+          'Workout Notes cannot be saved as Routine Notes.',
+        );
+      }
       final scope = draft.type == RoutineNoteType.pinnedRoutine
           ? routineId == null
               ? null

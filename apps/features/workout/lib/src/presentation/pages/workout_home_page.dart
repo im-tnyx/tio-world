@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 
 import '../controllers/workout_date_controller.dart';
+import '../widgets/workout_play_action.dart';
 
 /// Workout root: the date calendar plus the Library entry.
 ///
@@ -15,6 +16,8 @@ class WorkoutHomePage extends ConsumerStatefulWidget {
   const WorkoutHomePage({
     required this.onLibraryPressed,
     super.key,
+    this.onPlayPressed,
+    this.activeWorkoutMiniBar,
     this.resolvedFirstDayOfWeek,
   });
 
@@ -23,6 +26,13 @@ class WorkoutHomePage extends ConsumerStatefulWidget {
   /// Opens the canonical Workout Library.
   final VoidCallback onLibraryPressed;
 
+  /// Opens the UI-only Active Workout entry; app composition owns navigation.
+  final VoidCallback? onPlayPressed;
+
+  /// tio-workspace-style resume/discard pill when a workout is already running
+  /// and Log Workout is not on screen. Replaces the Play FAB while present.
+  final Widget? activeWorkoutMiniBar;
+
   @override
   ConsumerState<WorkoutHomePage> createState() => _WorkoutHomePageState();
 }
@@ -30,6 +40,7 @@ class WorkoutHomePage extends ConsumerStatefulWidget {
 class _WorkoutHomePageState extends ConsumerState<WorkoutHomePage>
     with WidgetsBindingObserver {
   Timer? _midnightTimer;
+  bool _isCalendarExpanded = false;
 
   @override
   void initState() {
@@ -76,8 +87,14 @@ class _WorkoutHomePageState extends ConsumerState<WorkoutHomePage>
 
     // Scrolls so the expanded month grid and the Library entry never
     // overflow a compact viewport.
-    return SingleChildScrollView(
-      child: Column(
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        SingleChildScrollView(
+          padding: const EdgeInsets.only(
+            bottom: TioSize.dp56 + TioSpacing.xl * 2,
+          ),
+          child: Column(
         children: [
           TioDateCalendar(
             controller: dates.calendarController,
@@ -88,6 +105,11 @@ class _WorkoutHomePageState extends ConsumerState<WorkoutHomePage>
             resolvedFirstDayOfWeek: widget.resolvedFirstDayOfWeek,
             onDateSelected: dates.select,
             onVisibleDateRangeChanged: dates.updateVisibleDateRange,
+            onDisplayModeChanged: (mode) {
+              if (_isCalendarExpanded != mode.isMonth) {
+                setState(() => _isCalendarExpanded = mode.isMonth);
+              }
+            },
           ),
           // No top padding: the calendar already reserves a transparent band
           // below its surface for the expansion handle's hit target, and this
@@ -114,8 +136,37 @@ class _WorkoutHomePageState extends ConsumerState<WorkoutHomePage>
               ],
             ),
           ),
-        ],
-      ),
+          ],
+          ),
+        ),
+        // Active mini bar wins over Play: a running workout must stay visible
+        // after minimize / app relaunch the way tio-workspace does.
+        if (widget.activeWorkoutMiniBar != null)
+          Positioned(
+            left: TioSpacing.lg,
+            right: TioSpacing.lg,
+            bottom: TioSpacing.lg,
+            child: SafeArea(
+              top: false,
+              child: widget.activeWorkoutMiniBar!,
+            ),
+          )
+        else if (widget.onPlayPressed != null && !_isCalendarExpanded)
+          Positioned.fill(
+            child: SafeArea(
+              child: Align(
+                alignment: AlignmentDirectional.bottomEnd,
+                child: Padding(
+                  padding: const EdgeInsets.all(TioSpacing.xl),
+                  child: WorkoutPlayAction(
+                    key: const ValueKey('workout-home-play-action'),
+                    onPressed: widget.onPlayPressed!,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

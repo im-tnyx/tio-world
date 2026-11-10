@@ -5,9 +5,17 @@ import '../../domain/repositories/workout_session_repository.dart';
 
 /// DTO mapping for frozen routine snapshots stored in `user_workout_sessions.routine_snapshot`.
 ///
-/// Adheres strictly to the schema validated by `private.is_valid_workout_session_snapshot_v1`.
+/// Supports v1 routine snapshots and Save-only v2 `ad_hoc` snapshots.
 abstract final class WorkoutSessionSnapshotDto {
   static const int currentSchemaVersion = 1;
+  static const int adHocSchemaVersion = 2;
+
+  /// Stable placeholders so ad-hoc Save-only rows can round-trip through the
+  /// existing [WorkoutSession] aggregate that still requires program/routine IDs.
+  static final ProgramId adHocProgramId =
+      ProgramId('00000000-0000-4000-a000-0000000000ad');
+  static final RoutineId adHocRoutineId =
+      RoutineId('00000000-0000-4000-a000-0000000000ae');
 
   /// Serializes a [WorkoutSessionSnapshot] to a JSON-compatible map.
   static Map<String, dynamic> toJson(WorkoutSessionSnapshot snapshot) => {
@@ -45,15 +53,23 @@ abstract final class WorkoutSessionSnapshotDto {
   static WorkoutSessionSnapshot fromJson(Map<String, dynamic> json) {
     try {
       final schemaVersion = json['schema_version'];
-      if (schemaVersion != currentSchemaVersion) {
+      final isAdHoc = schemaVersion == adHocSchemaVersion &&
+          json['origin'] == 'ad_hoc';
+      if (schemaVersion != currentSchemaVersion && !isAdHoc) {
         throw FormatException(
-          'Unsupported snapshot schema_version: $schemaVersion (expected $currentSchemaVersion)',
+          'Unsupported snapshot schema_version: $schemaVersion',
         );
       }
 
-      final routineId = RoutineId(json['routine_id'] as String);
-      final routineName = json['routine_name'] as String;
-      final programId = ProgramId(json['program_id'] as String);
+      final routineId = isAdHoc
+          ? adHocRoutineId
+          : RoutineId(json['routine_id'] as String);
+      final routineName = isAdHoc
+          ? (json['routine_name'] as String? ?? 'Workout')
+          : json['routine_name'] as String;
+      final programId = isAdHoc
+          ? adHocProgramId
+          : ProgramId(json['program_id'] as String);
       final capturedAtUtc =
           DateTime.parse(json['captured_at_utc'] as String).toUtc();
 
@@ -73,15 +89,13 @@ abstract final class WorkoutSessionSnapshotDto {
             exerciseMap['prescribed_sets'] as List<dynamic>? ?? const [];
         final prescribedSets = rawSets.map((s) {
           final setMap = Map<String, dynamic>.from(s as Map);
-          final setType =
-              RoutineSetType.fromWire(setMap['set_type'] as String);
+          final setType = RoutineSetType.fromWire(setMap['set_type'] as String);
           final reps = (setMap['reps'] as num?)?.toInt();
           final repsMax = (setMap['reps_max'] as num?)?.toInt();
           final loadKg = (setMap['load_kg'] as num?)?.toDouble();
           final distanceMeters =
               (setMap['distance_meters'] as num?)?.toDouble();
-          final durationSeconds =
-              (setMap['duration_seconds'] as num?)?.toInt();
+          final durationSeconds = (setMap['duration_seconds'] as num?)?.toInt();
           final restSeconds = (setMap['rest_seconds'] as num?)?.toInt();
 
           return SetPrescription(
@@ -246,6 +260,9 @@ final class WorkoutSessionRowDto {
     required this.localDate,
     required this.routineSnapshot,
     this.notes,
+    this.workoutTitle,
+    this.workoutAtUtc,
+    this.workoutUtcOffsetMinutes,
     this.discardReason,
     required this.revision,
     this.createdAt,
@@ -254,8 +271,8 @@ final class WorkoutSessionRowDto {
 
   final String id;
   final String userId;
-  final String programId;
-  final String routineId;
+  final String? programId;
+  final String? routineId;
   final String status;
   final DateTime startedAtUtc;
   final DateTime? pausedAtUtc;
@@ -265,6 +282,9 @@ final class WorkoutSessionRowDto {
   final String localDate;
   final Map<String, dynamic> routineSnapshot;
   final String? notes;
+  final String? workoutTitle;
+  final DateTime? workoutAtUtc;
+  final int? workoutUtcOffsetMinutes;
   final String? discardReason;
   final int revision;
   final DateTime? createdAt;
@@ -285,8 +305,8 @@ final class WorkoutSessionRowDto {
       return WorkoutSessionRowDto(
         id: json['id'] as String,
         userId: json['user_id'] as String,
-        programId: json['program_id'] as String,
-        routineId: json['routine_id'] as String,
+        programId: json['program_id'] as String?,
+        routineId: json['routine_id'] as String?,
         status: json['status'] as String,
         startedAtUtc: DateTime.parse(json['started_at_utc'] as String).toUtc(),
         pausedAtUtc: json['paused_at_utc'] != null
@@ -302,6 +322,12 @@ final class WorkoutSessionRowDto {
         localDate: json['local_date'] as String,
         routineSnapshot: snapshotMap,
         notes: json['notes'] as String?,
+        workoutTitle: json['workout_title'] as String?,
+        workoutAtUtc: json['workout_at_utc'] != null
+            ? DateTime.parse(json['workout_at_utc'] as String).toUtc()
+            : null,
+        workoutUtcOffsetMinutes:
+            (json['workout_utc_offset_minutes'] as num?)?.toInt(),
         discardReason: json['discard_reason'] as String?,
         revision: (json['revision'] as num).toInt(),
         createdAt: json['created_at'] != null
@@ -326,8 +352,8 @@ final class WorkoutSessionRowDto {
     List<PerformedSet> performedSets = const [],
     WorkoutSessionSnapshot? snapshotOverride,
   }) {
-    final parsedSnapshot = snapshotOverride ??
-        WorkoutSessionSnapshotDto.fromJson(routineSnapshot);
+    final parsedSnapshot =
+        snapshotOverride ?? WorkoutSessionSnapshotDto.fromJson(routineSnapshot);
 
     final domainStatus = WorkoutSessionStatus.fromWire(status);
 
@@ -341,17 +367,34 @@ final class WorkoutSessionRowDto {
       lastTransitionAtUtc: lastTransitionAtUtc,
     );
 
+    final rowProgramId = programId;
+    final rowRoutineId = routineId;
+    final isAdHoc = rowProgramId == null &&
+        rowRoutineId == null &&
+        routineSnapshot['schema_version'] ==
+            WorkoutSessionSnapshotDto.adHocSchemaVersion;
     return WorkoutSession(
       id: WorkoutSessionId(id),
       userId: userId,
-      programId: ProgramId(programId),
-      routineId: RoutineId(routineId),
+      programId: rowProgramId != null
+          ? ProgramId(rowProgramId)
+          : (isAdHoc
+              ? WorkoutSessionSnapshotDto.adHocProgramId
+              : parsedSnapshot.programId),
+      routineId: rowRoutineId != null
+          ? RoutineId(rowRoutineId)
+          : (isAdHoc
+              ? WorkoutSessionSnapshotDto.adHocRoutineId
+              : parsedSnapshot.routineId),
       status: domainStatus,
       time: time,
       localDate: localDate,
       snapshot: parsedSnapshot,
       performedSets: performedSets,
       notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
       discardReason: discardReason,
     );
   }
@@ -372,4 +415,26 @@ final class WorkoutSessionRowDto {
         createdAt: createdAt,
         updatedAt: updatedAt,
       );
+}
+
+/// Parameters for the owner-scoped canonical completion RPC V2.
+abstract final class WorkoutSessionCompletionDto {
+  static Map<String, dynamic> toRpcParams({
+    required String sessionId,
+    required int expectedRevision,
+    required DateTime completedAtUtc,
+    required String? notes,
+    required String workoutTitle,
+    required DateTime workoutAtUtc,
+    required int workoutUtcOffsetMinutes,
+  }) =>
+      {
+        'p_session_id': sessionId,
+        'p_expected_revision': expectedRevision,
+        'p_completed_at_utc': completedAtUtc.toUtc().toIso8601String(),
+        'p_notes': notes,
+        'p_workout_title': workoutTitle.trim(),
+        'p_workout_at_utc': workoutAtUtc.toUtc().toIso8601String(),
+        'p_workout_utc_offset_minutes': workoutUtcOffsetMinutes,
+      };
 }

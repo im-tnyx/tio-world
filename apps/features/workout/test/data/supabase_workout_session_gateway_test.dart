@@ -245,7 +245,7 @@ void main() {
       final result = await gateway.rpcCompleteWorkoutSession(params);
 
       expect(result['status'], 'completed');
-      expect(captured!.url.path, '/rest/v1/rpc/rpc_complete_workout_session');
+      expect(captured!.url.path, '/rest/v1/rpc/rpc_complete_workout_session_v2');
     });
 
     test('rpcDiscardWorkoutSession posts parameters and returns session row', () async {

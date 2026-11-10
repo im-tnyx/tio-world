@@ -155,6 +155,14 @@ run_case fail "OpenAI Codex identity" \
 run_case fail "AI trailer mixed among human co-authors" \
   "$(printf 'feat: x\n\nBody.\n\nCo-Authored-By: Jane Developer <jane@example.com>\nCo-Authored-By: Claude <noreply@anthropic.com>')"
 
+# --- FAIL: Cursor agent trailer (common Cursor IDE auto-attribution) ---
+run_case fail "Cursor with cursoragent.com email" \
+  "$(printf 'feat: x\n\nBody.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>')"
+
+# --- FAIL: Cursor display name with cursor.com email ---
+run_case fail "Cursor with cursor.com email" \
+  "$(printf 'feat: x\n\nBody.\n\nCo-Authored-By: Cursor <agent@cursor.com>')"
+
 # --- Exception-contract fixtures (4-argument form) ---
 
 # clean range + no exception -> PASS

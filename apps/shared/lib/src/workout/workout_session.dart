@@ -23,12 +23,31 @@ final class WorkoutSession {
     required this.snapshot,
     List<PerformedSet> performedSets = const [],
     this.notes,
+    this.workoutTitle,
+    DateTime? workoutAtUtc,
+    this.workoutUtcOffsetMinutes,
     this.discardReason,
   })  : userId = requireCanonicalUuid(userId, 'userId'),
         localDate = _validateLocalDate(localDate),
+        workoutAtUtc = workoutAtUtc?.toUtc(),
         performedSets = List<PerformedSet>.unmodifiable(
           List<PerformedSet>.of(performedSets),
         ) {
+    if ((this.workoutAtUtc == null) != (workoutUtcOffsetMinutes == null) ||
+        (workoutTitle == null) != (this.workoutAtUtc == null)) {
+      throw ArgumentError(
+          'Workout title, timestamp, and UTC offset must be stored together.');
+    }
+    if (workoutTitle != null &&
+        (workoutTitle!.trim().isEmpty || workoutTitle!.length > 2000)) {
+      throw ArgumentError.value(workoutTitle, 'workoutTitle',
+          'must be nonblank and at most 2000 characters');
+    }
+    if (workoutUtcOffsetMinutes != null &&
+        (workoutUtcOffsetMinutes! < -840 || workoutUtcOffsetMinutes! > 840)) {
+      throw ArgumentError.value(workoutUtcOffsetMinutes,
+          'workoutUtcOffsetMinutes', 'must be between -840 and 840');
+    }
     if (snapshot.routineId != routineId) {
       throw ArgumentError(
         'snapshot.routineId (${snapshot.routineId}) does not match session routineId ($routineId)',
@@ -97,6 +116,11 @@ final class WorkoutSession {
   /// Optional athlete notes for the overall workout session.
   final String? notes;
 
+  /// Optional Save Workout metadata. Null for legacy completions.
+  final String? workoutTitle;
+  final DateTime? workoutAtUtc;
+  final int? workoutUtcOffsetMinutes;
+
   /// Mandatory discard explanation when [status] is [WorkoutSessionStatus.discarded].
   final String? discardReason;
 
@@ -119,6 +143,9 @@ final class WorkoutSession {
       snapshot: snapshot,
       performedSets: performedSets,
       notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
     );
   }
 
@@ -138,11 +165,20 @@ final class WorkoutSession {
       snapshot: snapshot,
       performedSets: performedSets,
       notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
     );
   }
 
   /// Transitions the session to [WorkoutSessionStatus.completed] at [atUtc].
-  WorkoutSession complete(DateTime atUtc, {String? notes}) {
+  WorkoutSession complete(
+    DateTime atUtc, {
+    String? notes,
+    String? workoutTitle,
+    DateTime? workoutAtUtc,
+    int? workoutUtcOffsetMinutes,
+  }) {
     if (!status.canTransitionTo(WorkoutSessionStatus.completed)) {
       throw StateError('Cannot complete session in status $status');
     }
@@ -153,10 +189,16 @@ final class WorkoutSession {
       routineId: routineId,
       status: WorkoutSessionStatus.completed,
       time: time.finish(atUtc),
-      localDate: localDate,
+      localDate: workoutAtUtc != null && workoutUtcOffsetMinutes != null
+          ? _localDateFromOffset(workoutAtUtc, workoutUtcOffsetMinutes)
+          : localDate,
       snapshot: snapshot,
       performedSets: performedSets,
       notes: notes ?? this.notes,
+      workoutTitle: workoutTitle ?? this.workoutTitle,
+      workoutAtUtc: workoutAtUtc ?? this.workoutAtUtc,
+      workoutUtcOffsetMinutes:
+          workoutUtcOffsetMinutes ?? this.workoutUtcOffsetMinutes,
     );
   }
 
@@ -184,6 +226,9 @@ final class WorkoutSession {
       snapshot: snapshot,
       performedSets: performedSets,
       notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
       discardReason: trimmedReason,
     );
   }
@@ -235,6 +280,9 @@ final class WorkoutSession {
       snapshot: snapshot,
       performedSets: updated,
       notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
       discardReason: discardReason,
     );
   }
@@ -260,6 +308,9 @@ final class WorkoutSession {
       snapshot: snapshot,
       performedSets: updated,
       notes: notes,
+      workoutTitle: workoutTitle,
+      workoutAtUtc: workoutAtUtc,
+      workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
       discardReason: discardReason,
     );
   }
@@ -399,6 +450,9 @@ final class WorkoutSession {
           other.snapshot == snapshot &&
           _setsEqual(other.performedSets, performedSets) &&
           other.notes == notes &&
+          other.workoutTitle == workoutTitle &&
+          other.workoutAtUtc == workoutAtUtc &&
+          other.workoutUtcOffsetMinutes == workoutUtcOffsetMinutes &&
           other.discardReason == discardReason;
 
   @override
@@ -413,6 +467,16 @@ final class WorkoutSession {
         snapshot,
         Object.hashAll(performedSets),
         notes,
+        workoutTitle,
+        workoutAtUtc,
+        workoutUtcOffsetMinutes,
         discardReason,
       );
+
+  static String _localDateFromOffset(DateTime instantUtc, int offsetMinutes) {
+    final local = instantUtc.toUtc().add(Duration(minutes: offsetMinutes));
+    return '${local.year.toString().padLeft(4, '0')}-'
+        '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
+  }
 }

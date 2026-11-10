@@ -83,9 +83,32 @@ void main() {
       expect(restored.exercises[1].prescribedSets[0].distanceMeters, 5000.0);
     });
 
+    test('parses Save-only ad-hoc schema version 2', () {
+      final adHocJson = <String, dynamic>{
+        'schema_version': 2,
+        'origin': 'ad_hoc',
+        'captured_at_utc': capturedAt.toIso8601String(),
+        'exercises': [
+          {
+            'exercise_ref': 'ex_bench_press',
+            'display_name': 'Bench Press',
+            'occurrence_index': 0,
+            'prescribed_sets': [
+              {'set_type': 'normal', 'reps': 8},
+            ],
+          },
+        ],
+      };
+
+      final restored = WorkoutSessionSnapshotDto.fromJson(adHocJson);
+      expect(restored.programId, WorkoutSessionSnapshotDto.adHocProgramId);
+      expect(restored.routineId, WorkoutSessionSnapshotDto.adHocRoutineId);
+      expect(restored.exercises.single.displayName, 'Bench Press');
+    });
+
     test('rejects unsupported schema version', () {
       final invalidJson = <String, dynamic>{
-        'schema_version': 2,
+        'schema_version': 3,
         'routine_id': routineId.value,
         'routine_name': 'Routine',
         'program_id': programId.value,
@@ -234,10 +257,55 @@ void main() {
       final record = dto.toRecord();
       expect(record.revision, 4);
       expect(record.syncState, WorkoutSessionSyncState.synced);
+      expect(record.session.programId.value, 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb');
       expect(record.session.status, WorkoutSessionStatus.paused);
       expect(record.session.time.pausedAtUtc, pausedAt);
       expect(record.session.notes, 'Felt strong on squats');
       expect(record.session.discardReason, isNull);
+    });
+
+    test('maps Save-only ad-hoc rows with null program and routine IDs', () {
+      final startedAt = DateTime.utc(2026, 11, 7, 10);
+      final completedAt = DateTime.utc(2026, 11, 7, 10, 30);
+      final rowJson = <String, dynamic>{
+        'id': 'cccccccc-cccc-4ccc-accc-cccccccccccc',
+        'user_id': 'dddddddd-dddd-4ddd-addd-dddddddddddd',
+        'program_id': null,
+        'routine_id': null,
+        'status': 'completed',
+        'started_at_utc': startedAt.toIso8601String(),
+        'paused_at_utc': null,
+        'completed_at_utc': completedAt.toIso8601String(),
+        'last_transition_at_utc': completedAt.toIso8601String(),
+        'accumulated_paused_microseconds': 0,
+        'local_date': '2026-11-07',
+        'routine_snapshot': {
+          'schema_version': 2,
+          'origin': 'ad_hoc',
+          'captured_at_utc': startedAt.toIso8601String(),
+          'exercises': [
+            {
+              'exercise_ref': 'ex_squat',
+              'display_name': 'Squat',
+              'occurrence_index': 0,
+              'prescribed_sets': [
+                {'set_type': 'normal', 'reps': 5},
+              ],
+            },
+          ],
+        },
+        'notes': null,
+        'discard_reason': null,
+        'revision': 2,
+        'created_at': startedAt.toIso8601String(),
+        'updated_at': completedAt.toIso8601String(),
+      };
+
+      final record = WorkoutSessionRowDto.fromJson(rowJson).toRecord();
+      expect(record.session.programId, WorkoutSessionSnapshotDto.adHocProgramId);
+      expect(record.session.routineId, WorkoutSessionSnapshotDto.adHocRoutineId);
+      expect(record.session.snapshot.exercises.single.displayName, 'Squat');
+      expect(record.session.status, WorkoutSessionStatus.completed);
     });
   });
 }

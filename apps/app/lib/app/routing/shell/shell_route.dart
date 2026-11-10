@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +16,7 @@ import '../../calendar_preferences.dart';
 import '../../meal_diary_today_glyph.dart';
 import '../../network_providers.dart';
 import '../../session/session.dart';
+import 'workout_home_branch.dart';
 
 /// Keep the pre-confirmation Routine 3-dot modal bound to its opening owner.
 /// The later Delete confirmation has a separate per-attempt guard.
@@ -136,15 +139,9 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   }
 
   if (branch.tab == ShellTab.workout) {
-    // Workout consumes the same app-global calendar preference as every other
-    // date surface. The feature owns only its selected date and navigation
-    // range; no Workout domain truth is fabricated in this shell.
-    return Consumer(
-      builder: (context, ref, _) => WorkoutHomePage(
-        resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
-        onLibraryPressed: () => context.push(AppRoutes.workoutLibrary.path),
-      ),
-    );
+    // Workout home owns calendar presentation; Play/mini-bar composition and
+    // in-progress restore after relaunch live in WorkoutHomeBranch.
+    return const WorkoutHomeBranch();
   }
 
   if (branch.tab == ShellTab.nutrition) {
@@ -1816,6 +1813,12 @@ List<RouteBase> _shellBranchChildRoutes(
       builder: (context, state) => Consumer(
         builder: (context, ref, _) => ActiveWorkoutPage(
           controller: ref.watch(activeWorkoutControllerProvider),
+          draftController: ref.watch(activeWorkoutDraftControllerProvider),
+          catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
+          userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
+          gymLocationRepository: ref.watch(gymLocationRepositoryProvider),
+          showStartPreview: state.uri.queryParameters['preview'] == '1',
+          createDraftIfMissing: state.uri.queryParameters['resume'] != '1',
         ),
       ),
     ),

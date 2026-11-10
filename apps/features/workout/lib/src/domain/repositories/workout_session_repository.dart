@@ -211,7 +211,10 @@ abstract interface class WorkoutSessionRepository {
     required WorkoutSessionId sessionId,
     required int expectedRevision,
     required DateTime completedAtUtc,
-    String? notes,
+    required String? notes,
+    required String workoutTitle,
+    required DateTime workoutAtUtc,
+    required int workoutUtcOffsetMinutes,
   });
 
   /// Discards a workout session by invoking `rpc_discard_workout_session`.

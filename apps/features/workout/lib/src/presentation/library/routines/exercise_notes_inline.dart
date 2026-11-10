@@ -22,7 +22,7 @@ final class _ExerciseNoteDraft {
     required this.id,
     required this.onChanged,
     String text = '',
-    this.type = RoutineNoteType.pinnedExercise,
+    this.type,
   })  : controller = TextEditingController(text: text),
         focusNode = FocusNode() {
     controller.addListener(onChanged);
@@ -32,7 +32,7 @@ final class _ExerciseNoteDraft {
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onChanged;
-  RoutineNoteType type;
+  RoutineNoteType? type;
 
   void dispose() {
     controller.removeListener(onChanged);
@@ -55,6 +55,7 @@ final class ExerciseNotesInline extends StatefulWidget {
     required this.ownerId,
     required this.isSessionCurrent,
     required this.enabled,
+    this.isWorkoutLog = false,
     this.draftKey,
     this.initialDrafts = const [],
     this.readOnlyDraftIds = const {},
@@ -70,6 +71,7 @@ final class ExerciseNotesInline extends StatefulWidget {
   final String? ownerId;
   final RoutineNotesSessionIsCurrent? isSessionCurrent;
   final bool enabled;
+  final bool isWorkoutLog;
   final String? draftKey;
   final List<ExerciseNoteDraftSnapshot> initialDrafts;
   final Set<String> readOnlyDraftIds;
@@ -212,16 +214,21 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
       draft.type,
       widget.routineId,
       allowDelete: true,
+      allowWorkoutNote: widget.isWorkoutLog,
+      allowRoutineWithoutId: true,
     );
     if (!mounted || selection == null) return;
     if (selection is _DeleteNoteSelection) {
       _deleteDraft(draft);
       return;
     }
-    if (selection is! RoutineNoteType || selection == draft.type) return;
-    final type = selection;
-    final routineId = widget.routineId;
-    if (type == RoutineNoteType.pinnedRoutine && routineId == null) return;
+    if (selection is! RoutineNoteType && selection is! _WorkoutNoteSelection) {
+      return;
+    }
+    final RoutineNoteType? type = selection is _WorkoutNoteSelection
+        ? null
+        : selection as RoutineNoteType;
+    if (type == draft.type) return;
     draft.type = type;
     setState(() {});
     _publishDrafts();
@@ -290,7 +297,9 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     FocusManager.instance.primaryFocus?.unfocus();
     final controller = _controller;
     if (!widget.enabled ||
-        (!_previewOnly && (controller == null || !controller.canCreate))) {
+        (!widget.isWorkoutLog &&
+            !_previewOnly &&
+            (controller == null || !controller.canCreate))) {
       return;
     }
     final savedCount = controller?.state.notes.length ?? 0;
@@ -302,10 +311,15 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
       id = '$_draftSequence';
     }
     _draftSequence++;
-    final draft = _ExerciseNoteDraft(id: id, onChanged: _publishDrafts);
+    final draft = _ExerciseNoteDraft(
+      id: id,
+      type: widget.isWorkoutLog ? null : RoutineNoteType.pinnedRoutine,
+      onChanged: _publishDrafts,
+    );
     _drafts.add(draft);
     setState(() {});
     _publishDrafts();
+    if (widget.isWorkoutLog) unawaited(_changeDraftType(draft));
   }
 
   Future<bool> _delete(RoutineNote note) async {
@@ -377,13 +391,16 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     ];
     final actionNotice = state?.actionNotice ?? routineState?.actionNotice;
     final canCreate = widget.enabled &&
-        (_previewOnly ||
+        (widget.isWorkoutLog ||
+            _previewOnly ||
             controller?.canCreate == true ||
             routineController?.canCreate == true);
     final canAddDraft =
         canCreate && notes.length + _drafts.length < _maxInlineNotes;
     final canEditDraft = widget.enabled &&
-        (_previewOnly || state?.status != RoutineNotesStatus.failed);
+        (widget.isWorkoutLog ||
+            _previewOnly ||
+            state?.status != RoutineNotesStatus.failed);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -537,7 +554,7 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
   final FocusNode focusNode;
   final bool enabled;
   final bool readOnly;
-  final RoutineNoteType noteType;
+  final RoutineNoteType? noteType;
   final VoidCallback? onTypeChange;
 
   @override
@@ -589,7 +606,13 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
                 ),
                 cursorColor: colors.primary,
                 decoration: InputDecoration(
-                  hintText: 'Add a pinned exercise note',
+                  hintText: switch (noteType) {
+                    null => 'Add a workout note',
+                    RoutineNoteType.pinnedRoutine =>
+                      'Add a note pinned to the routine',
+                    RoutineNoteType.pinnedExercise =>
+                      'Add a pinned exercise note',
+                  },
                   hintStyle: textTheme.bodyLarge?.copyWith(
                     color: colors.textMuted,
                   ),
@@ -611,7 +634,8 @@ final class _ExerciseNoteDraftField extends StatelessWidget {
   }
 }
 
-IconData _noteTypeIcon(RoutineNoteType type) => switch (type) {
+IconData _noteTypeIcon(RoutineNoteType? type) => switch (type) {
+      null => Icons.note_outlined,
       RoutineNoteType.pinnedExercise => Icons.push_pin_outlined,
       RoutineNoteType.pinnedRoutine => Icons.assignment_outlined,
     };
@@ -969,9 +993,17 @@ final class _DeleteNoteSelection {
 
 const _deleteNoteSelection = _DeleteNoteSelection();
 
+final class _WorkoutNoteSelection {
+  const _WorkoutNoteSelection();
+}
+
+const _workoutNoteSelection = _WorkoutNoteSelection();
+
 Future<Object?> _chooseType(
-        BuildContext context, RoutineNoteType current, RoutineId? routineId,
-        {bool allowDelete = false}) =>
+        BuildContext context, RoutineNoteType? current, RoutineId? routineId,
+        {bool allowDelete = false,
+        bool allowWorkoutNote = false,
+        bool allowRoutineWithoutId = false}) =>
     showTioEditorSheet<Object?>(
       context: context,
       useSafeArea: true,
@@ -979,6 +1011,8 @@ Future<Object?> _chooseType(
         current: current,
         routineId: routineId,
         allowDelete: allowDelete,
+        allowWorkoutNote: allowWorkoutNote,
+        allowRoutineWithoutId: allowRoutineWithoutId,
       ),
     );
 
@@ -987,11 +1021,15 @@ final class _ExerciseNoteTypeSheet extends StatelessWidget {
     required this.current,
     required this.routineId,
     required this.allowDelete,
+    required this.allowWorkoutNote,
+    required this.allowRoutineWithoutId,
   });
 
-  final RoutineNoteType current;
+  final RoutineNoteType? current;
   final RoutineId? routineId;
   final bool allowDelete;
+  final bool allowWorkoutNote;
+  final bool allowRoutineWithoutId;
 
   @override
   Widget build(BuildContext context) => TioEditorSheet(
@@ -1010,7 +1048,7 @@ final class _ExerciseNoteTypeSheet extends StatelessWidget {
               onTap: () =>
                   Navigator.of(context).pop(RoutineNoteType.pinnedExercise),
             ),
-            if (routineId != null) ...[
+            if (routineId != null || allowRoutineWithoutId) ...[
               const SizedBox(height: TioSpacing.sm),
               _ExerciseNoteTypeOption(
                 key: const ValueKey('exercise-note-type-routine'),
@@ -1021,6 +1059,17 @@ final class _ExerciseNoteTypeSheet extends StatelessWidget {
                 selected: current == RoutineNoteType.pinnedRoutine,
                 onTap: () =>
                     Navigator.of(context).pop(RoutineNoteType.pinnedRoutine),
+              ),
+            ],
+            if (allowWorkoutNote) ...[
+              const SizedBox(height: TioSpacing.sm),
+              _ExerciseNoteTypeOption(
+                key: const ValueKey('exercise-note-type-workout'),
+                title: 'Workout Note',
+                subtitle: 'Appears only in this workout.',
+                icon: Icons.note_outlined,
+                selected: current == null,
+                onTap: () => Navigator.of(context).pop(_workoutNoteSelection),
               ),
             ],
             if (allowDelete) ...[
