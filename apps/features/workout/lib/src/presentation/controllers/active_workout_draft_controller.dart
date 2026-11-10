@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/models/active_workout_draft.dart';
 import '../../domain/models/routine_composition_limits.dart';
 import '../../domain/models/routine_rest_timer_preset.dart';
+import '../../domain/models/workout_save_metadata_limits.dart';
 import '../../domain/repositories/active_workout_draft_store.dart';
 import '../../domain/repositories/workout_draft_save_repository.dart';
 import '../library/exercises/exercises_controller.dart';
@@ -38,6 +39,8 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   Future<void> _mutationTail = Future<void>.value();
   bool _disposed = false;
   Object? _error;
+  /// Backgrounding that arrived while restore had not published a draft yet.
+  DateTime? _pendingBackgroundedAtUtc;
 
   ActiveWorkoutDraft? get draft => _draft;
   bool get isBusy => _busy;
@@ -90,7 +93,9 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             time: WorkoutTime.start(startedAtUtc: startedAt),
             lastActivityAtUtc: startedAt,
           );
-      final backgroundedAt = candidate.backgroundedAtUtc;
+      final pendingBackground = _pendingBackgroundedAtUtc;
+      _pendingBackgroundedAtUtc = null;
+      final backgroundedAt = candidate.backgroundedAtUtc ?? pendingBackground;
       final lastActivity = candidate.lastActivityAtUtc ??
           candidate.exercises
               .expand((exercise) => exercise.sets)
@@ -220,9 +225,13 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   /// Record an unattended interval before the process can be suspended.
   Future<bool> markBackgrounded() {
     final draft = _draft;
-    if (draft == null ||
-        draft.time.isPaused ||
-        draft.backgroundedAtUtc != null) {
+    if (draft == null) {
+      // Restore may still be publishing; remember backgrounding so the later
+      // unattended pause still applies after the in-memory draft appears.
+      _pendingBackgroundedAtUtc ??= _nowUtc();
+      return Future<bool>.value(true);
+    }
+    if (draft.time.isPaused || draft.backgroundedAtUtc != null) {
       return Future<bool>.value(true);
     }
     return _change((current) => current.copyWith(
@@ -396,6 +405,15 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             current.overallRpe == overallRpe,
       );
     }
+    if (!_isValidSaveMetadata(
+      title: title,
+      description: description,
+      gymName: gymName,
+      activityType: activityType,
+      requireNonEmptyTitle: false,
+    )) {
+      return Future<bool>.value(false);
+    }
     return _change((draft) => draft.copyWith(
           workoutTitle: title,
           description: description,
@@ -430,6 +448,18 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
           return;
         }
         if (current.submittedAtUtc == null) {
+          // Validate before freeze so an oversize title/description cannot
+          // lock the draft into an uneditable rejected submission.
+          if (!_isValidSaveMetadata(
+            title: resolvedTitle,
+            description: current.description,
+            gymName: current.gymName,
+            activityType: current.activityType,
+            requireNonEmptyTitle: true,
+          )) {
+            result.complete(false);
+            return;
+          }
           final frozen = current.copyWith(
             submittedAtUtc: _nowUtc(),
             submittedTitle: resolvedTitle,
@@ -578,6 +608,25 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         next[index] = edit(next[index]);
         return exercise.copyWith(sets: next);
       });
+
+  bool _isValidSaveMetadata({
+    required String? title,
+    required String? description,
+    required String? gymName,
+    required String? activityType,
+    required bool requireNonEmptyTitle,
+  }) {
+    final trimmedTitle = title?.trim() ?? '';
+    if (requireNonEmptyTitle) {
+      if (!WorkoutSaveMetadataLimits.isValidTitle(title)) return false;
+    } else if (trimmedTitle.length >
+        WorkoutSaveMetadataLimits.maxTitleLength) {
+      return false;
+    }
+    return WorkoutSaveMetadataLimits.isValidDescription(description) &&
+        WorkoutSaveMetadataLimits.isValidGymName(gymName) &&
+        WorkoutSaveMetadataLimits.isValidActivityType(activityType);
+  }
 
   Future<bool> discard() async {
     if (_busy ||

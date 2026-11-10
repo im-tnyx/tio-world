@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
+import '../../domain/models/workout_save_metadata_limits.dart';
 import '../../domain/models/workout_title_resolver.dart';
 import '../widgets/workout_activity_type_sheet.dart';
 import '../widgets/workout_duration_picker_sheet.dart';
@@ -508,6 +509,14 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                     key: const ValueKey('save-workout-title-input'),
                     controller: _titleController,
                     readOnly: widget.notesOnly || _isBusy,
+                    maxLength: WorkoutSaveMetadataLimits.maxTitleLength,
+                    buildCounter: (
+                      context, {
+                      required currentLength,
+                      required isFocused,
+                      required maxLength,
+                    }) =>
+                        null,
                     style: textTheme.headlineSmall?.copyWith(
                       fontWeight: TioFontWeight.w700,
                       color: colors.textPrimary,
@@ -640,6 +649,14 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               key: const ValueKey('save-workout-description-input'),
               controller: _descriptionController,
               readOnly: _isBusy,
+              maxLength: WorkoutSaveMetadataLimits.maxDescriptionUtf8Bytes,
+              buildCounter: (
+                context, {
+                required currentLength,
+                required isFocused,
+                required maxLength,
+              }) =>
+                  null,
               maxLines: 4,
               minLines: 1,
               style: textTheme.bodyMedium?.copyWith(

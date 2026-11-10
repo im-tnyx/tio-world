@@ -1631,6 +1631,93 @@ void main() {
     expect(find.textContaining('PGRST205'), findsNothing);
   });
 
+  testWidgets(
+      'Resume without local draft keeps canonical reconciliation Retry/Back',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..restoreError = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'PGRST205: user_workout_sessions is unavailable',
+      )
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1);
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    final draftController = ActiveWorkoutDraftController(
+      store: _DraftStore(),
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
+    await _pumpPage(
+      tester,
+      controller: controller,
+      draftController: draftController,
+      showStartPreview: true,
+      createDraftIfMissing: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('active-workout-reconciliation')),
+      findsOneWidget,
+    );
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Back'), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-start-preview')),
+        findsNothing);
+  });
+
+  testWidgets(
+      'local draft preview wins over a restored legacy active session',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1);
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    final draftStore = _DraftStore()
+      ..saved = ActiveWorkoutDraft(
+        id: '00000000-0000-4000-8000-000000000201',
+        ownerId: _userId,
+        saveRequestId: '00000000-0000-4000-8000-000000000202',
+        time: WorkoutTime.start(startedAtUtc: DateTime.utc(2026, 11, 10, 8)),
+        exercises: [
+          ActiveWorkoutDraftExercise(
+            id: '00000000-0000-4000-8000-000000000203',
+            exerciseRef: ExerciseRef.catalog('ex_local'),
+            displayName: 'Local Draft Press',
+            sets: [
+              ActiveWorkoutDraftSet(
+                id: '00000000-0000-4000-8000-000000000204',
+                prescription: SetPrescription(reps: 8),
+              ),
+            ],
+          ),
+        ],
+      );
+    final draftController = ActiveWorkoutDraftController(
+      store: draftStore,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
+    await _pumpPage(
+      tester,
+      controller: controller,
+      draftController: draftController,
+      showStartPreview: true,
+      createDraftIfMissing: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Log Workout'), findsOneWidget);
+    expect(find.text('Local Draft Press'), findsOneWidget);
+    expect(find.text('Push Day A'), findsNothing);
+  });
+
   testWidgets('preview timer ticks and formats seconds, minutes and hours',
       (tester) async {
     final controller = ActiveWorkoutController(

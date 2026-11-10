@@ -413,18 +413,26 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
   ) {
     final draftController = widget.draftController;
     // Owner / tio-workspace rule: Play → Log Workout only. No recovery UI.
-    if (widget.showStartPreview &&
-        draftController != null &&
-        (state.status == ActiveWorkoutStatus.noSession ||
-            state.status == ActiveWorkoutStatus.reconciliationRequired ||
-            state.status == ActiveWorkoutStatus.initial ||
-            state.status == ActiveWorkoutStatus.restoring)) {
-      if (!_draftChecked &&
-          draftController.draft == null &&
-          draftController.isBusy) {
-        return const _LoadingState();
+    // Prefer an independent local draft (mini-bar / Save-only) over a legacy
+    // online session. Without a local draft, never swallow canonical
+    // reconciliation behind an empty preview.
+    if (widget.showStartPreview && draftController != null) {
+      final hasLocalDraft = draftController.draft != null;
+      if (hasLocalDraft) {
+        if (!_draftChecked && draftController.isBusy) {
+          return const _LoadingState();
+        }
+        return _buildDraftPreview();
       }
-      return _buildDraftPreview();
+      if (widget.createDraftIfMissing &&
+          (state.status == ActiveWorkoutStatus.noSession ||
+              state.status == ActiveWorkoutStatus.initial ||
+              state.status == ActiveWorkoutStatus.restoring)) {
+        if (!_draftChecked && draftController.isBusy) {
+          return const _LoadingState();
+        }
+        return _buildDraftPreview();
+      }
     }
     switch (state.status) {
       case ActiveWorkoutStatus.initial:

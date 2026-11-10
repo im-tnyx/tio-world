@@ -11,10 +11,12 @@ final class _Store implements ActiveWorkoutDraftStore {
   bool failLoad = false;
   int writes = 0;
   Completer<void>? writeGate;
+  Completer<void>? loadGate;
 
   @override
   Future<ActiveWorkoutDraft?> load() async {
     if (failLoad) throw StateError('secure draft unavailable');
+    await loadGate?.future;
     return saved;
   }
 
@@ -135,6 +137,92 @@ void main() {
     expect(controller.draft!.time.isPaused, isFalse);
     expect(controller.draft!.backgroundedAtUtc, isNull);
     expect(store.saved!.backgroundedAtUtc, isNull);
+    controller.dispose();
+  });
+
+  test('backgrounding during restore still caps unattended active time',
+      () async {
+    final store = _Store()
+      ..saved = ActiveWorkoutDraft(
+        id: _id(110),
+        ownerId: owner,
+        saveRequestId: _id(111),
+        time: WorkoutTime.start(startedAtUtc: DateTime.utc(2026, 11, 10, 8)),
+      );
+    var now = DateTime.utc(2026, 11, 10, 8, 5);
+    final loadGate = Completer<void>();
+    store.loadGate = loadGate;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+    );
+    final restore = controller.restoreExisting();
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.draft, isNull);
+    expect(await controller.markBackgrounded(), isTrue);
+    now = now.add(const Duration(hours: 3));
+    loadGate.complete();
+    expect(await restore, isTrue);
+    expect(controller.draft!.time.isPaused, isTrue);
+    expect(
+      controller.draft!.time.pausedAtUtc,
+      DateTime.utc(2026, 11, 10, 10, 5),
+    );
+    controller.dispose();
+  });
+
+  test('oversized Save title is rejected before the submission freezes',
+      () async {
+    final store = _Store();
+    final backend = _SaveRepository()..fail = false;
+    var now = DateTime.utc(2026, 11, 9, 10);
+    var nextId = 120;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      saveRepository: backend,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(await controller.addExercises([_exercise('ex_first', 'First')]),
+        isTrue);
+    final exercise = controller.draft!.exercises.single;
+    expect(
+        await controller.toggleLogged(exercise.id, exercise.sets.single.id,
+            reps: 8),
+        isTrue);
+    expect(await controller.pause(), isTrue);
+    expect(
+        await controller.updateSaveMetadata(
+          title: 'ok',
+          description: null,
+          workoutAtUtc: DateTime.utc(2026, 11, 9, 10),
+          workoutUtcOffsetMinutes: 0,
+          selectedDurationSeconds: 60,
+          gymName: null,
+          activityType: 'Weight Training',
+          overallRpe: null,
+        ),
+        isTrue);
+    final huge = 'x' * 2001;
+    expect(await controller.save(resolvedTitle: huge), isFalse);
+    expect(controller.draft!.submittedAtUtc, isNull);
+    expect(backend.submissions, isEmpty);
+    expect(
+        await controller.updateSaveMetadata(
+          title: 'Fixed title',
+          description: null,
+          workoutAtUtc: DateTime.utc(2026, 11, 9, 10),
+          workoutUtcOffsetMinutes: 0,
+          selectedDurationSeconds: 60,
+          gymName: null,
+          activityType: 'Weight Training',
+          overallRpe: null,
+        ),
+        isTrue);
+    expect(await controller.save(resolvedTitle: 'Fixed title'), isTrue);
     controller.dispose();
   });
 
