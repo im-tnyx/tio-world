@@ -1,6 +1,6 @@
 # W7 Trigger Search-Path Hardening
 
-**Status:** Source-only fix and local validation complete; PR review/CI pending
+**Status:** PR #747 open; local validation complete; required branch checks pass; full Supabase Database CI is in progress; independent review pending
 **Planning owner:** Codex
 **Implementation owner:** Codex
 **Previous agent:** Codex (W7 hosted deployment handoff)
@@ -50,8 +50,10 @@ Fix the verified Supabase `function_search_path_mutable` warning on `public.trg_
 **Base:** `main@cec78bb4e383afe4fc13eb7833e3bfed5b159b48`
 **Initial HEAD:** `cec78bb4e383afe4fc13eb7833e3bfed5b159b48`
 **Last commit agent:** Codex
-**Last commit SHA:** Pending
-**Working tree:** Three scoped paths changed; `.tmp/` local test workspace is ignored
+**Last implementation commit SHA:** `7fe002022e5314cc4b1f281a9e52d681145fab51`
+**PR:** https://github.com/im-tnyx/tio-world/pull/747
+**Working tree:** Clean after publishing the three scoped paths; `.tmp/` local test workspace is ignored
 **Hosted changes:** None; deployment is explicitly excluded
 **Linear:** TNYX-84 remains In Progress; broader W3/W4 and Workout acceptance gates remain open
-**Next exact action:** Commit and publish one focused PR, request independent `im-tio` review, verify exact-head CI, and keep TNYX-84 In Progress. Stop before merge or hosted deployment.
+**Review gate:** GitHub identifies `im-tio` as PR author and rejects requesting a review from the author. A distinct reviewer identity is required; no approval was submitted.
+**Next exact action:** Complete exact-head Supabase Database CI and obtain review from an independent GitHub identity. Keep TNYX-84 In Progress. Stop before merge or hosted deployment.
