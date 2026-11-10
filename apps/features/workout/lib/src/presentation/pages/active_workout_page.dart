@@ -119,6 +119,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
   ActiveWorkoutController? _controller;
   final ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(false);
   bool _draftChecked = false;
+  bool _playExitScheduled = false;
 
   @override
   void initState() {
@@ -127,10 +128,35 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     _bindController(widget.controller);
   }
 
+  /// Play may fail closed (no workout start) but must never show a separate
+  /// recovery/message screen. Exit back to Workout Home instead.
+  void _exitPlayWithoutStart() {
+    if (!widget.showStartPreview || _playExitScheduled) return;
+    _playExitScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onBack();
+    });
+  }
+
   Future<void> _restoreExistingDraft() async {
     final controller = widget.draftController;
-    if (controller == null) return;
-    await controller.restoreExisting();
+    if (controller == null) {
+      if (widget.showStartPreview) _exitPlayWithoutStart();
+      return;
+    }
+    // Play: restore existing or start a fresh local draft so Log Workout opens.
+    // No recovery UI — if start is impossible, exit silently.
+    if (widget.showStartPreview) {
+      final started = await controller.restoreOrStart();
+      if (mounted &&
+          identical(controller, widget.draftController) &&
+          (!started || controller.draft == null)) {
+        _exitPlayWithoutStart();
+        return;
+      }
+    } else {
+      await controller.restoreExisting();
+    }
     if (mounted && identical(controller, widget.draftController)) {
       setState(() => _draftChecked = true);
     }
@@ -354,6 +380,14 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     final controller = _controller;
     final state = controller?.state;
 
+    if (widget.showStartPreview &&
+        (controller == null ||
+            state == null ||
+            widget.draftController == null)) {
+      _exitPlayWithoutStart();
+      return const Scaffold(body: SafeArea(child: SizedBox.shrink()));
+    }
+
     return Scaffold(
       body: SafeArea(
         child: controller == null || state == null
@@ -369,28 +403,20 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     ActiveWorkoutState state,
   ) {
     final draftController = widget.draftController;
+    // Owner rule: Play → Log Workout only. Never an extra recovery screen.
+    // If Log Workout cannot start, exit silently back to Workout Home.
     if (widget.showStartPreview &&
         draftController != null &&
         (state.status == ActiveWorkoutStatus.noSession ||
             state.status == ActiveWorkoutStatus.reconciliationRequired)) {
-      if (!_draftChecked) return const _LoadingState();
-      if (draftController.error != null && draftController.draft == null) {
-        return _MessageState(
-          title: 'Workout draft unavailable',
-          message:
-              'The saved draft could not be restored. It has not been deleted.',
-          actionLabel: 'Retry',
-          onAction: () {
-            setState(() => _draftChecked = false);
-            unawaited(_restoreExistingDraft());
-          },
-          secondaryActionLabel: 'Back',
-          onSecondaryAction: widget.onBack,
-        );
-      }
       if (draftController.draft != null) {
         return _buildDraftPreview();
       }
+      if (!_draftChecked || draftController.isBusy) {
+        return const _LoadingState();
+      }
+      _exitPlayWithoutStart();
+      return const SizedBox.shrink();
     }
     switch (state.status) {
       case ActiveWorkoutStatus.initial:
@@ -622,7 +648,12 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
 
   void _onDraftChanged() {
     if (!mounted) return;
-    _ensureTicker();
+    if (_draft == null) {
+      _ticker?.cancel();
+      _ticker = null;
+    } else {
+      _ensureTicker();
+    }
     setState(() {});
   }
 
@@ -927,21 +958,15 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
   Widget build(BuildContext context) {
     final draftController = widget.draftController;
     if (draftController == null) {
-      return _UnavailableState(onBack: widget.onBack);
+      // Parent Play entry already exits silently when draft is unavailable.
+      return const SizedBox.shrink();
     }
     if (_draft == null && draftController.isBusy) {
       return const _LoadingState();
     }
-    if (_draft == null && draftController.error != null) {
-      return _MessageState(
-        title: 'Workout draft unavailable',
-        message:
-            'The saved draft could not be restored. It has not been deleted.',
-        actionLabel: 'Retry',
-        onAction: () => unawaited(draftController.restoreOrStart()),
-        secondaryActionLabel: 'Back',
-        onSecondaryAction: widget.onBack,
-      );
+    if (_draft == null) {
+      // No recovery message screen. Parent exits if start failed / discarded.
+      return const SizedBox.shrink();
     }
     final showRpe = MediaQuery.sizeOf(context).width >= 360;
     final canFinish = _loggedSets.isNotEmpty;

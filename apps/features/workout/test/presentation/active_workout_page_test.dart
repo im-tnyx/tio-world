@@ -1558,7 +1558,7 @@ void main() {
     expect(backed, isTrue);
   });
 
-  testWidgets('load failure keeps reconciliation state instead of preview',
+  testWidgets('Play preview opens Log Workout even when session restore fails',
       (tester) async {
     final controller = ActiveWorkoutController(
       repository: _FakeSessionRepository()
@@ -1568,17 +1568,26 @@ void main() {
         ),
       currentUserId: () => _userId,
     );
+    final draftController = ActiveWorkoutDraftController(
+      store: _DraftStore(),
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
     await _pumpPage(
       tester,
       controller: controller,
+      draftController: draftController,
       showStartPreview: true,
     );
+    await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('active-workout-reconciliation')),
-        findsOneWidget);
+    expect(find.text('Log Workout'), findsOneWidget);
     expect(find.byKey(const ValueKey('active-workout-start-preview')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-reconciliation')),
         findsNothing);
-    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Retry'), findsNothing);
     expect(find.textContaining('PGRST205'), findsNothing);
   });
 
@@ -2358,8 +2367,7 @@ void main() {
         greaterThanOrEqualTo(firstDuration + const Duration(minutes: 5)));
   });
 
-  testWidgets('draft restore failure never opens an empty workout',
-      (tester) async {
+  testWidgets('Play exits silently when draft cannot start', (tester) async {
     final store = _DraftStore()..failLoad = true;
     final draftController = ActiveWorkoutDraftController(
       store: store,
@@ -2367,6 +2375,7 @@ void main() {
       clock: () => tester.binding.clock.now(),
     );
     addTearDown(draftController.dispose);
+    var backed = false;
     await _pumpPage(
       tester,
       controller: ActiveWorkoutController(
@@ -2375,13 +2384,14 @@ void main() {
       ),
       draftController: draftController,
       showStartPreview: true,
+      onBack: () => backed = true,
     );
-    await tester.pumpAndSettle();
-    expect(find.text('Workout draft unavailable'), findsOneWidget);
-    expect(find.text('Get started'), findsNothing);
-    expect(find.byKey(const ValueKey('active-workout-preview-add-exercise')),
-        findsNothing);
-    expect(store.saved, isNull);
+    await tester.pump(); // post-frame silent exit
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text('Workout draft unavailable'), findsNothing);
+    expect(find.text('Retry'), findsNothing);
+    expect(find.text('Log Workout'), findsNothing);
+    expect(backed, isTrue);
   });
 
   for (final theme in [TioThemeMode.light, TioThemeMode.dark]) {
