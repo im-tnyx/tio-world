@@ -17,6 +17,7 @@ class WorkoutHomePage extends ConsumerStatefulWidget {
     required this.onLibraryPressed,
     super.key,
     this.onPlayPressed,
+    this.activeWorkoutMiniBar,
     this.resolvedFirstDayOfWeek,
   });
 
@@ -27,6 +28,10 @@ class WorkoutHomePage extends ConsumerStatefulWidget {
 
   /// Opens the UI-only Active Workout entry; app composition owns navigation.
   final VoidCallback? onPlayPressed;
+
+  /// tio-workspace-style resume/discard pill when a workout is already running
+  /// and Log Workout is not on screen. Replaces the Play FAB while present.
+  final Widget? activeWorkoutMiniBar;
 
   @override
   ConsumerState<WorkoutHomePage> createState() => _WorkoutHomePageState();
@@ -134,8 +139,19 @@ class _WorkoutHomePageState extends ConsumerState<WorkoutHomePage>
           ],
           ),
         ),
-        // Mirrors Nutrition's themed 56dp action and month-expansion safety.
-        if (widget.onPlayPressed != null && !_isCalendarExpanded)
+        // Active mini bar wins over Play: a running workout must stay visible
+        // after minimize / app relaunch the way tio-workspace does.
+        if (widget.activeWorkoutMiniBar != null)
+          Positioned(
+            left: TioSpacing.lg,
+            right: TioSpacing.lg,
+            bottom: TioSpacing.lg,
+            child: SafeArea(
+              top: false,
+              child: widget.activeWorkoutMiniBar!,
+            ),
+          )
+        else if (widget.onPlayPressed != null && !_isCalendarExpanded)
           Positioned.fill(
             child: SafeArea(
               child: Align(

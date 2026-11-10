@@ -195,4 +195,62 @@ void main() {
     expect(opened, isFalse);
     expect(store.saved, isNotNull);
   });
+
+  testWidgets(
+      'Start new fails closed when durable delete fails and memory draft remains',
+      (tester) async {
+    var openedNew = false;
+    final store = _FailDeleteStore()..saved = _draft();
+    final draftController = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _id(2),
+      newUuid: () => _id(41),
+    );
+    expect(await draftController.restoreExisting(), isTrue);
+
+    await tester.pumpWidget(
+      _app(
+        Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async {
+                await runWorkoutPlayStart(
+                  context: context,
+                  draftController: draftController,
+                  draftStore: store,
+                  openActive: ({required bool resumeExisting}) {
+                    if (!resumeExisting) openedNew = true;
+                  },
+                );
+              },
+              child: const Text('Play'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Play'));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('workout-in-progress-start-new')));
+    await tester.pumpAndSettle();
+
+    expect(openedNew, isFalse);
+    expect(draftController.draft, isNotNull);
+    draftController.dispose();
+  });
+}
+
+final class _FailDeleteStore implements ActiveWorkoutDraftStore {
+  ActiveWorkoutDraft? saved;
+
+  @override
+  Future<ActiveWorkoutDraft?> load() async => saved;
+
+  @override
+  Future<void> save(ActiveWorkoutDraft draft) async => saved = draft;
+
+  @override
+  Future<void> delete() async => throw StateError('delete failed');
 }

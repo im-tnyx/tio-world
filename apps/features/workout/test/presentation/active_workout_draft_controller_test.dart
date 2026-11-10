@@ -447,4 +447,45 @@ void main() {
     expect(controller.draft!.exercises.single.sets, isNotEmpty);
     controller.dispose();
   });
+
+  test('removeSet keeps activeRest when a different set is removed', () async {
+    var now = DateTime.utc(2026, 11, 10, 9);
+    final store = _Store()
+      ..saved = ActiveWorkoutDraft(
+        id: _id(70),
+        ownerId: owner,
+        saveRequestId: _id(71),
+        time: WorkoutTime.start(startedAtUtc: now),
+        exercises: [
+          ActiveWorkoutDraftExercise(
+            id: _id(72),
+            exerciseRef: ExerciseRef.catalog('ex_rest'),
+            displayName: 'Rest keep',
+            sets: [
+              ActiveWorkoutDraftSet(
+                id: _id(73),
+                prescription: SetPrescription(reps: 8),
+              ),
+              ActiveWorkoutDraftSet(
+                id: _id(74),
+                prescription: SetPrescription(reps: 8, restSeconds: 45),
+              ),
+            ],
+          ),
+        ],
+      );
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(await controller.toggleLogged(_id(72), _id(74), reps: 8), isTrue);
+    expect(controller.draft!.activeRest!.setId, _id(74));
+    expect(await controller.removeSet(_id(72), _id(73)), isTrue);
+    expect(controller.draft!.activeRest!.setId, _id(74));
+    expect(await controller.removeSet(_id(72), _id(74)), isTrue);
+    expect(controller.draft!.activeRest, isNull);
+    controller.dispose();
+  });
 }

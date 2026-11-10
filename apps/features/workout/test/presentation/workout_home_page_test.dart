@@ -58,6 +58,45 @@ void main() {
     expect(presses, 1);
   });
 
+  testWidgets('active mini bar replaces Play FAB while a workout is running',
+      (tester) async {
+    var resumed = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workoutDateControllerProvider.overrideWith(
+            (ref) => WorkoutDateController(clock: () => DateTime(2026, 9, 23)),
+          ),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: WorkoutHomePage(
+              onLibraryPressed: () {},
+              onPlayPressed: () {},
+              activeWorkoutMiniBar: ActiveWorkoutMiniBar(
+                duration: const Duration(minutes: 3),
+                subtitle: 'Empty Workout',
+                isPaused: true,
+                onResume: () => resumed++,
+                onDiscard: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout-home-play-action')), findsNothing);
+    expect(find.byKey(const ValueKey('active-workout-mini-bar')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('active-workout-mini-bar-resume')));
+    expect(resumed, 1);
+  });
+
   testWidgets('shows the Library entry below the calendar', (tester) async {
     var opened = 0;
     await _pump(tester, onLibraryPressed: () => opened++);

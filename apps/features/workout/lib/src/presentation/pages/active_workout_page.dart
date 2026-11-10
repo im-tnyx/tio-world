@@ -702,7 +702,14 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     if (chosen is RoutineSetType) {
       await controller.setType(exerciseId, set.id, chosen);
     } else if (chosen == 'remove') {
-      await controller.removeSet(exerciseId, set.id);
+      final beforeCount = controller.draft?.exercises.length ?? 0;
+      final removed = await controller.removeSet(exerciseId, set.id);
+      if (!mounted || !removed) return;
+      final afterCount = controller.draft?.exercises.length ?? 0;
+      // Last-set removal drops the exercise; keep note drafts aligned by index.
+      if (afterCount < beforeCount) {
+        setState(() => _reindexMapAfterRemoval(_exerciseNotes, exerciseIndex));
+      }
     }
   }
 

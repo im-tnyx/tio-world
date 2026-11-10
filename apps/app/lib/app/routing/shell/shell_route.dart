@@ -16,6 +16,7 @@ import '../../calendar_preferences.dart';
 import '../../meal_diary_today_glyph.dart';
 import '../../network_providers.dart';
 import '../../session/session.dart';
+import 'workout_home_branch.dart';
 
 /// Keep the pre-confirmation Routine 3-dot modal bound to its opening owner.
 /// The later Delete confirmation has a separate per-attempt guard.
@@ -138,40 +139,9 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   }
 
   if (branch.tab == ShellTab.workout) {
-    // Workout consumes the same app-global calendar preference as every other
-    // date surface. The feature owns only its selected date and navigation
-    // range; no Workout domain truth is fabricated in this shell.
-    return Consumer(
-      builder: (context, ref, _) {
-        // Keep autoDispose Play controllers alive for the whole Workout tab,
-        // including while the in-progress confirmation dialog is open.
-        final draftController =
-            ref.watch(activeWorkoutDraftControllerProvider);
-        final draftStore = ref.watch(activeWorkoutDraftStoreProvider);
-        final sessionController =
-            ref.watch(activeWorkoutControllerProvider);
-        return WorkoutHomePage(
-          resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
-          onLibraryPressed: () => context.push(AppRoutes.workoutLibrary.path),
-          onPlayPressed: () {
-            unawaited(
-              runWorkoutPlayStart(
-                context: context,
-                draftController: draftController,
-                draftStore: draftStore,
-                sessionController: sessionController,
-                openActive: ({required bool resumeExisting}) {
-                  final query = resumeExisting
-                      ? '?preview=1&resume=1'
-                      : '?preview=1';
-                  context.push('${AppRoutes.workoutActive.path}$query');
-                },
-              ),
-            );
-          },
-        );
-      },
-    );
+    // Workout home owns calendar presentation; Play/mini-bar composition and
+    // in-progress restore after relaunch live in WorkoutHomeBranch.
+    return const WorkoutHomeBranch();
   }
 
   if (branch.tab == ShellTab.nutrition) {

@@ -81,20 +81,26 @@ Future<bool> _replaceInProgressWorkout({
   ActiveWorkoutDraftStore? draftStore,
   ActiveWorkoutController? sessionController,
 }) async {
-  // Prefer the durable store delete so a disposed autoDispose controller cannot
-  // leave the encrypted draft behind during the confirmation dialog.
-  var draftCleared = false;
-  if (draftStore != null) {
-    try {
-      await draftStore.delete();
-      draftCleared = true;
-    } catch (_) {}
-  }
+  // Fail closed: memory and durable draft must both be gone before Start new.
+  // Clearing the store alone is not enough while an in-memory draft can still
+  // commit a later mutation and resurrect the workout.
   if (draftController != null) {
     final cleared = await draftController.discardForReplacement();
-    draftCleared = draftCleared || cleared || draftController.draft == null;
-  } else {
-    draftCleared = draftCleared || draftStore == null;
+    if (!cleared || draftController.draft != null) return false;
+  } else if (draftStore != null) {
+    try {
+      await draftStore.delete();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  if (draftStore != null) {
+    try {
+      if (await draftStore.load() != null) return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   if (sessionController != null) {
@@ -109,13 +115,5 @@ Future<bool> _replaceInProgressWorkout({
     }
   }
 
-  if (!draftCleared && draftStore != null) {
-    try {
-      final remaining = await draftStore.load();
-      if (remaining != null) return false;
-    } catch (_) {
-      return false;
-    }
-  }
   return true;
 }

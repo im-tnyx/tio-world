@@ -272,11 +272,10 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         }
         return draft.copyWith(
           exercises: next,
+          // Only clear rest when the resting set itself was removed. Dropping a
+          // different set on the same exercise must keep an active countdown.
           activeRest:
-              draft.activeRest?.setId == setId ||
-                      draft.activeRest?.exerciseId == exerciseId
-                  ? null
-                  : draft.activeRest,
+              draft.activeRest?.setId == setId ? null : draft.activeRest,
         );
       });
 
@@ -546,7 +545,12 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   /// Permanently clears any local draft so Play can start a replacement workout.
   /// Unlike [discard], this also clears a frozen/submitted draft and an empty
   /// memory slot that still has durable store state.
+  ///
+  /// Waits for in-flight mutations first so a late `save()` cannot resurrect
+  /// the draft after the durable slot is deleted.
   Future<bool> discardForReplacement() async {
+    if (_disposed) return false;
+    await _mutationTail;
     if (_busy || _disposed) return false;
     _busy = true;
     _error = null;
