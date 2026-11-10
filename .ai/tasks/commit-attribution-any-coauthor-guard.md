@@ -2,6 +2,7 @@
 
 **Status:** In review on PR #742
 **Primary owner:** Cursor
+**Working agent:** Cursor
 **Affected platforms:** GitHub Actions attribution guard only
 
 ## Active Handoff

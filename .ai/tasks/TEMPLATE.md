@@ -21,7 +21,7 @@ When a trigger applies, record the proposed boundary and owner approval before i
 This is a compact recovery checkpoint, not a live activity log. Refresh it only at meaningful durable checkpoints, when implementation pauses, when ownership changes, or when recovery is needed. Use `Not applicable` where no handoff state exists.
 
 **Planning owner:**
-**Implementation owner:**
+**Implementation owner:** the agent doing this work, such as Cursor, Codex, or Claude
 **Review owner:**
 **Implementation ownership state:** Not started | Active | Handoff pending | Paused | Blocked | Complete
 **Ownership transition:** Previous Implementation Owner → Receiving Implementation Owner | Not applicable
