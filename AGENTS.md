@@ -115,6 +115,7 @@ Architecture, backend, auth, routing, persistence, and token cleanup do **not** 
 
 ## Architecture Rules
 
+- For structured offline data on Flutter phones, follow the approved Drift + SQLite direction and implementation gates in [docs/data/DATA_AND_SYNC.md](docs/data/DATA_AND_SYNC.md). This selection does not authorize new packages, migrations, queues, or replacement of existing local stores.
 - Keep changes small, focused, and reviewable.
 - Respect feature and package boundaries.
 - Prefer existing patterns before adding new abstractions.

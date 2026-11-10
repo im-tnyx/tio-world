@@ -144,7 +144,7 @@ Goal: move real app data behind repositories and make core flows offline-first.
 - [ ] Define repository contracts for workout, nutrition, profile, progress, and coaching
 - [ ] Add Riverpod repository providers in owning feature packages
 - [ ] Add `freezed` + `json_serializable` models/DTOs where generated value types are needed
-- [ ] Choose local persistence for the first real data slice: Drift, Isar, or similar
+- [x] Select future structured Flutter phone offline database technology: Drift + SQLite (decision only; not yet installed/implemented; see `docs/data/DATA_AND_SYNC.md`)
 - [ ] Implement local data source behind repository interfaces
 - [ ] Add pending sync queue for workout events
 - [ ] Add Meal Plan after the nutrition diary MVP: create, schedule, and reuse plans in `apps/features/nutrition` for nutrition and hybrid modes
