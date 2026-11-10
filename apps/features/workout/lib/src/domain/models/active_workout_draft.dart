@@ -26,12 +26,25 @@ final class ActiveWorkoutDraft {
     this.activityType,
     this.overallRpe,
     this.activeRest,
+    this.backgroundedAtUtc,
+    this.lastActivityAtUtc,
     this.submittedAtUtc,
     this.submittedTitle,
   })  : id = _uuid(id),
         ownerId = _uuid(ownerId),
         saveRequestId = _uuid(saveRequestId),
         exercises = List.unmodifiable(exercises) {
+    if (backgroundedAtUtc != null &&
+        (!backgroundedAtUtc!.isUtc ||
+            time.isPaused ||
+            backgroundedAtUtc!.isBefore(time.lastTransitionAtUtc))) {
+      throw ArgumentError('Invalid workout background timestamp.');
+    }
+    if (lastActivityAtUtc != null &&
+        (!lastActivityAtUtc!.isUtc ||
+            lastActivityAtUtc!.isBefore(time.startedAtUtc))) {
+      throw ArgumentError('Invalid workout activity timestamp.');
+    }
     if (revision < 0 || (canonicalRevision != null && canonicalRevision! < 0)) {
       throw ArgumentError('Draft revisions must be non-negative.');
     }
@@ -102,6 +115,12 @@ final class ActiveWorkoutDraft {
   final double? overallRpe;
   final ActiveWorkoutDraftRest? activeRest;
 
+  /// Last app background transition while this draft was actively running.
+  final DateTime? backgroundedAtUtc;
+
+  /// Last committed draft action, used if the process dies without lifecycle notice.
+  final DateTime? lastActivityAtUtc;
+
   /// Frozen on first Save dispatch so retries use the same owner-scoped key.
   final DateTime? submittedAtUtc;
   final String? submittedTitle;
@@ -121,6 +140,8 @@ final class ActiveWorkoutDraft {
     Object? activityType = _unchanged,
     Object? overallRpe = _unchanged,
     Object? activeRest = _unchanged,
+    Object? backgroundedAtUtc = _unchanged,
+    Object? lastActivityAtUtc = _unchanged,
     Object? submittedAtUtc = _unchanged,
     Object? submittedTitle = _unchanged,
   }) =>
@@ -163,6 +184,12 @@ final class ActiveWorkoutDraft {
         activeRest: identical(activeRest, _unchanged)
             ? this.activeRest
             : activeRest as ActiveWorkoutDraftRest?,
+        backgroundedAtUtc: identical(backgroundedAtUtc, _unchanged)
+            ? this.backgroundedAtUtc
+            : backgroundedAtUtc as DateTime?,
+        lastActivityAtUtc: identical(lastActivityAtUtc, _unchanged)
+            ? this.lastActivityAtUtc
+            : lastActivityAtUtc as DateTime?,
         submittedAtUtc: identical(submittedAtUtc, _unchanged)
             ? this.submittedAtUtc
             : submittedAtUtc as DateTime?,
@@ -195,6 +222,8 @@ final class ActiveWorkoutDraft {
         'activity_type': activityType,
         'overall_rpe': overallRpe,
         'active_rest': activeRest?.toJson(),
+        'backgrounded_at_utc': backgroundedAtUtc?.toIso8601String(),
+        'last_activity_at_utc': lastActivityAtUtc?.toIso8601String(),
         'submitted_at_utc': submittedAtUtc?.toIso8601String(),
         'submitted_title': submittedTitle,
         'exercises': exercises.map((exercise) => exercise.toJson()).toList(),
@@ -241,6 +270,8 @@ final class ActiveWorkoutDraft {
             : ActiveWorkoutDraftRest.fromJson(
                 Map<String, dynamic>.from(json['active_rest'] as Map),
               ),
+        backgroundedAtUtc: optionalUtc(json['backgrounded_at_utc']),
+        lastActivityAtUtc: optionalUtc(json['last_activity_at_utc']),
         submittedAtUtc: optionalUtc(json['submitted_at_utc']),
         submittedTitle: json['submitted_title'] as String?,
         exercises: (json['exercises'] as List)

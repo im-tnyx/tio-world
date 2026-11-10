@@ -79,6 +79,93 @@ Exercise _exercise(String ref, String name) => Exercise(
 void main() {
   const owner = '00000000-0000-4000-8000-000000000001';
 
+  test('two-day background gap pauses at two hours and preserves the draft',
+      () async {
+    final store = _Store();
+    var now = DateTime.utc(2026, 11, 10, 8);
+    final first = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(100),
+    );
+    expect(await first.restoreOrStart(), isTrue);
+    final draftId = first.draft!.id;
+    now = now.add(const Duration(minutes: 10));
+    expect(await first.markBackgrounded(), isTrue);
+    expect(store.saved!.backgroundedAtUtc, now);
+    first.dispose();
+
+    now = now.add(const Duration(days: 2));
+    final reopened = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+    );
+    expect(await reopened.restoreExisting(), isTrue);
+    expect(reopened.draft!.id, draftId);
+    expect(reopened.draft!.time.isPaused, isTrue);
+    expect(
+        reopened.draft!.time.pausedAtUtc, DateTime.utc(2026, 11, 10, 10, 10));
+    expect(reopened.draft!.time.elapsedActiveDuration(now),
+        const Duration(hours: 2, minutes: 10));
+    expect(reopened.draft!.backgroundedAtUtc, isNull);
+    expect(store.saved!.time.isPaused, isTrue);
+    expect(await reopened.resume(), isTrue);
+    expect(reopened.draft!.time.isPaused, isFalse);
+    expect(reopened.draft!.id, draftId);
+    reopened.dispose();
+  });
+
+  test('short background gap keeps running and clears the durable marker',
+      () async {
+    final store = _Store();
+    var now = DateTime.utc(2026, 11, 10, 8);
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(101),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    now = now.add(const Duration(minutes: 5));
+    expect(await controller.markBackgrounded(), isTrue);
+    now = now.add(const Duration(minutes: 30));
+    expect(await controller.restoreExisting(), isTrue);
+    expect(controller.draft!.time.isPaused, isFalse);
+    expect(controller.draft!.backgroundedAtUtc, isNull);
+    expect(store.saved!.backgroundedAtUtc, isNull);
+    controller.dispose();
+  });
+
+  test('cold restore caps an active draft when background event was missed',
+      () async {
+    final store = _Store();
+    var now = DateTime.utc(2026, 11, 10, 8);
+    final first = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(102),
+    );
+    expect(await first.restoreOrStart(), isTrue);
+    now = now.add(const Duration(minutes: 25));
+    expect(await first.addExercises([_exercise('ex_first', 'First')]), isTrue);
+    first.dispose();
+
+    now = now.add(const Duration(days: 2));
+    final reopened = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+    );
+    expect(await reopened.restoreExisting(), isTrue);
+    expect(
+        reopened.draft!.time.pausedAtUtc, DateTime.utc(2026, 11, 10, 10, 25));
+    expect(reopened.draft!.exercises.single.displayName, 'First');
+    reopened.dispose();
+  });
+
   test('local actions retain stable identities, actual values and paused time',
       () async {
     final store = _Store();

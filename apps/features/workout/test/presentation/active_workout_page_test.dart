@@ -355,6 +355,36 @@ Future<void> _addPreviewBench(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('Log Workout lifecycle pauses an unattended local draft',
+      (tester) async {
+    final store = _DraftStore();
+    var now = DateTime.utc(2026, 11, 10, 8);
+    final draftController = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => now,
+    );
+    addTearDown(draftController.dispose);
+    final sessionController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    await _pumpPage(tester,
+        controller: sessionController,
+        draftController: draftController,
+        showStartPreview: true,
+        clock: () => now);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    expect(store.saved!.backgroundedAtUtc, now);
+    now = now.add(const Duration(days: 2));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(draftController.draft!.time.isPaused, isTrue);
+    expect(store.saved!.time.pausedAtUtc,
+        DateTime.utc(2026, 11, 10, 10));
+  });
+
   testWidgets('removing a preview Set preserves performed state on later Sets',
       (tester) async {
     final controller = ActiveWorkoutController(

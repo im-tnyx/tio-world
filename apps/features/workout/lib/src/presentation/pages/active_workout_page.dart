@@ -123,7 +123,8 @@ class _ActiveWorkoutBody extends StatefulWidget {
   State<_ActiveWorkoutBody> createState() => _ActiveWorkoutBodyState();
 }
 
-class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
+class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
+    with WidgetsBindingObserver {
   ActiveWorkoutController? _controller;
   final ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(false);
   bool _draftChecked = false;
@@ -131,8 +132,21 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_restoreExistingDraft());
     _bindController(widget.controller);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final draftController = widget.draftController;
+    if (draftController == null) return;
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      unawaited(draftController.markBackgrounded());
+    } else if (state == AppLifecycleState.resumed) {
+      unawaited(draftController.restoreExisting());
+    }
   }
 
   Future<void> _restoreExistingDraft() async {
@@ -196,6 +210,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller?.removeListener(_onControllerChanged);
     _controller?.stopDurationTicker();
     _sessionActive.dispose();

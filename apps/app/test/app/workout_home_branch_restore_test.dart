@@ -47,6 +47,50 @@ ActiveWorkoutDraft _draft() => ActiveWorkoutDraft(
 final _controllersReadyProvider = StateProvider<bool>((ref) => false);
 
 void main() {
+  testWidgets('backgrounded Workout home pauses a local draft after two hours',
+      (tester) async {
+    var now = DateTime.utc(2026, 11, 10, 8);
+    final store = _Store()..saved = _draft();
+    late ActiveWorkoutDraftController controller;
+    final container = ProviderContainer(
+      overrides: [
+        resolvedFirstDayOfWeekProvider.overrideWithValue(DateTime.monday),
+        activeWorkoutDraftStoreProvider.overrideWithValue(store),
+        activeWorkoutControllerProvider.overrideWith((ref) => null),
+        activeWorkoutDraftControllerProvider.overrideWith((ref) {
+          controller = ActiveWorkoutDraftController(
+            store: store,
+            ownerId: _id(2),
+            clock: () => now,
+          );
+          ref.onDispose(controller.dispose);
+          return controller;
+        }),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: const Scaffold(body: WorkoutHomeBranch()),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pumpAndSettle();
+    expect(store.saved!.backgroundedAtUtc, now);
+    now = now.add(const Duration(days: 2));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(controller.draft!.time.isPaused, isTrue);
+    expect(store.saved!.time.pausedAtUtc,
+        DateTime.utc(2026, 11, 10, 10));
+  });
+
   testWidgets(
       'cold-start auth settle restores durable draft into the mini pill',
       (tester) async {

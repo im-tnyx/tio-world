@@ -14,6 +14,7 @@ import '../library/exercises/exercises_controller.dart';
 /// One durable device-local source of truth for a new Save-only workout.
 /// It never calls the online W7B session repository before Save.
 final class ActiveWorkoutDraftController extends ChangeNotifier {
+  static const unattendedLimit = Duration(hours: 2);
   ActiveWorkoutDraftController({
     required ActiveWorkoutDraftStore store,
     required String ownerId,
@@ -48,12 +49,16 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   }
 
   Future<bool> restoreOrStart() async {
+    await _mutationTail;
     return _restore(createIfMissing: true);
   }
 
   /// Reads an owner-bound draft without starting a new workout. This allows
   /// offline recovery before the online legacy-session lookup completes.
-  Future<bool> restoreExisting() => _restore(createIfMissing: false);
+  Future<bool> restoreExisting() async {
+    await _mutationTail;
+    return _restore(createIfMissing: false);
+  }
 
   Future<bool> _restore({required bool createIfMissing}) async {
     if (_busy || _disposed) return false;
@@ -76,13 +81,44 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         throw StateError('Workout draft belongs to another account.');
       }
       if (restored == null && !createIfMissing) return true;
-      final candidate = restored ??
+      final startedAt = _nowUtc();
+      var candidate = restored ??
           ActiveWorkoutDraft(
             id: _newUuid(),
             ownerId: _ownerId,
             saveRequestId: _newUuid(),
-            time: WorkoutTime.start(startedAtUtc: _nowUtc()),
+            time: WorkoutTime.start(startedAtUtc: startedAt),
+            lastActivityAtUtc: startedAt,
           );
+      final backgroundedAt = candidate.backgroundedAtUtc;
+      final lastActivity = candidate.lastActivityAtUtc ??
+          candidate.exercises
+              .expand((exercise) => exercise.sets)
+              .map((set) => set.loggedAtUtc)
+              .whereType<DateTime>()
+              .fold<DateTime>(candidate.time.lastTransitionAtUtc,
+                  (latest, logged) => logged.isAfter(latest) ? logged : latest);
+      final unattendedSince = backgroundedAt ??
+          (restored != null && _draft == null && !candidate.time.isPaused
+              ? lastActivity
+              : null);
+      if (unattendedSince != null) {
+        final now = _nowUtc();
+        if (!now.isBefore(unattendedSince)) {
+          final cutoff = unattendedSince.add(unattendedLimit);
+          final shouldPause = !now.isBefore(cutoff);
+          if (backgroundedAt != null || shouldPause) {
+            candidate = candidate.copyWith(
+              time: shouldPause ? candidate.time.pause(cutoff) : candidate.time,
+              backgroundedAtUtc: null,
+              lastActivityAtUtc: shouldPause ? cutoff : now,
+              revision: candidate.revision + 1,
+            );
+            // Preserve the old marker/activity time on failure for retry.
+            await _store.save(candidate);
+          }
+        }
+      }
       // Publish the in-memory draft before durable write so UI can open.
       if (_disposed) return false;
       _draft = candidate;
@@ -138,8 +174,19 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
           return;
         }
         _error = null;
-        final candidate =
-            transform(current).copyWith(revision: current.revision + 1);
+        final transformed = transform(current);
+        final now = _nowUtc();
+        final previous =
+            current.lastActivityAtUtc ?? current.time.lastTransitionAtUtc;
+        final lastActivity = [
+          now,
+          previous,
+          transformed.time.lastTransitionAtUtc
+        ].reduce((a, b) => a.isAfter(b) ? a : b);
+        final candidate = transformed.copyWith(
+          revision: current.revision + 1,
+          lastActivityAtUtc: lastActivity,
+        );
         await _store.save(candidate);
         if (!_disposed) _draft = candidate;
         result.complete(!_disposed);
@@ -165,8 +212,23 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     return result.future;
   }
 
-  Future<bool> pause() =>
-      _change((draft) => draft.copyWith(time: draft.time.pause(_nowUtc())));
+  Future<bool> pause() => _change((draft) => draft.copyWith(
+        time: draft.time.pause(_nowUtc()),
+        backgroundedAtUtc: null,
+      ));
+
+  /// Record an unattended interval before the process can be suspended.
+  Future<bool> markBackgrounded() {
+    final draft = _draft;
+    if (draft == null ||
+        draft.time.isPaused ||
+        draft.backgroundedAtUtc != null) {
+      return Future<bool>.value(true);
+    }
+    return _change((current) => current.copyWith(
+          backgroundedAtUtc: current.backgroundedAtUtc ?? _nowUtc(),
+        ));
+  }
 
   Future<bool> resume() =>
       _change((draft) => draft.copyWith(time: draft.time.resume(_nowUtc())));

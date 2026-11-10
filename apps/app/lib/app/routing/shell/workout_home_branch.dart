@@ -44,6 +44,10 @@ class _WorkoutHomeBranchState extends ConsumerState<WorkoutHomeBranch>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_restoreInProgressWorkout());
+    } else if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      unawaited(ref.read(activeWorkoutDraftControllerProvider)
+          ?.markBackgrounded());
     }
   }
 

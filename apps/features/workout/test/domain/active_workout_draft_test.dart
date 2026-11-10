@@ -19,6 +19,8 @@ void main() {
       saveRequestId: _id(3),
       revision: 4,
       time: time,
+      backgroundedAtUtc: started.add(const Duration(minutes: 4)),
+      lastActivityAtUtc: started.add(const Duration(minutes: 4)),
       workoutTitle: '  Custom  Title  ',
       description: 'Save screen description',
       workoutAtUtc: DateTime.utc(2026, 11, 8, 23, 30),
@@ -75,6 +77,8 @@ void main() {
     expect(restored.exercises.single.thumbnailUrl,
         Uri.parse('https://example.com/bench.png'));
     expect(restored.activeRest!.setId, _id(5));
+    expect(restored.backgroundedAtUtc, started.add(const Duration(minutes: 4)));
+    expect(restored.lastActivityAtUtc, started.add(const Duration(minutes: 4)));
     expect(draft.toJson().toString(), isNot(contains('notes')));
   });
 

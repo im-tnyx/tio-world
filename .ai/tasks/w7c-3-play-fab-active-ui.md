@@ -10,6 +10,12 @@ Owner approved a scoped Note sheet change on the existing PR #740: Workout Log o
 
 **Follow-up correction:** Workout Log's Note action must open the three-option sheet immediately, including for ad-hoc workouts without a RoutineId. Its local inline draft must remain available in release builds without a Routine Notes repository. Routine Add/Edit retains its existing action flow and two-option sheet. A Routine type chosen for an ad-hoc log is only local draft presentation; it cannot create a pinned Routine Note without a Routine identity.
 
+## Unattended local workout limit (owner direction, 2026-11-10)
+
+**Scope:** Keep the existing phone UI. For the W7C-3 device-local workout draft, persist the app background instant and last committed draft activity. On a return after two hours unattended, pause the draft at the two-hour cutoff, preserving logged sets and identity. A shorter background interval continues normally. A cold restore after a missed lifecycle callback uses last committed activity as fallback. No automatic Save/Discard and no Supabase shape or hosted write. Existing W7B server sessions require separate owner-scoped remote reconciliation; this local-draft rule does not claim to pause those rows.
+
+**Validation on source before push:** `active_workout_draft_test.dart` and `active_workout_draft_controller_test.dart` 18/18 pass, including two-day background, short background, missed lifecycle event, and Resume; `workout_home_branch_restore_test.dart` 2/2 pass; targeted `active_workout_page_test.dart` lifecycle case 1/1 passes. Targeted Dart analysis for changed Workout and app files reports no issues. Physical-device background/force-stop and legacy W7B server-session behavior remain unverified.
+
 ## Owner Approval and Scope Boundary
 
 **Trigger:** Owner-approved W7C-3 execution and completion slice, expanded by the request on 2026-11-09.
