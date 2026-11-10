@@ -406,4 +406,20 @@ void main() {
     expect(reopened.draft!.activeRest, isNull);
     reopened.dispose();
   });
+
+  test('discardForReplacement clears durable draft for Play replacement',
+      () async {
+    final store = _Store();
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      newUuid: () => _id(50),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(store.saved, isNotNull);
+    expect(await controller.discardForReplacement(), isTrue);
+    expect(controller.draft, isNull);
+    expect(store.saved, isNull);
+    controller.dispose();
+  });
 }

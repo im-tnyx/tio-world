@@ -304,6 +304,7 @@ Future<void> _pumpPage(
   required ActiveWorkoutController controller,
   ExerciseCatalogRepository? catalogRepository,
   bool showStartPreview = false,
+  bool createDraftIfMissing = true,
   TioThemeMode themeMode = TioThemeMode.light,
   VoidCallback? onBack,
   DateTime Function()? clock,
@@ -331,6 +332,7 @@ Future<void> _pumpPage(
         draftController: localController,
         catalogRepository: catalogRepository,
         showStartPreview: showStartPreview,
+        createDraftIfMissing: createDraftIfMissing,
         onBack: onBack,
         clock: clock ?? () => tester.binding.clock.now(),
       ),
@@ -2444,4 +2446,33 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets(
+      'Play resume with legacy session does not create a local draft',
+      (tester) async {
+    final store = _DraftStore();
+    final draftController = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1);
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: repository,
+        currentUserId: () => _userId,
+      ),
+      draftController: draftController,
+      showStartPreview: true,
+      createDraftIfMissing: false,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(draftController.draft, isNull);
+    expect(store.saved, isNull);
+    expect(find.text('Pause workout'), findsOneWidget);
+  });
 }

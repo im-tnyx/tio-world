@@ -51,6 +51,7 @@ class ActiveWorkoutPage extends StatelessWidget {
     super.key,
     this.onBack,
     this.showStartPreview = false,
+    this.createDraftIfMissing = true,
     this.catalogRepository,
     this.userExerciseRepository,
     this.gymLocationRepository,
@@ -63,6 +64,10 @@ class ActiveWorkoutPage extends StatelessWidget {
 
   /// Entry-only UI: never creates a session, exercise, or fake identity.
   final bool showStartPreview;
+
+  /// When false, Play resume restores an existing local draft only and never
+  /// starts a second ad-hoc workout while a legacy session is being resumed.
+  final bool createDraftIfMissing;
 
   /// Optional exercise catalog repository for preview exercise selection.
   final ExerciseCatalogRepository? catalogRepository;
@@ -81,6 +86,7 @@ class ActiveWorkoutPage extends StatelessWidget {
       controller: controller,
       onBack: onBack ?? () => Navigator.of(context).maybePop(),
       showStartPreview: showStartPreview,
+      createDraftIfMissing: createDraftIfMissing,
       catalogRepository: catalogRepository,
       userExerciseRepository: userExerciseRepository,
       gymLocationRepository: gymLocationRepository,
@@ -95,6 +101,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
     required this.controller,
     required this.onBack,
     required this.showStartPreview,
+    required this.createDraftIfMissing,
     this.catalogRepository,
     this.userExerciseRepository,
     this.gymLocationRepository,
@@ -105,6 +112,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
   final ActiveWorkoutController? controller;
   final VoidCallback onBack;
   final bool showStartPreview;
+  final bool createDraftIfMissing;
   final ExerciseCatalogRepository? catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
   final GymLocationRepository? gymLocationRepository;
@@ -132,7 +140,8 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     if (controller == null) return;
     // tio-workspace style: Play starts local workout then opens Log Workout.
     // No recovery screen and no silent home-back on start.
-    if (widget.showStartPreview) {
+    // Resume must not create a second draft while a legacy session restores.
+    if (widget.showStartPreview && widget.createDraftIfMissing) {
       await controller.restoreOrStart();
     } else {
       await controller.restoreExisting();
@@ -470,6 +479,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
 
   Widget _buildDraftPreview() => _StartWorkoutPreview(
         onBack: widget.onBack,
+        createDraftIfMissing: widget.createDraftIfMissing,
         catalogRepository: widget.catalogRepository,
         userExerciseRepository: widget.userExerciseRepository,
         gymLocationRepository: widget.gymLocationRepository,
@@ -496,6 +506,7 @@ class _LoadingState extends StatelessWidget {
 class _StartWorkoutPreview extends StatefulWidget {
   const _StartWorkoutPreview({
     required this.onBack,
+    required this.createDraftIfMissing,
     this.catalogRepository,
     this.userExerciseRepository,
     this.gymLocationRepository,
@@ -504,6 +515,7 @@ class _StartWorkoutPreview extends StatefulWidget {
   });
 
   final VoidCallback onBack;
+  final bool createDraftIfMissing;
   final ExerciseCatalogRepository? catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
   final GymLocationRepository? gymLocationRepository;
@@ -622,12 +634,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
   void initState() {
     super.initState();
     widget.draftController?.addListener(_onDraftChanged);
-    if (widget.draftController != null &&
-        widget.draftController!.draft == null) {
-      unawaited(widget.draftController!.restoreOrStart());
-    } else {
-      _ensureTicker();
-    }
+    _ensureDraftOrTicker();
   }
 
   void _onDraftChanged() {
@@ -641,18 +648,25 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     setState(() {});
   }
 
+  void _ensureDraftOrTicker() {
+    final controller = widget.draftController;
+    if (controller != null &&
+        controller.draft == null &&
+        widget.createDraftIfMissing) {
+      unawaited(controller.restoreOrStart());
+      return;
+    }
+    _ensureTicker();
+  }
+
   @override
   void didUpdateWidget(covariant _StartWorkoutPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.draftController, widget.draftController)) {
+    if (!identical(oldWidget.draftController, widget.draftController) ||
+        oldWidget.createDraftIfMissing != widget.createDraftIfMissing) {
       oldWidget.draftController?.removeListener(_onDraftChanged);
       widget.draftController?.addListener(_onDraftChanged);
-      if (widget.draftController != null &&
-          widget.draftController!.draft == null) {
-        unawaited(widget.draftController!.restoreOrStart());
-      } else {
-        _ensureTicker();
-      }
+      _ensureDraftOrTicker();
     }
   }
 

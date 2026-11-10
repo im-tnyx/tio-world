@@ -534,6 +534,28 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     }
   }
 
+  /// Permanently clears any local draft so Play can start a replacement workout.
+  /// Unlike [discard], this also clears a frozen/submitted draft and an empty
+  /// memory slot that still has durable store state.
+  Future<bool> discardForReplacement() async {
+    if (_busy || _disposed) return false;
+    _busy = true;
+    _error = null;
+    _notify();
+    try {
+      await _store.delete();
+      if (_disposed) return false;
+      _draft = null;
+      return true;
+    } catch (error) {
+      if (!_disposed) _error = error;
+      return false;
+    } finally {
+      _busy = false;
+      _notify();
+    }
+  }
+
   @override
   void dispose() {
     _disposed = true;

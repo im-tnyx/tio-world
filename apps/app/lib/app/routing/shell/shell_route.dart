@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -143,9 +145,22 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
       builder: (context, ref, _) => WorkoutHomePage(
         resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
         onLibraryPressed: () => context.push(AppRoutes.workoutLibrary.path),
-        onPlayPressed: () => context.push(
-          '${AppRoutes.workoutActive.path}?preview=1',
-        ),
+        onPlayPressed: () {
+          unawaited(
+            runWorkoutPlayStart(
+              context: context,
+              draftController: ref.read(activeWorkoutDraftControllerProvider),
+              draftStore: ref.read(activeWorkoutDraftStoreProvider),
+              sessionController: ref.read(activeWorkoutControllerProvider),
+              openActive: ({required bool resumeExisting}) {
+                final query = resumeExisting
+                    ? '?preview=1&resume=1'
+                    : '?preview=1';
+                context.push('${AppRoutes.workoutActive.path}$query');
+              },
+            ),
+          );
+        },
       ),
     );
   }
@@ -1824,6 +1839,7 @@ List<RouteBase> _shellBranchChildRoutes(
           userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
           gymLocationRepository: ref.watch(gymLocationRepositoryProvider),
           showStartPreview: state.uri.queryParameters['preview'] == '1',
+          createDraftIfMissing: state.uri.queryParameters['resume'] != '1',
         ),
       ),
     ),

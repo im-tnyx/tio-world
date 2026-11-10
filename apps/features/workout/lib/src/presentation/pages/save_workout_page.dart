@@ -683,7 +683,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               key: const ValueKey('save-workout-gym-tile'),
               icon: Icons.location_on_outlined,
               title: 'Gym',
-              value: _selectedGym ?? 'None',
+              value: _selectedGym ?? 'Select',
               valueColor: _selectedGym != null
                   ? colors.textPrimary
                   : colors.textSecondary,

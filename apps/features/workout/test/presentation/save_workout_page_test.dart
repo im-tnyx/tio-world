@@ -227,7 +227,7 @@ void main() {
       expect(find.text('Description'), findsOneWidget);
       expect(find.text('Weight Training'), findsOneWidget);
       expect(find.text('Rate workout'), findsOneWidget);
-      expect(find.text('None'), findsOneWidget); // Default gym is None
+      expect(find.text('Select'), findsOneWidget); // Default gym is Select
       expect(find.text('Discard Workout'), findsOneWidget);
     });
 
@@ -494,7 +494,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('None'), findsOneWidget);
+      expect(find.text('Select'), findsOneWidget);
 
       // Open Gym selection
       await tester.tap(find.byKey(const ValueKey('save-workout-gym-tile')));
@@ -522,11 +522,11 @@ void main() {
       expect(
           find.byKey(const ValueKey('save-workout-gym-clear')), findsOneWidget);
 
-      // Clear gym back to None
+      // Clear gym back to Select
       await tester.tap(find.byKey(const ValueKey('save-workout-gym-clear')));
       await tester.pumpAndSettle();
 
-      expect(find.text('None'), findsOneWidget);
+      expect(find.text('Select'), findsOneWidget);
     });
 
     testWidgets('tapping Activity Type opens sheet and updates selection',
