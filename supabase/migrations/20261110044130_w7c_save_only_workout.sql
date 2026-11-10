@@ -254,7 +254,7 @@ begin
   v_paused_us := (p_payload->>'accumulated_paused_microseconds')::bigint;
   if v_started is null or v_completed is null or v_selected is null
      or v_completed < v_started or v_selected > v_completed
-     or v_completed > now() + interval '1 day'
+     or v_completed > now() + interval '24 hours'
      or v_completed - v_started > interval '30 days'
      or v_offset is null or v_offset not between -840 and 840
      or nullif(btrim(p_payload->>'workout_title'), '') is null
