@@ -568,6 +568,14 @@ void main() {
       find.byKey(const ValueKey('exercise-note-action-ex_barbell_bench_press')),
     );
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('exercise-note-type-workout')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-type-routine')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-type-exercise')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-note-type-workout')));
+    await tester.pumpAndSettle();
     final noteInput = find.byKey(
       const ValueKey('exercise-note-input-ex_barbell_bench_press'),
     );

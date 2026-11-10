@@ -61,7 +61,8 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
-Future<void> _pumpPreview(WidgetTester tester) async {
+Future<void> _pumpPreview(WidgetTester tester,
+    {bool isWorkoutLog = false}) async {
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => TioTheme(
@@ -72,6 +73,7 @@ Future<void> _pumpPreview(WidgetTester tester) async {
         body: ExerciseNotesInline(
           exerciseRef: ExerciseRef.catalog(_exercise),
           routineId: null,
+          isWorkoutLog: isWorkoutLog,
           restControl: const SizedBox(key: ValueKey('rest-control')),
           repository: null,
           ownerId: null,
@@ -87,11 +89,20 @@ Future<void> _pumpPreview(WidgetTester tester) async {
 void main() {
   testWidgets('Workout Log defaults to Workout Note and shows three types',
       (tester) async {
-    await _pump(tester, _FakeRoutineNotesRepository(),
-        routineId: RoutineId(_routine), isWorkoutLog: true);
+    await _pumpPreview(tester, isWorkoutLog: true);
     await tester
         .tap(find.byKey(const ValueKey('exercise-note-action-$_exercise')));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const ValueKey('exercise-note-type-sheet')), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-type-workout')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-type-routine')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-note-type-exercise')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('exercise-note-type-workout')));
+    await tester.pumpAndSettle();
     expect(
         tester
             .widget<TextField>(
@@ -101,12 +112,6 @@ void main() {
         'Add a workout note');
     await tester.tap(find.byKey(const ValueKey('exercise-note-draft-type')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('exercise-note-type-workout')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('exercise-note-type-routine')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('exercise-note-type-exercise')),
-        findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('exercise-note-type-exercise')));
     await tester.pumpAndSettle();
     expect(

@@ -8,6 +8,8 @@
 
 Owner approved a scoped Note sheet change on the existing PR #740: Workout Log offers Workout Note alongside the existing pinned types and defaults a new note draft to Workout Note. Routine Add/Edit continues to show only Pinned Exercise Note and Pinned Routine Note, with Pinned Routine Note selected by default. The choice remains editable. This changes presentation and inline draft type only. Per-exercise Workout Log notes are absent from the current durable draft and Save payload, so this change does not claim they are saved or visible in workout posts. No schema change or hosted deployment is included.
 
+**Follow-up correction:** Workout Log's Note action must open the three-option sheet immediately, including for ad-hoc workouts without a RoutineId. Its local inline draft must remain available in release builds without a Routine Notes repository. Routine Add/Edit retains its existing action flow and two-option sheet. A Routine type chosen for an ad-hoc log is only local draft presentation; it cannot create a pinned Routine Note without a Routine identity.
+
 ## Owner Approval and Scope Boundary
 
 **Trigger:** Owner-approved W7C-3 execution and completion slice, expanded by the request on 2026-11-09.

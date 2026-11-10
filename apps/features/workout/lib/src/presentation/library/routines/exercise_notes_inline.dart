@@ -215,27 +215,20 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
       widget.routineId,
       allowDelete: true,
       allowWorkoutNote: widget.isWorkoutLog,
-      allowRoutineWithoutId: !widget.isWorkoutLog,
+      allowRoutineWithoutId: true,
     );
     if (!mounted || selection == null) return;
     if (selection is _DeleteNoteSelection) {
       _deleteDraft(draft);
       return;
     }
-    if (selection is! RoutineNoteType &&
-        selection is! _WorkoutNoteSelection) {
+    if (selection is! RoutineNoteType && selection is! _WorkoutNoteSelection) {
       return;
     }
     final RoutineNoteType? type = selection is _WorkoutNoteSelection
         ? null
         : selection as RoutineNoteType;
     if (type == draft.type) return;
-    final routineId = widget.routineId;
-    if (type == RoutineNoteType.pinnedRoutine &&
-        routineId == null &&
-        widget.isWorkoutLog) {
-      return;
-    }
     draft.type = type;
     setState(() {});
     _publishDrafts();
@@ -304,7 +297,9 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     FocusManager.instance.primaryFocus?.unfocus();
     final controller = _controller;
     if (!widget.enabled ||
-        (!_previewOnly && (controller == null || !controller.canCreate))) {
+        (!widget.isWorkoutLog &&
+            !_previewOnly &&
+            (controller == null || !controller.canCreate))) {
       return;
     }
     final savedCount = controller?.state.notes.length ?? 0;
@@ -324,6 +319,7 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     _drafts.add(draft);
     setState(() {});
     _publishDrafts();
+    if (widget.isWorkoutLog) unawaited(_changeDraftType(draft));
   }
 
   Future<bool> _delete(RoutineNote note) async {
@@ -395,13 +391,16 @@ final class _ExerciseNotesInlineState extends State<ExerciseNotesInline>
     ];
     final actionNotice = state?.actionNotice ?? routineState?.actionNotice;
     final canCreate = widget.enabled &&
-        (_previewOnly ||
+        (widget.isWorkoutLog ||
+            _previewOnly ||
             controller?.canCreate == true ||
             routineController?.canCreate == true);
     final canAddDraft =
         canCreate && notes.length + _drafts.length < _maxInlineNotes;
     final canEditDraft = widget.enabled &&
-        (_previewOnly || state?.status != RoutineNotesStatus.failed);
+        (widget.isWorkoutLog ||
+            _previewOnly ||
+            state?.status != RoutineNotesStatus.failed);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
