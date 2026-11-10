@@ -59,12 +59,15 @@ done
 ai_domains=(
   "anthropic.com"
   "openai.com"
+  "cursor.com"
+  "cursoragent.com"
 )
 
 # Known AI display identities (checked as an exact, case-insensitive match on
 # the trailer's name field). Deliberately does NOT include a bare "claude" or
 # "codex" first-name match, so a real human co-author is never rejected only
-# because their name resembles a provider name.
+# because their name resembles a provider name. "cursor" matches the exact
+# Cursor agent trailer display name only.
 ai_names=(
   "anthropic"
   "codex"
@@ -74,6 +77,7 @@ ai_names=(
   "claude sonnet"
   "claude opus"
   "claude haiku"
+  "cursor"
 )
 
 to_lower() {

@@ -193,16 +193,17 @@ void main() {
     controller.dispose();
   });
 
-  test('secure read failure never starts a replacement workout', () async {
+  test('secure read failure still starts an in-memory Play workout', () async {
     final store = _Store()..failLoad = true;
     final controller = ActiveWorkoutDraftController(
       store: store,
       ownerId: owner,
       clock: () => DateTime.utc(2026, 11, 9),
     );
-    expect(await controller.restoreOrStart(), isFalse);
-    expect(controller.draft, isNull);
-    expect(store.writes, 0);
+    // tio-workspace style: start is memory-first; persist is best-effort.
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(controller.draft, isNotNull);
+    expect(controller.draft!.ownerId, owner);
     controller.dispose();
   });
 

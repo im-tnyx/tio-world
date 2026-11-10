@@ -119,7 +119,6 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
   ActiveWorkoutController? _controller;
   final ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(false);
   bool _draftChecked = false;
-  bool _playExitScheduled = false;
 
   @override
   void initState() {
@@ -128,32 +127,13 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     _bindController(widget.controller);
   }
 
-  /// Play may fail closed (no workout start) but must never show a separate
-  /// recovery/message screen. Exit back to Workout Home instead.
-  void _exitPlayWithoutStart() {
-    if (!widget.showStartPreview || _playExitScheduled) return;
-    _playExitScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) widget.onBack();
-    });
-  }
-
   Future<void> _restoreExistingDraft() async {
     final controller = widget.draftController;
-    if (controller == null) {
-      if (widget.showStartPreview) _exitPlayWithoutStart();
-      return;
-    }
-    // Play: restore existing or start a fresh local draft so Log Workout opens.
-    // No recovery UI — if start is impossible, exit silently.
+    if (controller == null) return;
+    // tio-workspace style: Play starts local workout then opens Log Workout.
+    // No recovery screen and no silent home-back on start.
     if (widget.showStartPreview) {
-      final started = await controller.restoreOrStart();
-      if (mounted &&
-          identical(controller, widget.draftController) &&
-          (!started || controller.draft == null)) {
-        _exitPlayWithoutStart();
-        return;
-      }
+      await controller.restoreOrStart();
     } else {
       await controller.restoreExisting();
     }
@@ -380,12 +360,17 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     final controller = _controller;
     final state = controller?.state;
 
+    // Play with a local draft controller always targets Log Workout, even while
+    // the online session controller is still restoring/reconciling.
     if (widget.showStartPreview &&
-        (controller == null ||
-            state == null ||
-            widget.draftController == null)) {
-      _exitPlayWithoutStart();
-      return const Scaffold(body: SafeArea(child: SizedBox.shrink()));
+        widget.draftController != null &&
+        (controller == null || state == null)) {
+      if (!_draftChecked && widget.draftController!.draft == null) {
+        return const Scaffold(body: SafeArea(child: _LoadingState()));
+      }
+      return Scaffold(
+        body: SafeArea(child: _buildDraftPreview()),
+      );
     }
 
     return Scaffold(
@@ -403,20 +388,19 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     ActiveWorkoutState state,
   ) {
     final draftController = widget.draftController;
-    // Owner rule: Play → Log Workout only. Never an extra recovery screen.
-    // If Log Workout cannot start, exit silently back to Workout Home.
+    // Owner / tio-workspace rule: Play → Log Workout only. No recovery UI.
     if (widget.showStartPreview &&
         draftController != null &&
         (state.status == ActiveWorkoutStatus.noSession ||
-            state.status == ActiveWorkoutStatus.reconciliationRequired)) {
-      if (draftController.draft != null) {
-        return _buildDraftPreview();
-      }
-      if (!_draftChecked || draftController.isBusy) {
+            state.status == ActiveWorkoutStatus.reconciliationRequired ||
+            state.status == ActiveWorkoutStatus.initial ||
+            state.status == ActiveWorkoutStatus.restoring)) {
+      if (!_draftChecked &&
+          draftController.draft == null &&
+          draftController.isBusy) {
         return const _LoadingState();
       }
-      _exitPlayWithoutStart();
-      return const SizedBox.shrink();
+      return _buildDraftPreview();
     }
     switch (state.status) {
       case ActiveWorkoutStatus.initial:
@@ -958,14 +942,14 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
   Widget build(BuildContext context) {
     final draftController = widget.draftController;
     if (draftController == null) {
-      // Parent Play entry already exits silently when draft is unavailable.
-      return const SizedBox.shrink();
+      return const _LoadingState();
     }
     if (_draft == null && draftController.isBusy) {
       return const _LoadingState();
     }
     if (_draft == null) {
-      // No recovery message screen. Parent exits if start failed / discarded.
+      // Discarded / awaiting start — no recovery screen and no spinner that
+      // would block test settle; parent already navigates Back on discard.
       return const SizedBox.shrink();
     }
     final showRpe = MediaQuery.sizeOf(context).width >= 360;

@@ -61,7 +61,18 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     _error = null;
     _notify();
     try {
-      final restored = await _store.load();
+      // tio-workspace style: Play/start is memory-first. Local persist is
+      // best-effort and must not block opening Log Workout.
+      ActiveWorkoutDraft? restored;
+      try {
+        restored = await _store.load();
+      } catch (error) {
+        if (!createIfMissing) {
+          if (!_disposed) _error = error;
+          return false;
+        }
+        restored = null;
+      }
       if (restored != null && restored.ownerId != _ownerId) {
         throw StateError('Workout draft belongs to another account.');
       }
@@ -73,13 +84,16 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             saveRequestId: _newUuid(),
             time: WorkoutTime.start(startedAtUtc: _nowUtc()),
           );
+      // Publish the in-memory draft before durable write so UI can open.
+      if (_disposed) return false;
+      _draft = candidate;
+      _notify();
       if (restored == null) {
         try {
           await _store.save(candidate);
         } catch (_) {
           // Slot may already hold the candidate after an interrupted first
-          // commit. Prefer recovering that durable row, then retry the same
-          // candidate once so a transient pointer failure can complete.
+          // commit. Prefer recovering that durable row, then retry once.
           try {
             final recovered = await _store.load();
             if (recovered != null && recovered.ownerId == _ownerId) {
@@ -88,15 +102,19 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
               return true;
             }
           } catch (_) {}
-          await _store.save(candidate);
+          try {
+            await _store.save(candidate);
+          } catch (error) {
+            // Keep the in-memory workout alive; durable retry happens on the
+            // next mutation. Do not fail Play/start for a persist hiccup.
+            if (!_disposed) _error = error;
+          }
         }
       }
-      if (_disposed) return false;
-      _draft = candidate;
-      return true;
+      return !_disposed;
     } catch (error) {
       if (!_disposed) _error = error;
-      return false;
+      return _draft != null && !_disposed;
     } finally {
       _busy = false;
       _notify();

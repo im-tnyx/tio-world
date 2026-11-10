@@ -2367,7 +2367,8 @@ void main() {
         greaterThanOrEqualTo(firstDuration + const Duration(minutes: 5)));
   });
 
-  testWidgets('Play exits silently when draft cannot start', (tester) async {
+  testWidgets('Play opens Log Workout when local persist cannot load',
+      (tester) async {
     final store = _DraftStore()..failLoad = true;
     final draftController = ActiveWorkoutDraftController(
       store: store,
@@ -2375,7 +2376,6 @@ void main() {
       clock: () => tester.binding.clock.now(),
     );
     addTearDown(draftController.dispose);
-    var backed = false;
     await _pumpPage(
       tester,
       controller: ActiveWorkoutController(
@@ -2384,14 +2384,14 @@ void main() {
       ),
       draftController: draftController,
       showStartPreview: true,
-      onBack: () => backed = true,
     );
-    await tester.pump(); // post-frame silent exit
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('Workout draft unavailable'), findsNothing);
     expect(find.text('Retry'), findsNothing);
-    expect(find.text('Log Workout'), findsNothing);
-    expect(backed, isTrue);
+    expect(find.text('Log Workout'), findsOneWidget);
+    expect(find.text('Get started'), findsOneWidget);
+    expect(draftController.draft, isNotNull);
   });
 
   for (final theme in [TioThemeMode.light, TioThemeMode.dark]) {

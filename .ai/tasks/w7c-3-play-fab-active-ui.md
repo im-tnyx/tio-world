@@ -80,7 +80,7 @@
 **Validation remaining:** Exact-head CI on pushed SHA; independent `im-tio` re-review; hosted W7B/W7C deploy still separately gated.
 **Next exact action:** After push, refresh PR #740 checks and request fresh `im-tio` review. Do not merge or deploy.
 
-**Owner UI rule (2026-11-10):** Changes are bug/correctness only — no owner-requested UI redesign. Play must open local Log Workout directly. No AI recovery/Retry/Back extra screen on Play. Sync to Supabase only after Save. If start is impossible, exit silently. Optional pill/SnackBar is enough if ever needed; full recovery screen is not.
+**Owner UI rule (2026-11-10):** Changes are bug/correctness only — no owner-requested UI redesign. Match `tio-workspace`: Play starts local workout in memory then opens Log Workout; local persist is best-effort; Supabase sync only after Save. No AI recovery/Retry/Back extra screen and no silent home-back on Play start.
 
 ## 1. Discovery
 
