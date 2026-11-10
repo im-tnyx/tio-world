@@ -76,16 +76,19 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       if (restored == null) {
         try {
           await _store.save(candidate);
-        } catch (error) {
-          // A partial first write may have committed the encrypted draft even
-          // when the outer save call failed; recover that durable row.
-          final recovered = await _store.load();
-          if (recovered != null && recovered.ownerId == _ownerId) {
-            if (_disposed) return false;
-            _draft = recovered;
-            return true;
-          }
-          rethrow;
+        } catch (_) {
+          // Slot may already hold the candidate after an interrupted first
+          // commit. Prefer recovering that durable row, then retry the same
+          // candidate once so a transient pointer failure can complete.
+          try {
+            final recovered = await _store.load();
+            if (recovered != null && recovered.ownerId == _ownerId) {
+              if (_disposed) return false;
+              _draft = recovered;
+              return true;
+            }
+          } catch (_) {}
+          await _store.save(candidate);
         }
       }
       if (_disposed) return false;

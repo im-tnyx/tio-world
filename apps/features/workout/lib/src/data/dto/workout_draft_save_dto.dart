@@ -72,9 +72,10 @@ abstract final class WorkoutDraftSaveDto {
       'workout_title': title.trim(),
       'workout_at_utc': workoutAtUtc.toIso8601String(),
       'workout_utc_offset_minutes': offset,
-      'description': draft.description?.trim(),
-      'activity_type': draft.activityType,
-      'gym_name': draft.gymName,
+      // SQL completion stores blank notes as NULL; keep payload/readback aligned.
+      'description': _nullableTrimmed(draft.description),
+      'activity_type': _nullableTrimmed(draft.activityType),
+      'gym_name': _nullableTrimmed(draft.gymName),
       'overall_rpe': draft.overallRpe,
       'selected_duration_seconds': draft.selectedDurationSeconds ??
           draft.time.elapsedActiveDuration(completedAtUtc).inSeconds,
@@ -139,9 +140,10 @@ abstract final class WorkoutDraftSaveDto {
         record.workoutAtUtc.toIso8601String() != payload['workout_at_utc'] ||
         record.utcOffsetMinutes != payload['workout_utc_offset_minutes'] ||
         record.localDate != localDate ||
-        record.description != (payload['description'] as String?)?.trim() ||
-        record.activityType != payload['activity_type'] ||
-        record.gymName != payload['gym_name'] ||
+        record.description != _nullableTrimmed(payload['description'] as String?) ||
+        record.activityType !=
+            _nullableTrimmed(payload['activity_type'] as String?) ||
+        record.gymName != _nullableTrimmed(payload['gym_name'] as String?) ||
         record.overallRpe != payload['overall_rpe'] ||
         record.durationSeconds != payload['selected_duration_seconds'] ||
         !_deepEquals(record.snapshot, payload['routine_snapshot']) ||
@@ -165,6 +167,12 @@ abstract final class WorkoutDraftSaveDto {
       }
     }
     return true;
+  }
+
+  static String? _nullableTrimmed(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed;
   }
 
   static bool _deepEquals(Object? a, Object? b) {

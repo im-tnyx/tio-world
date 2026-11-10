@@ -371,6 +371,72 @@ void main() {
       expect(saves, 3);
     });
 
+    test('blank Save description matches canonical NULL notes readback',
+        () async {
+      final draft = ActiveWorkoutDraft(
+        id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',
+        ownerId: _owner,
+        saveRequestId: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',
+        time: WorkoutTime.start(startedAtUtc: _startedAt)
+            .pause(_startedAt.add(const Duration(minutes: 10))),
+        submittedAtUtc: _startedAt.add(const Duration(minutes: 12)),
+        submittedTitle: 'Morning Workout',
+        workoutTitle: '',
+        description: '   ',
+        workoutAtUtc: _startedAt,
+        workoutUtcOffsetMinutes: 330,
+        selectedDurationSeconds: 600,
+        exercises: [
+          ActiveWorkoutDraftExercise(
+            id: 'cccccccc-cccc-4ccc-cccc-cccccccccccc',
+            exerciseRef: CatalogExerciseRef('ex_bench_press'),
+            displayName: 'Bench Press',
+            sets: [
+              ActiveWorkoutDraftSet(
+                id: 'dddddddd-dddd-4ddd-dddd-dddddddddddd',
+                prescription: SetPrescription(),
+                reps: 8,
+                loadKg: 50,
+                loggedAtUtc: _startedAt.add(const Duration(minutes: 5)),
+              ),
+            ],
+          ),
+        ],
+      );
+      gateway.onSaveDraft = (params) async {
+        final payload = params['p_payload'] as Map<String, dynamic>;
+        expect(payload.containsKey('description'), isTrue);
+        expect(payload['description'], isNull);
+        gateway.performedSets = [
+          {
+            ..._mockSetRow(reps: 8, loadKg: 50),
+            'completed_at_utc':
+                (payload['performed_sets'] as List).single['completed_at_utc'],
+          }
+        ];
+        gateway.sessionHeader = {
+          ..._mockSessionRow(
+            status: 'completed',
+            revision: 2,
+            completedAt: draft.submittedAtUtc,
+            notes: null,
+            workoutTitle: 'Morning Workout',
+            workoutAtUtc: _startedAt,
+            workoutUtcOffsetMinutes: 330,
+          ),
+          'program_id': null,
+          'routine_id': null,
+          'save_request_id': draft.saveRequestId,
+          'local_date': '2026-11-07',
+          'workout_duration_seconds': 600,
+          'routine_snapshot': payload['routine_snapshot'],
+        };
+        return gateway.sessionHeader!;
+      };
+      final saved = await repo.saveDraft(draft);
+      expect(saved.description, isNull);
+    });
+
     test('startSession dispatches RPC and returns authoritative record',
         () async {
       final session = _mockSession();

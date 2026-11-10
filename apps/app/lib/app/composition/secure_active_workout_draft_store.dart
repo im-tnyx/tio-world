@@ -74,15 +74,41 @@ final class SecureActiveWorkoutDraftStore implements ActiveWorkoutDraftStore {
           return null;
         }
         if (pointer == null) {
-          // A pending first write has no committed pointer. Surface it rather
-          // than hiding potentially recoverable data as a new empty workout.
+          // An interrupted first save may have written exactly one encrypted
+          // slot before the commit pointer landed. Promote that sole slot so
+          // restart/retry can continue the same owner-bound draft.
           final a = await _values.read(_key(owner, 'a'));
           final b = await _values.read(_key(owner, 'b'));
-          if (a != null || b != null) {
-            throw const FormatException('Uncommitted workout draft exists.');
+          if (a != null && b != null) {
+            throw const FormatException('Ambiguous uncommitted workout draft.');
+          }
+          final raw = a ?? b;
+          if (raw == null) {
+            _assertOwner(owner);
+            return null;
+          }
+          final Object? decoded;
+          try {
+            decoded = jsonDecode(raw);
+          } catch (_) {
+            throw const FormatException('Uncommitted workout draft is corrupt.');
+          }
+          if (decoded is! Map<String, dynamic>) {
+            throw const FormatException('Uncommitted workout draft is corrupt.');
+          }
+          final draft = ActiveWorkoutDraft.fromJson(decoded);
+          if (draft.ownerId != owner) {
+            throw const FormatException('Workout draft owner mismatch.');
+          }
+          final slot = a != null ? 'a' : 'b';
+          final pointerKey = _key(owner, 'pointer');
+          _assertOwner(owner);
+          await _values.write(pointerKey, slot);
+          if (await _values.read(pointerKey) != slot) {
+            throw StateError('Workout draft commit recovery failed.');
           }
           _assertOwner(owner);
-          return null;
+          return draft;
         }
         if (pointer != 'a' && pointer != 'b') {
           throw const FormatException('Invalid workout draft commit pointer.');

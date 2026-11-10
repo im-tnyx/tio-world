@@ -7,6 +7,7 @@ import 'package:tio_shared/shared.dart';
 final class _Store implements ActiveWorkoutDraftStore {
   ActiveWorkoutDraft? saved;
   bool failSave = false;
+  bool failAfterWrite = false;
   bool failLoad = false;
   int writes = 0;
   Completer<void>? writeGate;
@@ -23,6 +24,10 @@ final class _Store implements ActiveWorkoutDraftStore {
     await writeGate?.future;
     saved = draft;
     writes++;
+    if (failAfterWrite) {
+      failAfterWrite = false;
+      throw StateError('commit pointer write failed');
+    }
   }
 
   @override
@@ -252,6 +257,22 @@ void main() {
     expect(store.saved!.exercises.single.sets.length, 3);
     expect(controller.draft!.exercises.single.sets.map((set) => set.id).toSet(),
         hasLength(3));
+    controller.dispose();
+  });
+
+  test('interrupted first write recovers the durable candidate on restore',
+      () async {
+    final store = _Store()..failAfterWrite = true;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => DateTime.utc(2026, 11, 9, 10),
+      newUuid: () => _id(10),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(controller.draft?.id, _id(10));
+    expect(store.saved?.id, _id(10));
+    expect(store.writes, 1);
     controller.dispose();
   });
 

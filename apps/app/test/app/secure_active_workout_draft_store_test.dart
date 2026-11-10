@@ -155,8 +155,10 @@ void main() {
       values: values,
     );
     await expectLater(store.save(_draft(0)), throwsStateError);
-    await expectLater(store.load(), throwsFormatException);
     values.failWriteSuffix = null;
+    // load() promotes the sole encrypted slot left by the interrupted commit.
+    expect((await store.load())?.id, draftId);
+    expect(values.data['active_workout_draft_v1.$ownerA.pointer'], 'a');
     await store.save(_draft(0));
     expect((await store.load())?.id, draftId);
   });
