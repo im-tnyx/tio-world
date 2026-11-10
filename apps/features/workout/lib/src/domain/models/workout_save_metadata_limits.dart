@@ -27,6 +27,6 @@ abstract final class WorkoutSaveMetadataLimits {
   static bool isValidActivityType(String? activityType) {
     final trimmed = activityType?.trim() ?? '';
     if (trimmed.isEmpty) return true;
-    return trimmed.length >= 1 && trimmed.length <= maxActivityTypeLength;
+    return trimmed.length <= maxActivityTypeLength;
   }
 }
