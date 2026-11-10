@@ -23,7 +23,8 @@ WorkoutSessionSnapshot _mockSnapshot() => WorkoutSessionSnapshot(
           displayName: 'Bench Press',
           occurrenceIndex: 0,
           prescribedSets: [
-            SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 80.0),
+            SetPrescription(
+                setType: RoutineSetType.normal, reps: 8, loadKg: 80.0),
           ],
         ),
       ],
@@ -98,9 +99,8 @@ Map<String, dynamic> _mockSessionRow({
       'discard_reason': discardReason,
       'revision': revision,
       'created_at': _startedAt.toIso8601String(),
-      'updated_at':
-          (lastTransitionAt ?? pausedAt ?? completedAt ?? _startedAt)
-              .toIso8601String(),
+      'updated_at': (lastTransitionAt ?? pausedAt ?? completedAt ?? _startedAt)
+          .toIso8601String(),
     };
 
 Map<String, dynamic> _mockSetRow({
@@ -150,13 +150,12 @@ final class _FakeGateway implements WorkoutSessionGateway {
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onLogSet;
   Future<void> Function(Map<String, dynamic>)? onRemoveSet;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onComplete;
+  Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onSaveDraft;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onDiscard;
 
   @override
   Future<Map<String, dynamic>?> readActiveSessionHeader(String userId) async =>
-      onReadActiveHeader != null
-          ? await onReadActiveHeader!()
-          : activeHeader;
+      onReadActiveHeader != null ? await onReadActiveHeader!() : activeHeader;
 
   @override
   Future<Map<String, dynamic>?> readSessionHeader(
@@ -238,6 +237,14 @@ final class _FakeGateway implements WorkoutSessionGateway {
   }
 
   @override
+  Future<Map<String, dynamic>> rpcSaveWorkoutDraft(
+    Map<String, dynamic> params,
+  ) async =>
+      onSaveDraft != null
+          ? await onSaveDraft!(params)
+          : _mockSessionRow(revision: 2, status: 'completed');
+
+  @override
   Future<Map<String, dynamic>> rpcDiscardWorkoutSession(
     Map<String, dynamic> params,
   ) async {
@@ -263,7 +270,109 @@ void main() {
       );
     });
 
-    test('startSession dispatches RPC and returns authoritative record', () async {
+    test('Save-only RPC confirms canonical title, metadata and performed set',
+        () async {
+      final draft = ActiveWorkoutDraft(
+        id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',
+        ownerId: _owner,
+        saveRequestId: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',
+        time: WorkoutTime.start(startedAtUtc: _startedAt)
+            .pause(_startedAt.add(const Duration(minutes: 10))),
+        submittedAtUtc: _startedAt.add(const Duration(minutes: 12)),
+        submittedTitle: 'Morning Workout',
+        workoutTitle: '',
+        description: 'Good session',
+        workoutAtUtc: _startedAt,
+        workoutUtcOffsetMinutes: 330,
+        selectedDurationSeconds: 600,
+        activityType: 'Weight Training',
+        gymName: 'Gym One',
+        overallRpe: 8,
+        exercises: [
+          ActiveWorkoutDraftExercise(
+            id: 'cccccccc-cccc-4ccc-cccc-cccccccccccc',
+            exerciseRef: CatalogExerciseRef('ex_bench_press'),
+            displayName: 'Bench Press',
+            sets: [
+              ActiveWorkoutDraftSet(
+                id: 'dddddddd-dddd-4ddd-dddd-dddddddddddd',
+                prescription: SetPrescription(
+                  setType: RoutineSetType.warmUp,
+                ),
+                reps: 10,
+                loadKg: 80,
+                rpe: 7.5,
+                loggedAtUtc: _startedAt.add(const Duration(minutes: 5)),
+              ),
+            ],
+          ),
+        ],
+      );
+      var saves = 0;
+      gateway.onSaveDraft = (params) async {
+        saves++;
+        final payload = params['p_payload'] as Map<String, dynamic>;
+        expect(params['p_save_request_id'], draft.saveRequestId);
+        expect(payload['workout_title'], 'Morning Workout');
+        expect(payload['accumulated_paused_microseconds'], 120000000);
+        final set = (payload['performed_sets'] as List).single as Map;
+        gateway.performedSets = [
+          {
+            ..._mockSetRow(),
+            'completed_at_utc': set['completed_at_utc'],
+          }
+        ];
+        gateway.sessionHeader = {
+          ..._mockSessionRow(
+            status: 'completed',
+            revision: 2,
+            completedAt: draft.submittedAtUtc,
+            notes: 'Good session',
+            workoutTitle: 'Morning Workout',
+            workoutAtUtc: _startedAt,
+            workoutUtcOffsetMinutes: 330,
+          ),
+          'program_id': null,
+          'routine_id': null,
+          'save_request_id': draft.saveRequestId,
+          'local_date': '2026-11-07',
+          'workout_activity_type': 'Weight Training',
+          'gym_name': 'Gym One',
+          'workout_rpe': 8,
+          'workout_duration_seconds': 600,
+          'routine_snapshot': payload['routine_snapshot'],
+        };
+        return gateway.sessionHeader!;
+      };
+      final first = await repo.saveDraft(draft);
+      expect(first.title, 'Morning Workout');
+      expect(first.description, 'Good session');
+      expect(first.performedSets.single.reps, 10);
+      expect(first.performedSets.single.loadKg, 80);
+      final exercise = (first.snapshot['exercises'] as List).single as Map;
+      final prescribed = (exercise['prescribed_sets'] as List).single as Map;
+      expect(prescribed['set_type'], 'warm_up');
+      expect(prescribed['performed_rpe'], 7.5);
+      final readback = await repo.getSavedDraft(first.sessionId);
+      expect(readback!.saveRequestId, draft.saveRequestId);
+      expect((await repo.saveDraft(draft)).sessionId, first.sessionId);
+      expect(saves, 2);
+
+      gateway.onSaveDraft = (params) async {
+        saves++;
+        gateway.performedSets = [];
+        return gateway.sessionHeader!;
+      };
+      await expectLater(
+          repo.saveDraft(draft),
+          throwsA(
+            isA<WorkoutSessionCommittedReadbackException>(),
+          ));
+      expect(saves, 3);
+    });
+
+    test('startSession dispatches RPC and returns authoritative record',
+        () async {
       final session = _mockSession();
       final record = await repo.startSession(session);
 
@@ -295,7 +404,8 @@ void main() {
       );
     });
 
-    test('getActiveSession returns null when no active/paused session exists', () async {
+    test('getActiveSession returns null when no active/paused session exists',
+        () async {
       gateway.activeHeader = null;
       final result = await repo.getActiveSession();
       expect(result, isNull);
@@ -313,7 +423,8 @@ void main() {
       expect(record.session.performedSets[0].reps, 10);
     });
 
-    test('bracketed read retries when revision changes mid-read and succeeds', () async {
+    test('bracketed read retries when revision changes mid-read and succeeds',
+        () async {
       gateway.activeHeader = _mockSessionRow(revision: 1);
       final sequence = [
         _mockSessionRow(revision: 1), // initial bracket start
@@ -329,7 +440,8 @@ void main() {
       expect(record!.revision, 2);
     });
 
-    test('bracketed read throws readConflict under sustained contention', () async {
+    test('bracketed read throws readConflict under sustained contention',
+        () async {
       gateway.sessionHeader = _mockSessionRow(revision: 1);
       var count = 0;
       gateway.onReadHeaderSequence = () => [
@@ -346,7 +458,8 @@ void main() {
       );
     });
 
-    test('pauseSession and resumeSession update status and perform readback', () async {
+    test('pauseSession and resumeSession update status and perform readback',
+        () async {
       final pausedTime = DateTime.utc(2026, 11, 7, 10, 20, 0);
       gateway.sessionHeader = _mockSessionRow(
         revision: 2,
@@ -383,7 +496,9 @@ void main() {
       );
     });
 
-    test('logPerformedSet dispatches RPC and reads authoritative session revision', () async {
+    test(
+        'logPerformedSet dispatches RPC and reads authoritative session revision',
+        () async {
       final set = PerformedSet(
         id: '55555555-5555-4555-a555-555555555555',
         exerciseRef: CatalogExerciseRef('ex_bench_press'),
@@ -411,7 +526,8 @@ void main() {
       expect(record.session.performedSets[0].loadKg, 85.0);
     });
 
-    test('removePerformedSet dispatches RPC and reads authoritative session', () async {
+    test('removePerformedSet dispatches RPC and reads authoritative session',
+        () async {
       gateway.sessionHeader = _mockSessionRow(revision: 4, status: 'active');
       gateway.performedSets = []; // set removed
 
@@ -425,7 +541,8 @@ void main() {
       expect(record.session.performedSets, isEmpty);
     });
 
-    test('removePerformedSet does not treat P0002 as successful deletion', () async {
+    test('removePerformedSet does not treat P0002 as successful deletion',
+        () async {
       gateway.onRemoveSet = (_) async {
         throw const PostgrestException(
           message: 'set_not_found',
@@ -447,7 +564,9 @@ void main() {
       );
     });
 
-    test('stale revision conflict (P0003) maps to typed staleRevisionConflict and does not overwrite', () async {
+    test(
+        'stale revision conflict (P0003) maps to typed staleRevisionConflict and does not overwrite',
+        () async {
       gateway.onLogSet = (_) async {
         throw const PostgrestException(
           message: 'stale_revision_conflict',
@@ -477,7 +596,8 @@ void main() {
       );
     });
 
-    test('timeout during mutation throws WorkoutSessionMutationOutcomeUnknown', () async {
+    test('timeout during mutation throws WorkoutSessionMutationOutcomeUnknown',
+        () async {
       gateway.onPause = (_) async {
         throw TimeoutException('In-flight gateway timeout');
       };
@@ -592,7 +712,9 @@ void main() {
       expect(gateway.completeCallCount, 1);
     });
 
-    test('terminal session immutability (P0001) maps to terminalSessionImmutable', () async {
+    test(
+        'terminal session immutability (P0001) maps to terminalSessionImmutable',
+        () async {
       gateway.onLogSet = (_) async {
         throw const PostgrestException(
           message: 'terminal_session_sets_immutable',
@@ -622,7 +744,9 @@ void main() {
       );
     });
 
-    test('auth invalidation / user change throws unauthorized and denies operations', () async {
+    test(
+        'auth invalidation / user change throws unauthorized and denies operations',
+        () async {
       currentUserId = null; // signed out!
 
       expect(
@@ -645,7 +769,9 @@ void main() {
       );
     });
 
-    test('getActiveSession returns null if session transitioned to terminal during bracketed read', () async {
+    test(
+        'getActiveSession returns null if session transitioned to terminal during bracketed read',
+        () async {
       // 1. readActiveSessionHeader sees active session
       gateway.activeHeader = _mockSessionRow(revision: 1, status: 'active');
       // 2. Concurrent actor completes or discards before/during _readSession
@@ -659,12 +785,16 @@ void main() {
       expect(active, isNull);
     });
 
-    test('performed-set slot conflict (23505 uq_user_workout_performed_sets_slot) maps to setSlotConflict', () async {
+    test(
+        'performed-set slot conflict (23505 uq_user_workout_performed_sets_slot) maps to setSlotConflict',
+        () async {
       gateway.onLogSet = (_) async {
         throw const PostgrestException(
-          message: 'duplicate key value violates unique constraint "uq_user_workout_performed_sets_slot"',
+          message:
+              'duplicate key value violates unique constraint "uq_user_workout_performed_sets_slot"',
           code: '23505',
-          details: 'Key (session_id, session_exercise_index, set_index)=(...) already exists.',
+          details:
+              'Key (session_id, session_exercise_index, set_index)=(...) already exists.',
         );
       };
 
@@ -690,7 +820,9 @@ void main() {
       );
     });
 
-    test('session_already_terminal with code P0002 maps to terminalSessionImmutable', () async {
+    test(
+        'session_already_terminal with code P0002 maps to terminalSessionImmutable',
+        () async {
       gateway.onLogSet = (_) async {
         throw const PostgrestException(
           message: 'session_already_terminal',
@@ -720,7 +852,9 @@ void main() {
       );
     });
 
-    test('unrecognized 23505 constraint maps to invalidPayload instead of duplicateActiveSession', () async {
+    test(
+        'unrecognized 23505 constraint maps to invalidPayload instead of duplicateActiveSession',
+        () async {
       gateway.onStart = (_) async {
         throw const PostgrestException(
           message: 'duplicate key violates unknown_constraint',
@@ -738,7 +872,9 @@ void main() {
       );
     });
 
-    test('in-flight auth invalidation during read preserves unauthenticated / unauthorized', () async {
+    test(
+        'in-flight auth invalidation during read preserves unauthenticated / unauthorized',
+        () async {
       final completer = Completer<Map<String, dynamic>?>();
       gateway.onReadActiveHeader = () => completer.future;
 
@@ -774,7 +910,9 @@ void main() {
       );
     });
 
-    test('in-flight auth change during mutation raises WorkoutSessionMutationOutcomeUnknown(sessionChanged)', () async {
+    test(
+        'in-flight auth change during mutation raises WorkoutSessionMutationOutcomeUnknown(sessionChanged)',
+        () async {
       final completer = Completer<Map<String, dynamic>>();
       gateway.onPause = (_) => completer.future;
 
@@ -798,7 +936,9 @@ void main() {
       );
     });
 
-    test('RPC success followed by readback timeout throws WorkoutSessionCommittedReadbackException', () async {
+    test(
+        'RPC success followed by readback timeout throws WorkoutSessionCommittedReadbackException',
+        () async {
       // 1. RPC log performed set succeeds
       gateway.onLogSet = (_) async => _mockSetRow(setIndex: 0);
       // 2. Subsequent readback times out
@@ -844,7 +984,9 @@ void main() {
       expect(gateway.logSetCallCount, 1);
     });
 
-    test('RPC success followed by revision read conflict throws WorkoutSessionCommittedReadbackException', () async {
+    test(
+        'RPC success followed by revision read conflict throws WorkoutSessionCommittedReadbackException',
+        () async {
       // 1. RPC remove performed set succeeds
       gateway.onRemoveSet = (_) async {};
       // 2. Subsequent readback experiences revision skew between start & end headers
@@ -879,16 +1021,20 @@ void main() {
         thrownEx.kind,
         WorkoutSessionPersistenceFailureKind.mutationCommittedReadbackFailed,
       );
-      expect(thrownEx.cause, isA<WorkoutSessionPersistenceException>().having(
-        (e) => e.kind,
-        'kind',
-        WorkoutSessionPersistenceFailureKind.readConflict,
-      ));
+      expect(
+          thrownEx.cause,
+          isA<WorkoutSessionPersistenceException>().having(
+            (e) => e.kind,
+            'kind',
+            WorkoutSessionPersistenceFailureKind.readConflict,
+          ));
       // Verify the delete was dispatched once and not retried automatically
       expect(gateway.removeSetCallCount, 1);
     });
 
-    test('caller can safely reconcile state via getSession after WorkoutSessionCommittedReadbackException', () async {
+    test(
+        'caller can safely reconcile state via getSession after WorkoutSessionCommittedReadbackException',
+        () async {
       // Step 1: Mutation completes, but readback fails
       final pauseTime = _startedAt.add(const Duration(minutes: 5));
       gateway.onPause = (_) async => _mockSessionRow(
@@ -933,7 +1079,9 @@ void main() {
       expect(gateway.pauseCallCount, 1);
     });
 
-    test('auth invalidation during post-mutation readback preserves unauthenticated / unauthorized', () async {
+    test(
+        'auth invalidation during post-mutation readback preserves unauthenticated / unauthorized',
+        () async {
       final pauseTime = _startedAt.add(const Duration(minutes: 5));
       final mutationCompleter = Completer<Map<String, dynamic>>();
       final readCompleter = Completer<Map<String, dynamic>?>();
@@ -1011,7 +1159,9 @@ void main() {
       );
     });
 
-    test('P0001 invalid_transition_from_status maps to invalidStateTransition (pause/resume)', () async {
+    test(
+        'P0001 invalid_transition_from_status maps to invalidStateTransition (pause/resume)',
+        () async {
       // 1. Pausing an already paused or non-active session
       gateway.onPause = (_) async {
         throw const PostgrestException(
@@ -1055,7 +1205,9 @@ void main() {
       );
     });
 
-    test('genuinely terminal session mutations still map to terminalSessionImmutable', () async {
+    test(
+        'genuinely terminal session mutations still map to terminalSessionImmutable',
+        () async {
       // 1. Logging set on already finished workout
       gateway.onLogSet = (_) async {
         throw const PostgrestException(

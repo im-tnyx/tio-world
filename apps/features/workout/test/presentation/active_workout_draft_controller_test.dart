@@ -29,6 +29,38 @@ final class _Store implements ActiveWorkoutDraftStore {
   Future<void> delete() async => saved = null;
 }
 
+final class _SaveRepository implements WorkoutDraftSaveRepository {
+  final submissions = <ActiveWorkoutDraft>[];
+  bool fail = true;
+
+  @override
+  Future<SavedWorkoutDraftRecord> saveDraft(ActiveWorkoutDraft draft) async {
+    submissions.add(draft);
+    if (fail) throw StateError('unknown transport outcome');
+    return SavedWorkoutDraftRecord(
+      sessionId: WorkoutSessionId(_id(900)),
+      ownerId: draft.ownerId,
+      saveRequestId: draft.saveRequestId,
+      revision: 2,
+      title: draft.submittedTitle!,
+      workoutAtUtc: draft.workoutAtUtc!,
+      utcOffsetMinutes: draft.workoutUtcOffsetMinutes!,
+      localDate: '2026-11-09',
+      description: draft.description,
+      activityType: draft.activityType,
+      gymName: draft.gymName,
+      overallRpe: draft.overallRpe,
+      durationSeconds: draft.selectedDurationSeconds!,
+      snapshot: const {},
+      performedSets: const [],
+    );
+  }
+
+  @override
+  Future<SavedWorkoutDraftRecord?> getSavedDraft(WorkoutSessionId id) async =>
+      null;
+}
+
 String _id(int n) =>
     '00000000-0000-4000-8000-${n.toRadixString(16).padLeft(12, '0')}';
 
@@ -221,6 +253,79 @@ void main() {
     expect(controller.draft!.exercises.single.sets.map((set) => set.id).toSet(),
         hasLength(3));
     controller.dispose();
+  });
+
+  test('failed Save freezes title and retry identity until confirmed readback',
+      () async {
+    final store = _Store();
+    final backend = _SaveRepository();
+    var now = DateTime.utc(2026, 11, 9, 10);
+    var nextId = 10;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      saveRepository: backend,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(await controller.addExercises([_exercise('ex_first', 'First')]),
+        isTrue);
+    final exercise = controller.draft!.exercises.single;
+    now = now.add(const Duration(minutes: 1));
+    expect(
+        await controller.toggleLogged(exercise.id, exercise.sets.single.id,
+            reps: 10),
+        isTrue);
+    now = now.add(const Duration(minutes: 1));
+    expect(await controller.pause(), isTrue);
+    expect(
+        await controller.updateSaveMetadata(
+          title: '',
+          description: null,
+          workoutAtUtc: DateTime.utc(2026, 11, 9, 10),
+          workoutUtcOffsetMinutes: 0,
+          selectedDurationSeconds: 120,
+          gymName: null,
+          activityType: 'Weight Training',
+          overallRpe: null,
+        ),
+        isTrue);
+    now = now.add(const Duration(minutes: 1));
+    expect(await controller.save(resolvedTitle: 'Morning Workout'), isFalse);
+    final frozen = store.saved!;
+    expect(frozen.submittedTitle, 'Morning Workout');
+    expect(frozen.workoutTitle, isEmpty);
+    expect(await controller.resume(), isFalse);
+    expect(await controller.discard(), isFalse);
+    expect(
+        await controller.updateSaveMetadata(
+          title: 'Changed',
+          description: null,
+          workoutAtUtc: DateTime.utc(2026, 11, 9, 10),
+          workoutUtcOffsetMinutes: 0,
+          selectedDurationSeconds: 120,
+          gymName: null,
+          activityType: 'Weight Training',
+          overallRpe: null,
+        ),
+        isFalse);
+    controller.dispose();
+
+    final reopened = ActiveWorkoutDraftController(
+      store: store,
+      saveRepository: backend,
+      ownerId: owner,
+      clock: () => now.add(const Duration(hours: 1)),
+    );
+    expect(await reopened.restoreExisting(), isTrue);
+    backend.fail = false;
+    expect(await reopened.save(resolvedTitle: 'Morning Workout'), isTrue);
+    expect(backend.submissions.last.saveRequestId, frozen.saveRequestId);
+    expect(backend.submissions.last.submittedAtUtc, frozen.submittedAtUtc);
+    expect(store.saved, isNull);
+    expect(reopened.draft, isNull);
+    reopened.dispose();
   });
 
   test('rest starts only when configured and survives restart by UTC deadline',

@@ -535,8 +535,18 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       };
   bool get _isPaused => _draft?.time.isPaused ?? false;
   DateTime get _startedAtUtc => _draft?.time.startedAtUtc ?? _nowUtc();
-  Duration get _elapsed =>
-      _draft?.time.elapsedActiveDuration(_nowUtc()) ?? Duration.zero;
+  Duration get _elapsed {
+    final draft = _draft;
+    if (draft == null) return Duration.zero;
+    try {
+      return draft.time.elapsedActiveDuration(_nowUtc());
+    } on ArgumentError {
+      // Device clock rollback must not crash the running UI.
+      return draft.time.elapsedActiveDuration(draft.time.lastTransitionAtUtc);
+    } on StateError {
+      return Duration.zero;
+    }
+  }
 
   DateTime _nowUtc() => (widget.clock?.call() ?? DateTime.now()).toUtc();
 
@@ -553,6 +563,16 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       }
       setState(() {});
     });
+  }
+
+  void _ensureTicker() {
+    if (_draft != null &&
+        (!_isPaused ||
+            (_draft?.activeRest?.remaining(_nowUtc()) ?? Duration.zero) >
+                Duration.zero) &&
+        _ticker == null) {
+      _startTicker();
+    }
   }
 
   Future<void> _togglePause() async {
@@ -595,18 +615,14 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     if (widget.draftController != null &&
         widget.draftController!.draft == null) {
       unawaited(widget.draftController!.restoreOrStart());
+    } else {
+      _ensureTicker();
     }
   }
 
   void _onDraftChanged() {
     if (!mounted) return;
-    if (_draft != null &&
-        (!_isPaused ||
-            (_draft?.activeRest?.remaining(_nowUtc()) ?? Duration.zero) >
-                Duration.zero) &&
-        _ticker == null) {
-      _startTicker();
-    }
+    _ensureTicker();
     setState(() {});
   }
 
@@ -619,6 +635,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       if (widget.draftController != null &&
           widget.draftController!.draft == null) {
         unawaited(widget.draftController!.restoreOrStart());
+      } else {
+        _ensureTicker();
       }
     }
   }
@@ -854,11 +872,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
             required String activityType,
             required String? gym,
             Duration? duration,
-          }) async {
-            // The Save page has stored raw edits locally. Until the atomic
-            // RPC/readback is wired, no backend success can be reported.
-            return false;
-          },
+          }) =>
+              controller.save(resolvedTitle: title),
           onLeaveDraft: ({
             required String title,
             required String? description,
@@ -886,7 +901,9 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       ),
     );
     if (!mounted) return;
-    if (saved == false && controller.draft == null) widget.onBack();
+    if (controller.draft == null && (saved == true || saved == false)) {
+      widget.onBack();
+    }
   }
 
   int get _totalPlannedSets {
@@ -1120,7 +1137,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       exerciseType: exercise.exerciseType,
       showRangeDraft: false,
       unit: WeightUnit.kg,
-      enabled: true,
+      enabled: !(widget.draftController?.isBusy ?? false),
       showRpe: showRpe,
       keyPrefix: 'active-workout-preview-exercise',
       moveUp: () {},
@@ -1151,7 +1168,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
           index: setIndex,
           normalNumber: setIndex + 1,
           unit: WeightUnit.kg,
-          enabled: true,
+          enabled: !(widget.draftController?.isBusy ?? false),
           exerciseType: _previewExercises[exerciseIndex].exerciseType,
           showPrevious: true,
           isExecution: true,

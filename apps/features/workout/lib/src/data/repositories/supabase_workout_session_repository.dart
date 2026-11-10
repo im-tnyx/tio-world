@@ -5,6 +5,9 @@ import 'package:tio_shared/shared.dart';
 
 import '../../domain/models/workout_session_record.dart';
 import '../../domain/repositories/workout_session_repository.dart';
+import '../../domain/repositories/workout_draft_save_repository.dart';
+import '../../domain/models/active_workout_draft.dart';
+import '../dto/workout_draft_save_dto.dart';
 import '../dto/workout_session_dtos.dart';
 import 'supabase_workout_session_gateway.dart';
 
@@ -14,7 +17,7 @@ import 'supabase_workout_session_gateway.dart';
 /// Adheres to optimistic concurrency control (OCC), bracketed read consistency,
 /// and deterministic set slot ordering.
 final class SupabaseWorkoutSessionRepository
-    implements WorkoutSessionRepository {
+    implements WorkoutSessionRepository, WorkoutDraftSaveRepository {
   SupabaseWorkoutSessionRepository({
     required WorkoutSessionGateway gateway,
     required String? Function() currentUserId,
@@ -56,6 +59,86 @@ final class SupabaseWorkoutSessionRepository
   final String? Function() _currentUserId;
   final Duration _requestTimeout;
   final int _readAttempts;
+
+  @override
+  Future<SavedWorkoutDraftRecord> saveDraft(ActiveWorkoutDraft draft) async {
+    final owner = _owner();
+    if (draft.ownerId != owner) {
+      throw const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.unauthorized,
+      );
+    }
+    final payload = WorkoutDraftSaveDto.payload(draft);
+    final params = <String, dynamic>{
+      'p_save_request_id': draft.saveRequestId,
+      'p_existing_session_id': draft.canonicalSessionId?.value,
+      'p_expected_revision': draft.canonicalRevision,
+      'p_payload': payload,
+    };
+    Map<String, dynamic> response;
+    _checkOwner(owner);
+    try {
+      response =
+          await _gateway.rpcSaveWorkoutDraft(params).timeout(_requestTimeout);
+      _checkOwner(owner);
+    } on WorkoutSessionPersistenceException {
+      rethrow;
+    } on TimeoutException catch (error) {
+      throw WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Save outcome is unknown; retry with the same request ID.',
+        cause: error,
+      );
+    } on PostgrestException catch (error) {
+      throw _mapPostgrestException(error);
+    } catch (error) {
+      throw WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Save outcome is unknown; retry with the same request ID.',
+        cause: error,
+      );
+    }
+    final sessionId = WorkoutSessionId(response['id'] as String);
+    final saved = await getSavedDraft(sessionId);
+    if (saved == null || !WorkoutDraftSaveDto.matches(saved, draft, payload)) {
+      throw WorkoutSessionCommittedReadbackException(
+        sessionId: sessionId,
+        operationName: 'saveDraft',
+        message: 'Canonical Save readback did not match the submitted draft.',
+      );
+    }
+    return saved;
+  }
+
+  @override
+  Future<SavedWorkoutDraftRecord?> getSavedDraft(
+      WorkoutSessionId sessionId) async {
+    final owner = _owner();
+    for (var attempt = 0; attempt < _readAttempts; attempt++) {
+      final before = await _executeRead(
+          owner, () => _gateway.readSessionHeader(owner, sessionId.value));
+      if (before == null) return null;
+      final sets = await _executeRead(
+          owner, () => _gateway.readPerformedSets(owner, sessionId.value));
+      final after = await _executeRead(
+          owner, () => _gateway.readSessionHeader(owner, sessionId.value));
+      if (after == null) return null;
+      if (before['revision'] != after['revision']) continue;
+      _checkOwner(owner);
+      try {
+        return WorkoutDraftSaveDto.record(after, sets);
+      } catch (error) {
+        throw WorkoutSessionPersistenceException(
+          WorkoutSessionPersistenceFailureKind.invalidPayload,
+          message: 'Malformed completed workout readback.',
+          cause: error,
+        );
+      }
+    }
+    throw const WorkoutSessionPersistenceException(
+      WorkoutSessionPersistenceFailureKind.readConflict,
+    );
+  }
 
   @override
   Future<WorkoutSessionRecord?> getActiveSession() async {

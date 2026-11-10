@@ -2,7 +2,7 @@
 BEGIN;
 SET LOCAL TIME ZONE 'America/Los_Angeles';
 CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
-SELECT plan(38);
+SELECT plan(41);
 
 INSERT INTO auth.users (id,email) VALUES
   ('11111111-1111-1111-1111-111111111111','save_owner@tio.test'),
@@ -187,12 +187,41 @@ SELECT throws_ok($duplicate_slot$
     (SELECT jsonb_set(payload,'{performed_sets}',
       (payload->'performed_sets') || (payload->'performed_sets'))
      FROM pg_temp.w7c_save_fixture))
-$duplicate_slot$,'23505',
-  'duplicate key value violates unique constraint "uq_user_workout_performed_sets_slot"',
-  'duplicate performed slot rolls back the atomic Save');
+$duplicate_slot$,'22023','invalid_save_payload',
+  'duplicate performed slots are rejected before any write');
 SELECT is((SELECT count(*)::integer FROM public.user_workout_sessions
            WHERE save_request_id='abababab-abab-4aba-abab-abababababab'),
   0,'duplicate-set failure leaves no partial session');
+SELECT lives_ok($optional_activity$
+  SELECT public.rpc_save_workout_session_v1(
+    'acacacac-acac-4aca-acac-acacacacacac', null, null,
+    (SELECT jsonb_set(payload,'{activity_type}','null'::jsonb)
+     FROM pg_temp.w7c_save_fixture))
+$optional_activity$, 'activity type remains optional on Save');
+SELECT is((SELECT workout_activity_type FROM public.user_workout_sessions
+           WHERE save_request_id='acacacac-acac-4aca-acac-acacacacacac'),
+  null, 'missing activity type stores as null');
+SELECT lives_ok($steps_type$
+  SELECT public.rpc_save_workout_session_v1(
+    'adadadad-adad-4ada-adad-adadadadadad', null, null,
+    (SELECT jsonb_set(
+      jsonb_set(
+        jsonb_set(
+          jsonb_set(payload,'{routine_snapshot,exercises,0,exercise_type}',
+            '"steps_duration"'::jsonb),
+          '{routine_snapshot,exercises,0,prescribed_sets,0}',
+          '{"set_type":"normal","duration_seconds":60}'::jsonb),
+        '{performed_sets,0}',
+        jsonb_build_object(
+          'exercise_ref', payload#>>'{performed_sets,0,exercise_ref}',
+          'exercise_index', 0,
+          'set_index', 0,
+          'duration_seconds', 60,
+          'completed_at_utc', payload#>>'{performed_sets,0,completed_at_utc}',
+          'is_skipped', false)),
+      '{activity_type}', '"Cardio"'::jsonb)
+     FROM pg_temp.w7c_save_fixture))
+$steps_type$, 'ad-hoc snapshot accepts steps_duration exercise type');
 
 RESET ROLE;
 INSERT INTO public.user_workout_programs (id,user_id,name) VALUES

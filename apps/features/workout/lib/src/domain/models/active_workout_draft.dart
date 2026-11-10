@@ -26,6 +26,8 @@ final class ActiveWorkoutDraft {
     this.activityType,
     this.overallRpe,
     this.activeRest,
+    this.submittedAtUtc,
+    this.submittedTitle,
   })  : id = _uuid(id),
         ownerId = _uuid(ownerId),
         saveRequestId = _uuid(saveRequestId),
@@ -39,6 +41,14 @@ final class ActiveWorkoutDraft {
     }
     if (time.isCompleted) {
       throw ArgumentError('A local draft cannot be terminal.');
+    }
+    if ((submittedAtUtc == null) != (submittedTitle == null) ||
+        submittedAtUtc != null &&
+            (!submittedAtUtc!.isUtc ||
+                !time.isPaused ||
+                submittedAtUtc!.isBefore(time.pausedAtUtc!)) ||
+        submittedTitle != null && submittedTitle!.trim().isEmpty) {
+      throw ArgumentError('Invalid pending Save submission.');
     }
     if ((workoutAtUtc == null) != (workoutUtcOffsetMinutes == null) ||
         workoutAtUtc != null && !workoutAtUtc!.isUtc ||
@@ -92,6 +102,10 @@ final class ActiveWorkoutDraft {
   final double? overallRpe;
   final ActiveWorkoutDraftRest? activeRest;
 
+  /// Frozen on first Save dispatch so retries use the same owner-scoped key.
+  final DateTime? submittedAtUtc;
+  final String? submittedTitle;
+
   ActiveWorkoutDraft copyWith({
     WorkoutTime? time,
     int? revision,
@@ -107,6 +121,8 @@ final class ActiveWorkoutDraft {
     Object? activityType = _unchanged,
     Object? overallRpe = _unchanged,
     Object? activeRest = _unchanged,
+    Object? submittedAtUtc = _unchanged,
+    Object? submittedTitle = _unchanged,
   }) =>
       ActiveWorkoutDraft(
         id: id,
@@ -147,6 +163,12 @@ final class ActiveWorkoutDraft {
         activeRest: identical(activeRest, _unchanged)
             ? this.activeRest
             : activeRest as ActiveWorkoutDraftRest?,
+        submittedAtUtc: identical(submittedAtUtc, _unchanged)
+            ? this.submittedAtUtc
+            : submittedAtUtc as DateTime?,
+        submittedTitle: identical(submittedTitle, _unchanged)
+            ? this.submittedTitle
+            : submittedTitle as String?,
       );
 
   Map<String, Object?> toJson() => {
@@ -173,6 +195,8 @@ final class ActiveWorkoutDraft {
         'activity_type': activityType,
         'overall_rpe': overallRpe,
         'active_rest': activeRest?.toJson(),
+        'submitted_at_utc': submittedAtUtc?.toIso8601String(),
+        'submitted_title': submittedTitle,
         'exercises': exercises.map((exercise) => exercise.toJson()).toList(),
       };
 
@@ -217,6 +241,8 @@ final class ActiveWorkoutDraft {
             : ActiveWorkoutDraftRest.fromJson(
                 Map<String, dynamic>.from(json['active_rest'] as Map),
               ),
+        submittedAtUtc: optionalUtc(json['submitted_at_utc']),
+        submittedTitle: json['submitted_title'] as String?,
         exercises: (json['exercises'] as List)
             .map((entry) => ActiveWorkoutDraftExercise.fromJson(
                   Map<String, dynamic>.from(entry as Map),

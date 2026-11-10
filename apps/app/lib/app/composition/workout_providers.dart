@@ -52,6 +52,7 @@ final activeWorkoutDraftControllerProvider =
   final controller = ActiveWorkoutDraftController(
     store: store,
     ownerId: identity.ownerId,
+    saveRepository: ref.watch(workoutDraftSaveRepositoryProvider),
   );
   ref.onDispose(controller.dispose);
   return controller;
@@ -240,6 +241,16 @@ final workoutSessionRepositoryProvider =
     gateway: SupabaseWorkoutSessionGateway(client),
     currentUserId: () => isCurrentSession() ? ownerId : null,
   );
+});
+
+/// The atomic Save port uses the same owner-bound canonical session gateway.
+final workoutDraftSaveRepositoryProvider =
+    Provider<WorkoutDraftSaveRepository?>((ref) {
+  final repository = ref.watch(workoutSessionRepositoryProvider);
+  return switch (repository) {
+    final WorkoutDraftSaveRepository saveRepository => saveRepository,
+    _ => null,
+  };
 });
 
 /// Authenticated gym lookup adapter. Concrete Supabase construction stays at

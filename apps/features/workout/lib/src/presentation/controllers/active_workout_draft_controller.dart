@@ -8,6 +8,7 @@ import '../../domain/models/active_workout_draft.dart';
 import '../../domain/models/routine_composition_limits.dart';
 import '../../domain/models/routine_rest_timer_preset.dart';
 import '../../domain/repositories/active_workout_draft_store.dart';
+import '../../domain/repositories/workout_draft_save_repository.dart';
 import '../library/exercises/exercises_controller.dart';
 
 /// One durable device-local source of truth for a new Save-only workout.
@@ -16,15 +17,18 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   ActiveWorkoutDraftController({
     required ActiveWorkoutDraftStore store,
     required String ownerId,
+    WorkoutDraftSaveRepository? saveRepository,
     DateTime Function()? clock,
     String Function()? newUuid,
   })  : _store = store,
         _ownerId = ownerId,
+        _saveRepository = saveRepository,
         _clock = clock ?? DateTime.timestamp,
         _newUuid = newUuid ?? const Uuid().v4;
 
   final ActiveWorkoutDraftStore _store;
   final String _ownerId;
+  final WorkoutDraftSaveRepository? _saveRepository;
   final DateTime Function() _clock;
   final String Function() _newUuid;
   ActiveWorkoutDraft? _draft;
@@ -69,7 +73,21 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             saveRequestId: _newUuid(),
             time: WorkoutTime.start(startedAtUtc: _nowUtc()),
           );
-      if (restored == null) await _store.save(candidate);
+      if (restored == null) {
+        try {
+          await _store.save(candidate);
+        } catch (error) {
+          // A partial first write may have committed the encrypted draft even
+          // when the outer save call failed; recover that durable row.
+          final recovered = await _store.load();
+          if (recovered != null && recovered.ownerId == _ownerId) {
+            if (_disposed) return false;
+            _draft = recovered;
+            return true;
+          }
+          rethrow;
+        }
+      }
       if (_disposed) return false;
       _draft = candidate;
       return true;
@@ -95,7 +113,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     _mutationTail = _mutationTail.then((_) async {
       try {
         final current = _draft;
-        if (_disposed || current == null) {
+        if (_disposed || current == null || current.submittedAtUtc != null) {
           result.complete(false);
           return;
         }
@@ -106,6 +124,16 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         if (!_disposed) _draft = candidate;
         result.complete(!_disposed);
       } catch (error) {
+        // Ambiguous local commits may have advanced the durable revision.
+        // Reconcile from storage before surfacing failure.
+        try {
+          final recovered = await _store.load();
+          if (!_disposed &&
+              recovered != null &&
+              recovered.ownerId == _ownerId) {
+            _draft = recovered;
+          }
+        } catch (_) {}
         if (!_disposed) _error = error;
         result.complete(false);
       } finally {
@@ -264,17 +292,103 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     required String? gymName,
     required String? activityType,
     required double? overallRpe,
-  }) =>
-      _change((draft) => draft.copyWith(
-            workoutTitle: title,
-            description: description,
-            workoutAtUtc: workoutAtUtc,
-            workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
-            selectedDurationSeconds: selectedDurationSeconds,
-            gymName: gymName,
-            activityType: activityType,
-            overallRpe: overallRpe,
-          ));
+  }) {
+    final current = _draft;
+    if (current?.submittedAtUtc != null) {
+      return Future<bool>.value(
+        current!.workoutTitle == title &&
+            current.description == description &&
+            current.workoutAtUtc == workoutAtUtc &&
+            current.workoutUtcOffsetMinutes == workoutUtcOffsetMinutes &&
+            current.selectedDurationSeconds == selectedDurationSeconds &&
+            current.gymName == gymName &&
+            current.activityType == activityType &&
+            current.overallRpe == overallRpe,
+      );
+    }
+    return _change((draft) => draft.copyWith(
+          workoutTitle: title,
+          description: description,
+          workoutAtUtc: workoutAtUtc,
+          workoutUtcOffsetMinutes: workoutUtcOffsetMinutes,
+          selectedDurationSeconds: selectedDurationSeconds,
+          gymName: gymName,
+          activityType: activityType,
+          overallRpe: overallRpe,
+        ));
+  }
+
+  /// Returns true only after the canonical completed row and all performed
+  /// sets have been read back and the local draft is logically discarded.
+  Future<bool> save({required String resolvedTitle}) {
+    final repository = _saveRepository;
+    if (repository == null ||
+        _disposed ||
+        _draft == null ||
+        (_busy && _pendingMutations == 0)) {
+      return Future<bool>.value(false);
+    }
+    final result = Completer<bool>();
+    _pendingMutations++;
+    _busy = true;
+    _notify();
+    _mutationTail = _mutationTail.then((_) async {
+      try {
+        var current = _draft;
+        if (_disposed || current == null) {
+          result.complete(false);
+          return;
+        }
+        if (current.submittedAtUtc == null) {
+          final frozen = current.copyWith(
+            submittedAtUtc: _nowUtc(),
+            submittedTitle: resolvedTitle,
+            revision: current.revision + 1,
+          );
+          await _store.save(frozen);
+          if (_disposed) {
+            result.complete(false);
+            return;
+          }
+          _draft = frozen;
+          current = frozen;
+        } else if (current.submittedTitle != resolvedTitle) {
+          result.complete(false);
+          return;
+        }
+        final submitted = current;
+        await repository.saveDraft(submitted);
+        if (_disposed || !identical(_draft, submitted)) {
+          result.complete(false);
+          return;
+        }
+        await _store.delete();
+        if (_disposed) {
+          result.complete(false);
+          return;
+        }
+        _draft = null;
+        _error = null;
+        result.complete(true);
+      } catch (error) {
+        try {
+          final recovered = await _store.load();
+          if (!_disposed &&
+              recovered != null &&
+              recovered.ownerId == _ownerId) {
+            _draft = recovered;
+          }
+        } catch (_) {}
+        if (!_disposed) _error = error;
+        result.complete(false);
+      } finally {
+        _pendingMutations--;
+        _busy = _pendingMutations > 0;
+        _notify();
+      }
+    });
+    return result.future;
+  }
 
   Future<bool> toggleLogged(
     String exerciseId,
@@ -376,7 +490,12 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       });
 
   Future<bool> discard() async {
-    if (_busy || _disposed || _draft == null) return false;
+    if (_busy ||
+        _disposed ||
+        _draft == null ||
+        _draft!.submittedAtUtc != null) {
+      return false;
+    }
     _busy = true;
     _error = null;
     _notify();

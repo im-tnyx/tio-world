@@ -53,6 +53,11 @@ abstract interface class WorkoutSessionGateway {
     Map<String, dynamic> params,
   );
 
+  /// Atomically commits one owner-scoped Save-only workout.
+  Future<Map<String, dynamic>> rpcSaveWorkoutDraft(
+    Map<String, dynamic> params,
+  );
+
   /// Invokes `public.rpc_discard_workout_session`.
   Future<Map<String, dynamic>> rpcDiscardWorkoutSession(
     Map<String, dynamic> params,
@@ -184,6 +189,16 @@ final class SupabaseWorkoutSessionGateway implements WorkoutSessionGateway {
         .rpc<Object?>('rpc_complete_workout_session_v2', params: params)
         .retry(enabled: false);
     return _toMap(response, 'rpc_complete_workout_session_v2');
+  }
+
+  @override
+  Future<Map<String, dynamic>> rpcSaveWorkoutDraft(
+    Map<String, dynamic> params,
+  ) async {
+    final response = await _client
+        .rpc<Object?>('rpc_save_workout_session_v1', params: params)
+        .retry(enabled: false);
+    return _toMap(response, 'rpc_save_workout_session_v1');
   }
 
   @override

@@ -28,6 +28,14 @@ comment on column public.user_workout_sessions.save_request_id is
 comment on column public.user_workout_sessions.workout_duration_seconds is
   'User-selected Save duration; canonical active elapsed time remains derived from session transitions.';
 
+-- Save-only commits briefly insert an active parent with save_request_id set, then
+-- complete it in the same transaction. Exclude those rows from the single-active
+-- guard so an unrelated legacy online session cannot abort an ad-hoc Save.
+drop index if exists public.uq_user_workout_sessions_single_active;
+create unique index uq_user_workout_sessions_single_active
+  on public.user_workout_sessions (user_id)
+  where (status in ('active', 'paused') and save_request_id is null);
+
 create or replace function private.is_valid_workout_session_snapshot_v2(p_snapshot jsonb)
 returns boolean
 language plpgsql
@@ -78,7 +86,7 @@ begin
        or jsonb_array_length(v_ex->'prescribed_sets') not between 1 and 8
        or (v_ex->>'exercise_type') is not null and
           (v_ex->>'exercise_type') not in (
-            'weight_reps','distance_duration','duration',
+            'weight_reps','distance_duration','duration','steps_duration',
             'dumbbell_x2_simultaneous','dumbbell_x1_alternating_sides',
             'dumbbell_x1_simultaneous','dumbbell_x2_alternating_legs',
             'dumbbell_x1_alternating_legs','full_bodyweight','assisted_bodyweight'
@@ -160,7 +168,10 @@ begin
      or (p_session.program_id is null and p_session.accumulated_paused_microseconds
            is distinct from (p_payload->>'accumulated_paused_microseconds')::bigint)
      or (select count(*) from public.user_workout_performed_sets
-         where session_id = p_session.id) <> jsonb_array_length(p_payload->'performed_sets') then
+         where session_id = p_session.id) <> jsonb_array_length(p_payload->'performed_sets')
+     or (select count(*) from jsonb_array_elements(p_payload->'performed_sets'))
+        <> (select count(distinct (value->>'exercise_index', value->>'set_index'))
+            from jsonb_array_elements(p_payload->'performed_sets')) then
     return false;
   end if;
   for v_set in select value from jsonb_array_elements(p_payload->'performed_sets') loop
@@ -249,16 +260,21 @@ begin
      or nullif(btrim(p_payload->>'workout_title'), '') is null
      or char_length(btrim(p_payload->>'workout_title')) > 2000
      or octet_length(coalesce(p_payload->>'description','')) > 65536
-     or (p_payload->>'activity_type') is not null and
-        char_length(btrim(p_payload->>'activity_type')) not between 1 and 100
-     or nullif(btrim(p_payload->>'activity_type'), '') is null
-     or (p_payload->>'gym_name') is not null and
-        char_length(btrim(p_payload->>'gym_name')) not between 1 and 200
+     or (nullif(btrim(p_payload->>'activity_type'), '') is not null and
+         char_length(btrim(p_payload->>'activity_type')) not between 1 and 100)
+     or (nullif(btrim(p_payload->>'gym_name'), '') is not null and
+         char_length(btrim(p_payload->>'gym_name')) not between 1 and 200)
      or (p_payload->>'overall_rpe')::numeric not between 0 and 10
      or p_payload->>'selected_duration_seconds' is null
      or (p_payload->>'selected_duration_seconds')::integer not between 0 and 2592000
      or jsonb_typeof(p_payload->'performed_sets') is distinct from 'array'
-     or jsonb_array_length(p_payload->'performed_sets') not between 1 and 500 then
+     or jsonb_array_length(p_payload->'performed_sets') not between 1 and 500
+     or exists (
+          select 1
+          from jsonb_array_elements(p_payload->'performed_sets') as t(value)
+          group by value->>'exercise_index', value->>'set_index'
+          having count(*) > 1
+        ) then
     raise exception 'invalid_save_payload' using errcode = '22023';
   end if;
   if p_existing_session_id is null then
@@ -323,7 +339,7 @@ begin
          or v_set->>'distance_meters' is not null then
         raise exception 'skipped_set_has_measurement' using errcode = '22023';
       end if;
-    elsif v_ex->>'exercise_type' = 'duration' then
+    elsif v_ex->>'exercise_type' in ('duration', 'steps_duration') then
       if v_set->>'duration_seconds' is null or v_set->>'reps' is not null
          or v_set->>'load_kg' is not null or v_set->>'distance_meters' is not null then
         raise exception 'invalid_duration_measurement' using errcode = '22023';
