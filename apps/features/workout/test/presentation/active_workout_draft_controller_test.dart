@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
@@ -7,6 +9,7 @@ final class _Store implements ActiveWorkoutDraftStore {
   bool failSave = false;
   bool failLoad = false;
   int writes = 0;
+  Completer<void>? writeGate;
 
   @override
   Future<ActiveWorkoutDraft?> load() async {
@@ -17,6 +20,7 @@ final class _Store implements ActiveWorkoutDraftStore {
   @override
   Future<void> save(ActiveWorkoutDraft draft) async {
     if (failSave) throw StateError('secure write failed');
+    await writeGate?.future;
     saved = draft;
     writes++;
   }
@@ -162,6 +166,60 @@ void main() {
     expect(await controller.restoreOrStart(), isFalse);
     expect(controller.draft, isNull);
     expect(store.writes, 0);
+    controller.dispose();
+  });
+
+  test('restoreExisting recovers a draft without creating an empty one',
+      () async {
+    final store = _Store();
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => DateTime.utc(2026, 11, 9),
+    );
+    expect(await controller.restoreExisting(), isTrue);
+    expect(controller.draft, isNull);
+    expect(store.writes, 0);
+    expect(await controller.restoreOrStart(), isTrue);
+    final draftId = controller.draft!.id;
+    controller.dispose();
+
+    final reopened = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => DateTime.utc(2026, 11, 9),
+    );
+    expect(await reopened.restoreExisting(), isTrue);
+    expect(reopened.draft!.id, draftId);
+    expect(store.writes, 1);
+    reopened.dispose();
+  });
+
+  test('rapid enabled mutations are serialized onto the latest draft',
+      () async {
+    final store = _Store();
+    var nextId = 10;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => DateTime.utc(2026, 11, 9),
+      newUuid: () => _id(nextId++),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(await controller.addExercises([_exercise('ex_first', 'First')]),
+        isTrue);
+    final exerciseId = controller.draft!.exercises.single.id;
+    store.writeGate = Completer<void>();
+    final first = controller.addSet(exerciseId);
+    final second = controller.addSet(exerciseId);
+    expect(controller.isBusy, isTrue);
+    store.writeGate!.complete();
+    expect(await first, isTrue);
+    expect(await second, isTrue);
+    expect(controller.draft!.exercises.single.sets.length, 3);
+    expect(store.saved!.exercises.single.sets.length, 3);
+    expect(controller.draft!.exercises.single.sets.map((set) => set.id).toSet(),
+        hasLength(3));
     controller.dispose();
   });
 

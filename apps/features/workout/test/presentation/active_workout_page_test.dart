@@ -640,10 +640,89 @@ void main() {
     final discard = tester.widget<TioButton>(
       find.byKey(const ValueKey('active-workout-preview-discard')),
     );
-    expect(discard.enabled, isFalse);
+    expect(discard.enabled, isTrue);
     expect(find.text('Retry'), findsNothing);
     expect(find.text('Back to Workout'), findsNothing);
     expect(find.byType(TioCard), findsNothing);
+  });
+
+  testWidgets('empty Play draft can be explicitly discarded', (tester) async {
+    final store = _DraftStore();
+    final draftController = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
+    var backed = false;
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: _FakeSessionRepository(),
+        currentUserId: () => _userId,
+      ),
+      draftController: draftController,
+      showStartPreview: true,
+      onBack: () => backed = true,
+    );
+    expect(store.saved, isNotNull);
+    expect(store.saved!.exercises, isEmpty);
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-preview-discard')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+      of: find.byType(BottomSheet),
+      matching: find.widgetWithText(TioButton, 'Discard workout'),
+    ));
+    await tester.pumpAndSettle();
+    expect(store.saved, isNull);
+    expect(backed, isTrue);
+  });
+
+  testWidgets('owner draft restores while legacy session lookup is offline',
+      (tester) async {
+    final store = _DraftStore();
+    final first = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    expect(await first.restoreOrStart(), isTrue);
+    expect(
+        await first.addExercises([
+          Exercise(
+            ref: _exerciseRef,
+            displayName: 'Bench Press',
+            status: ExerciseStatus.active,
+          ),
+        ]),
+        isTrue);
+    first.dispose();
+    final restored = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(restored.dispose);
+    final online = _FakeSessionRepository()
+      ..restoreError = const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'offline',
+      );
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: online,
+        currentUserId: () => _userId,
+      ),
+      draftController: restored,
+      showStartPreview: true,
+    );
+    expect(online.getActiveCalls, 1);
+    expect(find.byKey(const ValueKey('active-workout-start-preview')),
+        findsOneWidget);
+    expect(find.text('Bench Press'), findsOneWidget);
+    expect(restored.draft!.id, store.saved!.id);
   });
 
   testWidgets('performed set logs typed values, not prescribed targets',
@@ -1981,13 +2060,23 @@ void main() {
     expect(find.text('Workout could not be saved.'), findsOneWidget);
     expect(find.byType(SaveWorkoutPage), findsOneWidget);
     expect(repository.lastCompletedWorkoutTitle, isNull);
-    expect(draftStore.saved!.workoutTitle, isNotEmpty);
+    expect(draftStore.saved!.workoutTitle, isEmpty);
     await tester.tap(find.byIcon(Icons.arrow_back_rounded));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('active-workout-start-preview')),
         findsOneWidget);
     expect(find.byType(SaveWorkoutPage), findsNothing);
     expect(draftStore.saved!.time.isPaused, isTrue);
+    await tester.tap(finishFinder);
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('save-workout-title-input')),
+            )
+            .controller!
+            .text,
+        isEmpty);
   });
 
   testWidgets('local workout restores actual set and pause after page remount',
@@ -2211,6 +2300,62 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('  My Workout  '), findsOneWidget);
+  });
+
+  testWidgets('Save Back and Resume refreshes default elapsed duration',
+      (tester) async {
+    final store = _DraftStore();
+    final draftController = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draftController.dispose);
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: _FakeSessionRepository(),
+        currentUserId: () => _userId,
+      ),
+      draftController: draftController,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '8',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-preview-finish')));
+    await tester.pumpAndSettle();
+    final firstDuration = tester
+        .widget<SaveWorkoutPage>(
+          find.byType(SaveWorkoutPage),
+        )
+        .duration;
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+    expect(store.saved!.selectedDurationSeconds, isNull);
+    expect(await draftController.resume(), isTrue);
+    await tester.pump(const Duration(minutes: 5));
+    await tester
+        .tap(find.byKey(const ValueKey('active-workout-preview-finish')));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<SaveWorkoutPage>(
+              find.byType(SaveWorkoutPage),
+            )
+            .duration,
+        greaterThanOrEqualTo(firstDuration + const Duration(minutes: 5)));
   });
 
   testWidgets('draft restore failure never opens an empty workout',

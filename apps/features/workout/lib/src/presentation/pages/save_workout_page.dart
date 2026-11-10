@@ -203,6 +203,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   bool _isDiscarding = false;
   bool _isLeaving = false;
   bool _allowPop = false;
+  bool get _isBusy => _isSaving || _isDiscarding || _isLeaving;
 
   void _popWithResult([bool? result]) {
     setState(() => _allowPop = true);
@@ -210,7 +211,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _leaveDraft() async {
-    if (_isSaving || _isDiscarding || _isLeaving) return;
+    if (_isBusy) return;
     final onLeaveDraft = widget.onLeaveDraft;
     if (onLeaveDraft == null) {
       Navigator.of(context).pop();
@@ -286,6 +287,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _pickDuration() async {
+    if (_isBusy) return;
     final picked = await showWorkoutDurationPickerSheet(
       context: context,
       initialDuration: _workoutDuration,
@@ -298,7 +300,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _pickDateTime() async {
-    if (_isSaving || _isDiscarding) return;
+    if (_isBusy) return;
     final picked = await showWorkoutDateTimePickerSheet(
       context: context,
       initialDateTime: _workoutDate,
@@ -313,6 +315,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _pickGym() async {
+    if (_isBusy) return;
     final picked = await Navigator.of(context).push<String>(
       MaterialPageRoute<String>(
         builder: (routeContext) => GymSelectionPage(
@@ -329,6 +332,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _pickActivityType() async {
+    if (_isBusy) return;
     final picked = await showWorkoutActivityTypeSheet(
       context: context,
       currentActivityType: _activityType,
@@ -341,6 +345,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _pickWorkoutRpe() async {
+    if (_isBusy) return;
     final picked = await showWorkoutRpeSheet(
       context: context,
       title: 'Workout RPE',
@@ -355,7 +360,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _handleSave() async {
-    if (_isSaving || _isDiscarding) return;
+    if (_isBusy) return;
     setState(() => _isSaving = true);
     try {
       final title = resolveWorkoutTitle(
@@ -365,6 +370,30 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
       final description = _descriptionController.text.trim().isNotEmpty
           ? _descriptionController.text.trim()
           : null;
+
+      // Preserve raw title and Save edits for a retry. A generated fallback is
+      // only a submission value, never a replacement for the user's input.
+      if (widget.onLeaveDraft != null) {
+        final stored = await widget.onLeaveDraft!(
+          title: _titleController.text,
+          description: _descriptionController.text,
+          date: _workoutDate,
+          utcOffsetMinutes: _workoutUtcOffsetMinutes,
+          rpe: _workoutRpe,
+          activityType: _activityType,
+          gym: _selectedGym,
+          duration: _workoutDuration,
+        );
+        if (!stored || !mounted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Workout draft could not be saved.')),
+            );
+          }
+          return;
+        }
+      }
 
       if (widget.onSave != null) {
         final saved = await widget.onSave!(
@@ -395,7 +424,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
   }
 
   Future<void> _confirmDiscard() async {
-    if (_isSaving || _isDiscarding) return;
+    if (_isBusy) return;
     final confirmed = await showTioConfirmationBottomSheet(
       context: context,
       title: 'Discard workout?',
@@ -455,7 +484,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               child: TioButton.primary(
                 key: const ValueKey('save-workout-submit-button'),
                 label: 'Save',
-                enabled: !_isSaving && !_isDiscarding,
+                enabled: !_isBusy,
                 onPressed: _handleSave,
                 loading: _isSaving,
               ),
@@ -478,7 +507,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                   child: TextField(
                     key: const ValueKey('save-workout-title-input'),
                     controller: _titleController,
-                    readOnly: widget.notesOnly,
+                    readOnly: widget.notesOnly || _isBusy,
                     style: textTheme.headlineSmall?.copyWith(
                       fontWeight: TioFontWeight.w700,
                       color: colors.textPrimary,
@@ -507,10 +536,12 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                 if (!widget.notesOnly && _titleController.text.isNotEmpty)
                   GestureDetector(
                     key: const ValueKey('save-workout-title-clear'),
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      _titleController.clear();
-                    },
+                    onTap: _isBusy
+                        ? null
+                        : () {
+                            HapticFeedback.selectionClick();
+                            _titleController.clear();
+                          },
                     child: Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
@@ -537,7 +568,9 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                     label: 'Duration',
                     value: _formatDuration(_workoutDuration),
                     valueColor: colors.primary,
-                    onTap: (widget.notesOnly || widget.sessionMetadataOnly)
+                    onTap: (widget.notesOnly ||
+                            widget.sessionMetadataOnly ||
+                            _isBusy)
                         ? null
                         : _pickDuration,
                   ),
@@ -606,6 +639,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
             TextField(
               key: const ValueKey('save-workout-description-input'),
               controller: _descriptionController,
+              readOnly: _isBusy,
               maxLines: 4,
               minLines: 1,
               style: textTheme.bodyMedium?.copyWith(
@@ -643,9 +677,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               icon: Icons.calendar_month_outlined,
               title: 'Date',
               value: _formatDateTile(_workoutDate),
-              onTap: widget.notesOnly || _isSaving || _isDiscarding
-                  ? null
-                  : _pickDateTime,
+              onTap: widget.notesOnly || _isBusy ? null : _pickDateTime,
             ),
             _SaveOptionTile(
               key: const ValueKey('save-workout-gym-tile'),
@@ -658,10 +690,12 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               trailingWidget: !widget.notesOnly && _selectedGym != null
                   ? GestureDetector(
                       key: const ValueKey('save-workout-gym-clear'),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => _selectedGym = null);
-                      },
+                      onTap: _isBusy
+                          ? null
+                          : () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _selectedGym = null);
+                            },
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         child: Icon(
@@ -672,7 +706,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                       ),
                     )
                   : null,
-              onTap: (widget.notesOnly || widget.sessionMetadataOnly)
+              onTap: (widget.notesOnly || widget.sessionMetadataOnly || _isBusy)
                   ? null
                   : _pickGym,
             ),
@@ -681,7 +715,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               icon: Icons.fitness_center_rounded,
               title: 'Activity Type',
               value: _activityType,
-              onTap: (widget.notesOnly || widget.sessionMetadataOnly)
+              onTap: (widget.notesOnly || widget.sessionMetadataOnly || _isBusy)
                   ? null
                   : _pickActivityType,
             ),
@@ -694,7 +728,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                   : 'Rate workout',
               valueColor:
                   _workoutRpe != null ? colors.primary : colors.textSecondary,
-              onTap: (widget.notesOnly || widget.sessionMetadataOnly)
+              onTap: (widget.notesOnly || widget.sessionMetadataOnly || _isBusy)
                   ? null
                   : _pickWorkoutRpe,
             ),
@@ -720,7 +754,7 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
             Center(
               child: TextButton(
                 key: const ValueKey('save-workout-discard-button'),
-                onPressed: _isSaving || _isDiscarding ? null : _confirmDiscard,
+                onPressed: _isBusy ? null : _confirmDiscard,
                 child: Text(
                   'Discard Workout',
                   style: textTheme.bodyLarge?.copyWith(

@@ -109,6 +109,73 @@ void main() {
     expect(find.byType(SaveWorkoutPage), findsNothing);
   });
 
+  testWidgets('pending draft Back blocks Date, Gym, Save and Discard',
+      (tester) async {
+    final leave = Completer<bool>();
+    var saveCalls = 0;
+    await tester.pumpWidget(_buildWrapper(Scaffold(
+      body: Builder(
+          builder: (context) => TextButton(
+                onPressed: () =>
+                    Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => SaveWorkoutPage(
+                    duration: const Duration(minutes: 20),
+                    volumeKg: 0,
+                    completedSets: 1,
+                    onLeaveDraft: ({
+                      required title,
+                      required description,
+                      required date,
+                      required utcOffsetMinutes,
+                      required rpe,
+                      required activityType,
+                      required gym,
+                      required duration,
+                    }) =>
+                        leave.future,
+                    onSave: ({
+                      required title,
+                      required description,
+                      required date,
+                      required utcOffsetMinutes,
+                      required rpe,
+                      required activityType,
+                      required gym,
+                      duration,
+                    }) {
+                      saveCalls++;
+                      return true;
+                    },
+                  ),
+                )),
+                child: const Text('Open Save'),
+              )),
+    )));
+    await tester.tap(find.text('Open Save'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pump();
+    expect(
+        tester
+            .widget<TioButton>(find.byKey(
+              const ValueKey('save-workout-submit-button'),
+            ))
+            .enabled,
+        isFalse);
+    await tester.tap(find.byKey(const ValueKey('save-workout-date-tile')));
+    await tester.tap(find.byKey(const ValueKey('save-workout-gym-tile')));
+    await tester.tap(find.byKey(const ValueKey('save-workout-submit-button')));
+    await tester.tap(find.byKey(const ValueKey('save-workout-discard-button')));
+    await tester.pump();
+    expect(find.text('Workout Date & Time'), findsNothing);
+    expect(find.byType(GymSelectionPage), findsNothing);
+    expect(find.text('Discard workout?'), findsNothing);
+    expect(saveCalls, 0);
+    leave.complete(true);
+    await tester.pumpAndSettle();
+    expect(find.byType(SaveWorkoutPage), findsNothing);
+  });
+
   testWidgets('restores local Save review selections without visual changes',
       (tester) async {
     await tester.pumpWidget(

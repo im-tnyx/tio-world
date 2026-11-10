@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
@@ -27,6 +29,8 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   final String Function() _newUuid;
   ActiveWorkoutDraft? _draft;
   bool _busy = false;
+  int _pendingMutations = 0;
+  Future<void> _mutationTail = Future<void>.value();
   bool _disposed = false;
   Object? _error;
 
@@ -40,6 +44,14 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   }
 
   Future<bool> restoreOrStart() async {
+    return _restore(createIfMissing: true);
+  }
+
+  /// Reads an owner-bound draft without starting a new workout. This allows
+  /// offline recovery before the online legacy-session lookup completes.
+  Future<bool> restoreExisting() => _restore(createIfMissing: false);
+
+  Future<bool> _restore({required bool createIfMissing}) async {
     if (_busy || _disposed) return false;
     _busy = true;
     _error = null;
@@ -49,6 +61,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       if (restored != null && restored.ownerId != _ownerId) {
         throw StateError('Workout draft belongs to another account.');
       }
+      if (restored == null && !createIfMissing) return true;
       final candidate = restored ??
           ActiveWorkoutDraft(
             id: _newUuid(),
@@ -71,26 +84,37 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
 
   Future<bool> _change(
     ActiveWorkoutDraft Function(ActiveWorkoutDraft draft) transform,
-  ) async {
-    final current = _draft;
-    if (_busy || _disposed || current == null) return false;
-    _busy = true;
-    _error = null;
-    _notify();
-    try {
-      final candidate =
-          transform(current).copyWith(revision: current.revision + 1);
-      await _store.save(candidate);
-      if (_disposed) return false;
-      _draft = candidate;
-      return true;
-    } catch (error) {
-      if (!_disposed) _error = error;
-      return false;
-    } finally {
-      _busy = false;
-      _notify();
+  ) {
+    if (_disposed || (_busy && _pendingMutations == 0)) {
+      return Future<bool>.value(false);
     }
+    final result = Completer<bool>();
+    _pendingMutations++;
+    _busy = true;
+    _notify();
+    _mutationTail = _mutationTail.then((_) async {
+      try {
+        final current = _draft;
+        if (_disposed || current == null) {
+          result.complete(false);
+          return;
+        }
+        _error = null;
+        final candidate =
+            transform(current).copyWith(revision: current.revision + 1);
+        await _store.save(candidate);
+        if (!_disposed) _draft = candidate;
+        result.complete(!_disposed);
+      } catch (error) {
+        if (!_disposed) _error = error;
+        result.complete(false);
+      } finally {
+        _pendingMutations--;
+        _busy = _pendingMutations > 0;
+        _notify();
+      }
+    });
+    return result.future;
   }
 
   Future<bool> pause() =>
@@ -236,7 +260,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     required String? description,
     required DateTime workoutAtUtc,
     required int workoutUtcOffsetMinutes,
-    required int selectedDurationSeconds,
+    required int? selectedDurationSeconds,
     required String? gymName,
     required String? activityType,
     required double? overallRpe,

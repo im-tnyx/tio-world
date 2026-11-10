@@ -118,16 +118,31 @@ class _ActiveWorkoutBody extends StatefulWidget {
 class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
   ActiveWorkoutController? _controller;
   final ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(false);
+  bool _draftChecked = false;
 
   @override
   void initState() {
     super.initState();
+    unawaited(_restoreExistingDraft());
     _bindController(widget.controller);
+  }
+
+  Future<void> _restoreExistingDraft() async {
+    final controller = widget.draftController;
+    if (controller == null) return;
+    await controller.restoreExisting();
+    if (mounted && identical(controller, widget.draftController)) {
+      setState(() => _draftChecked = true);
+    }
   }
 
   @override
   void didUpdateWidget(covariant _ActiveWorkoutBody oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.draftController, widget.draftController)) {
+      _draftChecked = false;
+      unawaited(_restoreExistingDraft());
+    }
     if (!identical(oldWidget.controller, widget.controller)) {
       _bindController(widget.controller);
     }
@@ -353,20 +368,37 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
     ActiveWorkoutController controller,
     ActiveWorkoutState state,
   ) {
+    final draftController = widget.draftController;
+    if (widget.showStartPreview &&
+        draftController != null &&
+        (state.status == ActiveWorkoutStatus.noSession ||
+            state.status == ActiveWorkoutStatus.reconciliationRequired)) {
+      if (!_draftChecked) return const _LoadingState();
+      if (draftController.error != null && draftController.draft == null) {
+        return _MessageState(
+          title: 'Workout draft unavailable',
+          message:
+              'The saved draft could not be restored. It has not been deleted.',
+          actionLabel: 'Retry',
+          onAction: () {
+            setState(() => _draftChecked = false);
+            unawaited(_restoreExistingDraft());
+          },
+          secondaryActionLabel: 'Back',
+          onSecondaryAction: widget.onBack,
+        );
+      }
+      if (draftController.draft != null) {
+        return _buildDraftPreview();
+      }
+    }
     switch (state.status) {
       case ActiveWorkoutStatus.initial:
       case ActiveWorkoutStatus.restoring:
         return const _LoadingState();
       case ActiveWorkoutStatus.noSession:
         if (widget.showStartPreview) {
-          return _StartWorkoutPreview(
-            onBack: widget.onBack,
-            catalogRepository: widget.catalogRepository,
-            userExerciseRepository: widget.userExerciseRepository,
-            gymLocationRepository: widget.gymLocationRepository,
-            clock: widget.clock,
-            draftController: widget.draftController,
-          );
+          return _buildDraftPreview();
         }
         return _MessageState(
           key: const ValueKey('active-workout-no-session'),
@@ -425,6 +457,15 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody> {
         );
     }
   }
+
+  Widget _buildDraftPreview() => _StartWorkoutPreview(
+        onBack: widget.onBack,
+        catalogRepository: widget.catalogRepository,
+        userExerciseRepository: widget.userExerciseRepository,
+        gymLocationRepository: widget.gymLocationRepository,
+        clock: widget.clock,
+        draftController: widget.draftController,
+      );
 }
 
 class _LoadingState extends StatelessWidget {
@@ -551,7 +592,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
   void initState() {
     super.initState();
     widget.draftController?.addListener(_onDraftChanged);
-    if (widget.draftController != null) {
+    if (widget.draftController != null &&
+        widget.draftController!.draft == null) {
       unawaited(widget.draftController!.restoreOrStart());
     }
   }
@@ -574,7 +616,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     if (!identical(oldWidget.draftController, widget.draftController)) {
       oldWidget.draftController?.removeListener(_onDraftChanged);
       widget.draftController?.addListener(_onDraftChanged);
-      if (widget.draftController != null) {
+      if (widget.draftController != null &&
+          widget.draftController!.draft == null) {
         unawaited(widget.draftController!.restoreOrStart());
       }
     }
@@ -777,14 +820,15 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     if (!mounted) return;
     final draft = controller.draft;
     if (draft == null || !draft.time.isPaused) return;
+    final reviewDuration = draft.selectedDurationSeconds == null
+        ? _elapsed
+        : Duration(seconds: draft.selectedDurationSeconds!);
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => SaveWorkoutPage(
           initialTitle: draft.workoutTitle,
           initialDescription: draft.description,
-          duration: draft.selectedDurationSeconds == null
-              ? _elapsed
-              : Duration(seconds: draft.selectedDurationSeconds!),
+          duration: reviewDuration,
           volumeKg: _totalVolumeKg,
           completedSets: _loggedSets.length,
           startedAt: draft.time.startedAtUtc.toLocal(),
@@ -811,18 +855,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
             required String? gym,
             Duration? duration,
           }) async {
-            // Until the approved atomic Save RPC is wired, this only updates
-            // the encrypted local draft and never reports backend success.
-            await controller.updateSaveMetadata(
-              title: title,
-              description: description,
-              workoutAtUtc: _utcFromWallDateTime(date, utcOffsetMinutes),
-              workoutUtcOffsetMinutes: utcOffsetMinutes,
-              selectedDurationSeconds: (duration ?? _elapsed).inSeconds,
-              gymName: gym,
-              activityType: activityType,
-              overallRpe: rpe,
-            );
+            // The Save page has stored raw edits locally. Until the atomic
+            // RPC/readback is wired, no backend success can be reported.
             return false;
           },
           onLeaveDraft: ({
@@ -840,7 +874,9 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
             description: description,
             workoutAtUtc: _utcFromWallDateTime(date, utcOffsetMinutes),
             workoutUtcOffsetMinutes: utcOffsetMinutes,
-            selectedDurationSeconds: duration.inSeconds,
+            selectedDurationSeconds: duration == reviewDuration
+                ? draft.selectedDurationSeconds
+                : duration.inSeconds,
             gymName: gym,
             activityType: activityType,
             overallRpe: rpe,
@@ -1028,9 +1064,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
                             key: const ValueKey(
                                 'active-workout-preview-discard'),
                             label: 'Discard workout',
-                            enabled: _previewExercises.isNotEmpty,
-                            onPressed:
-                                _previewExercises.isNotEmpty ? _discard : null,
+                            enabled: _draft != null,
+                            onPressed: _draft != null ? _discard : null,
                           ),
                         ),
                       ],
