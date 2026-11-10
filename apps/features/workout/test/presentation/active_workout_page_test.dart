@@ -2369,7 +2369,7 @@ void main() {
         greaterThanOrEqualTo(firstDuration + const Duration(minutes: 5)));
   });
 
-  testWidgets('Play opens Log Workout when local persist cannot load',
+  testWidgets('Play fails closed when local persist cannot load',
       (tester) async {
     final store = _DraftStore()..failLoad = true;
     final draftController = ActiveWorkoutDraftController(
@@ -2389,11 +2389,11 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
+    // Unreadable durable draft is unknown — no new workout and no recovery UI.
     expect(find.text('Workout draft unavailable'), findsNothing);
     expect(find.text('Retry'), findsNothing);
-    expect(find.text('Log Workout'), findsOneWidget);
-    expect(find.text('Get started'), findsOneWidget);
-    expect(draftController.draft, isNotNull);
+    expect(find.text('Get started'), findsNothing);
+    expect(draftController.draft, isNull);
   });
 
   for (final theme in [TioThemeMode.light, TioThemeMode.dark]) {

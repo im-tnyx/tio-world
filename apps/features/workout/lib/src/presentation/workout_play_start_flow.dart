@@ -6,11 +6,21 @@ import 'controllers/active_workout_draft_controller.dart';
 import 'controllers/active_workout_state.dart';
 import 'widgets/workout_in_progress_dialog.dart';
 
+enum _WorkoutPresence {
+  absent,
+  present,
+  /// Secure-storage/keychain read failed. Do not treat as empty.
+  unknown,
+}
+
 /// Opens Active Workout from Play, guarding against duplicate starts.
 ///
 /// When a local draft or running legacy session already exists, presents the
 /// owner conflict card. Resume never creates a new draft; Start new permanently
 /// replaces the old workout first.
+///
+/// An unreadable durable draft is fail-closed: Play does not open a fresh
+/// workout and does not invent recovery UI.
 Future<void> runWorkoutPlayStart({
   required BuildContext context,
   required void Function({required bool resumeExisting}) openActive,
@@ -18,16 +28,21 @@ Future<void> runWorkoutPlayStart({
   ActiveWorkoutDraftStore? draftStore,
   ActiveWorkoutController? sessionController,
 }) async {
-  final inProgress = await _hasWorkoutInProgress(
+  final presence = await _workoutPresence(
     draftController: draftController,
     draftStore: draftStore,
     sessionController: sessionController,
   );
   if (!context.mounted) return;
 
-  if (!inProgress) {
-    openActive(resumeExisting: false);
-    return;
+  switch (presence) {
+    case _WorkoutPresence.unknown:
+      return;
+    case _WorkoutPresence.absent:
+      openActive(resumeExisting: false);
+      return;
+    case _WorkoutPresence.present:
+      break;
   }
 
   final action = await showWorkoutInProgressDialog(context);
@@ -50,21 +65,24 @@ Future<void> runWorkoutPlayStart({
   }
 }
 
-Future<bool> _hasWorkoutInProgress({
+Future<_WorkoutPresence> _workoutPresence({
   ActiveWorkoutDraftController? draftController,
   ActiveWorkoutDraftStore? draftStore,
   ActiveWorkoutController? sessionController,
 }) async {
   if (sessionController != null) {
     await _ensureSessionRestored(sessionController);
-    if (sessionController.state.isRunning) return true;
+    if (sessionController.state.isRunning) return _WorkoutPresence.present;
   }
-  if (draftController?.draft != null) return true;
-  if (draftStore == null) return false;
+  if (draftController?.draft != null) return _WorkoutPresence.present;
+  if (draftStore == null) return _WorkoutPresence.absent;
   try {
-    return await draftStore.load() != null;
+    return await draftStore.load() != null
+        ? _WorkoutPresence.present
+        : _WorkoutPresence.absent;
   } catch (_) {
-    return false;
+    // Transient secure-storage failure must not look like "no workout".
+    return _WorkoutPresence.unknown;
   }
 }
 

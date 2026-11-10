@@ -74,7 +74,16 @@ class _WorkoutHomeBranchState extends ConsumerState<WorkoutHomeBranch>
     final shouldTick = active && !paused;
     if (shouldTick) {
       _ticker ??= Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        // Legacy sessions stop their own duration ticker when Log Workout
+        // disposes; keep the cached elapsed value advancing on Workout home.
+        final liveSession = ref.read(activeWorkoutControllerProvider);
+        if (liveSession != null &&
+            liveSession.state.isRunning &&
+            ref.read(activeWorkoutDraftControllerProvider)?.draft == null) {
+          liveSession.updateElapsedDuration();
+        }
+        setState(() {});
       });
     } else {
       _ticker?.cancel();
@@ -103,7 +112,14 @@ class _WorkoutHomeBranchState extends ConsumerState<WorkoutHomeBranch>
   }) {
     final local = draft?.draft;
     if (local != null) {
-      return local.time.elapsedActiveDuration(DateTime.timestamp());
+      try {
+        return local.time.elapsedActiveDuration(DateTime.timestamp());
+      } on ArgumentError {
+        // Device clock rollback must not crash Workout home / mini bar.
+        return local.time.elapsedActiveDuration(local.time.lastTransitionAtUtc);
+      } on StateError {
+        return Duration.zero;
+      }
     }
     return session?.state.activeElapsedDuration ?? Duration.zero;
   }
@@ -144,19 +160,37 @@ class _WorkoutHomeBranchState extends ConsumerState<WorkoutHomeBranch>
     );
     if (confirmed != true || !context.mounted) return;
 
-    if (draftStore != null) {
+    // Fail closed: clear memory+store first. Never discard a legacy session
+    // while a local draft may still be present or resurrectable.
+    if (draftController != null) {
+      final cleared = await draftController.discardForReplacement();
+      if (!cleared || draftController.draft != null) return;
+    } else if (draftStore != null) {
       try {
         await draftStore.delete();
-      } catch (_) {}
+      } catch (_) {
+        return;
+      }
     }
-    await draftController?.discardForReplacement();
+
+    if (draftStore != null) {
+      try {
+        if (await draftStore.load() != null) return;
+      } catch (_) {
+        return;
+      }
+    }
+
     if (sessionController != null) {
       if (sessionController.state.status == ActiveWorkoutStatus.initial ||
           sessionController.state.status == ActiveWorkoutStatus.restoring) {
         await sessionController.restoreActiveSession();
       }
       if (sessionController.state.isRunning) {
-        await sessionController.discardSession(reason: 'user_cancelled');
+        final discarded = await sessionController.discardSession(
+          reason: 'user_cancelled',
+        );
+        if (!discarded && sessionController.state.isRunning) return;
       }
     }
     if (mounted) {

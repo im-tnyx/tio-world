@@ -27,6 +27,13 @@
 **Cause:** First restore often ran while autoDispose controllers were still null (auth settle). Later provider rebuilds replaced the controller without calling `restoreExisting` again, so memory draft stayed empty while the store still had the workout.
 **Fix:** Re-run restore whenever draft/session controllers become available or are replaced (`ref.listen` in `WorkoutHomeBranch`).
 
+## Review fixes (post `a5fb0f2a`)
+
+- Mini-bar elapsed guards clock rollback like Log Workout.
+- Mini-bar Discard is fail-closed (memory+store clear before session discard).
+- Legacy session mini-bar ticker calls `updateElapsedDuration`.
+- Unreadable durable draft is unknown: Play/restore fail closed (no fresh workout, no recovery UI).
+
 ## Active Handoff
 
 **Implementation owner:** Cursor
@@ -35,5 +42,5 @@
 **PR / tracker:** #740
 **Validation completed at SHA:** pending push
 **Validation evidence:**
-- `flutter test test/app/workout_home_branch_restore_test.dart` → passed
-**Next exact action:** Commit + push cold-start pill restore fix to PR #740
+- play_start_flow + draft_controller + page fail-closed load + workout_home_branch_restore → passed
+**Next exact action:** Commit + push to PR #740

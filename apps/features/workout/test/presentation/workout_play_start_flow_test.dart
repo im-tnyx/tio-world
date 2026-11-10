@@ -197,6 +197,40 @@ void main() {
   });
 
   testWidgets(
+      'Play fails closed when durable draft load is unreadable',
+      (tester) async {
+    var opened = false;
+    final store = _FailLoadStore();
+
+    await tester.pumpWidget(
+      _app(
+        Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async {
+                await runWorkoutPlayStart(
+                  context: context,
+                  draftStore: store,
+                  openActive: ({required bool resumeExisting}) {
+                    opened = true;
+                  },
+                );
+              },
+              child: const Text('Play'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Play'));
+    await tester.pumpAndSettle();
+
+    expect(opened, isFalse);
+    expect(find.text('You have a workout in progress'), findsNothing);
+  });
+
+  testWidgets(
       'Start new fails closed when durable delete fails and memory draft remains',
       (tester) async {
     var openedNew = false;
@@ -253,4 +287,16 @@ final class _FailDeleteStore implements ActiveWorkoutDraftStore {
 
   @override
   Future<void> delete() async => throw StateError('delete failed');
+}
+
+final class _FailLoadStore implements ActiveWorkoutDraftStore {
+  @override
+  Future<ActiveWorkoutDraft?> load() async =>
+      throw StateError('secure draft unavailable');
+
+  @override
+  Future<void> save(ActiveWorkoutDraft draft) async {}
+
+  @override
+  Future<void> delete() async {}
 }

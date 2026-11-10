@@ -67,11 +67,10 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       try {
         restored = await _store.load();
       } catch (error) {
-        if (!createIfMissing) {
-          if (!_disposed) _error = error;
-          return false;
-        }
-        restored = null;
+        // Unreadable durable draft is unknown, not empty. Never publish a new
+        // in-memory workout while an owner-bound slot may still exist.
+        if (!_disposed) _error = error;
+        return false;
       }
       if (restored != null && restored.ownerId != _ownerId) {
         throw StateError('Workout draft belongs to another account.');
