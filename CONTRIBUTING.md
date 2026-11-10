@@ -433,7 +433,7 @@ Recommended stack:
 - Routing: `go_router`
 - Networking: `dio`
 - Models: `freezed` + `json_serializable`
-- Local database: `drift` or `isar`, based on product need
+- Future structured Flutter phone offline database: `drift` over SQLite (selected, not implemented); follow `docs/data/DATA_AND_SYNC.md` and the approved feature-slice gate.
 - Secure storage: `flutter_secure_storage`
 - Monorepo: `melos`
 - Crash reporting: Firebase Crashlytics or Sentry
