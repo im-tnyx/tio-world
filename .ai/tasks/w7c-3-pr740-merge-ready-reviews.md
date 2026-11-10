@@ -1,6 +1,6 @@
 # W7C-3 — PR #740 merge-ready review closure
 
-**Status:** VALIDATED
+**Status:** VALIDATED for the source review-closure slice. Source is merged. Hosted rollout, device validation, and W7B-2B remain pending. Not production-ready and not a hosted deploy.
 **Primary owner:** Owner (product) / Cursor (implementation)
 **Affected platforms:** Flutter mobile Workout Active Log / Save
 
@@ -29,7 +29,8 @@
 **Implementation ownership state:** Complete
 **Branch:** `feat/w7c-3-active-workout-execution-ui`
 **PR / tracker:** #740 / TNYX-84
-**Validation completed at SHA:** pending push
+**Validation completed at SHA:** `06db3985ecf0d6f3f712809293fe4afe5f291646` (final PR #740 head). `im-tio` approved that exact head for source-level review only. Squash-merged to `main` as `975b6edd62dab505b66804aa80ac063073a6140d` on 2026-11-10 18:59 IST by im-tnyx. All 14 CI checks on that head passed.
 **Validation evidence:**
 - focused draft_controller + active_workout_page review tests → passed
-**Next exact action:** Commit + push + resolve GitHub threads
+- exact-head CI on `06db3985ecf0d6f3f712809293fe4afe5f291646` → 14/14 passed
+**Next exact action:** Hosted Supabase W7B/W7C migration and deploy remain a separate owner gate. Device validation and W7B-2B remain pending. Do not treat this source merge as a hosted deploy or production release.

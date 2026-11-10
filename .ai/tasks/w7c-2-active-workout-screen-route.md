@@ -1,6 +1,6 @@
 # Feature Task: W7C-2 Active Workout Resume/Recovery Screen and Route Foundation
 
-**Status:** Validated; awaiting owner merge decision
+**Status:** Validated; source merged at `main@c76c81d79395bb7f242e321a9fdde1d1fc08e270` (PR #738, 2026-11-08 12:23 IST). Device validation and W3/W4 launchers remain pending. This merge is not a hosted deploy and not production readiness.
 **Primary owner:** Codex
 **Affected platforms:** Flutter phone (`apps/features/workout`, `apps/app`, `apps/core` routing contracts)
 
@@ -29,21 +29,21 @@
 **Planning owner:** Codex
 **Implementation owner:** Codex
 **Review owner:** im-tio
-**Implementation ownership state:** Active
-**Ownership transition:** Previous read-only planning owner → Codex implementation owner after explicit owner approval
-**Repository state last verified:** 2026-11-08 12:34 IST
-**Branch:** `feat/w7c-2-active-workout-screen-route`
-**HEAD SHA:** `42dddd59f34c96d3350cbc6415368da5a0b41d01`
-**Observed working-tree state:** Clean branch; one focused PR commit series ahead of verified `origin/main`
-**Observed uncommitted/dirty files:** None
-**PR / tracker:** GitHub #738 (open); GitHub #737 focused tracker; parent Linear TNYX-84; Linear child creation blocked by workspace free-issue limit
-**Current implementation state:** W7C-2 page, route, auth/chrome integration and focused tests are implemented and pushed. No automatic merge performed.
+**Implementation ownership state:** Complete
+**Ownership transition:** Codex implementation → merged `main` at PR #738
+**Repository state last verified:** 2026-11-10 via GitHub API (PR #738 `MERGED`)
+**Branch:** `main`
+**HEAD SHA:** `c76c81d79395bb7f242e321a9fdde1d1fc08e270`
+**Observed working-tree state:** Pre-merge branch checkpoint was clean at final PR head `dfd384a1ec11ae168ad9cf28f218ec5898f675a1`. This docs reconciliation does not re-run the product worktree.
+**Observed uncommitted/dirty files:** None on the merged source checkpoint
+**PR / tracker:** GitHub #738 merged; GitHub #737 closed separately; parent Linear TNYX-84 remains In Progress
+**Current implementation state:** W7C-2 page, route, auth/chrome integration and focused tests are merged on `main`. No hosted deploy is included.
 **Relevant execution surface:** `apps/features/workout`, `apps/app/lib/app/routing`, `apps/app/lib/app/composition`, `apps/core/lib/src/routing`
-**Validation completed at SHA:** `42dddd59f34c96d3350cbc6415368da5a0b41d01` (local package analysis; exact-head CI and docs hygiene successful)
-**Validation remaining:** Owner-authorized independent review by `i-the`; local Flutter widget tests remain unavailable on this Windows host because the Flutter wrapper hangs and direct tool invocation fails on the configured Git child process.
-**Current blocker:** Merge remains intentionally held pending independent review/owner decision. W3/W4 remain blockers for future start/launcher flows.
+**Validation completed at SHA:** Pre-merge package analysis and exact-head CI remain recorded at `42dddd59f34c96d3350cbc6415368da5a0b41d01`. Final PR head `dfd384a1ec11ae168ad9cf28f218ec5898f675a1` received `i-the` `APPROVED`. Merge commit is `c76c81d79395bb7f242e321a9fdde1d1fc08e270`.
+**Validation remaining:** Device and account-switch runtime evidence, hosted visual evidence, and W3/W4 start/launcher flows remain pending. Local Flutter widget tests were not completed on the original Windows host.
+**Current blocker:** None for this source merge. W3/W4 remain blockers for future start/launcher flows. Hosted Supabase W7B/W7C migration and deploy, device validation, and W7B-2B stay separate pending gates and are outside this route slice.
 **Open review finding IDs:** None for W7C-2
-**Next exact action:** Obtain independent `i-the` review on PR #738, then recheck exact-head protections before any owner-authorized merge.
+**Next exact action:** Keep device validation, W3/W4 launchers, hosted Supabase W7B/W7C rollout, and W7B-2B pending. Do not treat this source merge as a hosted deploy or production release.
 
 ## Global UI / Design-System Guardrail
 
@@ -164,11 +164,11 @@ Review-thread reconciliation: PASS; all three W7C-2 inline threads resolved, inc
 ### Review Provenance
 
 **Review source / link:** [GitHub PR #738](https://github.com/im-tnyx/tio-world/pull/738)
-**Reviewer / relation to implementer:** im-tio / independent technical reviewer
-**Diff or commit SHA actually reviewed:** Automated review feedback reconciled through `42dddd59f34c96d3350cbc6415368da5a0b41d01`; independent reviewer `i-the` remains requested/pending.
+**Reviewer / relation to implementer:** i-the / independent technical reviewer; im-tio merged PR #738
+**Diff or commit SHA actually reviewed:** `i-the` `APPROVED` final PR head `dfd384a1ec11ae168ad9cf28f218ec5898f675a1` (2026-11-08). Earlier automated review feedback was reconciled through `42dddd59f34c96d3350cbc6415368da5a0b41d01`. Merge commit on `main` is `c76c81d79395bb7f242e321a9fdde1d1fc08e270`.
 **Review result and finding IDs/dispositions:** Three automated P2 threads resolved: action errors rendered in active/paused states; terminal test uses actual completion transition; confirmation finder scoped to `BottomSheet`.
-**Independent review?** Pending (`i-the` requested; no submitted independent approval yet)
-**Limitations and unmet required gates:** Local Flutter widget tests did not complete on this Windows host. Cursor security/approval agents were `neutral` because their weekly quota was exhausted; no Supabase-sensitive code changed. Independent review and owner merge authorization remain open.
+**Independent review?** Yes. `i-the` `APPROVED` the final PR head before merge. `im-tio` merged PR #738.
+**Limitations and unmet required gates:** Local Flutter widget tests did not complete on the original Windows host. Device and account-switch runtime evidence remain pending. No hosted Supabase deploy and no production release are claimed. W3/W4 launchers, hosted W7B/W7C rollout, and W7B-2B remain pending and outside this slice.
 
 ### Review Findings and Resolution
 
@@ -188,8 +188,8 @@ Authenticated `/workout/active` now renders persisted active/paused `WorkoutSess
 
 ### Known Limitations
 
-Linear child issue creation is blocked by the workspace free-issue limit. GitHub Issue #737 is the active focused tracker. W3/W4-dependent launchers remain intentionally excluded.
+GitHub Issue #737 is closed separately. W3/W4-dependent launchers remain intentionally excluded. Device validation, hosted Supabase W7B/W7C migration and deploy, and W7B-2B remain pending. This source merge is not a hosted deploy and not production readiness.
 
 ### Final Status
 
-`REVIEW`
+`MERGED` at `main@c76c81d79395bb7f242e321a9fdde1d1fc08e270` (PR #738, 2026-11-08 12:23 IST). Device validation, W3/W4 launchers, hosted Supabase W7B/W7C rollout, and W7B-2B remain pending.

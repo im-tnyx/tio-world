@@ -1,6 +1,6 @@
 # Feature Task: W7C-3 Active Workout execution and completion
 
-**Status:** In progress — Save-only local-draft and atomic-save source is on PR #740; hosted rollout and independent review remain pending
+**Status:** Source merged — PR #740 squash-merged to `main` at `975b6edd62dab505b66804aa80ac063073a6140d` on 2026-11-10 18:59 IST by im-tnyx. Final PR head `06db3985ecf0d6f3f712809293fe4afe5f291646` has source-level `im-tio` approval, and all 14 CI checks on that head passed. Hosted Supabase W7B/W7C migration and deploy remain a separate owner gate. Device validation and W7B-2B remain pending. This is not production readiness and not a hosted deploy.
 **Primary owner:** Current local Codex implementation owner, continuing PR #740 on the existing branch
 **Affected platforms:** Flutter Android and iOS phone
 
@@ -90,7 +90,7 @@ Owner approved a scoped Note sheet change on the existing PR #740: Workout Log o
 **Current implementation state (2026-11-10):** Removed agent-added Play recovery/`Workout draft unavailable` screen. Play (`preview=1`) opens local Log Workout only; if local draft cannot start, exit silently with no extra message UI. Non-Play resume reconciliation Retry/Back unchanged. Reference behavior checked against `G:\projects\tio-workspace` (local start → open active screen; pill SnackBar only for conflicts).
 **Validation completed at this slice:** `flutter analyze --no-pub` on `active_workout_page.dart` clean; focused `active_workout_page_test` Play/discard/reconciliation/layout cases **7/7 passed**. `git diff --check` clean. Full melos suite / Android install not re-run in this slice.
 **Validation remaining:** Exact-head CI on pushed SHA; independent `im-tio` re-review; hosted W7B/W7C deploy still separately gated.
-**Next exact action:** After push, refresh PR #740 checks and request fresh `im-tio` review. Do not merge or deploy.
+**Next exact action:** Source is merged on `main`. Do not deploy. Hosted Supabase W7B/W7C migration and deploy stay a separate owner gate. Device validation and W7B-2B remain pending.
 
 **Owner UI rule (2026-11-10):** Changes are bug/correctness only — no owner-requested UI redesign. Match `tio-workspace`: Play starts local workout in memory then opens Log Workout; local persist is best-effort; Supabase sync only after Save. No AI recovery/Retry/Back extra screen and no silent home-back on Play start.
 
@@ -185,7 +185,7 @@ The follow-up focused suite passed (47 tests), Workout analysis passed, and the 
 
 ## 7. Final Handoff
 
-**Status:** REVIEW — seven priority review fixes plus two newer recovery/action-race findings are published and locally validated. Exact-head database migration CI and independent review remain pending; six older review threads, real-save title/date-time approval, and hosted migrations remain open gates.
+**Status:** Dated pre-merge checkpoint — REVIEW — seven priority review fixes plus two newer recovery/action-race findings are published and locally validated. Exact-head database migration CI and independent review remain pending; six older review threads, real-save title/date-time approval, and hosted migrations remain open gates.
 
 No hosted Supabase schema/RPC changes or deployments were made. Source changes do touch the checked-in Edge Function and `supabase/config.toml`. No merge authorization was given.
 
@@ -347,4 +347,12 @@ Slice B1 was published as `5d6e6bee822bb78b4f9f34139c3e5a658e90f8c5`; all five e
 
 **Local validation:** Workout analyze on touched sources PASS; app `workout_providers` analyze PASS; focused draft controller + session repository tests PASS; Active Workout + Save Workout page suites PASS; full Workout package suite PASS. Local Docker/pgTAP NOT RUN (CI Database replay remains the gate). Hosted migrations remain at `20261031142025` and unauthorized.
 
-**Merge-gate status target:** push exact-head CI green → request independent `im-tio` review → owner merge authorization. Hosted W7B→W7C→Save-only apply remains a separate gate after merge.
+**Merge-gate status target:** Source merge is complete. PR #740 was squash-merged by im-tnyx on 2026-11-10 at 18:59 IST, merge commit `975b6edd62dab505b66804aa80ac063073a6140d`, final PR head `06db3985ecf0d6f3f712809293fe4afe5f291646`. Hosted W7B→W7C→Save-only apply remains a separate pending owner gate. Device validation and W7B-2B remain pending. Not a hosted deploy and not production readiness.
+
+## Source merge reconciliation — 2026-11-10
+
+PR #740 (W7C-3 Active Workout UI + Play FAB) is source-merged. Tracking issue GitHub #739 is closed separately. `im-tio` approved exact head `06db3985ecf0d6f3f712809293fe4afe5f291646` for source-level review only. All 14 CI checks on that head passed. Linear TNYX-84 remains In Progress.
+
+Earlier "In progress", "Do not merge", and "no merge occurred" notes above are dated pre-merge checkpoints.
+
+**Still pending:** hosted Supabase W7B/W7C migration and deploy (separate owner gate), device validation, and W7B-2B. Source merge is not production readiness and is not a hosted deploy.
