@@ -325,7 +325,8 @@ Slice B1 was published as `5d6e6bee822bb78b4f9f34139c3e5a658e90f8c5`; all five e
 
 ### Merge-gate slice — Save gateway + review blockers (2026-11-10)
 
-**Implementation owner:** current local Cursor agent on the existing approved W7C-3 branch.
+**Working agent:** Cursor (recorded here only — no AI commit co-author trailer).
+**Implementation agent:** Cursor on the existing approved W7C-3 branch.
 
 **Delivered in this slice:**
 - Flutter `WorkoutDraftSaveRepository` / DTO / gateway RPC wiring commits the local draft through `rpc_save_workout_session_v1`, requires exact canonical readback, freezes `submittedAtUtc`/`submittedTitle` for retries, and deletes the local draft only after success.
