@@ -238,8 +238,8 @@ create table public.user_workout_sessions (
   notes text null,
   discard_reason text null,
   revision integer not null default 1,
-  created_at timestamptz not null default timezone('utc'::text, now()),
-  updated_at timestamptz not null default timezone('utc'::text, now()),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
 
   constraint pk_user_workout_sessions primary key (id),
   constraint uq_user_workout_sessions_composite unique (id, user_id),
@@ -322,8 +322,8 @@ create table public.user_workout_performed_sets (
   completed_at_utc timestamptz null,
   is_skipped boolean not null default false,
   notes text null,
-  created_at timestamptz not null default timezone('utc'::text, now()),
-  updated_at timestamptz not null default timezone('utc'::text, now()),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
 
   constraint pk_user_workout_performed_sets primary key (id),
   constraint fk_user_workout_performed_sets_session_composite
@@ -396,7 +396,7 @@ begin
               detail = 'Core session identification and snapshot fields are immutable.';
     end if;
 
-    new.updated_at := timezone('utc'::text, now());
+    new.updated_at := now();
     return new;
 
   elsif tg_op = 'DELETE' then
@@ -454,7 +454,7 @@ begin
   if tg_op = 'DELETE' then
     return old;
   elsif tg_op = 'UPDATE' then
-    new.updated_at := timezone('utc'::text, now());
+    new.updated_at := now();
     return new;
   else
     return new;
@@ -549,7 +549,7 @@ begin
   end if;
 
   -- Permissive timestamp plausibility window allowing offline-sync clock skew
-  if p_started_at_utc < '2020-01-01'::timestamptz or p_started_at_utc > timezone('utc'::text, now()) + interval '1 day' then
+  if p_started_at_utc < timestamptz '2020-01-01 00:00:00+00' or p_started_at_utc > now() + interval '24 hours' then
     raise exception 'invalid_timestamp_range' using errcode = '22023';
   end if;
 
@@ -812,7 +812,7 @@ begin
       paused_at_utc = p_paused_at_utc,
       last_transition_at_utc = p_paused_at_utc,
       revision = revision + 1,
-      updated_at = timezone('utc'::text, now())
+      updated_at = now()
   where id = p_session_id and user_id = v_user_id
   returning * into v_session;
 
@@ -896,7 +896,7 @@ begin
       accumulated_paused_microseconds = accumulated_paused_microseconds + v_additional_us,
       last_transition_at_utc = p_resumed_at_utc,
       revision = revision + 1,
-      updated_at = timezone('utc'::text, now())
+      updated_at = now()
   where id = p_session_id and user_id = v_user_id
   returning * into v_session;
 
@@ -1054,7 +1054,7 @@ begin
     completed_at_utc = excluded.completed_at_utc,
     is_skipped = excluded.is_skipped,
     notes = excluded.notes,
-    updated_at = timezone('utc'::text, now())
+    updated_at = now()
   where public.user_workout_performed_sets.user_id = v_user_id
     and public.user_workout_performed_sets.session_id = p_session_id
   returning * into v_set;
@@ -1066,7 +1066,7 @@ begin
   -- Advance parent session revision
   update public.user_workout_sessions
   set revision = revision + 1,
-      updated_at = timezone('utc'::text, now())
+      updated_at = now()
   where id = p_session_id and user_id = v_user_id;
 
   return v_set;
@@ -1137,7 +1137,7 @@ begin
 
   update public.user_workout_sessions
   set revision = revision + 1,
-      updated_at = timezone('utc'::text, now())
+      updated_at = now()
   where id = p_session_id and user_id = v_user_id;
 end;
 $$;
@@ -1229,7 +1229,7 @@ begin
       accumulated_paused_microseconds = accumulated_paused_microseconds + v_additional_us,
       notes = v_normalized_notes,
       revision = revision + 1,
-      updated_at = timezone('utc'::text, now())
+      updated_at = now()
   where id = p_session_id and user_id = v_user_id
   returning * into v_session;
 
@@ -1327,7 +1327,7 @@ begin
       accumulated_paused_microseconds = accumulated_paused_microseconds + v_additional_us,
       discard_reason = v_trimmed_reason,
       revision = revision + 1,
-      updated_at = timezone('utc'::text, now())
+      updated_at = now()
   where id = p_session_id and user_id = v_user_id
   returning * into v_session;
 

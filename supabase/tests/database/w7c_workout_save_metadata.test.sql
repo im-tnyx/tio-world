@@ -2,7 +2,7 @@
 BEGIN;
 SET LOCAL TIME ZONE 'UTC';
 CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
-SELECT plan(25);
+SELECT plan(28);
 
 INSERT INTO auth.users (id, email) VALUES
   ('11111111-1111-1111-1111-111111111111', 'owner_w7c@tio.test'),
@@ -81,6 +81,8 @@ SELECT is((SELECT workout_utc_offset_minutes FROM public.user_workout_sessions W
 SELECT is((SELECT local_date FROM public.user_workout_sessions WHERE id = 'cccccccc-cccc-4ccc-accc-cccccccccccc'), '2026-11-08'::date, 'local date derives from instant and saved offset across UTC midnight');
 SELECT is((SELECT notes FROM public.user_workout_sessions WHERE id = 'cccccccc-cccc-4ccc-accc-cccccccccccc'), 'notes', 'notes retain canonical normalization');
 SELECT is((SELECT revision FROM public.user_workout_sessions WHERE id = 'cccccccc-cccc-4ccc-accc-cccccccccccc'), 2, 'completion increments revision exactly once');
+SELECT ok((SELECT abs(extract(epoch from updated_at - now())) < 1 FROM public.user_workout_sessions
+  WHERE id = 'cccccccc-cccc-4ccc-accc-cccccccccccc'), 'UTC V2 completion updated_at is the current instant');
 
 RESET ROLE;
 SET LOCAL ROLE authenticated;
@@ -135,6 +137,8 @@ $complete_la$, 'same UTC instant and offset can complete under America/Los_Angel
 SELECT is((SELECT local_date FROM public.user_workout_sessions WHERE id = 'dddddddd-dddd-4ddd-addd-dddddddddddd'),
   (SELECT local_date FROM public.user_workout_sessions WHERE id = 'cccccccc-cccc-4ccc-accc-cccccccccccc'),
   'UTC and America/Los_Angeles produce the same +330 local date');
+SELECT ok((SELECT abs(extract(epoch from updated_at - now())) < 1 FROM public.user_workout_sessions
+  WHERE id = 'dddddddd-dddd-4ddd-addd-dddddddddddd'), 'Los Angeles V2 completion updated_at is the current instant');
 
 SET LOCAL TIME ZONE 'Asia/Kolkata';
 SELECT lives_ok($start_negative$
@@ -155,6 +159,8 @@ SELECT lives_ok($complete_negative$
 $complete_negative$, 'negative offset can complete across the UTC calendar boundary');
 SELECT is((SELECT local_date FROM public.user_workout_sessions WHERE id = 'eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeee'),
   '2026-11-07'::date, 'negative offset preserves the selected previous calendar day');
+SELECT ok((SELECT abs(extract(epoch from updated_at - now())) < 1 FROM public.user_workout_sessions
+  WHERE id = 'eeeeeeee-eeee-4eee-aeee-eeeeeeeeeeee'), 'Kolkata V2 completion updated_at is the current instant');
 
 RESET ROLE;
 SELECT * FROM finish();

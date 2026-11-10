@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
-SELECT plan(82);
+SELECT plan(115);
 
 -- ============================================================================
 -- Fixtures Setup (Two distinct authenticated users with programs & routines)
@@ -1475,6 +1475,153 @@ SELECT is(
   0,
   'Account cascade deletion removes all Owner A performed sets cleanly'
 );
+
+-- Every mutation must store the same instant regardless of the request's
+-- session TimeZone. Use one owner and finish each session before starting next.
+INSERT INTO auth.users (id, email) VALUES
+  ('eeeeeeee-1111-1111-1111-111111111111', 'timezone_owner@tio.test')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.users (id, email) VALUES
+  ('eeeeeeee-1111-1111-1111-111111111111', 'timezone_owner@tio.test')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.user_workout_programs (id, user_id, name) VALUES
+  ('eeeeeeee-1111-0000-0000-000000000001', 'eeeeeeee-1111-1111-1111-111111111111', 'Timezone Program');
+INSERT INTO public.user_workout_routines (id, user_id, program_id, name) VALUES
+  ('eeeeeeee-1111-0000-0000-000000000002', 'eeeeeeee-1111-1111-1111-111111111111',
+   'eeeeeeee-1111-0000-0000-000000000001', 'Timezone Routine');
+INSERT INTO public.user_workout_routine_exercises (id, user_id, routine_id, position, catalog_exercise_id) VALUES
+  ('eeeeeeee-1111-0000-0000-000000000003', 'eeeeeeee-1111-1111-1111-111111111111',
+   'eeeeeeee-1111-0000-0000-000000000002', 0, 'ex_barbell_bench_press');
+INSERT INTO public.user_workout_routine_sets
+  (id, user_id, routine_exercise_id, position, set_type, reps, load_kg, rest_seconds)
+VALUES
+  ('eeeeeeee-1111-0000-0000-000000000004', 'eeeeeeee-1111-1111-1111-111111111111',
+   'eeeeeeee-1111-0000-0000-000000000003', 0, 'normal', 10, 100, 90);
+
+CREATE FUNCTION pg_temp.w7b_timezone_checks()
+RETURNS jsonb LANGUAGE plpgsql AS $tz$
+DECLARE
+  v_snapshot jsonb := '{"schema_version":1,"routine_id":"eeeeeeee-1111-0000-0000-000000000002","program_id":"eeeeeeee-1111-0000-0000-000000000001","routine_name":"Timezone Routine","captured_at_utc":"2026-11-06T00:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Barbell Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":10,"load_kg":100,"rest_seconds":90}]}]}'::jsonb;
+  v_session public.user_workout_sessions;
+  v_set public.user_workout_performed_sets;
+  v_id uuid := gen_random_uuid();
+  v_set_id uuid := gen_random_uuid();
+  v_result jsonb := '{}'::jsonb;
+BEGIN
+  SELECT * INTO v_session FROM public.rpc_start_workout_session(
+    v_id, 'eeeeeeee-1111-0000-0000-000000000001',
+    'eeeeeeee-1111-0000-0000-000000000002', now() - interval '10 minutes',
+    current_date, v_snapshot);
+  v_result := v_result || jsonb_build_object('start',
+    abs(extract(epoch from v_session.created_at - now())) < 1
+    and abs(extract(epoch from v_session.updated_at - now())) < 1);
+
+  SELECT * INTO v_session FROM public.rpc_pause_workout_session(
+    v_id, 1, now() - interval '9 minutes');
+  v_result := v_result || jsonb_build_object('pause',
+    abs(extract(epoch from v_session.updated_at - now())) < 1);
+  SELECT * INTO v_session FROM public.rpc_resume_workout_session(
+    v_id, 2, now() - interval '8 minutes');
+  v_result := v_result || jsonb_build_object('resume',
+    abs(extract(epoch from v_session.updated_at - now())) < 1);
+
+  SELECT * INTO v_set FROM public.rpc_log_workout_performed_set(
+    v_set_id, v_id, 3, 'ex_barbell_bench_press', 0, 0,
+    10, 100, null, null, now() - interval '7 minutes');
+  v_result := v_result || jsonb_build_object('set_insert',
+    abs(extract(epoch from v_set.created_at - now())) < 1
+    and abs(extract(epoch from v_set.updated_at - now())) < 1
+    and abs(extract(epoch from
+      (SELECT updated_at FROM public.user_workout_sessions WHERE id = v_id) - now())) < 1);
+  SELECT * INTO v_set FROM public.rpc_log_workout_performed_set(
+    v_set_id, v_id, 4, 'ex_barbell_bench_press', 0, 0,
+    8, 100, null, null, now() - interval '7 minutes');
+  v_result := v_result || jsonb_build_object('set_update',
+    abs(extract(epoch from v_set.updated_at - now())) < 1
+    and abs(extract(epoch from
+      (SELECT updated_at FROM public.user_workout_sessions WHERE id = v_id) - now())) < 1);
+
+  SELECT * INTO v_session FROM public.rpc_complete_workout_session(
+    v_id, 5, now() - interval '1 minute', null);
+  v_result := v_result || jsonb_build_object('complete',
+    abs(extract(epoch from v_session.updated_at - now())) < 1
+    and v_session.completed_at_utc = now() - interval '1 minute');
+
+  v_id := gen_random_uuid();
+  SELECT * INTO v_session FROM public.rpc_start_workout_session(
+    v_id, 'eeeeeeee-1111-0000-0000-000000000001',
+    'eeeeeeee-1111-0000-0000-000000000002', now() - interval '10 minutes',
+    current_date, v_snapshot);
+  SELECT * INTO v_session FROM public.rpc_discard_workout_session(
+    v_id, 1, now() - interval '1 minute', 'timezone regression');
+  v_result := v_result || jsonb_build_object('discard',
+    abs(extract(epoch from v_session.updated_at - now())) < 1);
+
+  v_id := gen_random_uuid();
+  SELECT * INTO v_session FROM public.rpc_start_workout_session(
+    v_id, 'eeeeeeee-1111-0000-0000-000000000001',
+    'eeeeeeee-1111-0000-0000-000000000002', now() + interval '23 hours 59 minutes',
+    current_date, v_snapshot);
+  v_result := v_result || jsonb_build_object('future_accept',
+    v_session.started_at_utc = now() + interval '23 hours 59 minutes');
+  PERFORM public.rpc_discard_workout_session(
+    v_id, 1, now() + interval '23 hours 59 minutes', 'future boundary fixture');
+
+  BEGIN
+    PERFORM public.rpc_start_workout_session(
+      gen_random_uuid(), 'eeeeeeee-1111-0000-0000-000000000001',
+      'eeeeeeee-1111-0000-0000-000000000002', now() + interval '24 hours 1 minute',
+      current_date, v_snapshot);
+    v_result := v_result || '{"future_reject":false}'::jsonb;
+  EXCEPTION WHEN sqlstate '22023' THEN
+    v_result := v_result || jsonb_build_object('future_reject',
+      SQLERRM = 'invalid_timestamp_range');
+  END;
+
+  v_id := gen_random_uuid();
+  SELECT * INTO v_session FROM public.rpc_start_workout_session(
+    v_id, 'eeeeeeee-1111-0000-0000-000000000001',
+    'eeeeeeee-1111-0000-0000-000000000002',
+    timestamptz '2020-01-01 00:00:00+00', date '2020-01-01', v_snapshot);
+  v_result := v_result || jsonb_build_object('lower_accept',
+    v_session.started_at_utc = timestamptz '2020-01-01 00:00:00+00');
+  PERFORM public.rpc_discard_workout_session(
+    v_id, 1, timestamptz '2020-01-01 00:01:00+00', 'lower boundary fixture');
+
+  BEGIN
+    PERFORM public.rpc_start_workout_session(
+      gen_random_uuid(), 'eeeeeeee-1111-0000-0000-000000000001',
+      'eeeeeeee-1111-0000-0000-000000000002',
+      timestamptz '2019-12-31 23:59:59+00', date '2019-12-31', v_snapshot);
+    v_result := v_result || '{"lower_reject":false}'::jsonb;
+  EXCEPTION WHEN sqlstate '22023' THEN
+    v_result := v_result || jsonb_build_object('lower_reject',
+      SQLERRM = 'invalid_timestamp_range');
+  END;
+  RETURN v_result;
+END;
+$tz$;
+
+CREATE TEMP TABLE w7b_timezone_results (zone text PRIMARY KEY, checks jsonb);
+GRANT INSERT ON w7b_timezone_results TO authenticated;
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" = 'eeeeeeee-1111-1111-1111-111111111111';
+SET LOCAL TIME ZONE 'UTC';
+INSERT INTO w7b_timezone_results VALUES ('UTC', pg_temp.w7b_timezone_checks());
+SET LOCAL TIME ZONE 'Asia/Kolkata';
+INSERT INTO w7b_timezone_results VALUES ('Asia/Kolkata', pg_temp.w7b_timezone_checks());
+SET LOCAL TIME ZONE 'America/Los_Angeles';
+INSERT INTO w7b_timezone_results VALUES ('America/Los_Angeles', pg_temp.w7b_timezone_checks());
+RESET ROLE;
+
+SELECT ok(checks->>key = 'true', zone || ': ' || key)
+FROM w7b_timezone_results
+CROSS JOIN (VALUES
+  ('start'), ('pause'), ('resume'), ('set_insert'), ('set_update'),
+  ('complete'), ('discard'), ('future_accept'), ('future_reject'),
+  ('lower_accept'), ('lower_reject')
+) AS cases(key)
+ORDER BY zone, key;
 
 SELECT * FROM finish();
 ROLLBACK;
