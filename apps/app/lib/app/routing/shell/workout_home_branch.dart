@@ -51,6 +51,9 @@ class _WorkoutHomeBranchState extends ConsumerState<WorkoutHomeBranch>
     final generation = ++_restoreGeneration;
     final draftController = ref.read(activeWorkoutDraftControllerProvider);
     final sessionController = ref.read(activeWorkoutControllerProvider);
+    // Auth/session providers can still be null on the first frame after cold
+    // start. A later listen re-runs this once durable controllers exist.
+    if (draftController == null && sessionController == null) return;
     await draftController?.restoreExisting();
     await sessionController?.restoreActiveSession();
     if (!mounted || generation != _restoreGeneration) return;
@@ -170,6 +173,25 @@ class _WorkoutHomeBranchState extends ConsumerState<WorkoutHomeBranch>
     final draftController = ref.watch(activeWorkoutDraftControllerProvider);
     final draftStore = ref.watch(activeWorkoutDraftStoreProvider);
     final sessionController = ref.watch(activeWorkoutControllerProvider);
+
+    // Cold start / auth settle / save-repo rebuild can replace autoDispose
+    // controllers after the first post-frame restore. Re-load the durable
+    // draft into the new instance so the mini pill appears before Play.
+    ref.listen<ActiveWorkoutDraftController?>(
+      activeWorkoutDraftControllerProvider,
+      (previous, next) {
+        if (next == null || identical(previous, next)) return;
+        unawaited(_restoreInProgressWorkout());
+      },
+    );
+    ref.listen<ActiveWorkoutController?>(
+      activeWorkoutControllerProvider,
+      (previous, next) {
+        if (next == null || identical(previous, next)) return;
+        unawaited(_restoreInProgressWorkout());
+      },
+    );
+
     final listenables = <Listenable>[
       if (draftController != null) draftController,
       if (sessionController != null) sessionController,

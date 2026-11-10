@@ -21,13 +21,19 @@
 - `removeSet` clears `activeRest` only when the resting setId is removed.
 - Last-set exercise drop reindexes `_exerciseNotes` by index.
 
+## Bugfix (cold start pill)
+
+**Problem:** After app kill/relaunch, Play still detected the durable draft, but the mini pill stayed hidden until Play was pressed.
+**Cause:** First restore often ran while autoDispose controllers were still null (auth settle). Later provider rebuilds replaced the controller without calling `restoreExisting` again, so memory draft stayed empty while the store still had the workout.
+**Fix:** Re-run restore whenever draft/session controllers become available or are replaced (`ref.listen` in `WorkoutHomeBranch`).
+
 ## Active Handoff
 
 **Implementation owner:** Cursor
 **Implementation ownership state:** Complete
 **Branch:** `feat/w7c-3-active-workout-execution-ui`
 **PR / tracker:** #740
-**Validation completed at SHA:** `9db6d159`
+**Validation completed at SHA:** pending push
 **Validation evidence:**
-- `flutter test test/presentation/workout_play_start_flow_test.dart test/presentation/active_workout_draft_controller_test.dart test/presentation/active_workout_mini_bar_test.dart test/presentation/workout_home_page_test.dart` → all passed
-**Next exact action:** Wait for PR #740 CI + re-review after push
+- `flutter test test/app/workout_home_branch_restore_test.dart` → passed
+**Next exact action:** Commit + push cold-start pill restore fix to PR #740
