@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - ci-validation/android-native-base
     paths:
       - 'apps/app/android/**'
       - 'apps/app/lib/**'
