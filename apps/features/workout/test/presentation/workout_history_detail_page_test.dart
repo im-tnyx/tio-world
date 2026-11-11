@@ -187,6 +187,23 @@ void main() {
     expect(gapWithoutDescription, lessThan(gapWithDescription));
   });
 
+  testWidgets('set number retains its saved slot after a skipped set',
+      (tester) async {
+    final detail = _detail();
+    detail.exercises.first.sets[0] = PerformedSet(
+      id: '33333333-3333-4333-a333-333333333333',
+      exerciseRef: CatalogExerciseRef('ex_spinning'),
+      sessionExerciseIndex: 0,
+      setIndex: 2,
+      durationSeconds: 429,
+      completedAtUtc: _started,
+    );
+    await _pump(tester, _Repository((_) async => detail));
+    await tester.pumpAndSettle();
+    expect(find.text('7min 9s'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+  });
+
   testWidgets('loading, retry, not found and old account result isolation',
       (tester) async {
     final oldPending = Completer<WorkoutHistoryDetail?>();

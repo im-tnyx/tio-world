@@ -167,10 +167,10 @@ class _WorkoutHistoryDetailPageState
         rows.add(_ExerciseHeading(exercise: exercise, media: media));
         rows.add(const SizedBox(height: TioSpacing.sm));
         rows.add(_SetColumnHeading(exercise: exercise));
-        for (final (setNumber, set) in exercise.sets.indexed) {
+        for (final set in exercise.sets) {
           rows.add(_PerformedSetRow(
             set: set,
-            setNumber: setNumber + 1,
+            setNumber: set.setIndex + 1,
           ));
         }
       }
