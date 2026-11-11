@@ -41,10 +41,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install Flutter stable
+      - name: Install pinned Flutter 3.47.9
         shell: bash
         run: |
-          git clone https://github.com/flutter/flutter.git --depth 1 --branch stable "$HOME/flutter"
+          git clone https://github.com/flutter/flutter.git --depth 1 --branch 3.47.9 "$HOME/flutter"
           echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
 
       - name: Toolchain info
@@ -86,10 +86,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install Flutter stable
+      - name: Install pinned Flutter 3.47.9
         shell: bash
         run: |
-          git clone https://github.com/flutter/flutter.git --depth 1 --branch stable "$HOME/flutter"
+          git clone https://github.com/flutter/flutter.git --depth 1 --branch 3.47.9 "$HOME/flutter"
           echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
 
       - name: Toolchain info

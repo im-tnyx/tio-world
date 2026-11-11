@@ -38,6 +38,8 @@ Show saved duration and truthful performed previews. Omit volume until load/reps
 - [x] Publish scoped PR and link PR/task brief to TNYX-85; broader W8 remains In Progress.
 - [ ] Inspect exact-head CI/review and request independent review. Merge requires PR-specific owner approval.
 
+**CI compatibility correction:** First PR run `43087828932` cloned moving Flutter `stable` at 3.50.0. Its analyzer failed across 14 packages with 418 SDK deprecation infos and one pre-existing unnecessary import, while the prior `main` analyzer passed. The two Flutter CI install steps are pinned to the existing Android CI version 3.47.9 (verified Flutter tag); exact-head CI rerun is required. No SDK/package migration is included.
+
 **Future protected-API compatibility:** Compatible + evidence for this read-only projection: canonical `WorkoutSessionId` and saved W7 session/set tables remain unchanged; the feature repository boundary can be implemented by a later approved adapter without re-keying the card model or rewriting UI. Owner Auth/RLS was inspected live, while future API authorization and mixed-version clients were not tested. W7 mutations, retries and Save E2E are outside W8A.
 
-**Remaining acceptance:** Hosted CI and independent review are pending publication. Device visual/Save E2E acceptance is not claimed. TNYX-84 remains In Progress. **Detail follow-up:** obtain owner design and behavior before card-selection navigation.
+**Remaining acceptance:** Exact-head CI and independent review are pending. Device visual/Save E2E acceptance is not claimed. TNYX-84 remains In Progress. **Detail follow-up:** obtain owner design and behavior before card-selection navigation.
