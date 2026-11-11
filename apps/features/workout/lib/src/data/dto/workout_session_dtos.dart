@@ -456,6 +456,8 @@ abstract final class WorkoutHistoryDto {
       Map<String, dynamic>.from(row['routine_snapshot'] as Map),
     );
     final counts = <int, int>{};
+    var volumeKg = 0.0;
+    var hasMeasuredVolume = false;
     for (final set in performedRows) {
       if (set['user_id'] != expectedOwnerId ||
           set['session_id'] != sessionId.value) {
@@ -469,6 +471,15 @@ abstract final class WorkoutHistoryDto {
       }
       if (set['is_skipped'] == false && set['completed_at_utc'] != null) {
         counts[index] = (counts[index] ?? 0) + 1;
+        final reps = set['reps'] as int?;
+        final loadKg = (set['load_kg'] as num?)?.toDouble();
+        if (reps != null && loadKg != null) {
+          if (reps < 0 || !loadKg.isFinite || loadKg < 0) {
+            throw const FormatException('Invalid performed volume values.');
+          }
+          volumeKg += reps * loadKg;
+          hasMeasuredVolume = true;
+        }
       }
     }
     final savedAt = row['workout_at_utc'] == null
@@ -496,6 +507,7 @@ abstract final class WorkoutHistoryDto {
       duration: selectedDuration == null
           ? Duration(microseconds: elapsedMicroseconds)
           : Duration(seconds: selectedDuration),
+      volumeKg: hasMeasuredVolume && volumeKg.isFinite ? volumeKg : null,
       description: _nonBlank(row['notes'] as String?),
       gymName: _nonBlank(row['gym_name'] as String?),
       exercises: List.unmodifiable([

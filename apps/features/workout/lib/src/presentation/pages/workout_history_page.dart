@@ -290,10 +290,35 @@ class WorkoutHistoryCard extends StatelessWidget {
                     ?.copyWith(color: colors.textSecondary)),
           ],
           const SizedBox(height: TioSpacing.md),
-          Text('Time',
-              style:
-                  textTheme.bodySmall?.copyWith(color: colors.textSecondary)),
-          Text(_durationLabel(entry.duration), style: textTheme.titleSmall),
+          Wrap(
+            spacing: TioSpacing.xl,
+            runSpacing: TioSpacing.sm,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Time',
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: colors.textSecondary)),
+                  Text(_durationLabel(entry.duration),
+                      style: textTheme.titleSmall),
+                ],
+              ),
+              if (entry.volumeKg case final volumeKg?)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Volume',
+                        style: textTheme.bodySmall
+                            ?.copyWith(color: colors.textSecondary)),
+                    Text('${_formatVolumeKg(volumeKg)} kg',
+                        style: textTheme.titleSmall),
+                  ],
+                ),
+            ],
+          ),
           if (entry.exercises.isNotEmpty) ...[
             const SizedBox(height: TioSpacing.md),
             Divider(height: TioSpacing.sm, color: colors.outlineStrong),
@@ -341,5 +366,12 @@ class WorkoutHistoryCard extends StatelessWidget {
     if (hours > 0) return '${hours}h ${minutes}min';
     if (duration.inMinutes > 0) return '${duration.inMinutes}min';
     return '${duration.inSeconds}s';
+  }
+
+  static String _formatVolumeKg(double volumeKg) {
+    if (volumeKg == volumeKg.roundToDouble()) {
+      return volumeKg.toStringAsFixed(0);
+    }
+    return volumeKg.toStringAsFixed(1);
   }
 }

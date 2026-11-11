@@ -29,6 +29,7 @@ final class WorkoutHistoryEntry {
     required this.title,
     required this.duration,
     required this.exercises,
+    this.volumeKg,
     this.description,
     this.gymName,
   });
@@ -38,6 +39,9 @@ final class WorkoutHistoryEntry {
   final DateTime displayAt;
   final String title;
   final Duration duration;
+
+  /// Recorded external-load volume from completed performed sets, when known.
+  final double? volumeKg;
   final String? description;
   final String? gymName;
   final List<WorkoutHistoryExercise> exercises;

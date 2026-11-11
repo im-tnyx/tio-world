@@ -127,7 +127,7 @@ final class SupabaseWorkoutSessionGateway implements WorkoutSessionGateway {
     final response = await _client
         .from('user_workout_performed_sets')
         .select('session_id,user_id,exercise_ref,session_exercise_index,'
-            'set_index,is_skipped,completed_at_utc')
+            'set_index,reps,load_kg,is_skipped,completed_at_utc')
         .eq('user_id', userId)
         .inFilter('session_id', sessionIds)
         .order('session_id')

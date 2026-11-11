@@ -30,6 +30,7 @@ WorkoutHistoryEntry _entry({
   String id = _id,
   String? description,
   String? gym,
+  double? volumeKg,
   int exerciseCount = 1,
 }) =>
     WorkoutHistoryEntry(
@@ -38,6 +39,7 @@ WorkoutHistoryEntry _entry({
       displayAt: DateTime.utc(2026, 11, 11, 14, 30),
       title: 'Shoulders',
       duration: const Duration(minutes: 53),
+      volumeKg: volumeKg,
       description: description,
       gymName: gym,
       exercises: [
@@ -100,6 +102,33 @@ void main() {
     final presentGap = tester.getTopLeft(find.text('Time')).dy -
         tester.getBottomLeft(find.text('Shoulders')).dy;
     expect(absentGap, lessThan(presentGap));
+  });
+
+  testWidgets('card shows measured Volume beside Time only when available',
+      (tester) async {
+    Future<void> pump(double? volumeKg) => tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => TioTheme(
+              child: child ?? const SizedBox.shrink(),
+            ),
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: WorkoutHistoryCard(
+                  entry: _entry(volumeKg: volumeKg),
+                  mediaFor: (_) => null,
+                ),
+              ),
+            ),
+          ),
+        );
+    await pump(400);
+    expect(find.text('Volume'), findsOneWidget);
+    expect(find.text('400 kg'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Volume')).dy,
+        tester.getTopLeft(find.text('Time')).dy);
+    await pump(null);
+    expect(find.text('Volume'), findsNothing);
+    expect(find.text('400 kg'), findsNothing);
   });
 
   testWidgets('History loading, error, retry and empty state', (tester) async {
@@ -199,7 +228,7 @@ void main() {
           home: Scaffold(
             body: SingleChildScrollView(
               child: WorkoutHistoryCard(
-                entry: _entry(exerciseCount: 6),
+                entry: _entry(exerciseCount: 6, volumeKg: 400),
                 mediaFor: (_) => null,
               ),
             ),
@@ -208,6 +237,7 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       expect(find.text('Shoulders'), findsOneWidget);
+      expect(find.text('400 kg'), findsOneWidget);
     }
   });
 }

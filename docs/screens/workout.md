@@ -24,9 +24,12 @@ The approved W8A slice adds a separate far-right History action beside this
 status. `/workout/history` is a nested Workout route, not a new bottom tab. It
 lists only owner-scoped completed `WorkoutSession` rows and previews actual
 performed sets from saved snapshots. The card shows saved workout time, title,
-optional description/gym, duration and up to five performed exercises; blank
-optional fields take no space. Volume, PR, average bpm and calories remain
-hidden until authoritative completed-session contracts support them. History
+optional description/gym, duration, measured external-load volume when saved
+performed reps and load exist, and up to five performed exercises; blank
+optional fields take no space. Volume sums completed, non-skipped performed
+`reps × load_kg` pairs, matching Active Workout; it is absent when no such pair
+exists. PR, average bpm and calories remain hidden until authoritative
+completed-session contracts support them. History
 Detail and card selection require a later owner-approved W8 slice.
 
 1. **Current plan** — selected Routine or TrainingPlan/PlannedWorkout context, its next scheduled workout when one exists, session status, and a clear rest-day state. Reusable Program itself does not own scheduled sessions. Workout Home Play remains the empty ad-hoc start entry; Routine Detail, Program Detail and expanded Library Routine rows can start the selected Routine.

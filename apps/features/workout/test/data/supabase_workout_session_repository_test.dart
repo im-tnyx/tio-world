@@ -337,6 +337,7 @@ void main() {
       expect(entry.displayAt.hour, 15);
       expect(entry.displayAt.minute, 30);
       expect(entry.duration, const Duration(minutes: 53));
+      expect(entry.volumeKg, 1600);
       expect(entry.description, 'Strong session');
       expect(entry.gymName, 'Main Gym');
       expect(entry.exercises.single.name, 'Bench Press');
@@ -410,6 +411,42 @@ void main() {
       expect(entry.exercises.map((exercise) => exercise.name),
           ['Bench Press', 'Row']);
       expect(entry.exercises.map((exercise) => exercise.setCount), [1, 1]);
+      expect(entry.volumeKg, 1600);
+    });
+
+    test('History volume uses only completed measured performed sets',
+        () async {
+      gateway.historyHeaders = [
+        {
+          ..._mockSessionRow(
+            status: 'completed',
+            completedAt: _startedAt.add(const Duration(minutes: 10)),
+          ),
+          'gym_name': null,
+          'workout_duration_seconds': null,
+        },
+      ];
+      gateway.historySets = [
+        _mockSetRow(reps: 8, loadKg: 50),
+        {
+          ..._mockSetRow(setIndex: 1, reps: null, loadKg: null),
+          'is_skipped': true
+        },
+        {
+          ..._mockSetRow(setIndex: 2, reps: 10, loadKg: 100),
+          'completed_at_utc': null
+        },
+        _mockSetRow(setIndex: 3, reps: 10, loadKg: null),
+      ];
+      final entry = (await repo.listCompletedHistory()).entries.single;
+      expect(entry.volumeKg, 400);
+      expect(entry.exercises.single.setCount, 2);
+
+      gateway.historySets = [
+        _mockSetRow(reps: 10, loadKg: null),
+      ];
+      expect(
+          (await repo.listCompletedHistory()).entries.single.volumeKg, isNull);
     });
 
     test('History rejects non-completed, foreign and stale account results',

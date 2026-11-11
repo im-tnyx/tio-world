@@ -11,7 +11,7 @@
 
 ## Discovery and owner approval
 
-Owner approved only the Workout root History action, authenticated completed-session list/read contract, and compact cards using the supplied visual reference. Cards retain session IDs without selection. History Detail, Active Workout redesign, new schema/RPC/grants, watch, local database, offline sync, and deployment are out of scope.
+Owner approved the Workout root History action, authenticated completed-session list/read contract, and compact cards using the supplied visual reference. The owner subsequently requested missing total Volume and the same clean Time/Volume presentation as the new screenshot. Cards retain session IDs without selection. History Detail, Active Workout redesign, new schema/RPC/grants, watch, local database, offline sync, and deployment are out of scope.
 
 ## Reconciled evidence
 
@@ -26,7 +26,7 @@ Owner approved only the Workout root History action, authenticated completed-ses
 
 Use the existing W7 Supabase client/repository ownership and add a bounded read-only History page contract. Query completed session headers in stable descending completion-time and ID order, then fetch that page's performed rows in a bounded batch. Build cards from saved fields and frozen exercise names; count non-skipped performed rows. Guard account changes before publishing async results. No in-memory cross-login cache.
 
-Show saved duration and truthful performed previews. Omit volume until load/reps semantics are audited; omit PR, average bpm, and calories because canonical completed-session values do not exist. Omit current-user avatar/name unless an existing approved profile read can be used without widening this slice. Empty/blank description and gym render no element or spacing.
+Show saved duration and truthful performed previews. W7 stores actual external `load_kg` and `reps` on performed rows; Active Workout already sums `loadKg × reps`. History uses the same calculation only for completed, non-skipped measured pairs, showing Volume beside Time when at least one pair exists. Missing measurements do not become inferred zero-volume sets. Omit PR, average bpm, and calories because canonical completed-session values do not exist. Omit current-user avatar/name unless an existing approved profile read can be used without widening this slice. Empty/blank description and gym render no element or spacing.
 
 **Rejected:** per-card set requests (N+1), planned Routine set counts, speculative stats, and a placeholder Detail route.
 
@@ -38,7 +38,9 @@ Show saved duration and truthful performed previews. Omit volume until load/reps
 - [x] Publish scoped PR and link PR/task brief to TNYX-85; broader W8 remains In Progress.
 - [ ] Inspect exact-head CI/review and request independent review. Merge requires PR-specific owner approval.
 
-**CI compatibility correction:** First PR run `43087828932` cloned moving Flutter `stable` at 3.50.0. Its analyzer failed across 14 packages with 418 SDK deprecation infos and one pre-existing unnecessary import, while the prior `main` analyzer passed. The two Flutter CI install steps are pinned to the existing Android CI version 3.47.9 (verified Flutter tag); exact-head CI rerun is required. No SDK/package migration is included.
+**Owner Volume correction validation:** `dart format` on seven changed Dart files: exit 0. Focused gateway/repository/card tests: 54/54, exit 0. Workout `flutter analyze --no-pub`: exit 0. Full Workout `flutter test --no-pub`: 1437/1437, exit 0. Existing Material icons pubspec warning and one pre-existing hit-test warning did not fail tests. Exact new PR-head CI remains pending.
+
+**CI compatibility correction:** First PR run `43087828932` cloned moving Flutter `stable` at 3.50.0. Its analyzer failed across 14 packages with 418 SDK deprecation infos and one pre-existing unnecessary import, while the prior `main` analyzer passed. The two Flutter CI install steps are pinned to the existing Android CI version 3.47.9 (verified Flutter tag). The previous head `2fc63f89` passed Flutter CI `43088860428` and Android Native CI `43088860425`; the Volume follow-up requires fresh exact-head checks. No SDK/package migration is included.
 
 **Future protected-API compatibility:** Compatible + evidence for this read-only projection: canonical `WorkoutSessionId` and saved W7 session/set tables remain unchanged; the feature repository boundary can be implemented by a later approved adapter without re-keying the card model or rewriting UI. Owner Auth/RLS was inspected live, while future API authorization and mixed-version clients were not tested. W7 mutations, retries and Save E2E are outside W8A.
 

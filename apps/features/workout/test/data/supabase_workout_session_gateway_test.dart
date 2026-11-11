@@ -78,6 +78,7 @@ void main() {
       expect(captured!.url.path, '/rest/v1/user_workout_performed_sets');
       expect(captured!.url.queryParameters['user_id'], 'eq.$_owner');
       expect(captured!.url.queryParameters['session_id'], contains(_session));
+      expect(captured!.url.queryParameters['select'], contains('reps,load_kg'));
       expect(captured!.url.queryParameters['offset'], '1000');
       expect(captured!.url.queryParameters['limit'], '1000');
     });
