@@ -4,7 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
-[W8A Workout History list and card](w8a-workout-history-list-card.md) is the owner-approved TNYX-85 slice on `codex/tnyx-85-w8a-workout-history`: Workout root History action, owner-scoped completed-session read/list, and compact cards only. History Detail/card selection remain a later owner-designed slice. W7/TNYX-84 remains In Progress; W8A reads existing hosted W7 tables without claiming Save E2E or device acceptance.
+[W8B Workout History Detail](w8b-workout-history-detail.md) is the next owner-approved TNYX-85 slice on the same `codex/tnyx-85-w8a-workout-history` branch/PR #752. A completed card opens read-only Detail with saved summary and actual performed sets. `Edit Workout` remains disabled until the owner defines its behavior. [W8A list and card](w8a-workout-history-list-card.md) is the preceding validated slice. W7/TNYX-84 remains In Progress; neither W8 slice claims Save E2E or device acceptance.
 
 [W7 testing-only hosted migration deployment](w7-testing-only-hosted-migration-deployment.md) records the 2026-11-10 deployment to `tio-world` (`oykupyiitspujzpwwvuj`): all three reviewed versions were applied and the ledger was 84/84. Its trigger-helper warning was a dated checkpoint; PR #747 is now on main, and the 2026-11-12 read-only Security Advisor check did not return that trigger warning. No Save E2E, device acceptance, or production readiness is claimed. TNYX-84 remains In Progress.
 

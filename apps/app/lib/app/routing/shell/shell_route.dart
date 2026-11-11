@@ -381,6 +381,36 @@ List<RouteBase> _shellBranchChildRoutes(
                 ? sessionRepository
                 : null,
             catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
+            onOpenSession: (sessionId) => context.push(
+              AppRoutes.workoutHistoryDetail.path.replaceFirst(
+                ':sessionId',
+                sessionId.value,
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+    GoRoute(
+      path: _childPath(branch, AppRoutes.workoutHistoryDetail),
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) {
+          final rawId = state.pathParameters['sessionId'];
+          WorkoutSessionId? sessionId;
+          try {
+            if (rawId != null) sessionId = WorkoutSessionId(rawId);
+          } on ArgumentError {
+            // The Detail page renders the same not-found state as an absent row.
+          }
+          final Object? sessionRepository =
+              ref.watch(workoutSessionRepositoryProvider);
+          return WorkoutHistoryDetailPage(
+            sessionId: sessionId,
+            repository: sessionRepository is WorkoutHistoryRepository
+                ? sessionRepository
+                : null,
+            catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
           );
         },
       ),

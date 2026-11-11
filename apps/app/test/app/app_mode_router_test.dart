@@ -31,6 +31,33 @@ import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
+class _HistoryRouteRepository extends Fake
+    implements WorkoutSessionRepository, WorkoutHistoryRepository {
+  WorkoutSessionId? detailReadId;
+
+  static final entry = WorkoutHistoryEntry(
+    sessionId: WorkoutSessionId('22222222-2222-4222-a222-222222222222'),
+    completedAtUtc: DateTime.utc(2026, 11, 11, 21),
+    displayAt: DateTime(2026, 11, 11, 21),
+    title: 'Route test workout',
+    duration: const Duration(minutes: 44),
+    exercises: const [],
+  );
+
+  @override
+  Future<WorkoutHistoryPageResult> listCompletedHistory({
+    WorkoutHistoryCursor? after,
+  }) async =>
+      WorkoutHistoryPageResult(entries: [entry], hasMore: false);
+
+  @override
+  Future<WorkoutHistoryDetail?> getCompletedHistoryDetail(
+      WorkoutSessionId sessionId) async {
+    detailReadId = sessionId;
+    return WorkoutHistoryDetail(summary: entry, exercises: const []);
+  }
+}
+
 void main() {
   testWidgets('Workout History action keeps streak and opens nested route',
       (tester) async {
@@ -44,7 +71,8 @@ void main() {
     );
     expect(action, findsOneWidget);
     expect(streak, findsOneWidget);
-    expect(tester.getCenter(action).dx, greaterThan(tester.getCenter(streak).dx));
+    expect(
+        tester.getCenter(action).dx, greaterThan(tester.getCenter(streak).dx));
     expect(tester.getSize(action).width, greaterThanOrEqualTo(48));
     expect(
       tester.getSize(topBar).height,
@@ -59,6 +87,39 @@ void main() {
     expect(find.text('History'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
     expect(action, findsNothing);
+  });
+
+  testWidgets('Workout History Detail stays in Workout and hides bottom nav',
+      (tester) async {
+    const id = '22222222-2222-4222-a222-222222222222';
+    final path =
+        AppRoutes.workoutHistoryDetail.path.replaceFirst(':sessionId', id);
+    await _pumpSettingsRoute(tester, initialPath: path);
+    final detail = find.byType(WorkoutHistoryDetailPage);
+    expect(detail, findsOneWidget);
+    expect(GoRouterState.of(tester.element(detail)).uri.path, path);
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets('History card opens the matching completed workout Detail route',
+      (tester) async {
+    final repository = _HistoryRouteRepository();
+    await _pumpSettingsRoute(
+      tester,
+      initialPath: AppRoutes.workoutHistory.path,
+      workoutRepository: repository,
+    );
+    const id = '22222222-2222-4222-a222-222222222222';
+    final card = find.byKey(const ValueKey('history-card-$id'));
+    expect(card, findsOneWidget);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    final detail = find.byType(WorkoutHistoryDetailPage);
+    expect(detail, findsOneWidget);
+    expect(GoRouterState.of(tester.element(detail)).uri.path,
+        '/workout/history/$id');
+    expect(repository.detailReadId?.value, id);
+    expect(find.text('Route test workout'), findsOneWidget);
   });
 
   testWidgets('Workout History top bar fits compact large-text layout',
@@ -147,7 +208,6 @@ void main() {
     },
   );
 
-
   testWidgets(
     'Progress no-weight account uses canonical lb preference, not composite DTO',
     (tester) async {
@@ -162,19 +222,21 @@ void main() {
       );
       expect(find.text('Weight summary'), findsOneWidget);
       expect(
-        tester.widget<ProgressWeightPage>(
-          find.byType(ProgressWeightPage),
-        ).unit,
+        tester
+            .widget<ProgressWeightPage>(
+              find.byType(ProgressWeightPage),
+            )
+            .unit,
         WeightUnit.lb,
       );
       expect(find.text('No measurements in this range'), findsOneWidget);
       expect(find.textContaining('No weight measurements yet'), findsOneWidget);
-      expect(find.text('Weight preferences could not be loaded.'), findsNothing);
+      expect(
+          find.text('Weight preferences could not be loaded.'), findsNothing);
       expect(find.byType(TioShellPlaceholder), findsNothing);
       expect(find.byType(NavigationBar), findsOneWidget);
     },
   );
-
 
   testWidgets('same-owner unit revalidation retains unsaved notes draft',
       (tester) async {
@@ -321,8 +383,7 @@ void main() {
     // may belong to the adjacent month when Today's week crosses a boundary.
     final today = diaryDates.localToday;
     final historicalDate = DateTime(today.year, today.month, today.day - 1);
-    final todayAction =
-        find.byKey(const ValueKey('meal-diary-today-action'));
+    final todayAction = find.byKey(const ValueKey('meal-diary-today-action'));
     final moreMenu = find.byKey(const ValueKey('meal-diary-more-menu'));
     expect(todayAction, findsNothing);
     expect(moreMenu, findsOneWidget);
@@ -397,8 +458,7 @@ void main() {
     expect(settingsMenuItem, findsOneWidget);
     await tester.tap(settingsMenuItem);
     await tester.pumpAndSettle();
-    final settingsPage =
-        find.byKey(const ValueKey('meal-diary-settings-page'));
+    final settingsPage = find.byKey(const ValueKey('meal-diary-settings-page'));
     expect(settingsPage, findsOneWidget);
     expect(GoRouterState.of(tester.element(settingsPage)).uri.path,
         AppRoutes.mealDiarySettings.path);
@@ -902,7 +962,8 @@ void main() {
     fixture.router.go(FeatureRoutes.nutrition.path);
     await tester.pumpAndSettle();
     expect(
-      tester.widget<TioDateCalendar>(find.byType(TioDateCalendar))
+      tester
+          .widget<TioDateCalendar>(find.byType(TioDateCalendar))
           .resolvedFirstDayOfWeek,
       DateTime.sunday,
     );
@@ -910,7 +971,8 @@ void main() {
     await fixture.calendar.select(FirstDayOfWeekPreference.monday);
     await tester.pumpAndSettle();
     expect(
-      tester.widget<TioDateCalendar>(find.byType(TioDateCalendar))
+      tester
+          .widget<TioDateCalendar>(find.byType(TioDateCalendar))
           .resolvedFirstDayOfWeek,
       DateTime.monday,
     );
@@ -1076,8 +1138,7 @@ void main() {
         // cluster can collide with something at small widths or large text.
         tester.view.physicalSize = Size(layout.width, layout.height);
         tester.view.devicePixelRatio = 1;
-        tester.platformDispatcher.platformBrightnessTestValue =
-            Brightness.dark;
+        tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
         addTearDown(
@@ -1163,8 +1224,7 @@ void main() {
   testWidgets('Settings navigates to Health & Goals and Daily Wellness',
       (tester) async {
     await _pumpSettingsRoute(tester);
-    await tester
-        .tap(find.byKey(const ValueKey('settings-health-goals-entry')));
+    await tester.tap(find.byKey(const ValueKey('settings-health-goals-entry')));
     await tester.pumpAndSettle();
     expect(find.byType(HealthGoalsSettingsPage), findsOneWidget);
     expect(
@@ -1320,6 +1380,7 @@ Future<
   UserProfileRepository? progressRepository,
   void Function(ProviderContainer)? onContainerReady,
   CalendarPreferencesRepository? calendarRepository,
+  WorkoutSessionRepository? workoutRepository,
   TioThemeMode themeMode = TioThemeMode.system,
   double textScale = 1,
 }) async {
@@ -1352,6 +1413,8 @@ Future<
   await calendar.load();
   addTearDown(auth.dispose);
   final container = ProviderContainer(overrides: [
+    if (workoutRepository != null)
+      workoutSessionRepositoryProvider.overrideWithValue(workoutRepository),
     supabaseClientProvider.overrideWithValue(
       progressEmptyWithCanonicalProfile ? _WeightEmptyClient() : null,
     ),
@@ -1387,17 +1450,17 @@ Future<
             StateError('Canonical Current Weight is not initialized'),
           )
         : Stream.value(ProfileSetupData(
-          name: 'Test Member',
-          username: 'test_member',
-          gender: ProfileGender.other,
-          goals: const {},
-          dateOfBirth: DateTime(2000, 1, 1),
-          heightCm: 170,
-          currentWeightKg: 70,
-          activityLevel: ProfileActivityLevel.active,
-          healthConditions: const {},
-          unitPreferences: units.preferences,
-        ))),
+            name: 'Test Member',
+            username: 'test_member',
+            gender: ProfileGender.other,
+            goals: const {},
+            dateOfBirth: DateTime(2000, 1, 1),
+            heightCm: 170,
+            currentWeightKg: 70,
+            activityLevel: ProfileActivityLevel.active,
+            healthConditions: const {},
+            unitPreferences: units.preferences,
+          ))),
   ]);
   addTearDown(container.dispose);
   onContainerReady?.call(container);
@@ -1416,7 +1479,6 @@ Future<
     calendar: calendar,
   );
 }
-
 
 class _WeightEmptyClient extends Fake implements SupabaseClient {
   @override

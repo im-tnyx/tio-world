@@ -69,6 +69,56 @@ final class SupabaseWorkoutSessionRepository
   static const int _historySetBatchSize = 1000;
 
   @override
+  Future<WorkoutHistoryDetail?> getCompletedHistoryDetail(
+    WorkoutSessionId sessionId,
+  ) async {
+    final owner = _owner();
+    for (var attempt = 0; attempt < _readAttempts; attempt++) {
+      final before = await _executeRead(
+        owner,
+        () => _gateway.readCompletedHistoryHeader(owner, sessionId.value),
+      );
+      if (before == null) return null;
+      final sets = await _executeRead(
+        owner,
+        () => _gateway.readPerformedSets(owner, sessionId.value, limit: 501),
+      );
+      if (sets.length > 500) {
+        throw const WorkoutSessionPersistenceException(
+          WorkoutSessionPersistenceFailureKind.invalidPayload,
+          message: 'History detail exceeds the W7 performed-set quota.',
+        );
+      }
+      final after = await _executeRead(
+        owner,
+        () => _gateway.readCompletedHistoryHeader(owner, sessionId.value),
+      );
+      if (after == null) return null;
+      if (before['revision'] != after['revision']) continue;
+      _checkOwner(owner);
+      try {
+        if (after['id'] != sessionId.value) {
+          throw const FormatException('History detail session ID mismatch.');
+        }
+        return WorkoutHistoryDto.detailFromRows(
+          after,
+          sets,
+          expectedOwnerId: owner,
+        );
+      } catch (error) {
+        throw WorkoutSessionPersistenceException(
+          WorkoutSessionPersistenceFailureKind.invalidPayload,
+          message: 'Malformed completed workout detail.',
+          cause: error,
+        );
+      }
+    }
+    throw const WorkoutSessionPersistenceException(
+      WorkoutSessionPersistenceFailureKind.readConflict,
+    );
+  }
+
+  @override
   Future<WorkoutHistoryPageResult> listCompletedHistory({
     WorkoutHistoryCursor? after,
   }) async {

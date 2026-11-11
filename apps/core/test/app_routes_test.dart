@@ -50,8 +50,7 @@ void main() {
     );
   });
 
-  test('Programs route nests under the Workout branch without bottom nav',
-      () {
+  test('Programs route nests under the Workout branch without bottom nav', () {
     expect(AppRoutes.workoutPrograms.path, '/workout/programs');
     expect(
       AppRoutes.workoutPrograms.path
@@ -63,8 +62,7 @@ void main() {
     expect(AppRoutes.workoutPrograms.chromePolicy.showsBottomNav, isFalse);
   });
 
-  test('Exercises route nests under the Workout branch without bottom nav',
-      () {
+  test('Exercises route nests under the Workout branch without bottom nav', () {
     expect(AppRoutes.workoutExercises.path, '/workout/exercises');
     expect(
       AppRoutes.workoutExercises.path
@@ -82,8 +80,7 @@ void main() {
   test('Active Workout route nests under Workout without bottom nav', () {
     expect(AppRoutes.workoutActive.path, '/workout/active');
     expect(
-      AppRoutes.workoutActive.path
-          .startsWith('${FeatureRoutes.workout.path}/'),
+      AppRoutes.workoutActive.path.startsWith('${FeatureRoutes.workout.path}/'),
       isTrue,
     );
     expect(AppRoutes.workoutActive.title, 'Active Workout');
@@ -93,10 +90,15 @@ void main() {
 
   test('History route nests under Workout without bottom nav', () {
     expect(AppRoutes.workoutHistory.path, '/workout/history');
-    expect(AppRoutes.workoutHistory.path
-        .startsWith('${FeatureRoutes.workout.path}/'), isTrue);
+    expect(
+        AppRoutes.workoutHistory.path
+            .startsWith('${FeatureRoutes.workout.path}/'),
+        isTrue);
     expect(AppRoutes.workoutHistory.title, 'History');
     expect(AppRoutes.workoutHistory.chromePolicy, ChromePolicy.noBottomBar);
+    expect(AppRoutes.workoutHistoryDetail.path, '/workout/history/:sessionId');
+    expect(
+        AppRoutes.workoutHistoryDetail.chromePolicy, ChromePolicy.noBottomBar);
   });
 
   test('Exercise Detail route nests under Exercises without bottom nav', () {
@@ -123,7 +125,8 @@ void main() {
   test('Library route nests under the Workout branch without bottom nav', () {
     expect(AppRoutes.workoutLibrary.path, '/workout/library');
     expect(
-      AppRoutes.workoutLibrary.path.startsWith('${FeatureRoutes.workout.path}/'),
+      AppRoutes.workoutLibrary.path
+          .startsWith('${FeatureRoutes.workout.path}/'),
       isTrue,
     );
     expect(AppRoutes.workoutLibrary.title, 'Library');

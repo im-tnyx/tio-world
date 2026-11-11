@@ -136,6 +136,23 @@ void main() {
       expect(captured!.url.queryParameters['id'], 'eq.$_session');
     });
 
+    test('Detail header filters completed status, owner and session ID',
+        () async {
+      http.Request? captured;
+      final client = _client((request) async {
+        captured = request;
+        return _json([]);
+      });
+      final gateway = SupabaseWorkoutSessionGateway(client);
+
+      expect(
+          await gateway.readCompletedHistoryHeader(_owner, _session), isNull);
+      expect(captured!.url.path, '/rest/v1/user_workout_sessions');
+      expect(captured!.url.queryParameters['user_id'], 'eq.$_owner');
+      expect(captured!.url.queryParameters['id'], 'eq.$_session');
+      expect(captured!.url.queryParameters['status'], 'eq.completed');
+    });
+
     test(
         'readPerformedSets applies deterministic ordering and cursor pagination',
         () async {

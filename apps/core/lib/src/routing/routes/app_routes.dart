@@ -211,6 +211,14 @@ class AppRoutes {
     chromePolicy: ChromePolicy.noBottomBar,
   );
 
+  /// One saved completed WorkoutSession, inside Workout navigation.
+  static const workoutHistoryDetail = TioRouteContract(
+    path: '/workout/history/:sessionId',
+    title: 'Workout Detail',
+    description: 'View saved performed workout details.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
   /// Canonical Exercise Detail/About surface for catalog and Custom Exercises.
   ///
   /// The `exerciseId` path segment is an `ex_*` catalog identity or a

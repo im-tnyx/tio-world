@@ -207,6 +207,20 @@ final class _FakeGateway implements WorkoutSessionGateway {
     return sessionHeader;
   }
 
+  String? lastDetailOwner;
+  String? lastDetailSessionId;
+
+  @override
+  Future<Map<String, dynamic>?> readCompletedHistoryHeader(
+    String userId,
+    String sessionId,
+  ) async {
+    lastDetailOwner = userId;
+    lastDetailSessionId = sessionId;
+    final row = await readSessionHeader(userId, sessionId);
+    return row?['status'] == 'completed' ? row : null;
+  }
+
   @override
   Future<List<Map<String, dynamic>>> readPerformedSets(
     String userId,
@@ -302,6 +316,121 @@ void main() {
         gateway: gateway,
         currentUserId: () => currentUserId,
       );
+    });
+
+    test('Detail reads one completed owner session and actual ordered sets',
+        () async {
+      final snapshot = WorkoutSessionSnapshotDto.toJson(_mockSnapshot());
+      final exercises =
+          List<Map<String, dynamic>>.from(snapshot['exercises'] as List);
+      exercises.add({
+        'exercise_ref': 'ex_spinning',
+        'display_name': 'Spinning',
+        'exercise_type': 'duration',
+        'occurrence_index': 1,
+        'prescribed_sets': [
+          {'set_type': 'normal', 'duration_seconds': 600}
+        ],
+      });
+      snapshot['exercises'] = exercises;
+      gateway.sessionHeader = {
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 44)),
+          workoutTitle: 'Shoulders & Triceps',
+          notes: '  Good day  ',
+        ),
+        'routine_snapshot': snapshot,
+        'gym_name': '  Main Gym  ',
+        'workout_duration_seconds': 2640,
+      };
+      gateway.performedSets = [
+        _mockSetRow(setIndex: 1, setId: '55555555-5555-4555-a555-555555555556'),
+        _mockSetRow(setIndex: 0),
+        {..._mockSetRow(setIndex: 2), 'is_skipped': true},
+        {
+          ..._mockSetRow(
+            exerciseIndex: 1,
+            setId: '55555555-5555-4555-a555-555555555557',
+            reps: null,
+            loadKg: null,
+          ),
+          'exercise_ref': 'ex_spinning',
+          'duration_seconds': 429,
+        },
+      ];
+
+      final detail = await repo.getCompletedHistoryDetail(_sessionId);
+
+      expect(gateway.lastDetailOwner, _owner);
+      expect(gateway.lastDetailSessionId, _sessionId.value);
+      expect(gateway.readHeaderCallCount, 2);
+      expect(detail!.summary.title, 'Shoulders & Triceps');
+      expect(detail.summary.duration, const Duration(minutes: 44));
+      expect(detail.summary.volumeKg, 1600);
+      expect(detail.summary.description, 'Good day');
+      expect(detail.summary.gymName, 'Main Gym');
+      expect(detail.performedSetCount, 3);
+      expect(detail.exercises.map((e) => e.name), ['Bench Press', 'Spinning']);
+      expect(detail.exercises.first.sets.map((e) => e.setIndex), [0, 1]);
+      expect(detail.exercises.last.sets.single.durationSeconds, 429);
+    });
+
+    test('Detail excludes active and foreign rows and stale account results',
+        () async {
+      gateway.sessionHeader = _mockSessionRow(status: 'active');
+      expect(await repo.getCompletedHistoryDetail(_sessionId), isNull);
+      gateway.sessionHeader = {
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 1)),
+        ),
+        'user_id': _otherOwner,
+      };
+      await expectLater(repo.getCompletedHistoryDetail(_sessionId),
+          throwsA(isA<WorkoutSessionPersistenceException>()));
+
+      final pending = Completer<Map<String, dynamic>?>();
+      gateway.onReadSessionHeader = (_, __) => pending.future;
+      final read = repo.getCompletedHistoryDetail(_sessionId);
+      currentUserId = _otherOwner;
+      pending.complete({
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 1)),
+        ),
+      });
+      await expectLater(
+          read, throwsA(isA<WorkoutSessionPersistenceException>()));
+    });
+
+    test('Detail retries a changed revision and rejects quota overflow',
+        () async {
+      final completed = {
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 44)),
+        ),
+        'gym_name': null,
+        'workout_duration_seconds': null,
+      };
+      final headers = <Map<String, dynamic>>[
+        completed,
+        {...completed, 'revision': 2},
+        {...completed, 'revision': 2},
+        {...completed, 'revision': 2},
+      ];
+      gateway.onReadHeaderSequence = () => headers;
+      gateway.performedSets = [_mockSetRow()];
+      expect((await repo.getCompletedHistoryDetail(_sessionId))!.performedSetCount,
+          1);
+      expect(gateway.readHeaderCallCount, 4);
+
+      gateway.onReadHeaderSequence = null;
+      gateway.sessionHeader = completed;
+      gateway.performedSets = List.filled(501, _mockSetRow());
+      await expectLater(repo.getCompletedHistoryDetail(_sessionId),
+          throwsA(isA<WorkoutSessionPersistenceException>()));
     });
 
     test('History maps saved title, time, gym and performed-only preview',

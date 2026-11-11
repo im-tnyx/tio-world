@@ -29,6 +29,12 @@ abstract interface class WorkoutSessionGateway {
     String sessionId,
   );
 
+  /// Owner-scoped completed header for a History Detail deep link.
+  Future<Map<String, dynamic>?> readCompletedHistoryHeader(
+    String userId,
+    String sessionId,
+  );
+
   /// Reads performed sets for the given [sessionId] and [userId] ordered by
   /// `session_exercise_index ASC, set_index ASC`.
   Future<List<Map<String, dynamic>>> readPerformedSets(
@@ -169,6 +175,22 @@ final class SupabaseWorkoutSessionGateway implements WorkoutSessionGateway {
 
     if (response == null) return null;
     return Map<String, dynamic>.from(response);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> readCompletedHistoryHeader(
+    String userId,
+    String sessionId,
+  ) async {
+    final response = await _client
+        .from('user_workout_sessions')
+        .select()
+        .eq('user_id', userId)
+        .eq('id', sessionId)
+        .eq('status', 'completed')
+        .maybeSingle()
+        .retry(enabled: false);
+    return response == null ? null : Map<String, dynamic>.from(response);
   }
 
   @override

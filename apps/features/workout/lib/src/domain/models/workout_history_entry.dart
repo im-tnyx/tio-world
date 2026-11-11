@@ -20,7 +20,7 @@ final class WorkoutHistoryExercise {
   final int setCount;
 }
 
-/// Read-only card model. Its ID is retained for a separately approved detail slice.
+/// Read-only completed workout summary.
 final class WorkoutHistoryEntry {
   const WorkoutHistoryEntry({
     required this.sessionId,
@@ -48,6 +48,32 @@ final class WorkoutHistoryEntry {
 
   int get remainingExerciseCount =>
       exercises.length > 5 ? exercises.length - 5 : 0;
+}
+
+/// Actual completed sets for one frozen exercise occurrence.
+final class WorkoutHistoryDetailExercise {
+  const WorkoutHistoryDetailExercise({
+    required this.ref,
+    required this.name,
+    required this.exerciseType,
+    required this.sets,
+  });
+
+  final ExerciseRef ref;
+  final String name;
+  final ExerciseType? exerciseType;
+  final List<PerformedSet> sets;
+}
+
+/// Read-only detail of a canonical completed WorkoutSession.
+final class WorkoutHistoryDetail {
+  const WorkoutHistoryDetail({required this.summary, required this.exercises});
+
+  final WorkoutHistoryEntry summary;
+  final List<WorkoutHistoryDetailExercise> exercises;
+
+  int get performedSetCount =>
+      exercises.fold(0, (count, exercise) => count + exercise.sets.length);
 }
 
 final class WorkoutHistoryPageResult {

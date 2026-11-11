@@ -12,16 +12,18 @@ import '../../domain/repositories/workout_history_repository.dart';
 import '../library/exercises/exercises_controller.dart';
 import '../library/exercises/exercises_providers.dart';
 
-/// Authenticated, completed-only Workout history. No card selection until W8 Detail.
+/// Authenticated, completed-only Workout history.
 class WorkoutHistoryPage extends ConsumerStatefulWidget {
   const WorkoutHistoryPage({
     required this.repository,
     required this.catalogRepository,
+    this.onOpenSession,
     super.key,
   });
 
   final WorkoutHistoryRepository? repository;
   final ExerciseCatalogRepository catalogRepository;
+  final ValueChanged<WorkoutSessionId>? onOpenSession;
 
   @override
   ConsumerState<WorkoutHistoryPage> createState() => _WorkoutHistoryPageState();
@@ -189,6 +191,9 @@ class _WorkoutHistoryPageState extends ConsumerState<WorkoutHistoryPage> {
             }
             return WorkoutHistoryCard(
               entry: _entries[index],
+              onTap: widget.onOpenSession == null
+                  ? null
+                  : () => widget.onOpenSession!(_entries[index].sessionId),
               mediaFor: (ref) {
                 final exercise = _catalog?.byRef(ref);
                 return exercise == null
@@ -243,16 +248,18 @@ class _HistoryFeedback extends StatelessWidget {
       );
 }
 
-/// Compact read-only card. Its saved session ID stays in [entry] for W8 Detail.
+/// Compact completed workout card with canonical session selection.
 class WorkoutHistoryCard extends StatelessWidget {
   const WorkoutHistoryCard({
     required this.entry,
     required this.mediaFor,
+    this.onTap,
     super.key,
   });
 
   final WorkoutHistoryEntry entry;
   final Uri? Function(ExerciseRef) mediaFor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -267,6 +274,7 @@ class WorkoutHistoryCard extends StatelessWidget {
     return TioCard(
       key: ValueKey('history-card-${entry.sessionId.value}'),
       variant: TioCardVariant.normal,
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

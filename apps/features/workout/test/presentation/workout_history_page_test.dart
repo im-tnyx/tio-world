@@ -24,6 +24,12 @@ class _FakeHistoryRepository implements WorkoutHistoryRepository {
     WorkoutHistoryCursor? after,
   }) =>
       read(after);
+
+  @override
+  Future<WorkoutHistoryDetail?> getCompletedHistoryDetail(
+    WorkoutSessionId sessionId,
+  ) async =>
+      null;
 }
 
 WorkoutHistoryEntry _entry({
@@ -73,6 +79,27 @@ Future<void> _pumpPage(
     );
 
 void main() {
+  testWidgets('completed card selection emits its canonical session ID',
+      (tester) async {
+    WorkoutSessionId? selected;
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: WorkoutHistoryCard(
+            entry: _entry(),
+            mediaFor: (_) => null,
+            onTap: () => selected = _entry().sessionId,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('history-card-$_id')));
+    expect(selected, WorkoutSessionId(_id));
+  });
+
   testWidgets('card shows saved time and duration without blank optional gaps',
       (tester) async {
     Future<void> pump(WorkoutHistoryEntry entry) => tester.pumpWidget(

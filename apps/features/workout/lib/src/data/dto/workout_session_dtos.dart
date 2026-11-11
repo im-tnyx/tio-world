@@ -440,6 +440,45 @@ abstract final class WorkoutSessionCompletionDto {
 
 /// A history card is projected only from saved session and performed rows.
 abstract final class WorkoutHistoryDto {
+  static WorkoutHistoryDetail detailFromRows(
+    Map<String, dynamic> row,
+    List<Map<String, dynamic>> performedRows, {
+    required String expectedOwnerId,
+  }) {
+    final summary = fromRows(
+      row,
+      performedRows,
+      expectedOwnerId: expectedOwnerId,
+    );
+    final snapshot = WorkoutSessionSnapshotDto.fromJson(
+      Map<String, dynamic>.from(row['routine_snapshot'] as Map),
+    );
+    final byOccurrence = <int, List<PerformedSet>>{};
+    for (final raw in performedRows) {
+      if (raw['is_skipped'] == true || raw['completed_at_utc'] == null) {
+        continue;
+      }
+      final set = WorkoutPerformedSetRowDto.fromJson(raw).toDomain();
+      (byOccurrence[set.sessionExerciseIndex] ??= []).add(set);
+    }
+    return WorkoutHistoryDetail(
+      summary: summary,
+      exercises: List.unmodifiable([
+        for (final exercise in snapshot.exercises)
+          if (byOccurrence[exercise.occurrenceIndex]?.isNotEmpty ?? false)
+            WorkoutHistoryDetailExercise(
+              ref: exercise.exerciseRef,
+              name: exercise.displayName,
+              exerciseType: exercise.exerciseType,
+              sets: List.unmodifiable(
+                byOccurrence[exercise.occurrenceIndex]!
+                  ..sort((a, b) => a.setIndex.compareTo(b.setIndex)),
+              ),
+            ),
+      ]),
+    );
+  }
+
   static WorkoutHistoryEntry fromRows(
     Map<String, dynamic> row,
     List<Map<String, dynamic>> performedRows, {
