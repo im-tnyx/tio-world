@@ -19,8 +19,46 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  staged_migrations:
+    name: Qualify staged Routine Notes migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      DO_NOT_TRACK: '1'
+      PGPASSWORD: postgres
+      SUPABASE_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.116.0
+
+      - name: Toolchain info
+        shell: bash
+        run: |
+          supabase --version
+          docker version
+          psql --version
+
+      - name: Start disposable local Postgres without repository migrations
+        shell: bash
+        run: |
+          mv supabase/migrations "$RUNNER_TEMP/repository-migrations"
+          mkdir supabase/migrations
+          supabase db start
+          rmdir supabase/migrations
+          mv "$RUNNER_TEMP/repository-migrations" supabase/migrations
+
+      - name: Verify TNYX-81 atomic staged migration security
+        shell: bash
+        run: bash supabase/tests/database/tnyx_81_routine_notes_staged_migrations.sh
+
   database:
-    name: Replay and test database migrations
+    name: Replay and run database regression suites
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -120,9 +158,28 @@ jobs:
             exit 1
           fi
 
-      - name: Verify TNYX-81 atomic staged migration security
+      - name: Rewind disposable database to the TNYX-81 checkpoint
         shell: bash
-        run: bash supabase/tests/database/tnyx_81_routine_notes_staged_migrations.sh
+        run: |
+          # The former staged qualification left the shared runner at this
+          # checkpoint. Recreate that exact pre-W7 state in this isolated job.
+          mv supabase/migrations "$RUNNER_TEMP/repository-migrations"
+          mkdir supabase/migrations
+          supabase db reset --local --no-seed
+          rmdir supabase/migrations
+          mv "$RUNNER_TEMP/repository-migrations" supabase/migrations
+          versions=()
+          for migration in supabase/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            version="${filename%%_*}"
+            if [[ "$version" > "20261031142025" ]]; then
+              continue
+            fi
+            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --single-transaction \
+              --file="$migration"
+            versions+=("$version")
+          done
+          supabase migration repair --local --status applied --yes "${versions[@]}"
 
       - name: Verify TNYX-81 linked-login cleanup role and ledger write
         shell: bash
@@ -619,3 +676,17 @@ jobs:
           diff --unified \
             "$RUNNER_TEMP/supabase-db-lint-baseline.txt" \
             "$RUNNER_TEMP/supabase-db-lint-current.txt"
+
+  database_gate:
+    name: Replay and test database migrations
+    runs-on: ubuntu-latest
+    needs: [staged_migrations, database]
+    if: always()
+    steps:
+      - name: Require staged and regression suites
+        env:
+          STAGED_RESULT: ${{ needs.staged_migrations.result }}
+          DATABASE_RESULT: ${{ needs.database.result }}
+        run: |
+          test "$STAGED_RESULT" = success
+          test "$DATABASE_RESULT" = success
