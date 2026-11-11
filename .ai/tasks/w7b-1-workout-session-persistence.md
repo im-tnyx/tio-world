@@ -1,8 +1,8 @@
 # Feature Task: W7B-1 Workout Session Persistence (Supabase Source-Only)
 
-**2026-11-10 follow-up:** Source merged through PR #734, while hosted W7B/W7C migrations remain pending. The owner approved a W7 testing-only backup deferral because workout data belongs to approximately 4–5 disposable test accounts and no real end users; production backup policy remains unchanged. The separately owned [timezone remediation](w7b-w7c-timezone-remediation.md) fixes timestamp instants before hosted rollout. This note does not authorize deployment, database reset, or merge.
+**2026-11-10 hosted deployment follow-up:** Source merged through PR #734. The separately owner-authorized testing-only deployment applied all three reviewed W7 migrations; ledger and verification evidence are in [the deployment receipt](w7-testing-only-hosted-migration-deployment.md). The owner-approved backup deferral was limited to this disposable testing rollout and did not change production recovery policy or authorize reset. No authenticated workout writes, device acceptance, release activation, or production readiness are claimed. A W7 trigger-helper Security Advisor finding remains for separate disposition.
 
-**Status:** Remediation Complete — Ready for Review & Merge Approval
+**Status:** Source merged and hosted migration applied; trigger-helper Security Advisor disposition and broader W7 acceptance remain open
 **Primary owner:** Antigravity
 **Affected platforms:** Supabase (PostgreSQL Backend), GitHub CI
 
