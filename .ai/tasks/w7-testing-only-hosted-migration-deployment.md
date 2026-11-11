@@ -45,7 +45,7 @@ Postdeployment ledger: **84 migrations**, latest `20261110044130`; all three W7 
 
 Current Security Advisor reports a W7 warning on `public.trg_fn_validate_workout_session_snapshot()` for mutable `search_path`. Catalog metadata also shows PUBLIC/anon EXECUTE on this trigger-only helper. This was not altered because the authorized migration boundary excluded extra grants/schema changes. Record a separately reviewed forward-only correction or explicit security disposition before treating this W7 security gate as closed.
 
-Other findings include 25 authenticated SECURITY DEFINER notices (8 W7 RPCs; catalog privileges and search paths checked), two private RLS-enabled tables with no policies, and leaked-password protection disabled. A pre-final-migration scan showed 24 authenticated SECURITY DEFINER notices and the same private-table/Auth warnings; no earlier baseline predating W7 exists to classify every non-W7 item as historical.
+Other findings include 25 authenticated SECURITY DEFINER notices, covering 9 W7 RPCs (seven lifecycle RPCs, completion V2, and Save-only; catalog privileges and search paths checked), two private RLS-enabled tables with no policies, and leaked-password protection disabled. A pre-final-migration scan showed 24 authenticated SECURITY DEFINER notices and the same private-table/Auth warnings; no earlier baseline predating W7 exists to classify every non-W7 item as historical.
 
 ## Tracker and Acceptance Handoff
 
