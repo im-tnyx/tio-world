@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +20,7 @@ Future<void> _pump(
   TioThemeMode mode = TioThemeMode.light,
   Program? selectedProgram,
   Future<void> Function(Routine)? onRoutinePressed,
+  Future<void> Function(Routine)? onStartRoutinePressed,
   Future<bool> Function(Routine)? onEditRoutine,
   Future<bool> Function(Routine)? onMoveRoutine,
   RoutineMoveRefreshSignal? moveRefreshSignal,
@@ -43,6 +46,7 @@ Future<void> _pump(
         routineRepository: repository,
         newRoutineUuid: () => _routineId,
         onRoutinePressed: onRoutinePressed,
+        onStartRoutinePressed: onStartRoutinePressed,
         onEditRoutine: onEditRoutine,
         onMoveRoutine: onMoveRoutine,
         moveRefreshSignal: moveRefreshSignal,
@@ -57,8 +61,8 @@ Future<void> _pump(
 }
 
 void main() {
-
-  testWidgets('Move-only action uses existing sheet and refreshes source Routine',
+  testWidgets(
+      'Move-only action uses existing sheet and refreshes source Routine',
       (tester) async {
     final repository = _MemoryRoutines([
       Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
@@ -71,15 +75,18 @@ void main() {
     });
     await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-move-$_routineId')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('routine-edit-$_routineId')), findsNothing);
-    expect(find.byKey(const ValueKey('routine-delete-$_routineId')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('routine-move-$_routineId')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('routine-edit-$_routineId')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('routine-delete-$_routineId')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('routine-move-$_routineId')));
     await tester.pumpAndSettle();
     expect(moved?.id.value, _routineId);
     expect(moved?.programId, _program.id);
-    expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
   });
 
   testWidgets('external confirmed/unknown Move pulse rereads Detail once',
@@ -87,19 +94,21 @@ void main() {
     final signal = RoutineMoveRefreshSignal();
     addTearDown(signal.dispose);
     final rows = _MemoryRoutines([
-      Routine(id: RoutineId(_routineId), programId: _program.id,
-        name: 'Push'),
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
     ]);
-    await _pump(tester, repository: rows,
-      moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-a',
-      moveRefreshLoginCycleId: 'cycle-a');
+    await _pump(tester,
+        repository: rows,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-a',
+        moveRefreshLoginCycleId: 'cycle-a');
     expect(find.text('Push'), findsOneWidget);
     rows.rows.clear();
-    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-a',
+    signal.request(
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
         programsMayHaveChanged: false);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('program-routines-empty')),
-        findsOneWidget,
+    expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget,
         reason: 'A read is needed; the signal never fabricates a Move');
   });
 
@@ -108,16 +117,21 @@ void main() {
     final signal = RoutineMoveRefreshSignal();
     addTearDown(signal.dispose);
     final rows = _MemoryRoutines([
-      Routine(id: RoutineId(_routineId), programId: _program.id,
-        name: 'Push'),
+      Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
     ]);
-    await _pump(tester, repository: rows,
-      moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-b',
-      moveRefreshLoginCycleId: 'cycle-b');
+    await _pump(tester,
+        repository: rows,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-b',
+        moveRefreshLoginCycleId: 'cycle-b');
     rows.rows.clear();
-    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-b',
+    signal.request(
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-b',
         programsMayHaveChanged: false);
-    signal.request(ownerId: 'owner-b', loginCycleId: 'cycle-a',
+    signal.request(
+        ownerId: 'owner-b',
+        loginCycleId: 'cycle-a',
         programsMayHaveChanged: false);
     await tester.pumpAndSettle();
     expect(find.text('Push'), findsOneWidget,
@@ -130,8 +144,7 @@ void main() {
       Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
     ]);
     var starts = 0;
-    await _pump(tester, repository: repository,
-        onMoveRoutine: (routine) async {
+    await _pump(tester, repository: repository, onMoveRoutine: (routine) async {
       starts++;
       return false;
     });
@@ -177,7 +190,8 @@ void main() {
       Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
     ]);
     Routine? selected;
-    await _pump(tester, repository: repository, onDeleteRoutine: (routine) async {
+    await _pump(tester, repository: repository,
+        onDeleteRoutine: (routine) async {
       selected = routine;
       repository.rows.removeWhere((row) => row.id == routine.id);
       return true;
@@ -192,14 +206,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('routine-delete-$_routineId')));
     await tester.pumpAndSettle();
     expect(selected?.id, RoutineId(_routineId));
-    expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
   });
   testWidgets('confirmed Delete followed by failed refresh shows read error',
       (tester) async {
     final repository = _MemoryRoutines([
       Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
     ]);
-    await _pump(tester, repository: repository, onDeleteRoutine: (routine) async {
+    await _pump(tester, repository: repository,
+        onDeleteRoutine: (routine) async {
       repository.rows.removeWhere((item) => item.id == routine.id);
       repository.loadFailures = 1;
       return true; // A confirmed RPC does not promise a successful reread.
@@ -211,7 +227,8 @@ void main() {
     expect(find.text('Push'), findsNothing);
     expect(find.text('Could not load routines. Please try again.'),
         findsOneWidget);
-    expect(find.byKey(const ValueKey('program-routines-retry')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('program-routines-retry')), findsOneWidget);
   });
   testWidgets('atomic Create callback bypasses legacy name-only INSERT',
       (tester) async {
@@ -242,8 +259,10 @@ void main() {
 
     expect(find.byKey(const ValueKey('program-detail-page')), findsOneWidget);
     expect(find.text('Strength'), findsOneWidget);
-    expect(find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
-    expect(find.text('No routines yet. Use + above to add one.'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
+    expect(
+        find.text('No routines yet. Use + above to add one.'), findsOneWidget);
     expect(find.byKey(const ValueKey('program-routines-empty-create')),
         findsNothing);
     final add = find.byKey(const ValueKey('program-detail-add-routine'));
@@ -253,7 +272,8 @@ void main() {
     expect(find.text('Start Workout'), findsNothing);
   });
 
-  testWidgets('atomic Create callback uses suggested name and refreshes Program',
+  testWidgets(
+      'atomic Create callback uses suggested name and refreshes Program',
       (tester) async {
     final repository = _MemoryRoutines();
     String? received;
@@ -327,7 +347,9 @@ void main() {
     await _pump(
       tester,
       repository: repository,
-      onRoutinePressed: (routine) async { selected = routine; },
+      onRoutinePressed: (routine) async {
+        selected = routine;
+      },
     );
     await tester.tap(find.byKey(const ValueKey('program-routine-$_routineId')));
     await tester.pumpAndSettle();
@@ -337,8 +359,8 @@ void main() {
     expect(find.text('Edit Routine'), findsNothing);
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
     expect(repository.rows.single.name, 'Push');
-    expect(find.byKey(const ValueKey('routine-menu-$_routineId')),
-        findsNothing, reason: 'No Edit capability means no inert 3-dot action');
+    expect(find.byKey(const ValueKey('routine-menu-$_routineId')), findsNothing,
+        reason: 'No Edit capability means no inert 3-dot action');
   });
 
   testWidgets('Routine 3-dot opens Core bottom sheet and launches full Edit',
@@ -351,11 +373,17 @@ void main() {
     await _pump(
       tester,
       repository: repository,
-      onRoutinePressed: (routine) async { navigated = routine; },
-      onEditRoutine: (routine) async { edited = routine; return true; },
+      onRoutinePressed: (routine) async {
+        navigated = routine;
+      },
+      onEditRoutine: (routine) async {
+        edited = routine;
+        return true;
+      },
     );
     final options = find.byKey(const ValueKey('routine-menu-$_routineId'));
-    final sheet = find.byKey(const ValueKey('routine-actions-sheet-$_routineId'));
+    final sheet =
+        find.byKey(const ValueKey('routine-actions-sheet-$_routineId'));
     expect(options, findsOneWidget);
     expect(find.byType(PopupMenuButton<String>), findsNothing);
 
@@ -368,21 +396,26 @@ void main() {
     expect(find.descendant(of: sheet, matching: find.byType(TioCard)),
         findsOneWidget);
     expect(
-      tester.widget<TioCard>(find.descendant(
-        of: sheet,
-        matching: find.byType(TioCard),
-      )).variant,
+      tester
+          .widget<TioCard>(find.descendant(
+            of: sheet,
+            matching: find.byType(TioCard),
+          ))
+          .variant,
       TioCardVariant.outlined,
     );
-    expect(find.byKey(const ValueKey('routine-edit-$_routineId')),
-        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('routine-edit-$_routineId')), findsOneWidget);
     final actionHeight = tester
-        .getSize(find.byKey(const ValueKey('routine-edit-$_routineId'))).height;
+        .getSize(find.byKey(const ValueKey('routine-edit-$_routineId')))
+        .height;
     expect(actionHeight, greaterThanOrEqualTo(TioSize.dp48));
     expect(actionHeight, lessThanOrEqualTo(TioSize.dp60));
     // Move and Delete must never appear without real owner-safe capabilities.
-    expect(find.byKey(const ValueKey('routine-move-$_routineId')), findsNothing);
-    expect(find.byKey(const ValueKey('routine-delete-$_routineId')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('routine-move-$_routineId')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('routine-delete-$_routineId')), findsNothing);
     expect(find.text('Change Picture'), findsNothing);
     expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
 
@@ -452,9 +485,11 @@ void main() {
     // Both options use the same governed 38dp badge/icon area, padding and
     // outlined border. Container borders contribute to rendered dimensions,
     // so compare actual widget heights rather than assuming 38 + 8 + 8.
-    expect(referenceHeight, greaterThanOrEqualTo(
-      TioSize.dp38 + TioSpacing.sm * 2,
-    ));
+    expect(
+        referenceHeight,
+        greaterThanOrEqualTo(
+          TioSize.dp38 + TioSpacing.sm * 2,
+        ));
     expect(routineHeight, closeTo(referenceHeight, 0.01));
     final outlined = find.descendant(
       of: routineOption,
@@ -466,8 +501,7 @@ void main() {
     expect(card.outlinedBorderWidth, TioCardTokens.borderThin);
   });
 
-  testWidgets('Routine bottom sheet fits narrow dark viewport',
-      (tester) async {
+  testWidgets('Routine bottom sheet fits narrow dark viewport', (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -484,13 +518,77 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('routine-menu-$_routineId')));
     await tester.pumpAndSettle();
 
-    final sheet = find.byKey(const ValueKey('routine-actions-sheet-$_routineId'));
+    final sheet =
+        find.byKey(const ValueKey('routine-actions-sheet-$_routineId'));
     final rect = tester.getRect(sheet);
     expect(rect.right, lessThanOrEqualTo(320));
     expect(rect.left, greaterThanOrEqualTo(0));
     expect(rect.bottom, lessThanOrEqualTo(640));
     expect(find.text('Edit Routine'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Routine options mark uses a shorter right-aligned bottom bar',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: RoutineMetadataCard(
+            routine: Routine(
+              id: RoutineId(_routineId),
+              programId: _program.id,
+              name: 'Push',
+            ),
+            onEdit: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final menu = find.byKey(const ValueKey('routine-menu-$_routineId'));
+    final bars = find.descendant(
+      of: menu,
+      matching: find.byWidgetPredicate(
+        (widget) => widget is Container && widget.child == null,
+      ),
+    );
+    expect(bars, findsNWidgets(2));
+    expect(
+      tester.getSize(bars.at(0)),
+      const Size(TioSize.dp16, TioStroke.width2),
+    );
+    expect(
+      tester.getSize(bars.at(1)),
+      const Size(TioSize.dp10, TioStroke.width2),
+    );
+    final gap =
+        tester.getRect(bars.at(1)).top - tester.getRect(bars.at(0)).bottom;
+    expect(gap, TioSpacing.xs);
+    expect(tester.getSize(menu), const Size(TioSize.dp32, TioSize.dp32));
+    final menuRect = tester.getRect(menu);
+    final topBar = tester.getRect(bars.at(0));
+    final bottomBar = tester.getRect(bars.at(1));
+    expect(bottomBar.right, closeTo(topBar.right, 0.1));
+    expect(bottomBar.width, closeTo(TioSize.dp10, 0.1));
+    expect(topBar.width, closeTo(TioSize.dp16, 0.1));
+    expect(
+      (topBar.left + topBar.right) / 2,
+      closeTo(menuRect.center.dx, 0.1),
+    );
+    expect(
+      (topBar.top + bottomBar.bottom) / 2,
+      closeTo(menuRect.center.dy, 0.1),
+    );
+    final card = find.ancestor(of: menu, matching: find.byType(TioCard)).first;
+    expect(
+      tester.getRect(card).right - menuRect.right,
+      closeTo(TioSpacing.xs, 0.1),
+    );
   });
 
   testWidgets('Routine sheet dispatches only supplied Move/Delete actions',
@@ -523,10 +621,10 @@ void main() {
 
     await tester.tap(options);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-edit-$_routineId')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('routine-move-$_routineId')),
-        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('routine-edit-$_routineId')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('routine-move-$_routineId')), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-delete-$_routineId')),
         findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('routine-move-$_routineId')));
@@ -617,31 +715,76 @@ void main() {
       (tester) async {
     final handle = tester.ensureSemantics();
     try {
-    await _pump(
-      tester,
-      repository: _MemoryRoutines([
-        Routine(id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
-      ]),
-      onEditRoutine: (_) async => false,
-    );
-    final overflow = find.byKey(const ValueKey('routine-menu-$_routineId'));
-    expect(overflow, findsOneWidget);
-    final overflowSemantics = tester.getSemantics(overflow);
-    expect(overflowSemantics.label, contains('Routine options'));
-    expect(overflowSemantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
-    await tester.tap(overflow);
-    await tester.pumpAndSettle();
-    final edit = find.byKey(const ValueKey('routine-edit-$_routineId'));
-    expect(edit, findsOneWidget);
-    final editSemantics = tester.getSemantics(edit);
-    expect(editSemantics.label, contains('Edit Routine'));
-    expect(editSemantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
-    expect(find.byKey(const ValueKey('routine-actions-sheet-$_routineId')),
-        findsOneWidget);
+      await _pump(
+        tester,
+        repository: _MemoryRoutines([
+          Routine(
+              id: RoutineId(_routineId), programId: _program.id, name: 'Push'),
+        ]),
+        onEditRoutine: (_) async => false,
+      );
+      final overflow = find.byKey(const ValueKey('routine-menu-$_routineId'));
+      expect(overflow, findsOneWidget);
+      final overflowSemantics = tester.getSemantics(overflow);
+      expect(overflowSemantics.label, contains('Routine options'));
+      expect(
+          overflowSemantics.getSemanticsData().hasAction(SemanticsAction.tap),
+          isTrue);
+      await tester.tap(overflow);
+      await tester.pumpAndSettle();
+      final edit = find.byKey(const ValueKey('routine-edit-$_routineId'));
+      expect(edit, findsOneWidget);
+      final editSemantics = tester.getSemantics(edit);
+      expect(editSemantics.label, contains('Edit Routine'));
+      expect(editSemantics.getSemanticsData().hasAction(SemanticsAction.tap),
+          isTrue);
+      expect(find.byKey(const ValueKey('routine-actions-sheet-$_routineId')),
+          findsOneWidget);
     } finally {
       // WidgetTester verifies disposal before addTearDown callbacks run.
       handle.dispose();
     }
+  });
+
+  testWidgets('Program Routine play starts directly without opening Detail',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 780);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final routine = Routine(
+      id: RoutineId(_routineId),
+      programId: _program.id,
+      name: 'Glutes & thighs (day 1)',
+    );
+    var detailCalls = 0;
+    var startCalls = 0;
+    await _pump(
+      tester,
+      repository: _MemoryRoutines([routine]),
+      onRoutinePressed: (_) async => detailCalls++,
+      onStartRoutinePressed: (selected) async {
+        expect(selected.id, routine.id);
+        startCalls++;
+      },
+    );
+
+    final play = find.byKey(const ValueKey('routine-start-button-$_routineId'));
+    expect(play, findsOneWidget);
+    expect(
+        tester
+            .getSemantics(
+              find.byKey(const ValueKey('routine-start-$_routineId')),
+            )
+            .label,
+        'Start Glutes & thighs (day 1)');
+    expect(tester.getRect(play).right, lessThanOrEqualTo(320));
+
+    await tester.tap(play);
+    await tester.pumpAndSettle();
+    expect(startCalls, 1);
+    expect(detailCalls, 0);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('failed atomic Create retains empty Program without legacy write',
@@ -656,8 +799,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.created, isEmpty);
     expect(repository.rows, isEmpty);
-    expect(find.byKey(const ValueKey('program-routines-empty')),
-        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
     expect(find.byKey(const ValueKey('routine-name-submit')), findsNothing);
   });
 
@@ -671,8 +814,8 @@ void main() {
     expect(find.byKey(const ValueKey('program-routines-list')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('program-routines-retry')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('program-routines-empty')),
-        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('program-routines-empty')), findsOneWidget);
   });
 
   testWidgets('missing durable repository fails closed', (tester) async {
@@ -716,6 +859,55 @@ void main() {
     expect(find.text('Strength'), findsOneWidget);
     expect(find.text('Routines'), findsNothing);
   });
+
+  testWidgets('Program Detail keeps rows and shows one refresh cue',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final signal = RoutineMoveRefreshSignal();
+      addTearDown(signal.dispose);
+      final repository = _MemoryRoutines([
+        Routine(
+          id: RoutineId(_routineId),
+          programId: _program.id,
+          name: 'Push',
+        ),
+      ]);
+      await _pump(
+        tester,
+        repository: repository,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-a',
+        moveRefreshLoginCycleId: 'cycle-a',
+        onEditRoutine: (_) async => false,
+      );
+      expect(find.text('Push'), findsOneWidget);
+      final pending = Completer<void>();
+      repository.readGate = pending;
+      signal.request(
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+        programsMayHaveChanged: false,
+      );
+      await tester.pump();
+      expect(find.byKey(const ValueKey('program-detail-refreshing')),
+          findsOneWidget);
+      expect(find.text('Push'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        tester.getSemantics(find.byType(CircularProgressIndicator)).label,
+        contains('Refreshing Routines'),
+      );
+      pending.complete();
+      repository.readGate = null;
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('program-detail-refreshing')),
+          findsNothing);
+      expect(find.text('Push'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
+  });
 }
 
 final class _MemoryRoutines implements RoutineRepository {
@@ -725,9 +917,12 @@ final class _MemoryRoutines implements RoutineRepository {
   final List<Routine> created = [];
   bool failCreate = false;
   int loadFailures = 0;
+  Completer<void>? readGate;
 
   @override
   Future<List<Routine>> list(ProgramId programId) async {
+    final gate = readGate;
+    if (gate != null) await gate.future;
     if (loadFailures > 0) {
       loadFailures--;
       throw Exception('disconnected');

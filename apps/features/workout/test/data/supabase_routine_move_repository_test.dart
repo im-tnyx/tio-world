@@ -15,14 +15,34 @@ final source = ProgramId('22222222-2222-4222-8222-222222222222');
 final destination = ProgramId('33333333-3333-4333-8333-333333333333');
 final routine = RoutineId('44444444-4444-4444-8444-444444444444');
 const mutation = '55555555-5555-4555-8555-555555555555';
+const undoMutation = '66666666-6666-4666-8666-666666666666';
+final createdProgram = ProgramId('77777777-7777-4777-8777-777777777777');
+
+RoutineCreateMoveUndoReceipt createMoveUndoReceipt(
+        {int expectedRevision = 5}) =>
+    RoutineCreateMoveUndoReceipt(
+      routineId: routine,
+      originalProgramId: source,
+      originalProgramName: 'Strength',
+      createdProgramId: createdProgram,
+      originalMoveMutationId: mutation,
+      expectedRevision: expectedRevision,
+      ownerId: owner,
+      loginCycleId: cycle,
+    );
 
 Map<String, dynamic> header({
-  String user = owner, ProgramId? program, int revision = 4,
-}) => {
-  'id': routine.value, 'user_id': user,
-  'program_id': (program ?? source).value,
-  'name': 'Morning', 'composition_revision': revision,
-};
+  String user = owner,
+  ProgramId? program,
+  int revision = 4,
+}) =>
+    {
+      'id': routine.value,
+      'user_id': user,
+      'program_id': (program ?? source).value,
+      'name': 'Morning',
+      'composition_revision': revision,
+    };
 Matcher failure(RoutineMoveFailureKind kind) =>
     isA<RoutineMoveException>().having((e) => e.kind, 'kind', kind);
 Matcher unknown(RoutineMoveUncertainty reason) =>
@@ -33,6 +53,7 @@ final class FakeMoveGateway implements RoutineMoveGateway {
   int reads = 0, writes = 0, atomicWrites = 0;
   Future<Object?> Function()? onMove;
   Future<Object?> Function()? onCreateAndMove;
+  Future<Object?> Function()? onUndoCreateAndMove;
   String? createdName;
   String? createdProgramId;
   void Function()? onRead;
@@ -40,10 +61,12 @@ final class FakeMoveGateway implements RoutineMoveGateway {
   String? readRoutine;
   String? sourceId, destinationId, routineId, mutationId;
   int? expectedRevision;
+  String? originalMoveMutationId, undoMutationId, originalProgramId;
 
   @override
   Future<Map<String, dynamic>?> readOwnedHeader({
-    required String userId, required String routineId,
+    required String userId,
+    required String routineId,
   }) async {
     reads++;
     readOwner = userId;
@@ -54,8 +77,10 @@ final class FakeMoveGateway implements RoutineMoveGateway {
 
   @override
   Future<Object?> move({
-    required String routineId, required String sourceProgramId,
-    required String destinationProgramId, required int expectedRevision,
+    required String routineId,
+    required String sourceProgramId,
+    required String destinationProgramId,
+    required int expectedRevision,
     required String mutationId,
   }) async {
     writes++;
@@ -64,14 +89,18 @@ final class FakeMoveGateway implements RoutineMoveGateway {
     destinationId = destinationProgramId;
     this.expectedRevision = expectedRevision;
     this.mutationId = mutationId;
-    return await (onMove?.call() ?? Future<Object?>.value(expectedRevision + 1));
+    return await (onMove?.call() ??
+        Future<Object?>.value(expectedRevision + 1));
   }
 
   @override
   Future<Object?> createAndMove({
-    required String routineId, required String sourceProgramId,
-    required String newProgramId, required String newProgramName,
-    required int expectedRevision, required String mutationId,
+    required String routineId,
+    required String sourceProgramId,
+    required String newProgramId,
+    required String newProgramName,
+    required int expectedRevision,
+    required String mutationId,
   }) async {
     atomicWrites++;
     this.routineId = routineId;
@@ -81,6 +110,26 @@ final class FakeMoveGateway implements RoutineMoveGateway {
     this.expectedRevision = expectedRevision;
     this.mutationId = mutationId;
     return await (onCreateAndMove?.call() ??
+        Future<Object?>.value(expectedRevision + 1));
+  }
+
+  @override
+  Future<Object?> undoCreateAndMove({
+    required String routineId,
+    required String originalProgramId,
+    required String createdProgramId,
+    required String originalMoveMutationId,
+    required int expectedRevision,
+    required String undoMutationId,
+  }) async {
+    atomicWrites++;
+    this.routineId = routineId;
+    this.originalProgramId = originalProgramId;
+    this.createdProgramId = createdProgramId;
+    this.originalMoveMutationId = originalMoveMutationId;
+    this.expectedRevision = expectedRevision;
+    this.undoMutationId = undoMutationId;
+    return await (onUndoCreateAndMove?.call() ??
         Future<Object?>.value(expectedRevision + 1));
   }
 }
@@ -93,47 +142,54 @@ SupabaseRoutineMoveRepository repo(
   String? Function()? loginCycle,
   Duration timeout = const Duration(seconds: 15),
   RoutineMovePendingCreateCheck? pendingCreateForProgram,
-}) => SupabaseRoutineMoveRepository(
-  gateway: gateway, attemptGate: gate ?? RoutineMoveAttemptGate(),
-  crossOperationGate: crossOperationGate,
-  currentUserId: user ?? () => owner,
-  currentLoginCycleId: loginCycle ?? () => cycle,
-  pendingCreateForProgram: pendingCreateForProgram,
-  timeout: timeout,
-);
+}) =>
+    SupabaseRoutineMoveRepository(
+      gateway: gateway,
+      attemptGate: gate ?? RoutineMoveAttemptGate(),
+      crossOperationGate: crossOperationGate,
+      currentUserId: user ?? () => owner,
+      currentLoginCycleId: loginCycle ?? () => cycle,
+      pendingCreateForProgram: pendingCreateForProgram,
+      timeout: timeout,
+    );
 
 Future<RoutineMoveTarget> inspect(SupabaseRoutineMoveRepository r) async =>
     (await r.inspect(sourceProgramId: source, routineId: routine))!;
 
 Future<RoutineMoveResult> move(
-  SupabaseRoutineMoveRepository r, RoutineMoveTarget target,
-  {ProgramId? to, String token = mutation}
-) => r.move(
-  target: target, destinationProgramId: to ?? destination, mutationId: token);
+        SupabaseRoutineMoveRepository r, RoutineMoveTarget target,
+        {ProgramId? to, String token = mutation}) =>
+    r.move(
+        target: target,
+        destinationProgramId: to ?? destination,
+        mutationId: token);
 
 void main() {
   group('cross-path UNKNOWN receipt correlation', () {
     for (final atomicFirst in [true, false]) {
-      test('${atomicFirst ? 'atomic' : 'existing'} UNKNOWN cannot confirm '
+      test(
+          '${atomicFirst ? 'atomic' : 'existing'} UNKNOWN cannot confirm '
           'a blocked opposite-path command', () async {
         final g = FakeMoveGateway();
         if (atomicFirst) {
           g.onCreateAndMove = () async => throw const PostgrestException(
-            message: 'completion unknown', code: '40003');
+              message: 'completion unknown', code: '40003');
         } else {
           g.onMove = () async => throw const PostgrestException(
-            message: 'completion unknown', code: '40003');
+              message: 'completion unknown', code: '40003');
         }
         final cross = RoutineMoveDeleteAttemptGate();
         final r = repo(g, crossOperationGate: cross);
         final first = await inspect(r);
         if (atomicFirst) {
-          await expectLater(r.createAndMove(
-            target: first,
-            newProgramId: destination,
-            newProgramName: 'New Program',
-            mutationId: mutation,
-          ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+          await expectLater(
+              r.createAndMove(
+                target: first,
+                newProgramId: destination,
+                newProgramName: 'New Program',
+                mutationId: mutation,
+              ),
+              throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
         } else {
           await expectLater(move(r, first),
               throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
@@ -148,12 +204,14 @@ void main() {
           await expectLater(move(r, second, token: newerToken),
               throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
         } else {
-          await expectLater(r.createAndMove(
-            target: second,
-            newProgramId: destination,
-            newProgramName: 'Not created',
-            mutationId: newerToken,
-          ), throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+          await expectLater(
+              r.createAndMove(
+                target: second,
+                newProgramId: destination,
+                newProgramName: 'Not created',
+                mutationId: newerToken,
+              ),
+              throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
         }
         expect(g.writes, atomicFirst ? 0 : 1,
             reason: 'Second cross-path Move cannot reach the RPC');
@@ -166,15 +224,15 @@ void main() {
           'last_composition_mutation_id': mutation,
         };
         final readsBeforeWrongToken = g.reads;
-        await expectLater(r.verifyUnknown(
-          routineId: routine, mutationId: newerToken),
-          throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+        await expectLater(
+            r.verifyUnknown(routineId: routine, mutationId: newerToken),
+            throwsA(failure(RoutineMoveFailureKind.staleTarget)));
         expect(g.reads, readsBeforeWrongToken,
             reason: 'Wrong command UUID denies before reading user data');
         expect(cross.uncertain(owner, routine), isTrue);
 
-        final receipt = await r.verifyUnknown(
-          routineId: routine, mutationId: mutation);
+        final receipt =
+            await r.verifyUnknown(routineId: routine, mutationId: mutation);
         expect(receipt.kind, RoutineMoveReadbackKind.confirmedLatestMutation);
         expect(receipt.observedProgramId, destination);
         expect(receipt.observedRevision, 5);
@@ -185,8 +243,8 @@ void main() {
         // A genuinely new Move is permitted only after owner-verified
         // revision advancement and a fresh inspection.
         g.onMove = null;
-        final fresh = await r.inspect(
-          sourceProgramId: destination, routineId: routine);
+        final fresh =
+            await r.inspect(sourceProgramId: destination, routineId: routine);
         expect(fresh?.expectedRevision, 5);
         expect(await move(r, fresh!, to: source, token: newerToken),
             RoutineMoveResult.confirmed);
@@ -200,7 +258,7 @@ void main() {
         () async {
       final g = FakeMoveGateway()
         ..onMove = () async => throw const PostgrestException(
-          message: 'completion unknown', code: '40003');
+            message: 'completion unknown', code: '40003');
       final r = repo(g);
       final first = await inspect(r);
       await expectLater(move(r, first),
@@ -219,22 +277,23 @@ void main() {
         'last_composition_mutation_id': mutation,
       };
       final beforeRead = g.reads;
-      await expectLater(r.verifyUnknown(
-        routineId: routine, mutationId: newToken),
-        throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+      await expectLater(
+          r.verifyUnknown(routineId: routine, mutationId: newToken),
+          throwsA(failure(RoutineMoveFailureKind.staleTarget)));
       expect(g.reads, beforeRead,
           reason: 'Wrong command token must fail before reading owner data');
       expect(g.writes, 1);
-      expect((await r.verifyUnknown(
-        routineId: routine, mutationId: mutation)).kind,
-        RoutineMoveReadbackKind.confirmedLatestMutation);
+      expect(
+          (await r.verifyUnknown(routineId: routine, mutationId: mutation))
+              .kind,
+          RoutineMoveReadbackKind.confirmedLatestMutation);
     });
 
     test('exact persisted mutation token attributes original existing Move',
         () async {
       final g = FakeMoveGateway()
         ..onMove = () async => throw const PostgrestException(
-          message: 'completion unknown', code: '40003');
+            message: 'completion unknown', code: '40003');
       final gate = RoutineMoveAttemptGate();
       final cross = RoutineMoveDeleteAttemptGate();
       final r = repo(g, gate: gate, crossOperationGate: cross);
@@ -247,13 +306,15 @@ void main() {
         ...header(program: destination, revision: 5),
         'last_composition_mutation_id': mutation,
       };
-      final found = await r.verifyUnknown(routineId: routine, mutationId: mutation);
+      final found =
+          await r.verifyUnknown(routineId: routine, mutationId: mutation);
       expect(found.kind, RoutineMoveReadbackKind.confirmedLatestMutation);
       expect(found.observedProgramId, destination);
       expect(found.observedRevision, 5);
       expect(cross.uncertain(owner, routine), isFalse);
       expect(g.writes, 1, reason: 'Readback never repeats the write RPC');
-      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
+      await expectLater(
+          r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.staleTarget)));
     });
 
@@ -261,18 +322,24 @@ void main() {
         () async {
       final g = FakeMoveGateway()
         ..onCreateAndMove = () async => throw const PostgrestException(
-          message: 'completion unknown', code: '40003');
+            message: 'completion unknown', code: '40003');
       final r = repo(g);
       final target = await inspect(r);
-      await expectLater(r.createAndMove(
-        target: target, newProgramId: destination,
-        newProgramName: 'Program 1', mutationId: mutation,
-      ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      await expectLater(
+          r.createAndMove(
+            target: target,
+            newProgramId: destination,
+            newProgramName: 'Program 1',
+            mutationId: mutation,
+          ),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
       g.row = {
         ...header(program: destination, revision: 5),
         'last_composition_mutation_id': mutation,
       };
-      expect((await r.verifyUnknown(routineId: routine, mutationId: mutation)).kind,
+      expect(
+          (await r.verifyUnknown(routineId: routine, mutationId: mutation))
+              .kind,
           RoutineMoveReadbackKind.confirmedLatestMutation);
       expect(g.atomicWrites, 1);
       expect(g.writes, 0);
@@ -282,7 +349,7 @@ void main() {
         () async {
       final g = FakeMoveGateway()
         ..onMove = () async => throw const PostgrestException(
-          message: 'completion unknown', code: '40003');
+            message: 'completion unknown', code: '40003');
       final gate = RoutineMoveAttemptGate();
       final r = repo(g, gate: gate);
       final target = await inspect(r);
@@ -292,11 +359,13 @@ void main() {
         ...header(program: destination, revision: 5),
         'last_composition_mutation_id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       };
-      final check = await r.verifyUnknown(routineId: routine, mutationId: mutation);
+      final check =
+          await r.verifyUnknown(routineId: routine, mutationId: mutation);
       expect(check.kind, RoutineMoveReadbackKind.superseded);
       expect(check.observedProgramId, destination);
       expect(g.writes, 1);
-      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
+      await expectLater(
+          r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.staleTarget)));
     });
 
@@ -304,18 +373,24 @@ void main() {
         () async {
       final g = FakeMoveGateway()
         ..onMove = () async => throw const PostgrestException(
-          message: 'completion unknown', code: '40003');
+            message: 'completion unknown', code: '40003');
       final r = repo(g);
       final target = await inspect(r);
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
-      expect((await r.verifyUnknown(routineId: routine, mutationId: mutation)).kind,
+      expect(
+          (await r.verifyUnknown(routineId: routine, mutationId: mutation))
+              .kind,
           RoutineMoveReadbackKind.notConfirmed);
       g.row = null;
-      expect((await r.verifyUnknown(routineId: routine, mutationId: mutation)).kind,
+      expect(
+          (await r.verifyUnknown(routineId: routine, mutationId: mutation))
+              .kind,
           RoutineMoveReadbackKind.absentOnRead);
       g.row = header();
-      expect((await r.verifyUnknown(routineId: routine, mutationId: mutation)).kind,
+      expect(
+          (await r.verifyUnknown(routineId: routine, mutationId: mutation))
+              .kind,
           RoutineMoveReadbackKind.notConfirmed);
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
@@ -326,13 +401,14 @@ void main() {
         () async {
       final g = FakeMoveGateway()
         ..onMove = () async => throw const PostgrestException(
-          message: 'completion unknown', code: '40003');
+            message: 'completion unknown', code: '40003');
       final r = repo(g);
       final target = await inspect(r);
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
       g.onRead = () => throw StateError('network unavailable');
-      final check = await r.verifyUnknown(routineId: routine, mutationId: mutation);
+      final check =
+          await r.verifyUnknown(routineId: routine, mutationId: mutation);
       expect(check.kind, RoutineMoveReadbackKind.readUnavailable);
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
@@ -345,43 +421,44 @@ void main() {
       var activeCycle = cycle;
       final g = FakeMoveGateway()
         ..onMove = () async => throw const PostgrestException(
-          message: 'completion unknown', code: '40003');
-      final r = repo(g,
-          user: () => activeOwner, loginCycle: () => activeCycle);
+            message: 'completion unknown', code: '40003');
+      final r = repo(g, user: () => activeOwner, loginCycle: () => activeCycle);
       final target = await inspect(r);
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
       final reads = g.reads;
       activeCycle = 'new-login-cycle';
-      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
+      await expectLater(
+          r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.unauthorized)));
       activeOwner = other;
-      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
+      await expectLater(
+          r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.staleTarget)));
       expect(g.reads, reads, reason: 'No cross-cycle/owner read is permitted');
     });
 
-    test('mid-read session change rejects stale verification',
-        () async {
+    test('mid-read session change rejects stale verification', () async {
       var activeCycle = cycle;
       final g = FakeMoveGateway()
         ..onMove = () async => throw const PostgrestException(
-          message: 'completion unknown', code: '40003');
+            message: 'completion unknown', code: '40003');
       final r = repo(g, loginCycle: () => activeCycle);
       final target = await inspect(r);
       await expectLater(move(r, target),
           throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
       g.onRead = () => activeCycle = 'cycle-b';
-      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
+      await expectLater(
+          r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.unauthorized)));
       expect(g.writes, 1);
     });
 
-    test('no UNKNOWN attempt cannot read or claim a Move receipt',
-        () async {
+    test('no UNKNOWN attempt cannot read or claim a Move receipt', () async {
       final g = FakeMoveGateway();
       final r = repo(g);
-      await expectLater(r.verifyUnknown(routineId: routine, mutationId: mutation),
+      await expectLater(
+          r.verifyUnknown(routineId: routine, mutationId: mutation),
           throwsA(failure(RoutineMoveFailureKind.staleTarget)));
       expect(g.reads, 0);
     });
@@ -391,15 +468,20 @@ void main() {
       () async {
     var pending = true;
     final g = FakeMoveGateway();
-    final r = repo(g, pendingCreateForProgram: (u, p) =>
-        pending && u == owner && p == source);
+    final r = repo(g,
+        pendingCreateForProgram: (u, p) =>
+            pending && u == owner && p == source);
     final t = await inspect(r);
-    await expectLater(move(r, t),
+    await expectLater(
+        move(r, t), throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(
+        r.createAndMove(
+          target: t,
+          newProgramId: destination,
+          newProgramName: 'New Program',
+          mutationId: mutation,
+        ),
         throwsA(failure(RoutineMoveFailureKind.inProgress)));
-    await expectLater(r.createAndMove(
-      target: t, newProgramId: destination,
-      newProgramName: 'New Program', mutationId: mutation,
-    ), throwsA(failure(RoutineMoveFailureKind.inProgress)));
     expect(g.writes, 0);
     expect(g.atomicWrites, 0,
         reason: 'No Move RPC is dispatched while Create can still commit');
@@ -414,11 +496,12 @@ void main() {
       () async {
     var pending = true;
     final g = FakeMoveGateway();
-    final r = repo(g, pendingCreateForProgram: (u, p) =>
-        pending && u == owner && p == destination);
+    final r = repo(g,
+        pendingCreateForProgram: (u, p) =>
+            pending && u == owner && p == destination);
     final t = await inspect(r);
-    await expectLater(move(r, t),
-        throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(
+        move(r, t), throwsA(failure(RoutineMoveFailureKind.inProgress)));
     expect(g.writes, 0);
     pending = false;
     expect(await move(r, t), RoutineMoveResult.confirmed);
@@ -427,8 +510,8 @@ void main() {
 
   test('pending Create for another owner is not a Move blocker', () async {
     final g = FakeMoveGateway();
-    final r = repo(g, pendingCreateForProgram: (u, p) =>
-        u == other && p == source);
+    final r =
+        repo(g, pendingCreateForProgram: (u, p) => u == other && p == source);
     final t = await inspect(r);
     expect(await move(r, t), RoutineMoveResult.confirmed);
     expect(g.writes, 1);
@@ -437,15 +520,19 @@ void main() {
   test('pending Create lookup error fails closed for both Move paths',
       () async {
     final g = FakeMoveGateway();
-    final r = repo(g, pendingCreateForProgram: (u, p) =>
-        throw StateError('disposed gate'));
+    final r = repo(g,
+        pendingCreateForProgram: (u, p) => throw StateError('disposed gate'));
     final t = await inspect(r);
-    await expectLater(move(r, t),
+    await expectLater(
+        move(r, t), throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(
+        r.createAndMove(
+          target: t,
+          newProgramId: destination,
+          newProgramName: 'New Program',
+          mutationId: mutation,
+        ),
         throwsA(failure(RoutineMoveFailureKind.inProgress)));
-    await expectLater(r.createAndMove(
-      target: t, newProgramId: destination,
-      newProgramName: 'New Program', mutationId: mutation,
-    ), throwsA(failure(RoutineMoveFailureKind.inProgress)));
     expect(g.writes, 0);
     expect(g.atomicWrites, 0);
   });
@@ -454,13 +541,17 @@ void main() {
     final variant = atomic ? 'atomic Create and Move' : 'existing Move';
 
     Future<RoutineMoveResult> dispatch(
-      SupabaseRoutineMoveRepository repository, RoutineMoveTarget target,
-    ) => atomic
-        ? repository.createAndMove(
-            target: target, newProgramId: destination,
-            newProgramName: 'New Program', mutationId: mutation,
-          )
-        : move(repository, target);
+      SupabaseRoutineMoveRepository repository,
+      RoutineMoveTarget target,
+    ) =>
+        atomic
+            ? repository.createAndMove(
+                target: target,
+                newProgramId: destination,
+                newProgramName: 'New Program',
+                mutationId: mutation,
+              )
+            : move(repository, target);
 
     test('cross-operation UNKNOWN outranks pending Create for $variant',
         () async {
@@ -518,21 +609,26 @@ void main() {
     });
   }
 
-  test('atomic known SQL rejection after login-cycle change is UNKNOWN', () async {
+  test('atomic known SQL rejection after login-cycle change is UNKNOWN',
+      () async {
     var loginCycle = cycle;
     final gate = RoutineMoveAttemptGate();
     final g = FakeMoveGateway()
       ..onCreateAndMove = () async {
         loginCycle = 'cycle-b';
         throw const PostgrestException(
-          message: 'routine_create_move_revision_conflict', code: 'P0001');
+            message: 'routine_create_move_revision_conflict', code: 'P0001');
       };
     final r = repo(g, gate: gate, loginCycle: () => loginCycle);
     final t = await inspect(r);
-    await expectLater(r.createAndMove(
-      target: t, newProgramId: destination,
-      newProgramName: 'Cardio', mutationId: mutation,
-    ), throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+    await expectLater(
+        r.createAndMove(
+          target: t,
+          newProgramId: destination,
+          newProgramName: 'Cardio',
+          mutationId: mutation,
+        ),
+        throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
     expect(g.atomicWrites, 1);
     expect(g.reads, 1, reason: 'No stale-cycle reconciliation read');
     final next = repo(g, gate: gate, loginCycle: () => loginCycle);
@@ -550,12 +646,12 @@ void main() {
       ..onMove = () async {
         loginCycle = 'cycle-b';
         throw const PostgrestException(
-          message: 'routine_move_revision_conflict', code: 'P0001');
+            message: 'routine_move_revision_conflict', code: 'P0001');
       };
     final r = repo(g, loginCycle: () => loginCycle);
     final t = await inspect(r);
-    await expectLater(move(r, t),
-        throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+    await expectLater(
+        move(r, t), throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
     expect(g.writes, 1);
     expect(g.reads, 1);
   });
@@ -564,15 +660,18 @@ void main() {
       () async {
     final g = FakeMoveGateway()
       ..onCreateAndMove = () async => throw const PostgrestException(
-          message: 'JWT claims validation or parsing failed',
-          code: 'PGRST303');
+          message: 'JWT claims validation or parsing failed', code: 'PGRST303');
     final gate = RoutineMoveAttemptGate();
     final r = repo(g, gate: gate);
     final t = await inspect(r);
-    await expectLater(r.createAndMove(
-      target: t, newProgramId: destination,
-      newProgramName: 'Cardio', mutationId: mutation,
-    ), throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+    await expectLater(
+        r.createAndMove(
+          target: t,
+          newProgramId: destination,
+          newProgramName: 'Cardio',
+          mutationId: mutation,
+        ),
+        throwsA(failure(RoutineMoveFailureKind.unauthorized)));
     expect(g.atomicWrites, 1);
     expect(g.reads, 1,
         reason: 'JWT validation failed before any RPC execution');
@@ -591,10 +690,14 @@ void main() {
     final gate = RoutineMoveAttemptGate();
     final first = repo(g, gate: gate);
     final target = await inspect(first);
-    await expectLater(first.createAndMove(
-      target: target, newProgramId: destination,
-      newProgramName: 'Program 1', mutationId: mutation,
-    ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    await expectLater(
+        first.createAndMove(
+          target: target,
+          newProgramId: destination,
+          newProgramName: 'Program 1',
+          mutationId: mutation,
+        ),
+        throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
     expect(g.atomicWrites, 1);
     expect(g.reads, 2,
         reason: 'Unknown completion must attempt owner-scoped reconciliation');
@@ -602,10 +705,14 @@ void main() {
     final fresh = await inspect(next);
     await expectLater(move(next, fresh),
         throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
-    await expectLater(next.createAndMove(
-      target: fresh, newProgramId: destination,
-      newProgramName: 'Program 2', mutationId: mutation,
-    ), throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    await expectLater(
+        next.createAndMove(
+          target: fresh,
+          newProgramId: destination,
+          newProgramName: 'Program 2',
+          mutationId: mutation,
+        ),
+        throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
     expect(g.writes, 0);
     expect(g.atomicWrites, 1,
         reason: 'No new Program ID/token replay of uncertain commit');
@@ -617,8 +724,8 @@ void main() {
           message: 'statement completion unknown', code: '40003');
     final r = repo(g);
     final target = await inspect(r);
-    await expectLater(move(r, target),
-        throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    await expectLater(
+        move(r, target), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
     expect(g.writes, 1);
     expect(g.reads, 2);
   });
@@ -632,10 +739,14 @@ void main() {
     final gate = RoutineMoveAttemptGate();
     final first = repo(g, gate: gate);
     final target = await inspect(first);
-    await expectLater(first.createAndMove(
-      target: target, newProgramId: destination,
-      newProgramName: 'Program 1', mutationId: mutation,
-    ), throwsA(failure(RoutineMoveFailureKind.transactionAborted)));
+    await expectLater(
+        first.createAndMove(
+          target: target,
+          newProgramId: destination,
+          newProgramName: 'Program 1',
+          mutationId: mutation,
+        ),
+        throwsA(failure(RoutineMoveFailureKind.transactionAborted)));
     expect(g.atomicWrites, 1);
     expect(g.reads, 1,
         reason: 'Server query_canceled proves rolled-back statement');
@@ -646,12 +757,11 @@ void main() {
     expect(g.writes, 1);
   });
 
-  for (final (code, kind) in
-      <(String, RoutineMoveFailureKind)>[
-        ('55P03', RoutineMoveFailureKind.transactionAborted),
-        ('429', RoutineMoveFailureKind.unavailable),
-        ('422', RoutineMoveFailureKind.invalidRequest),
-      ]) {
+  for (final (code, kind) in <(String, RoutineMoveFailureKind)>[
+    ('55P03', RoutineMoveFailureKind.transactionAborted),
+    ('429', RoutineMoveFailureKind.unavailable),
+    ('422', RoutineMoveFailureKind.invalidRequest),
+  ]) {
     test('$code definitive rejection preserves shared Move gate', () async {
       final g = FakeMoveGateway()
         ..onCreateAndMove = () async => throw PostgrestException(
@@ -659,10 +769,14 @@ void main() {
       final gate = RoutineMoveAttemptGate();
       final first = repo(g, gate: gate);
       final target = await inspect(first);
-      await expectLater(first.createAndMove(
-        target: target, newProgramId: destination,
-        newProgramName: 'Program 1', mutationId: mutation,
-      ), throwsA(failure(kind)));
+      await expectLater(
+          first.createAndMove(
+            target: target,
+            newProgramId: destination,
+            newProgramName: 'Program 1',
+            mutationId: mutation,
+          ),
+          throwsA(failure(kind)));
       expect(g.atomicWrites, 1);
       expect(g.reads, 1,
           reason: 'Definite rejection must not trigger unknown reconciliation');
@@ -677,15 +791,19 @@ void main() {
   for (final code in <String>['408', '499']) {
     test('HTTP $code is ambiguous and freezes shared Move gate', () async {
       final g = FakeMoveGateway()
-        ..onCreateAndMove = () async => throw PostgrestException(
-            message: 'request timed out', code: code);
+        ..onCreateAndMove = () async =>
+            throw PostgrestException(message: 'request timed out', code: code);
       final gate = RoutineMoveAttemptGate();
       final first = repo(g, gate: gate);
       final target = await inspect(first);
-      await expectLater(first.createAndMove(
-        target: target, newProgramId: destination,
-        newProgramName: 'Program 1', mutationId: mutation,
-      ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      await expectLater(
+          first.createAndMove(
+            target: target,
+            newProgramId: destination,
+            newProgramName: 'Program 1',
+            mutationId: mutation,
+          ),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
       expect(g.reads, 2,
           reason: 'Ambiguous transport status must trigger reconciliation');
       final next = repo(g, gate: gate);
@@ -712,10 +830,14 @@ void main() {
       final gate = RoutineMoveAttemptGate();
       final first = repo(gateway, gate: gate);
       final target = await inspect(first);
-      await expectLater(first.createAndMove(
-        target: target, newProgramId: destination,
-        newProgramName: 'Program 1', mutationId: mutation,
-      ), throwsA(failure(kind)));
+      await expectLater(
+          first.createAndMove(
+            target: target,
+            newProgramId: destination,
+            newProgramName: 'Program 1',
+            mutationId: mutation,
+          ),
+          throwsA(failure(kind)));
       expect(gateway.atomicWrites, 1);
       expect(gateway.reads, 1,
           reason: 'Definite server rejection must not reconcile UNKNOWN');
@@ -735,10 +857,14 @@ void main() {
     final gate = RoutineMoveAttemptGate();
     final first = repo(g, gate: gate);
     final target = await inspect(first);
-    await expectLater(first.createAndMove(
-      target: target, newProgramId: destination,
-      newProgramName: 'Program 1', mutationId: mutation,
-    ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+    await expectLater(
+        first.createAndMove(
+          target: target,
+          newProgramId: destination,
+          newProgramName: 'Program 1',
+          mutationId: mutation,
+        ),
+        throwsA(failure(RoutineMoveFailureKind.unavailable)));
     expect(g.atomicWrites, 1);
     expect(g.reads, 1,
         reason: 'Missing JWT secret rejects before the RPC executes');
@@ -750,20 +876,27 @@ void main() {
   });
 
   for (final code in <String>[
-    'PGRST000', 'PGRST001', 'PGRST002', 'PGRST003',
+    'PGRST000',
+    'PGRST001',
+    'PGRST002',
+    'PGRST003',
   ]) {
     test('$code is pre-execution: no unknown gate poison after outage',
         () async {
       final g = FakeMoveGateway()
         ..onCreateAndMove = () async => throw PostgrestException(
-          message: 'Cannot acquire database connection', code: code);
+            message: 'Cannot acquire database connection', code: code);
       final gate = RoutineMoveAttemptGate();
       final r = repo(g, gate: gate);
       final target = await inspect(r);
-      await expectLater(r.createAndMove(
-        target: target, newProgramId: destination,
-        newProgramName: 'Program 1', mutationId: mutation,
-      ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+      await expectLater(
+          r.createAndMove(
+            target: target,
+            newProgramId: destination,
+            newProgramName: 'Program 1',
+            mutationId: mutation,
+          ),
+          throwsA(failure(RoutineMoveFailureKind.unavailable)));
       expect(g.atomicWrites, 1);
       expect(g.reads, 1, reason: 'No uncertain-result reconciliation');
       final next = repo(g, gate: gate);
@@ -780,15 +913,19 @@ void main() {
   ]) {
     test('$code rejects without poisoning the shared Move gate', () async {
       final g = FakeMoveGateway()
-        ..onCreateAndMove = () async => throw PostgrestException(
-          message: message, code: code);
+        ..onCreateAndMove =
+            () async => throw PostgrestException(message: message, code: code);
       final gate = RoutineMoveAttemptGate();
       final first = repo(g, gate: gate);
       final target = await inspect(first);
-      await expectLater(first.createAndMove(
-        target: target, newProgramId: destination,
-        newProgramName: 'Program 1', mutationId: mutation,
-      ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+      await expectLater(
+          first.createAndMove(
+            target: target,
+            newProgramId: destination,
+            newProgramName: 'Program 1',
+            mutationId: mutation,
+          ),
+          throwsA(failure(RoutineMoveFailureKind.unavailable)));
       expect(g.atomicWrites, 1);
       expect(g.reads, 1, reason: 'Known rejection must not reconcile');
       final next = repo(g, gate: gate);
@@ -807,13 +944,16 @@ void main() {
     final gate = RoutineMoveAttemptGate();
     final r = repo(g, gate: gate);
     final t = await inspect(r);
-    await expectLater(r.createAndMove(
-      target: t, newProgramId: destination,
-      newProgramName: 'Cardio', mutationId: mutation,
-    ), throwsA(failure(RoutineMoveFailureKind.unavailable)));
+    await expectLater(
+        r.createAndMove(
+          target: t,
+          newProgramId: destination,
+          newProgramName: 'Cardio',
+          mutationId: mutation,
+        ),
+        throwsA(failure(RoutineMoveFailureKind.unavailable)));
     expect(g.atomicWrites, 1);
-    expect(g.reads, 1,
-        reason: 'A rejected route cannot have executed SQL');
+    expect(g.reads, 1, reason: 'A rejected route cannot have executed SQL');
     final second = repo(g, gate: gate);
     final retryTarget = await inspect(second);
     expect(await move(second, retryTarget), RoutineMoveResult.confirmed,
@@ -821,12 +961,13 @@ void main() {
     expect(g.writes, 1);
   });
 
-
-  test('atomic SDK sends exactly one protected RPC, no standalone Program INSERT',
+  test(
+      'atomic SDK sends exactly one protected RPC, no standalone Program INSERT',
       () async {
     final requests = <http.Request>[];
     final client = SupabaseClient(
-      'https://example.test', 'synthetic-publishable-key',
+      'https://example.test',
+      'synthetic-publishable-key',
       httpClient: MockClient((request) async {
         requests.add(request);
         if (request.method == 'GET') {
@@ -847,10 +988,14 @@ void main() {
     );
     final t = await inspect(r);
     final atomic = r as RoutineCreateMoveRepository;
-    expect(await atomic.createAndMove(
-      target: t, newProgramId: destination,
-      newProgramName: 'Cardio Focus', mutationId: mutation,
-    ), RoutineMoveResult.confirmed);
+    expect(
+        await atomic.createAndMove(
+          target: t,
+          newProgramId: destination,
+          newProgramName: 'Cardio Focus',
+          mutationId: mutation,
+        ),
+        RoutineMoveResult.confirmed);
     expect(requests, hasLength(2));
     expect(requests.first.method, 'GET');
     expect(requests.last.method, 'POST');
@@ -872,38 +1017,51 @@ void main() {
     final r = repo(g, loginCycle: () => activeCycle);
     final t = await inspect(r);
     Future<void> bad(ProgramId id, String name, String token) async {
-      await expectLater(r.createAndMove(
-        target: t, newProgramId: id,
-        newProgramName: name, mutationId: token,
-      ), throwsA(failure(RoutineMoveFailureKind.invalidRequest)));
+      await expectLater(
+          r.createAndMove(
+            target: t,
+            newProgramId: id,
+            newProgramName: name,
+            mutationId: token,
+          ),
+          throwsA(failure(RoutineMoveFailureKind.invalidRequest)));
     }
+
     await bad(source, 'Cardio', mutation);
     await bad(destination, '   ', mutation);
     await bad(destination, 'Cardio', 'bad-token');
     expect(g.atomicWrites, 0);
     activeCycle = 'cycle-b';
-    await expectLater(r.createAndMove(
-      target: t, newProgramId: destination,
-      newProgramName: 'Cardio', mutationId: mutation,
-    ), throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+    await expectLater(
+        r.createAndMove(
+          target: t,
+          newProgramId: destination,
+          newProgramName: 'Cardio',
+          mutationId: mutation,
+        ),
+        throwsA(failure(RoutineMoveFailureKind.unauthorized)));
     expect(g.atomicWrites, 0);
   });
 
   test('atomic and existing Move share one gate and prepared target', () async {
     final completion = Completer<Object?>();
-    final g = FakeMoveGateway()
-      ..onCreateAndMove = () => completion.future;
+    final g = FakeMoveGateway()..onCreateAndMove = () => completion.future;
     final gate = RoutineMoveAttemptGate();
     final atomicRepo = repo(g, gate: gate);
     final existingRepo = repo(g, gate: gate);
     final target = await inspect(atomicRepo);
     final pending = atomicRepo.createAndMove(
-      target: target, newProgramId: destination,
-      newProgramName: 'Program 1', mutationId: mutation,
+      target: target,
+      newProgramId: destination,
+      newProgramName: 'Program 1',
+      mutationId: mutation,
     );
-    await expectLater(existingRepo.inspect(
-      sourceProgramId: source, routineId: routine,
-    ), throwsA(failure(RoutineMoveFailureKind.inProgress)));
+    await expectLater(
+        existingRepo.inspect(
+          sourceProgramId: source,
+          routineId: routine,
+        ),
+        throwsA(failure(RoutineMoveFailureKind.inProgress)));
     await expectLater(move(existingRepo, target),
         throwsA(failure(RoutineMoveFailureKind.inProgress)));
     expect(g.writes, 0);
@@ -912,10 +1070,14 @@ void main() {
     expect(await pending, RoutineMoveResult.confirmed);
     await expectLater(move(atomicRepo, target),
         throwsA(failure(RoutineMoveFailureKind.staleTarget)));
-    await expectLater(atomicRepo.createAndMove(
-      target: target, newProgramId: destination,
-      newProgramName: 'Program 1', mutationId: mutation,
-    ), throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+    await expectLater(
+        atomicRepo.createAndMove(
+          target: target,
+          newProgramId: destination,
+          newProgramName: 'Program 1',
+          mutationId: mutation,
+        ),
+        throwsA(failure(RoutineMoveFailureKind.staleTarget)));
     expect(g.atomicWrites, 1);
   });
 
@@ -929,112 +1091,322 @@ void main() {
       };
     final r = repo(g, loginCycle: () => activeCycle);
     final t = await inspect(r);
-    await expectLater(r.createAndMove(
-      target: t, newProgramId: destination,
-      newProgramName: 'Program 1', mutationId: mutation,
-    ), throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+    await expectLater(
+        r.createAndMove(
+          target: t,
+          newProgramId: destination,
+          newProgramName: 'Program 1',
+          mutationId: mutation,
+        ),
+        throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
     expect(g.atomicWrites, 1);
     expect(g.reads, 1, reason: 'Never refresh stale-owner data');
   });
 
-  test('atomic timeout is unconfirmed and blocks existing Move at same revision',
+  test(
+      'atomic timeout is unconfirmed and blocks existing Move at same revision',
       () async {
     final pending = Completer<Object?>();
     final g = FakeMoveGateway()..onCreateAndMove = () => pending.future;
     final gate = RoutineMoveAttemptGate();
-    final r = repo(g, gate: gate,
-        timeout: const Duration(milliseconds: 25));
+    final r = repo(g, gate: gate, timeout: const Duration(milliseconds: 25));
     final target = await inspect(r);
-    await expectLater(r.createAndMove(
-      target: target, newProgramId: destination,
-      newProgramName: 'Program 1', mutationId: mutation,
-    ), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    await expectLater(
+        r.createAndMove(
+          target: target,
+          newProgramId: destination,
+          newProgramName: 'Program 1',
+          mutationId: mutation,
+        ),
+        throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
     final second = repo(g, gate: gate);
     final next = await inspect(second);
     await expectLater(move(second, next),
         throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
-    await expectLater(second.createAndMove(
-      target: next, newProgramId: destination,
-      newProgramName: 'Program 2', mutationId: mutation,
-    ), throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+    await expectLater(
+        second.createAndMove(
+          target: next,
+          newProgramId: destination,
+          newProgramName: 'Program 2',
+          mutationId: mutation,
+        ),
+        throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
     expect(g.atomicWrites, 1);
     expect(g.writes, 0);
     pending.complete(5);
     g.row = header(program: destination, revision: 5);
-    expect(await second.inspect(sourceProgramId: source,
-        routineId: routine), isNull);
+    expect(await second.inspect(sourceProgramId: source, routineId: routine),
+        isNull);
   });
 
   for (final e in <(String, String, RoutineMoveFailureKind)>[
     ('42501', 'permission denied', RoutineMoveFailureKind.forbidden),
-    ('P0002', 'routine_create_move_not_found',
-        RoutineMoveFailureKind.notFound),
-    ('P0001', 'routine_create_move_revision_conflict',
-        RoutineMoveFailureKind.revisionConflict),
-    ('P0001', 'routine_create_move_program_conflict',
-        RoutineMoveFailureKind.mutationConflict),
-    ('P0001', 'routine_create_move_mutation_conflict',
-        RoutineMoveFailureKind.mutationConflict),
-    ('PGRST203', 'RPC overload is ambiguous',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST303', 'JWT claims validation or parsing failed',
-        RoutineMoveFailureKind.unauthorized),
-    ('PGRST300', 'No active JWT secret configured',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST000', 'Cannot acquire database connection',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST001', 'Cannot acquire database connection',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST002', 'Cannot acquire database connection',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST003', 'Cannot acquire database connection',
-        RoutineMoveFailureKind.unavailable),
-    ('25006', 'cannot execute INSERT in a read-only transaction',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST106', 'schema public is not an exposed schema',
-        RoutineMoveFailureKind.unavailable),
-    ('57014', 'canceling statement due to statement timeout',
-        RoutineMoveFailureKind.transactionAborted),
-    ('55P03', 'canceling statement due to lock timeout',
-        RoutineMoveFailureKind.transactionAborted),
-    ('53000', 'insufficient resources',
-        RoutineMoveFailureKind.transactionAborted),
+    ('P0002', 'routine_create_move_not_found', RoutineMoveFailureKind.notFound),
+    (
+      'P0001',
+      'routine_create_move_revision_conflict',
+      RoutineMoveFailureKind.revisionConflict
+    ),
+    (
+      'P0001',
+      'routine_create_move_program_conflict',
+      RoutineMoveFailureKind.mutationConflict
+    ),
+    (
+      'P0001',
+      'routine_create_move_mutation_conflict',
+      RoutineMoveFailureKind.mutationConflict
+    ),
+    (
+      'PGRST203',
+      'RPC overload is ambiguous',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST303',
+      'JWT claims validation or parsing failed',
+      RoutineMoveFailureKind.unauthorized
+    ),
+    (
+      'PGRST300',
+      'No active JWT secret configured',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST000',
+      'Cannot acquire database connection',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST001',
+      'Cannot acquire database connection',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST002',
+      'Cannot acquire database connection',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST003',
+      'Cannot acquire database connection',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      '25006',
+      'cannot execute INSERT in a read-only transaction',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST106',
+      'schema public is not an exposed schema',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      '57014',
+      'canceling statement due to statement timeout',
+      RoutineMoveFailureKind.transactionAborted
+    ),
+    (
+      '55P03',
+      'canceling statement due to lock timeout',
+      RoutineMoveFailureKind.transactionAborted
+    ),
+    (
+      '53000',
+      'insufficient resources',
+      RoutineMoveFailureKind.transactionAborted
+    ),
     ('53100', 'disk full', RoutineMoveFailureKind.transactionAborted),
     ('53200', 'out of memory', RoutineMoveFailureKind.transactionAborted),
     ('53300', 'too many connections', RoutineMoveFailureKind.unavailable),
-    ('53400', 'configuration limit exceeded',
-        RoutineMoveFailureKind.transactionAborted),
+    (
+      '53400',
+      'configuration limit exceeded',
+      RoutineMoveFailureKind.transactionAborted
+    ),
     ('57P03', 'database is starting up', RoutineMoveFailureKind.unavailable),
     ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
     ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),
   ]) {
     test('atomic SQLSTATE ${e.$1} ${e.$2} is definite', () async {
       final g = FakeMoveGateway()
-        ..onCreateAndMove = () async => throw PostgrestException(
-            message: e.$2, code: e.$1);
+        ..onCreateAndMove =
+            () async => throw PostgrestException(message: e.$2, code: e.$1);
       final r = repo(g);
       final t = await inspect(r);
-      await expectLater(r.createAndMove(
-        target: t, newProgramId: destination,
-        newProgramName: 'Program 1', mutationId: mutation,
-      ), throwsA(failure(e.$3)));
+      await expectLater(
+          r.createAndMove(
+            target: t,
+            newProgramId: destination,
+            newProgramName: 'Program 1',
+            mutationId: mutation,
+          ),
+          throwsA(failure(e.$3)));
       expect(g.reads, 1, reason: 'Known server rejection is not unknown');
       expect(g.atomicWrites, 1);
     });
   }
 
-  test('SDK issues ONE protected RPC with frozen payload and no table update', () async {
+  group('atomic Create & Move full Undo', () {
+    test('dispatches one protected RPC with the frozen post-Move revision',
+        () async {
+      final g = FakeMoveGateway();
+      final r = repo(g);
+      expect(
+          await r.undoCreateAndMove(
+            receipt: createMoveUndoReceipt(),
+            undoMutationId: undoMutation,
+          ),
+          RoutineMoveResult.confirmed);
+      expect(g.atomicWrites, 1);
+      expect(g.writes, 0);
+      expect(g.routineId, routine.value);
+      expect(g.originalProgramId, source.value);
+      expect(g.createdProgramId, createdProgram.value);
+      expect(g.originalMoveMutationId, mutation);
+      expect(g.expectedRevision, 5,
+          reason: 'Undo CAS uses the confirmed post-Create & Move revision');
+      expect(g.undoMutationId, undoMutation);
+    });
+
+    test('timeout stays UNKNOWN until exact Undo mutation receipt is read',
+        () async {
+      final g = FakeMoveGateway()
+        ..row = {
+          ...header(program: destination, revision: 5),
+          'last_composition_mutation_id': mutation,
+        }
+        ..onUndoCreateAndMove = () async => throw const PostgrestException(
+              message: 'completion unknown',
+              code: '40003',
+            );
+      final cross = RoutineMoveDeleteAttemptGate();
+      final r = repo(g, crossOperationGate: cross);
+      final receipt = createMoveUndoReceipt();
+      await expectLater(
+          r.undoCreateAndMove(
+            receipt: receipt,
+            undoMutationId: undoMutation,
+          ),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+      expect(cross.uncertain(owner, routine), isTrue);
+      expect(g.atomicWrites, 1);
+
+      g.row = {
+        ...header(program: source, revision: 6),
+        'last_composition_mutation_id': undoMutation,
+      };
+      final readback = await r.verifyUnknownCreateMoveUndo(
+        receipt: receipt,
+        undoMutationId: undoMutation,
+      );
+      expect(readback.kind, RoutineMoveReadbackKind.confirmedLatestMutation);
+      expect(readback.observedProgramId, source);
+      expect(readback.observedRevision, 6);
+      expect(cross.uncertain(owner, routine), isFalse);
+      expect(g.atomicWrites, 1,
+          reason: 'Receipt verification never retries the Undo RPC');
+    });
+
+    test('a later Routine revision without the exact token is not success',
+        () async {
+      final g = FakeMoveGateway()
+        ..row = {
+          ...header(program: destination, revision: 5),
+          'last_composition_mutation_id': mutation,
+        }
+        ..onUndoCreateAndMove = () async => throw const PostgrestException(
+              message: 'completion unknown',
+              code: '40003',
+            );
+      final r = repo(g);
+      final receipt = createMoveUndoReceipt();
+      await expectLater(
+          r.undoCreateAndMove(
+            receipt: receipt,
+            undoMutationId: undoMutation,
+          ),
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+
+      g.row = header(program: source, revision: 6);
+      expect(
+          (await r.verifyUnknownCreateMoveUndo(
+            receipt: receipt,
+            undoMutationId: undoMutation,
+          ))
+              .kind,
+          RoutineMoveReadbackKind.superseded);
+    });
+
+    test('Program-modified conflict is definite and never retried', () async {
+      final g = FakeMoveGateway()
+        ..onUndoCreateAndMove = () async => throw const PostgrestException(
+              message: 'routine_create_move_undo_program_modified',
+              code: 'P0001',
+            );
+      final r = repo(g);
+      await expectLater(
+          r.undoCreateAndMove(
+            receipt: createMoveUndoReceipt(),
+            undoMutationId: undoMutation,
+          ),
+          throwsA(failure(RoutineMoveFailureKind.mutationConflict)));
+      expect(g.atomicWrites, 1);
+      expect(g.reads, 0);
+    });
+  });
+
+  test('SDK sends exact six-argument M5B Undo RPC payload', () async {
     final sent = <http.Request>[];
     final client = SupabaseClient(
-      'https://example.test', 'synthetic-publishable-key',
+      'https://example.test',
+      'synthetic-publishable-key',
+      httpClient: MockClient((request) async {
+        sent.add(request);
+        return http.Response('6', 200,
+            headers: {'content-type': 'application/json'}, request: request);
+      }),
+      authOptions: const AuthClientOptions(autoRefreshToken: false),
+    );
+    addTearDown(client.dispose);
+    final response = await SupabaseRoutineMoveGateway(client).undoCreateAndMove(
+      routineId: routine.value,
+      originalProgramId: source.value,
+      createdProgramId: createdProgram.value,
+      originalMoveMutationId: mutation,
+      expectedRevision: 5,
+      undoMutationId: undoMutation,
+    );
+    expect(response, 6);
+    expect(sent, hasLength(1));
+    expect(sent.single.method, 'POST');
+    expect(sent.single.url.path,
+        '/rest/v1/rpc/undo_create_user_workout_program_and_move_routine');
+    expect(jsonDecode(sent.single.body), {
+      'p_routine_id': routine.value,
+      'p_original_program_id': source.value,
+      'p_created_program_id': createdProgram.value,
+      'p_original_move_mutation_id': mutation,
+      'p_expected_revision': 5,
+      'p_undo_mutation_id': undoMutation,
+    });
+  });
+
+  test('SDK issues ONE protected RPC with frozen payload and no table update',
+      () async {
+    final sent = <http.Request>[];
+    final client = SupabaseClient(
+      'https://example.test',
+      'synthetic-publishable-key',
       httpClient: MockClient((request) async {
         sent.add(request);
         if (request.method == 'GET') {
           return http.Response(jsonEncode(header()), 200,
-            headers: {'content-type': 'application/json'}, request: request);
+              headers: {'content-type': 'application/json'}, request: request);
         }
         return http.Response('5', 200,
-          headers: {'content-type': 'application/json'}, request: request);
+            headers: {'content-type': 'application/json'}, request: request);
       }),
       authOptions: const AuthClientOptions(autoRefreshToken: false),
     );
@@ -1042,7 +1414,8 @@ void main() {
     final r = SupabaseRoutineMoveRepository(
       gateway: SupabaseRoutineMoveGateway(client),
       attemptGate: RoutineMoveAttemptGate(),
-      currentUserId: () => owner, currentLoginCycleId: () => cycle,
+      currentUserId: () => owner,
+      currentLoginCycleId: () => cycle,
     );
     final target = await inspect(r);
     expect(target.expectedRevision, 4);
@@ -1065,12 +1438,14 @@ void main() {
 
   test('signed-out and missing cycle deny read and write', () async {
     final g = FakeMoveGateway();
-    await expectLater(repo(g, user: () => null).inspect(
-      sourceProgramId: source, routineId: routine),
-      throwsA(failure(RoutineMoveFailureKind.unauthorized)));
-    await expectLater(repo(g, loginCycle: () => null).inspect(
-      sourceProgramId: source, routineId: routine),
-      throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+    await expectLater(
+        repo(g, user: () => null)
+            .inspect(sourceProgramId: source, routineId: routine),
+        throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+    await expectLater(
+        repo(g, loginCycle: () => null)
+            .inspect(sourceProgramId: source, routineId: routine),
+        throwsA(failure(RoutineMoveFailureKind.unauthorized)));
     expect(g.reads, 0);
     expect(g.writes, 0);
   });
@@ -1078,23 +1453,25 @@ void main() {
   test('owner switch during inspect cannot publish previous account', () async {
     var user = owner;
     final g = FakeMoveGateway()..onRead = () => user = other;
-    await expectLater(repo(g, user: () => user).inspect(
-      sourceProgramId: source, routineId: routine),
-      throwsA(failure(RoutineMoveFailureKind.unauthorized)));
+    await expectLater(
+        repo(g, user: () => user)
+            .inspect(sourceProgramId: source, routineId: routine),
+        throwsA(failure(RoutineMoveFailureKind.unauthorized)));
     expect(g.writes, 0);
   });
 
-  test('wrong source Program and malformed or foreign row fail closed', () async {
+  test('wrong source Program and malformed or foreign row fail closed',
+      () async {
     final g = FakeMoveGateway();
     final r = repo(g);
     expect(await r.inspect(sourceProgramId: destination, routineId: routine),
-      isNull);
+        isNull);
     g.row = header(user: other);
-    await expectLater(inspect(r),
-      throwsA(failure(RoutineMoveFailureKind.malformedData)));
+    await expectLater(
+        inspect(r), throwsA(failure(RoutineMoveFailureKind.malformedData)));
     g.row = header()..['composition_revision'] = '4';
-    await expectLater(inspect(r),
-      throwsA(failure(RoutineMoveFailureKind.malformedData)));
+    await expectLater(
+        inspect(r), throwsA(failure(RoutineMoveFailureKind.malformedData)));
     expect(g.writes, 0);
   });
 
@@ -1103,70 +1480,119 @@ void main() {
     final r = repo(g);
     final target = await inspect(r);
     await expectLater(move(r, target, to: source),
-      throwsA(failure(RoutineMoveFailureKind.invalidRequest)));
+        throwsA(failure(RoutineMoveFailureKind.invalidRequest)));
     await expectLater(move(r, target, token: 'bad'),
-      throwsA(failure(RoutineMoveFailureKind.invalidRequest)));
+        throwsA(failure(RoutineMoveFailureKind.invalidRequest)));
     expect(g.writes, 0);
     expect(await move(r, target), RoutineMoveResult.confirmed);
   });
 
-  test('successful target is single use; next Move needs new inspect', () async {
+  test('successful target is single use; next Move needs new inspect',
+      () async {
     final g = FakeMoveGateway();
     final r = repo(g);
     final target = await inspect(r);
     expect(await move(r, target), RoutineMoveResult.confirmed);
-    await expectLater(move(r, target),
-      throwsA(failure(RoutineMoveFailureKind.staleTarget)));
+    await expectLater(
+        move(r, target), throwsA(failure(RoutineMoveFailureKind.staleTarget)));
     expect(g.writes, 1);
   });
 
   for (final e in <(String, String, RoutineMoveFailureKind)>[
     ('42501', 'permission denied', RoutineMoveFailureKind.forbidden),
     ('P0002', 'routine_move_not_found', RoutineMoveFailureKind.notFound),
-    ('P0001', 'routine_move_revision_conflict',
-      RoutineMoveFailureKind.revisionConflict),
-    ('P0001', 'routine_move_mutation_conflict',
-      RoutineMoveFailureKind.mutationConflict),
-    ('28000', 'routine_move_not_authenticated',
-      RoutineMoveFailureKind.unauthorized),
+    (
+      'P0001',
+      'routine_move_revision_conflict',
+      RoutineMoveFailureKind.revisionConflict
+    ),
+    (
+      'P0001',
+      'routine_move_mutation_conflict',
+      RoutineMoveFailureKind.mutationConflict
+    ),
+    (
+      '28000',
+      'routine_move_not_authenticated',
+      RoutineMoveFailureKind.unauthorized
+    ),
     ('40P01', 'deadlock detected', RoutineMoveFailureKind.transactionAborted),
-    ('57014', 'canceling statement due to statement timeout',
-      RoutineMoveFailureKind.transactionAborted),
-    ('55P03', 'canceling statement due to lock timeout',
-        RoutineMoveFailureKind.transactionAborted),
-    ('53000', 'insufficient resources',
-        RoutineMoveFailureKind.transactionAborted),
+    (
+      '57014',
+      'canceling statement due to statement timeout',
+      RoutineMoveFailureKind.transactionAborted
+    ),
+    (
+      '55P03',
+      'canceling statement due to lock timeout',
+      RoutineMoveFailureKind.transactionAborted
+    ),
+    (
+      '53000',
+      'insufficient resources',
+      RoutineMoveFailureKind.transactionAborted
+    ),
     ('53100', 'disk full', RoutineMoveFailureKind.transactionAborted),
     ('53200', 'out of memory', RoutineMoveFailureKind.transactionAborted),
     ('53300', 'too many connections', RoutineMoveFailureKind.unavailable),
-    ('53400', 'configuration limit exceeded',
-        RoutineMoveFailureKind.transactionAborted),
+    (
+      '53400',
+      'configuration limit exceeded',
+      RoutineMoveFailureKind.transactionAborted
+    ),
     ('57P03', 'database is starting up', RoutineMoveFailureKind.unavailable),
     ('429', 'rate limit', RoutineMoveFailureKind.unavailable),
     ('422', 'Unprocessable Entity', RoutineMoveFailureKind.invalidRequest),
-    ('PGRST203', 'RPC overload is ambiguous',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST303', 'JWT claims validation or parsing failed',
-        RoutineMoveFailureKind.unauthorized),
-    ('PGRST300', 'No active JWT secret configured',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST000', 'Cannot acquire database connection',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST001', 'Cannot acquire database connection',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST002', 'Cannot acquire database connection',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST003', 'Cannot acquire database connection',
-        RoutineMoveFailureKind.unavailable),
-    ('25006', 'cannot execute INSERT in a read-only transaction',
-        RoutineMoveFailureKind.unavailable),
-    ('PGRST106', 'schema public is not an exposed schema',
-        RoutineMoveFailureKind.unavailable),
+    (
+      'PGRST203',
+      'RPC overload is ambiguous',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST303',
+      'JWT claims validation or parsing failed',
+      RoutineMoveFailureKind.unauthorized
+    ),
+    (
+      'PGRST300',
+      'No active JWT secret configured',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST000',
+      'Cannot acquire database connection',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST001',
+      'Cannot acquire database connection',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST002',
+      'Cannot acquire database connection',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST003',
+      'Cannot acquire database connection',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      '25006',
+      'cannot execute INSERT in a read-only transaction',
+      RoutineMoveFailureKind.unavailable
+    ),
+    (
+      'PGRST106',
+      'schema public is not an exposed schema',
+      RoutineMoveFailureKind.unavailable
+    ),
   ]) {
     test('SQLSTATE ${e.$1} ${e.$2} is a definite rejection', () async {
       final g = FakeMoveGateway()
-        ..onMove = () async => throw PostgrestException(
-          message: e.$2, code: e.$1);
+        ..onMove =
+            () async => throw PostgrestException(message: e.$2, code: e.$1);
       final r = repo(g);
       final t = await inspect(r);
       await expectLater(move(r, t), throwsA(failure(e.$3)));
@@ -1185,38 +1611,38 @@ void main() {
     final r = repo(g, loginCycle: () => loginCycle);
     final target = await inspect(r);
     await expectLater(move(r, target),
-      throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
+        throwsA(unknown(RoutineMoveUncertainty.sessionChanged)));
     expect(g.writes, 1);
     expect(g.reads, 1, reason: 'Never read old owner under new cycle');
   });
 
-  test('timeout means unconfirmed, never blind retry at same revision', () async {
+  test('timeout means unconfirmed, never blind retry at same revision',
+      () async {
     final completer = Completer<Object?>();
     final g = FakeMoveGateway()..onMove = () => completer.future;
     final gate = RoutineMoveAttemptGate();
-    final r = repo(g, gate: gate,
-      timeout: const Duration(milliseconds: 25));
+    final r = repo(g, gate: gate, timeout: const Duration(milliseconds: 25));
     final old = await inspect(r);
-    await expectLater(move(r, old),
-      throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+    await expectLater(
+        move(r, old), throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
     expect(completer.isCompleted, false);
     final second = repo(g, gate: gate);
     final same = await inspect(second);
     await expectLater(move(second, same),
-      throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
+        throwsA(unknown(RoutineMoveUncertainty.unconfirmed)));
     expect(g.writes, 1);
     completer.complete(5);
     g.row = header(program: destination, revision: 5);
     expect(await second.inspect(sourceProgramId: source, routineId: routine),
-      isNull);
+        isNull);
     // A newer revision makes the unresolved old CAS impossible. A new
     // confirmation can then move BACK, never replay the old A->B token.
     final newTarget = (await second.inspect(
-      sourceProgramId: destination, routineId: routine))!;
+        sourceProgramId: destination, routineId: routine))!;
     // This is a NEW logical Move with a new server result; not the lost ACK.
     g.onMove = () async => 6;
-    expect(await move(second, newTarget, to: source),
-      RoutineMoveResult.confirmed);
+    expect(
+        await move(second, newTarget, to: source), RoutineMoveResult.confirmed);
     expect(g.writes, 2);
   });
 
@@ -1234,7 +1660,7 @@ void main() {
       final r = repo(g);
       final target = await inspect(r);
       await expectLater(move(r, target),
-        throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
+          throwsA(unknown(RoutineMoveUncertainty.stillPresent)));
       expect(g.writes, 1);
     }
   });

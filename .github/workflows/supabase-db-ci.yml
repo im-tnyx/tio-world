@@ -120,6 +120,14 @@ jobs:
             exit 1
           fi
 
+      - name: Verify TNYX-81 atomic staged migration security
+        shell: bash
+        run: bash supabase/tests/database/tnyx_81_routine_notes_staged_migrations.sh
+
+      - name: Verify TNYX-81 linked-login cleanup role and ledger write
+        shell: bash
+        run: bash supabase/tests/database/tnyx_81_cleanup_grant_context.sh
+
       - name: Run Slice B1 SQL matrix
         shell: bash
         run: |
@@ -266,6 +274,58 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/tnyx_81_atomic_routine_update_concurrency.sh
 
+      - name: Enable Routine Notes gate for direct SQL contract tests
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --command="update private.routine_notes_data_api_gate_state set gate_state='enabled' where gate_key='routine_notes';"
+
+      - name: Run TNYX-81 Routine Notes SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_81_routine_notes_persistence.test.sql
+
+      - name: Run TNYX-81 receipt cleanup SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_81_routine_note_receipt_cleanup.test.sql
+
+      - name: Run TNYX-81 receipt cleanup and reconciliation races
+        shell: bash
+        env:
+          TNYX_81_DISPOSABLE_DB: '1'
+        run: bash supabase/tests/database/tnyx_81_routine_note_receipt_cleanup_concurrency.sh
+
+      - name: Run TNYX-81 Routine Notes quota and transfer two-session races
+        shell: bash
+        run: bash supabase/tests/database/tnyx_81_routine_notes_concurrency.sh
+
+      - name: Restore Routine Notes default-deny state
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --command="update private.routine_notes_data_api_gate_state set gate_state='disabled' where gate_key='routine_notes';"
+
+      - name: Assert TNYX-81 Routine Notes Data API gate catalog contract
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_81_routine_notes_data_api_gate.test.sql
+
+      - name: Verify TNYX-81 disposable Routine Notes Data API gate
+        shell: bash
+        run: |
+          # Exact disposable Database CI identity only; never a hosted project
+          # and never production Notes activation.
+          python3 supabase/tests/database/tnyx_81_routine_notes_data_api_gate_smoke.py
+
       - name: Run #526 owner-scoped Routine Delete SQL matrix
         shell: bash
         run: |
@@ -308,6 +368,28 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_m2c_legacy_rename_retirement_preflight.test.sql
 
+      - name: Assert #569 migrated three-RPC access contract
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_move_rpc_access_contract.test.sql
+
+      - name: Verify #569 R3 authenticated grant emergency rollback without persisting it
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_r3_grant_rollback.test.sql
+
+      - name: Reject #569 anonymous signed-in owners in both Move RPCs
+        shell: bash
+        run: |
+          # Transaction-local test grants roll back to the migrated ACL.
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_permanent_owner_move_guard.test.sql
+
       - name: Run #569 owner-scoped existing-Program Routine Move SQL matrix
         shell: bash
         run: |
@@ -323,19 +405,48 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_569_atomic_create_program_move.test.sql
 
+      - name: Run #569 M5B full Undo SQL/RLS/idempotency matrix
+        shell: bash
+        run: |
+          # Fixture grants are transaction-local and roll back to migrated ACL.
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_m5b_full_undo.test.sql
+
+      - name: Run #569 M5B two-session exact Undo race
+        shell: bash
+        run: |
+          set -euo pipefail
+          source supabase/tests/database/tnyx_569_move_acl_fixture.sh
+          tnyx_569_require_disposable_db
+          undo_signature='public.undo_create_user_workout_program_and_move_routine(uuid,uuid,uuid,uuid,bigint,uuid)'
+          create_signature='public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)'
+          initial_undo="$(tnyx_569_auth_acl "$undo_signature")"
+          initial_create="$(tnyx_569_auth_acl "$create_signature")"
+          cleanup_m5b_grants() {
+            local failed=0
+            tnyx_569_restore_acl "$undo_signature" "$initial_undo" || failed=1
+            tnyx_569_restore_acl "$create_signature" "$initial_create" || failed=1
+            return "$failed"
+          }
+          trap cleanup_m5b_grants EXIT
+          psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $undo_signature to authenticated"
+          psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $create_signature to authenticated"
+          bash supabase/tests/database/tnyx_569_m5b_undo_concurrency.sh
+          cleanup_m5b_grants
+          trap - EXIT
+
       - name: Run #569 two-session races with CI-only temporary Move EXECUTE
         shell: bash
         run: |
           set -euo pipefail
-          expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-          if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
-            echo 'Move test grant must not be issued outside disposable CI database.' >&2
-            exit 1
-          fi
+          source supabase/tests/database/tnyx_569_move_acl_fixture.sh
+          tnyx_569_require_disposable_db
+          sql_signature='public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)'
           sql_grant='grant execute on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid) to authenticated'
-          sql_revoke='revoke all on function public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid) from public,anon,authenticated,service_role'
+          initial_acl="$(tnyx_569_auth_acl "$sql_signature")"
           cleanup_move_grant() {
-            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_revoke"
+            tnyx_569_restore_acl "$sql_signature" "$initial_acl"
           }
           trap cleanup_move_grant EXIT
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="$sql_grant"
@@ -343,31 +454,17 @@ jobs:
           bash supabase/tests/database/tnyx_569_routine_move_cross_races.sh
           cleanup_move_grant
           trap - EXIT
-          grant_visible="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select has_function_privilege('authenticated',
-              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')
-              or has_function_privilege('anon',
-              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')
-              or has_function_privilege('service_role',
-              'public.move_user_workout_routine(uuid,uuid,uuid,bigint,uuid)','EXECUTE')" |
-            tr -d '[:space:]')"
-          if [[ "$grant_visible" != f ]]; then
-            echo 'M1 Move RPC must remain dormant after disposable race tests' >&2
-            exit 1
-          fi
 
       - name: Run #569 atomic new-Program Move two-session no-orphan race
         shell: bash
         run: |
           set -euo pipefail
-          expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-          if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
-            echo 'Atomic Move grant must not run outside disposable CI database.' >&2
-            exit 1
-          fi
+          source supabase/tests/database/tnyx_569_move_acl_fixture.sh
+          tnyx_569_require_disposable_db
           sql_signature='public.create_user_workout_program_and_move_routine(uuid,uuid,uuid,text,bigint,uuid)'
+          initial_acl="$(tnyx_569_auth_acl "$sql_signature")"
           cleanup_atomic_move_grant() {
-            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $sql_signature from public,anon,authenticated,service_role"
+            tnyx_569_restore_acl "$sql_signature" "$initial_acl"
           }
           trap cleanup_atomic_move_grant EXIT
           psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $sql_signature to authenticated"
@@ -377,55 +474,138 @@ jobs:
           bash supabase/tests/database/tnyx_569_atomic_create_move_vs_delete_concurrency.sh
           cleanup_atomic_move_grant
           trap - EXIT
-          can_execute="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select has_function_privilege('authenticated','$sql_signature','EXECUTE')
-              or has_function_privilege('anon','$sql_signature','EXECUTE')
-              or has_function_privilege('service_role','$sql_signature','EXECUTE')
-          " | tr -d '[:space:]')"
-          if [[ "$can_execute" != f ]]; then
-            echo 'Atomic Create+Move must remain dormant after race fixture.' >&2
-            exit 1
-          fi
+
+      - name: 'Regress #569 denied/granted ACL and failed-fixture cleanup'
+        shell: bash
+        run: bash supabase/tests/database/tnyx_569_move_acl_restore_regression.sh
+
+      - name: 'Reassert #569 migrated three-RPC access after races'
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_569_move_rpc_access_contract.test.sql
+
+      - name: 'Verify #569 R3 real PostgREST HTTP grant, committed revoke and regrant'
+        shell: bash
+        run: |
+          # Uses only the exact identity-guarded disposable CI database.
+          # Exercises JWT role switching + HTTP for all three Move RPCs; never
+          # contacts a hosted Supabase project or enables the Flutter feature.
+          python3 supabase/tests/database/tnyx_569_r3_postgrest_revoke_smoke.py
+
+      - name: Run #567 D1 owner-safe atomic Program Delete SQL matrix
+        shell: bash
+        run: |
+          # Transaction-scoped fixture grant and writes are rolled back.
+          # Protected Program Delete exercises migrated authenticated-only EXECUTE.
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_567_atomic_program_delete.test.sql
+
+      - name: Run #567 D1 real two-session Program Delete versus Move races
+        shell: bash
+        run: |
+          # Identity-guarded disposable CI: migrated authenticated RPC grant
+          # is preserved and fixture users are deleted on exit.
+          bash supabase/tests/database/tnyx_567_atomic_program_delete_concurrency.sh
+
+      - name: Run #567 D1 real two-session Program Delete versus Edit races
+        shell: bash
+        run: |
+          # Exact disposable CI only. Proves opposite lock interleavings,
+          # revision bumps, stable Routine/Exercise/Set IDs, fixture cleanup.
+          bash supabase/tests/database/tnyx_567_atomic_program_delete_edit_concurrency.sh
+
+      - name: Run #567 D1 Create versus Delete and legacy insert two-session races
+        shell: bash
+        run: |
+          # Verify old/new-client source Program lock and FK serialization.
+          # Strict disposable GitHub CI database identity and cleanup guards.
+          bash supabase/tests/database/tnyx_567_atomic_program_delete_create_concurrency.sh
+
+      - name: Run #568 authenticated-only grant and transactional rollback matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_568_first_routine_execute_grant.test.sql
 
       - name: Run #568 W1 My Program atomic default Create SQL matrix
         shell: bash
         run: |
-          # Fixture grants are transaction-local and rolled back.
+          # Exercise the reviewed forward-migration ACL, not a temporary grant.
           psql "$DATABASE_URL" \
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_568_w1_my_program_atomic_default_create.test.sql
 
-      - name: Run #568 W1 two-session concurrency races with CI-only temporary EXECUTE
+      - name: Run #568 W1 two-session concurrency races with migrated EXECUTE
         shell: bash
         run: |
           set -euo pipefail
           expected_url='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
           if [[ "${GITHUB_ACTIONS:-}" != "true" || "${DATABASE_URL:-}" != "$expected_url" ]]; then
-            echo 'Atomic default create grant must not run outside disposable CI database.' >&2
+            echo 'Atomic default race must not run outside disposable CI database.' >&2
             exit 1
           fi
           sql_signature='public.create_user_workout_routine_in_my_program(uuid,text,uuid,jsonb)'
-          cleanup_atomic_default_grant() {
-            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="revoke all on function $sql_signature from public,anon,authenticated,service_role"
+          check_acl() {
+            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
+              select has_function_privilege('authenticated','$sql_signature','EXECUTE')
+                and not has_function_privilege('anon','$sql_signature','EXECUTE')
+                and not has_function_privilege('service_role','$sql_signature','EXECUTE')
+            " | tr -d '[:space:]'
           }
-          trap cleanup_atomic_default_grant EXIT
-          psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --command="grant execute on function $sql_signature to authenticated"
+          if [[ "$(check_acl)" != t ]]; then
+            echo 'W1 migrated RPC ACL differs from authenticated-only contract.' >&2
+            exit 1
+          fi
           bash supabase/tests/database/tnyx_568_w1_my_program_atomic_default_create_concurrency.sh
-          cleanup_atomic_default_grant
-          trap - EXIT
-          can_execute="$(psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 -At --command="
-            select has_function_privilege('authenticated','$sql_signature','EXECUTE')
-              or has_function_privilege('anon','$sql_signature','EXECUTE')
-              or has_function_privilege('service_role','$sql_signature','EXECUTE')
-          " | tr -d '[:space:]')"
-          if [[ "$can_execute" != f ]]; then
-            echo 'W1 atomic default Create RPC must remain dormant after race fixture.' >&2
+          if [[ "$(check_acl)" != t ]]; then
+            echo 'W1 race must preserve migrated authenticated-only EXECUTE.' >&2
             exit 1
           fi
 
       - name: Run real two-session concurrency test
         shell: bash
         run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
+
+      - name: Apply post-TNYX-81 migrations for W7B-1
+        shell: bash
+        run: |
+          versions=()
+          for migration in supabase/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            version="${filename%%_*}"
+            if [[ "$version" > "20261031142025" ]]; then
+              psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --single-transaction \
+                --file="$migration"
+              versions+=("$version")
+            fi
+          done
+          if [[ "${#versions[@]}" -gt 0 ]]; then
+            supabase migration repair --local --status applied --yes "${versions[@]}"
+          fi
+
+      - name: Run W7B-1 Session Security SQL matrix
+        shell: bash
+        run: bash supabase/tests/database/run_pgtap.sh supabase/tests/database/w7b_session_security.test.sql
+
+      - name: Run W7C Save metadata SQL matrix
+        shell: bash
+        run: bash supabase/tests/database/run_pgtap.sh supabase/tests/database/w7c_workout_save_metadata.test.sql
+
+      - name: Run W7C Save-only atomic SQL matrix
+        shell: bash
+        run: bash supabase/tests/database/run_pgtap.sh supabase/tests/database/w7c_save_only_workout.test.sql
+
+      - name: Reject unsafe W7B-1 concurrency fixture connection overrides
+        shell: bash
+        run: bash supabase/tests/database/w7b_session_concurrency_guard.test.sh
+
+      - name: Run W7B-1 two-session concurrency races
+        shell: bash
+        run: bash supabase/tests/database/w7b_session_concurrency.sh
 
       - name: Reject B1-introduced database lint errors
         shell: bash

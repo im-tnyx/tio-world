@@ -747,6 +747,613 @@ void main() {
     expect(await first, isTrue);
     expect(comp.saveCount, 1);
   });
+
+  group('Warm-up Set Ordering Invariant', () {
+    test('adding Warm-up set inserts after warm-up group and before working sets', () async {
+      final comp = _Compositions(_snapshot(entries: [_entry()]));
+      final ctrl = _make(_Routines([_routine()]), comp, ids: [
+        '50000000-0000-4000-8000-000000000001',
+        '50000000-0000-4000-8000-000000000002',
+        '50000000-0000-4000-8000-000000000003',
+      ]);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      final w1 = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 10, loadKg: 20),
+      );
+      expect(w1, isNotNull);
+      var sets = ctrl.state.entries.single.sets;
+      expect(sets.length, 2);
+      expect(sets[0].id, w1);
+      expect(sets[0].prescription.setType, RoutineSetType.warmUp);
+      expect(sets[1].id, _s);
+      expect(sets[1].prescription.setType, RoutineSetType.normal);
+
+      final w2 = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 8, loadKg: 30),
+      );
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.length, 3);
+      expect(sets[0].id, w1);
+      expect(sets[1].id, w2);
+      expect(sets[2].id, _s);
+
+      final n2 = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.normal, reps: 5, loadKg: 50),
+      );
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.length, 4);
+      expect(sets.map((s) => s.id).toList(), [w1, w2, _s, n2]);
+    });
+
+    test('changing Normal to Warm-up moves to end of Warm-up group and preserves ID/values', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 10, loadKg: 20),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 50),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 6, loadKg: 70, restSeconds: 90),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(ctrl.changeSetType(_e, '40000000-0000-4000-8000-000000000003', RoutineSetType.warmUp), isTrue);
+      final sets = ctrl.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [
+        '40000000-0000-4000-8000-000000000001',
+        '40000000-0000-4000-8000-000000000003',
+        '40000000-0000-4000-8000-000000000002',
+      ]);
+      expect(sets[1].prescription.setType, RoutineSetType.warmUp);
+      expect(sets[1].prescription.reps, 6);
+      expect(sets[1].prescription.loadKg, 70);
+      expect(sets[1].prescription.restSeconds, 90);
+    });
+
+    test('changing Failure or Drop to Warm-up moves to end of Warm-up group', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 50),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(setType: RoutineSetType.drop, reps: 6, loadKg: 40),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(ctrl.changeSetType(_e, '40000000-0000-4000-8000-000000000002', RoutineSetType.warmUp), isTrue);
+      final sets = ctrl.state.entries.single.sets;
+      expect(sets[0].id, '40000000-0000-4000-8000-000000000002');
+      expect(sets[0].prescription.setType, RoutineSetType.warmUp);
+      expect(sets[1].id, '40000000-0000-4000-8000-000000000001');
+      expect(sets[1].prescription.setType, RoutineSetType.normal);
+    });
+
+    test('changing Warm-up to Normal moves after remaining Warm-up sets', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 15, loadKg: 20),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 12, loadKg: 30),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 50),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(ctrl.changeSetType(_e, '40000000-0000-4000-8000-000000000001', RoutineSetType.normal), isTrue);
+      final sets = ctrl.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [
+        '40000000-0000-4000-8000-000000000002',
+        '40000000-0000-4000-8000-000000000001',
+        '40000000-0000-4000-8000-000000000003',
+      ]);
+      expect(sets[1].prescription.setType, RoutineSetType.normal);
+      expect(sets[1].prescription.reps, 15);
+    });
+
+    test('reordering validates invariant and rejects invalid Warm-up-after-Normal', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(setType: RoutineSetType.normal),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(ctrl.moveSet(_e, 2, 0), isFalse);
+      var sets = ctrl.state.entries.single.sets;
+      expect(sets[2].id, '40000000-0000-4000-8000-000000000003');
+
+      expect(ctrl.moveSet(_e, 0, 2), isFalse);
+      sets = ctrl.state.entries.single.sets;
+      expect(sets[0].id, '40000000-0000-4000-8000-000000000001');
+
+      expect(ctrl.moveSet(_e, 0, 1), isTrue);
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [
+        '40000000-0000-4000-8000-000000000002',
+        '40000000-0000-4000-8000-000000000001',
+        '40000000-0000-4000-8000-000000000003',
+      ]);
+    });
+
+    test('legacy invalid routine loads intact without dirty state and blocks Update until fixed', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 8),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 10),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp, ids: [_m]);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      var sets = ctrl.state.entries.single.sets;
+      expect(sets[0].prescription.setType, RoutineSetType.normal);
+      expect(sets[1].prescription.setType, RoutineSetType.warmUp);
+      expect(ctrl.state.dirty, isFalse);
+      expect(ctrl.hasInvalidSetOrder, isTrue);
+
+      ctrl.editSet(
+        _e,
+        '40000000-0000-4000-8000-000000000001',
+        SetPrescription(setType: RoutineSetType.normal, reps: 10),
+      );
+      expect(ctrl.compositionDirty, isTrue);
+      expect(ctrl.updateHasInvalidSetOrder, isTrue);
+      expect(await ctrl.update(), isFalse);
+      expect(comp.saveCount, 0);
+      expect(ctrl.state.message, contains('Warm-up sets must appear at the beginning'));
+
+      expect(
+        ctrl.changeSetType(
+          _e,
+          '40000000-0000-4000-8000-000000000002',
+          RoutineSetType.normal,
+        ),
+        isTrue,
+      );
+      expect(ctrl.hasInvalidSetOrder, isFalse);
+      expect(ctrl.updateHasInvalidSetOrder, isFalse);
+
+      expect(await ctrl.update(), isTrue);
+      expect(comp.saveCount, 1);
+    });
+
+    test('editSet changing Normal to Warm-up repositions set to end of Warm-up group', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 10, loadKg: 20),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 50),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 6, loadKg: 70),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(
+        ctrl.editSet(
+          _e,
+          '40000000-0000-4000-8000-000000000003',
+          SetPrescription(setType: RoutineSetType.warmUp, reps: 8, loadKg: 40),
+        ),
+        isTrue,
+      );
+      final sets = ctrl.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [
+        '40000000-0000-4000-8000-000000000001',
+        '40000000-0000-4000-8000-000000000003',
+        '40000000-0000-4000-8000-000000000002',
+      ]);
+      expect(sets[1].prescription.setType, RoutineSetType.warmUp);
+      expect(sets[1].prescription.reps, 8);
+      expect(sets[1].prescription.loadKg, 40);
+    });
+
+    test('editSet changing Warm-up to Normal repositions set after remaining Warm-up sets', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 15, loadKg: 20),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(setType: RoutineSetType.warmUp, reps: 12, loadKg: 30),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(setType: RoutineSetType.normal, reps: 8, loadKg: 50),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(
+        ctrl.editSet(
+          _e,
+          '40000000-0000-4000-8000-000000000001',
+          SetPrescription(setType: RoutineSetType.normal, reps: 10, loadKg: 60),
+        ),
+        isTrue,
+      );
+      final sets = ctrl.state.entries.single.sets;
+      expect(sets.map((s) => s.id).toList(), [
+        '40000000-0000-4000-8000-000000000002',
+        '40000000-0000-4000-8000-000000000001',
+        '40000000-0000-4000-8000-000000000003',
+      ]);
+      expect(sets[1].prescription.setType, RoutineSetType.normal);
+      expect(sets[1].prescription.reps, 10);
+      expect(sets[1].prescription.loadKg, 60);
+    });
+
+    test('RoutineEditorController hydrates saved rest presets on load and preserves sets', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(
+                setType: RoutineSetType.warmUp,
+                reps: 15,
+                restSeconds: 45,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+                restSeconds: 90,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 8,
+                restSeconds: 90,
+              ),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      final preset = ctrl.getExerciseRestPreset(_e);
+      expect(preset.isOff, isFalse);
+      expect(preset.normalRestSeconds, 90);
+      expect(preset.warmUpRestSeconds, 45);
+      expect(ctrl.state.entries.single.sets[0].prescription.restSeconds, 45);
+      expect(ctrl.state.entries.single.sets[1].prescription.restSeconds, 90);
+      expect(ctrl.state.entries.single.sets[2].prescription.restSeconds, 90);
+
+      // Now test routine with mixed normal sets (not silently normalized)
+      final mixedComp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+                restSeconds: 60,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 8,
+                restSeconds: 90,
+              ),
+            ),
+          ],
+        ),
+      ]));
+      final mixedCtrl = _make(_Routines([_routine()]), mixedComp);
+      addTearDown(mixedCtrl.dispose);
+      await mixedCtrl.load();
+
+      // Sets remain unchanged
+      expect(mixedCtrl.state.entries.single.sets[0].prescription.restSeconds, 60);
+      expect(mixedCtrl.state.entries.single.sets[1].prescription.restSeconds, 90);
+      expect(mixedCtrl.getExerciseRestPreset(_e).isOff, isTrue);
+    });
+
+    test('configureExerciseRestTimer in editor updates sets and addSet inherits preset', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(
+                setType: RoutineSetType.warmUp,
+                reps: 15,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+              ),
+            ),
+          ],
+        ),
+      ]));
+      var next = 0;
+      final ctrl = _make(
+        _Routines([_routine()]),
+        comp,
+        ids: List.generate(
+          10,
+          (i) => '50000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}',
+        ),
+      );
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(
+        ctrl.configureExerciseRestTimer(
+          _e,
+          normalRestSeconds: 90,
+          warmUpRestSeconds: 45,
+        ),
+        isTrue,
+      );
+
+      var sets = ctrl.state.entries.single.sets;
+      expect(sets[0].prescription.restSeconds, 45);
+      expect(sets[1].prescription.restSeconds, 90);
+
+      // addSet inherits preset
+      final newSetId = ctrl.addSet(_e, SetPrescription(setType: RoutineSetType.warmUp, reps: 20))!;
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == newSetId).prescription.restSeconds, 45);
+
+      // changeSetType updates rest
+      expect(ctrl.changeSetType(_e, newSetId, RoutineSetType.normal), isTrue);
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == newSetId).prescription.restSeconds, 90);
+    });
+
+    test('editor addSet active preset overrides stale non-null restSeconds and preset OFF preserves incoming rest', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: _s,
+              prescription: SetPrescription(reps: 10, setType: RoutineSetType.normal, restSeconds: null),
+            ),
+          ],
+        ),
+      ]));
+      var next = 0;
+      final ctrl = _make(
+        _Routines([_routine()]),
+        comp,
+        ids: List.generate(
+          10,
+          (i) => '60000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}',
+        ),
+      );
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      // Initially preset is OFF on load: incoming rest is preserved (including explicit 0 and non-null)
+      final offNormalId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
+      )!;
+      final offZeroId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 0),
+      )!;
+      final offNullId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: null),
+      )!;
+
+      var sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == offNormalId).prescription.restSeconds, 45);
+      expect(sets.singleWhere((s) => s.id == offZeroId).prescription.restSeconds, 0);
+      expect(sets.singleWhere((s) => s.id == offNullId).prescription.restSeconds, isNull);
+
+      // Now configure active preset: Normal = 90s, Warm-up = 30s
+      ctrl.configureExerciseRestTimer(
+        _e,
+        normalRestSeconds: 90,
+        warmUpRestSeconds: 30,
+      );
+
+      // Adding set with stale restSeconds (e.g. 15s) must be overridden by active preset
+      final staleNormalId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 15),
+      )!;
+      final staleWarmUpId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 15, restSeconds: 60),
+      )!;
+      final staleFailureId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.failure, reps: 8, restSeconds: 20),
+      )!;
+
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == staleNormalId).prescription.restSeconds, 90);
+      expect(sets.singleWhere((s) => s.id == staleWarmUpId).prescription.restSeconds, 30);
+      expect(sets.singleWhere((s) => s.id == staleFailureId).prescription.restSeconds, 90);
+
+      // Warm-up timer OFF while Normal is active (90s):
+      // Warm-up set with stale restSeconds falls back to Normal preset (90s)
+      ctrl.configureExerciseRestTimer(
+        _e,
+        normalRestSeconds: 90,
+        warmUpRestSeconds: null,
+      );
+      final fallbackWarmUpId = ctrl.addSet(
+        _e,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 12, restSeconds: 50),
+      )!;
+      sets = ctrl.state.entries.single.sets;
+      expect(sets.singleWhere((s) => s.id == fallbackWarmUpId).prescription.restSeconds, 90);
+    });
+
+    test('configureExerciseRestTimer preserves legacy per-set rest values when preset is OFF', () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000001',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+                restSeconds: 60,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription: SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 10,
+                restSeconds: 90,
+              ),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000003',
+              prescription: SetPrescription(
+                setType: RoutineSetType.warmUp,
+                reps: 15,
+                restSeconds: 30,
+              ),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      // Mixed normal sets (60s and 90s) cause preset to be OFF
+      expect(ctrl.getExerciseRestPreset(_e).isOff, isTrue);
+
+      final ok = ctrl.configureExerciseRestTimer(
+        _e,
+        normalRestSeconds: null,
+        warmUpRestSeconds: null,
+      );
+      expect(ok, isTrue);
+      expect(ctrl.getExerciseRestPreset(_e).isOff, isTrue);
+
+      final sets = ctrl.state.entries.single.sets;
+      expect(sets[0].prescription.restSeconds, 60);
+      expect(sets[1].prescription.restSeconds, 90);
+      expect(sets[2].prescription.restSeconds, 30);
+    });
+  });
 }
 
 final class _Routines implements RoutineRepository {

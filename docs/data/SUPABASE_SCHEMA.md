@@ -1,21 +1,23 @@
 # Supabase Public Schema Inventory
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-17
+Last Verified: 2026-11-01 structural inventory. The 2026-11-05 testing-only ledger is 81/81 and the Notes gate is enabled; this inventory was not remeasured on that date.
 Owner: Supabase data ownership
 Truth Boundary: Authoritative as a readable inventory of the verified current `public` schema; executable truth remains checked-in migrations plus verified live schema, and no user data belongs here.
 
 ## Status
 
-**Canonical readable inventory of the current Tio-world Supabase `public` schema.**
+**Canonical readable inventory of the Tio-world Supabase `public` schema as verified on 2026-11-01.** The 2026-11-05 testing-only hosted ledger is **81/81** through `20261031142025` and the Notes gate is `enabled`. This file was not remeasured then, so the counts and the absence of Notes objects below are the 2026-11-01 snapshot. See [Supabase strategy](SUPABASE_STRATEGY.md) for the later ledger and gate checkpoint.
 
-Verified on **2026-10-17** against:
+- On 2026-11-01 the hosted project was a read-only verified **72/72** migration prefix. The pre-Notes gate plus eight Routine Notes migrations were pending, so this inventory intentionally contained no Notes table, Notes RPC, gate-state table or Notes policy. Merged source PR #720 was not, by itself, hosted deployment evidence.
 
-- all 62 checked-in `supabase/migrations/` files, through `20261016220000_prevent_deleted_routine_resurrection.sql`;
-- the connected `tio-world` project's read-only applied migration ledger (62/62 exact version + name matches);
-- read-only live `pg_catalog` metadata for `public` tables, columns, keys/constraints, indexes, RLS, and the current Routine RPC signatures and grants.
+- GitHub protected `main@b1b7722cf2cbcf45f90cca0a72da56669bb8e455` has **81** checked-in `supabase/migrations/` SQL files, through `20261031142025_routine_note_owner_scoped_identity.sql`.
+- Read-only hosted migration ledger on 2026-11-01 showed **72/72 exact version-and-name parity** with the checked-in hosted prefix; the remaining nine checked-in migrations were repository-only and no hosted-only entries were observed. The 2026-11-05 ledger checkpoint supersedes this prefix.
+- Read-only hosted `pg_catalog` confirms **19 public ordinary tables, 194 columns, 130 catalog constraint records, 55 indexes, RLS enabled on 19/19 tables**.
+- The newly hosted M5B-B1 migration adds **three nullable UUID provenance columns** and **one all-or-none CHECK** on `public.user_workout_programs`; it does **not** add a table or index. The protected `undo_create_user_workout_program_and_move_routine` RPC is present.
+- Current read-only hosted ACL verification confirms the three Move/Create+Move/full-Undo RPCs have `authenticated EXECUTE=true`, while `anon`, `service_role` and `PUBLIC` are denied. The functions are `SECURITY DEFINER`, owned by `postgres`, with fixed empty `search_path`. The checked-in Flutter gate is the default-OFF `TIO_MOVE_ROUTINE_RELEASE` build opt-in; it controls presentation exposure only and is not RPC authorization or a remote kill switch. **Schema deployment and an RPC grant are not a public Move release or a real-write Android/iOS QA pass.**
 
-The previous 2026-10-11 **55/55** snapshot ending at `20261010061809_create_user_workout_routine_composition` remains historical. This update only documents the subsequently deployed seven migrations; it did **not** apply or rerun a migration or mutate any schema/data. The anti-resurrection migration adds a private tombstone table, which is intentionally excluded from this `public`-only inventory.
+The previous **2026-10-24 69/69** checkpoint, **2026-10-21 68/68** checkpoint, **2026-10-17 62/62** checkpoint and **2026-10-11 55/55** checkpoint are historical. The 2026-11-01 72/72 verification was read-only and is now a historical prefix; this documentation change did not deploy SQL, change grants, execute mutating RPCs, or inspect user data. The private Routine tombstone table remains intentionally outside this `public`-only inventory.
 
 ## Truth Boundary
 
@@ -43,22 +45,22 @@ This inventory intentionally excludes:
 | Measure | Verified value |
 | :--- | ---: |
 | Active ordinary `public` tables | 19 |
-| Columns | 190 |
+| Columns | 194 |
 | Primary-key constraints | 19 |
 | Foreign-key constraints | 21 |
 | Unique constraints | 10 |
-| Check constraints | 77 |
+| Check constraints | 78 |
 | Constraint-trigger records | 2 |
-| Total catalog constraint records | 129 |
-| Indexes | 54 |
+| Total catalog constraint records | 130 |
+| Indexes | 55 |
 | Tables with RLS enabled | 19 / 19 |
 | Partitioned tables | 0 |
 | Views | 0 |
 | Materialized views | 0 |
-| Applied live migrations matched to repository | 62 / 62 |
-| Repository-only pending migrations | 0 |
+| Applied live migrations matched to repository | 72 / 72 |
+| Repository-only pending migrations | 9 |
 
-The verified live migration ledger ends at `20261016220000_prevent_deleted_routine_resurrection`; all 62 checked-in and 62 applied migration versions **and names** match exactly, with no repo-only or live-only migrations observed. Verification used read-only metadata, **not** a fresh CLI dry-run or production write.
+On 2026-11-01 the hosted migration ledger ended at the verified **72/72** prefix; all **72** applied migration versions and names matched the checked-in prefix, while nine later checked-in Routine Notes migrations were repository-only and no hosted-only entries were observed. Structural table/column/constraint/index/RLS counts were remeasured live on that date. The 2026-11-05 testing-only ledger is 81/81 and was not remeasured here. This is **not** proof of authenticated end-user writes, concurrency behavior, mobile device QA, client RPC availability, or production feature activation.
 
 ## Table Overview
 
@@ -76,7 +78,7 @@ The verified live migration ledger ends at `20261016220000_prevent_deleted_routi
 | `public.user_profiles` | 12 | Enabled |
 | `public.user_wellness_targets` | 8 | Enabled |
 | `public.user_workout_exercises` | 12 | Enabled |
-| `public.user_workout_programs` | 5 | Enabled |
+| `public.user_workout_programs` | 9 | Enabled |
 | `public.user_workout_routines` | 9 | Enabled |
 | `public.user_workout_routine_exercises` | 6 | Enabled |
 | `public.user_workout_routine_sets` | 11 | Enabled |
@@ -549,7 +551,7 @@ The verified live migration ledger ends at `20261016220000_prevent_deleted_routi
 
 **RLS:** Enabled
 
-**Verified Data API access:** `authenticated` has `SELECT`, `INSERT`, and column-level `UPDATE(name)` only; it has no table-wide `UPDATE` and no `DELETE`. Owner-scoped `SELECT` / `INSERT` / `UPDATE` RLS policies remain; there is no authenticated `DELETE` policy. `service_role` retains full table CRUD.
+**Data API access boundary:** Earlier verified access includes owner-scoped `SELECT`, `UPDATE(name)` and RLS; `authenticated` has no table-wide UPDATE or DELETE. The **checked-in deployed W1 migration** revokes table-wide authenticated INSERT and grants **column-level `INSERT(id, user_id, name)`** only, protecting the server-owned `is_default` marker. The narrower INSERT statement is grounded in migration source and the W1 deployment receipt; a standalone **2026-10-20 table/column ACL metadata query was not independently completed** in this inventory audit. Owner RLS remains; no authenticated DELETE policy was added. `service_role` access is unchanged by the W1 migration.
 
 #### Columns
 
@@ -560,11 +562,16 @@ The verified live migration ledger ends at `20261016220000_prevent_deleted_routi
 | `name` | `text` | No | — |
 | `created_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
 | `updated_at` | `timestamp with time zone` | No | `timezone('utc'::text, now())` |
+| `is_default` | `boolean` | No | `false` |
+| `create_move_mutation_id` | `uuid` | Yes | — |
+| `create_move_routine_id` | `uuid` | Yes | — |
+| `create_move_source_program_id` | `uuid` | Yes | — |
 
 #### Constraints
 
 | Name | Type | Definition |
 | :--- | :--- | :--- |
+| `user_workout_programs_create_move_provenance_coherent` | `CHECK` | `CHECK ((((create_move_mutation_id IS NULL) AND (create_move_routine_id IS NULL) AND (create_move_source_program_id IS NULL)) OR ((create_move_mutation_id IS NOT NULL) AND (create_move_routine_id IS NOT NULL) AND (create_move_source_program_id IS NOT NULL))))` |
 | `user_workout_programs_id_user_id_key` | `UNIQUE` | `UNIQUE (id, user_id)` |
 | `user_workout_programs_name_nonblank` | `CHECK` | `CHECK ((btrim(name) <> ''::text))` |
 | `user_workout_programs_pkey` | `PRIMARY KEY` | `PRIMARY KEY (id)` |
@@ -574,6 +581,7 @@ The verified live migration ledger ends at `20261016220000_prevent_deleted_routi
 
 | Name | Definition |
 | :--- | :--- |
+| `idx_user_workout_programs_owner_default` | `CREATE UNIQUE INDEX idx_user_workout_programs_owner_default ON public.user_workout_programs USING btree (user_id) WHERE is_default` |
 | `idx_user_workout_programs_user_created_at` | `CREATE INDEX idx_user_workout_programs_user_created_at ON public.user_workout_programs USING btree (user_id, created_at DESC)` |
 | `user_workout_programs_id_user_id_key` | `CREATE UNIQUE INDEX user_workout_programs_id_user_id_key ON public.user_workout_programs USING btree (id, user_id)` |
 | `user_workout_programs_pkey` | `CREATE UNIQUE INDEX user_workout_programs_pkey ON public.user_workout_programs USING btree (id)` |
@@ -582,7 +590,7 @@ The verified live migration ledger ends at `20261016220000_prevent_deleted_routi
 
 **RLS:** Enabled
 
-**Verified Data API access (2026-10-17):** `authenticated` has SELECT, column-level INSERT on the original six metadata columns (`id`, `user_id`, `program_id`, `name`, `created_at`, `updated_at`), and UPDATE(name) only. Owner SELECT/INSERT/UPDATE RLS remains; authenticated table-wide INSERT/UPDATE/DELETE are not granted. Direct client revision, mutation-token and `last_routine_update_request_hash` writes, Routine DELETE, ownership changes and moves are denied. Atomic composition/Create/Name+composition Update/Delete uses the explicitly granted owner-scoped RPCs listed below; their existence is not Workout UI or device-release acceptance.
+**Historical Data API access boundary snapshot (2026-10-20; superseded for Move ACL by the current 2026-11-01 verification):** `authenticated` retains SELECT and narrow column-level INSERT on the original six metadata columns (`id`, `user_id`, `program_id`, `name`, `created_at`, `updated_at`); **direct UPDATE, including `UPDATE(name)`, is retired** by the applied `20261017154241_retire_legacy_routine_name_update.sql` migration. That migration revokes the column grant and fails closed unless neither table-wide nor name/program ownership column UPDATE is available while protected RPC access is preserved. Owner SELECT/INSERT/UPDATE RLS policies may remain, but an RLS UPDATE policy **does not grant Data API UPDATE privileges**. The dated snapshot recorded direct client revision/mutation-hash writes, Routine DELETE, renames and moves as denied; current Move RPC ACL is documented in the current function inventory below. Atomic composition, Create, Name+composition Update and Delete instead use their owner-guarded RPC contracts below. This privilege statement is supported by the checked-in deployed fail-closed migration and the 66/66 applied ledger; **a separate live Routine table/column ACL query was not completed** in that historical review. RPC existence does not imply Move/Workout Start UI activation or a device release.
 
 #### Columns
 
@@ -836,18 +844,22 @@ The verified live migration ledger ends at `20261016220000_prevent_deleted_routi
 
 ## Routine Composition RPC
 
-Verified **2026-10-17 live `public` Routine RPC metadata** (argument types and return types):
+Current signatures, return types, `SECURITY DEFINER` and empty `search_path` were checked from the hosted catalog on **2026-10-24** for the three Move/Create+Move/Undo RPCs and the #568 first-Routine RPC. The four legacy composition/Create/Update/Delete rows retain their **2026-10-21** verified EXECUTE checkpoint, not a newly claimed independent ACL retest.
 
-| Function | Argument types (in order) | Returns |
-| :--- | :--- | :--- |
-| `save_user_workout_routine_composition` | `uuid, bigint, uuid, jsonb` | `bigint` |
-| `create_user_workout_routine_with_composition` | `uuid, uuid, text, uuid, jsonb` | `bigint` |
-| `update_user_workout_routine_with_composition` | `uuid, uuid, bigint, text, uuid, text, jsonb` | `bigint` |
-| `delete_user_workout_routine` | `uuid, uuid, bigint` | `boolean` |
+| Function | Argument types (in order) | Returns | `authenticated` EXECUTE |
+| :--- | :--- | :--- | :---: |
+| `save_user_workout_routine_composition` | `uuid, bigint, uuid, jsonb` | `bigint` | Yes |
+| `create_user_workout_routine_with_composition` | `uuid, uuid, text, uuid, jsonb` | `bigint` | Yes |
+| `update_user_workout_routine_with_composition` | `uuid, uuid, bigint, text, uuid, text, jsonb` | `bigint` | Yes |
+| `delete_user_workout_routine` | `uuid, uuid, bigint` | `boolean` | Yes |
+| `move_user_workout_routine` | `uuid, uuid, uuid, bigint, uuid` | `bigint` | **Yes — hosted grant; release separately gated** |
+| `create_user_workout_program_and_move_routine` | `uuid, uuid, uuid, text, bigint, uuid` | `bigint` | **Yes — hosted grant; release separately gated** |
+| `undo_create_user_workout_program_and_move_routine` | `uuid, uuid, uuid, uuid, bigint, uuid` | `bigint` | **Yes — hosted grant; release separately gated** |
+| `create_user_workout_routine_in_my_program` | `uuid, text, uuid, jsonb` | `jsonb` | **Yes — API granted; Flutter release OFF** |
 
-The read-only live catalog confirms **SECURITY DEFINER** and an empty `search_path` for all four RPCs, `authenticated` EXECUTE permitted and `anon`/`PUBLIC` EXECUTE denied. Repository migrations through `20261016220000` define their owner, revision, idempotency, Custom Exercise guard and anti-resurrection behavior. The final Delete implementation atomically retires deleted Routine IDs in a private `private.deleted_user_workout_routine_ids` table with RLS enabled, which is **not** an ordinary `public` table and is omitted from counts above. No authenticated direct table DELETE privilege was introduced.
+Current read-only live ACL inspection confirms the three #569 Move/Create+Move/Undo RPCs are hosted with `SECURITY DEFINER`, empty `search_path`, `authenticated EXECUTE=true`, and `anon`, `service_role` and `PUBLIC` denied. The #568 `create_user_workout_routine_in_my_program` RPC is authenticated-executable, while `anon`, `service_role` and `PUBLIC` are denied. The Move grant is separate from the default-OFF `TIO_MOVE_ROUTINE_RELEASE` Flutter build opt-in; that presentation gate is not RPC authorization or a remote kill switch. The Routine Delete path retires deleted IDs in private `private.deleted_user_workout_routine_ids`, not an ordinary `public` table. The earlier grant-denied Move observation is historical and superseded by the current ACL verification.
 
-**Evidence boundary:** Live metadata verification establishes schema, grants and signatures; this inventory update did not execute mutating RPCs, retest concurrency, validate existing rows against the `NOT VALID` constraint or establish a distributed phone-app release. The Workout feature's merged composition builder/editor and independently gated Workout Start, Routine Move/Delete product flows are tracked by live GitHub/Linear and source, not by this catalog.
+**Evidence boundary:** Read-only metadata proves the listed deployed structural state, signatures and access bits, **not** authorization-body correctness, row-level mutation semantics, production activation, live device QA, or distributed app release. Routine Move grants, Program Delete lifecycle and QA remain separately tracked by live GitHub/Linear. This inventory update made no Supabase mutation.
 
 ## Maintenance Rule
 

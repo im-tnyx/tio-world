@@ -1,0 +1,41 @@
+name: Commit attribution fixtures CI
+
+# Exercise the PR's proposed checker and fixtures without giving PR code the
+# trusted attribution guard's App credentials or write permissions.
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'scripts/check_commit_attribution.sh'
+      - 'scripts/check_commit_attribution_test.sh'
+      - '.github/workflows/commit-attribution-fixtures-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commit-attribution-fixtures-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  fixtures:
+    name: Test commit attribution fixtures
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Verify exact PR head and run fixtures
+        shell: bash
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+          bash scripts/check_commit_attribution_test.sh

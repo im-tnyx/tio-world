@@ -3,6 +3,8 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/exercise_catalog_repository.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
+import '../../../domain/models/workout_routine_start_request.dart';
 import '../exercises/exercises_controller.dart';
 import 'routine_set_input_limits.dart';
 import 'routine_measurement_profile.dart';
@@ -10,7 +12,11 @@ import '../exercises/widgets/exercise_list_row.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
+import '../../../domain/repositories/routine_notes_repository.dart';
 import 'routine_detail_controller.dart';
+import 'routine_notes_controller.dart';
+
+import 'routine_move_refresh_signal.dart';
 
 /// A read-only preview of durable Routine content under its owning Program.
 /// Starting a workout and modifying prescriptions require separate capabilities.
@@ -25,6 +31,14 @@ class RoutineDetailPage extends StatefulWidget {
     this.viewerMediaGender,
     this.weightUnit = WeightUnit.kg,
     this.onEditPressed,
+    this.onStartRoutinePressed,
+    // Compatibility-only: Detail no longer renders a separate Notes section.
+    this.routineNotesRepository,
+    this.routineNotesOwnerId,
+    this.isRoutineNotesSessionCurrent,
+    this.moveRefreshSignal,
+    this.moveRefreshOwnerId,
+    this.moveRefreshLoginCycleId,
     super.key,
   });
 
@@ -34,14 +48,35 @@ class RoutineDetailPage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+
   /// Media profile is resolved by the app; null follows the catalog fallback.
   final ExerciseMediaGender? viewerMediaGender;
+
   /// Null means the authenticated account's display unit has not resolved.
   final WeightUnit? weightUnit;
+
+  /// Deprecated compatibility inputs retained for callers compiled against
+  /// the previous Detail constructor. They must not create a separate Notes
+  /// surface; Notes belong to the Routine save/composition flow.
+  @Deprecated('Routine Detail no longer renders a separate Notes section.')
+  final RoutineNotesRepository? routineNotesRepository;
+  @Deprecated('Routine Detail no longer renders a separate Notes section.')
+  final String? routineNotesOwnerId;
+  @Deprecated('Routine Detail no longer renders a separate Notes section.')
+  final RoutineNotesSessionIsCurrent? isRoutineNotesSessionCurrent;
+
+  /// Owner/login-cycle-scoped parent invalidation after a partial Edit save.
+  final RoutineMoveRefreshSignal? moveRefreshSignal;
+  final String? moveRefreshOwnerId;
+  final String? moveRefreshLoginCycleId;
 
   /// App-provided, account-verified navigation. True only on confirmed save.
   /// No edit capability is inferred from a read-only Detail repository.
   final Future<bool?> Function(Routine routine)? onEditPressed;
+
+  /// App-provided, account-verified Save-only start from this Routine snapshot.
+  final Future<void> Function(WorkoutRoutineStartRequest request)?
+      onStartRoutinePressed;
 
   @override
   State<RoutineDetailPage> createState() => _RoutineDetailPageState();
@@ -50,24 +85,30 @@ class RoutineDetailPage extends StatefulWidget {
 class _RoutineDetailPageState extends State<RoutineDetailPage> {
   RoutineDetailController? _controller;
   bool _editing = false;
+  bool _startingRoutine = false;
 
   @override
   void initState() {
     super.initState();
+    widget.moveRefreshSignal?.addListener(_onMoveRefresh);
     _bind();
   }
 
   @override
   void didUpdateWidget(covariant RoutineDetailPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.moveRefreshSignal, widget.moveRefreshSignal)) {
+      oldWidget.moveRefreshSignal?.removeListener(_onMoveRefresh);
+      widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    }
     if (oldWidget.program.id != widget.program.id ||
         oldWidget.routine.id != widget.routine.id ||
         !identical(oldWidget.routineRepository, widget.routineRepository) ||
-        !identical(oldWidget.compositionRepository,
-            widget.compositionRepository) ||
+        !identical(
+            oldWidget.compositionRepository, widget.compositionRepository) ||
         !identical(oldWidget.catalogRepository, widget.catalogRepository) ||
-        !identical(oldWidget.userExerciseRepository,
-            widget.userExerciseRepository)) {
+        !identical(
+            oldWidget.userExerciseRepository, widget.userExerciseRepository)) {
       _bind();
     }
   }
@@ -98,8 +139,22 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
     if (mounted) setState(() {});
   }
 
+  void _onMoveRefresh() {
+    final signal = widget.moveRefreshSignal;
+    if (!mounted ||
+        signal == null ||
+        !signal.matches(
+          ownerId: widget.moveRefreshOwnerId,
+          loginCycleId: widget.moveRefreshLoginCycleId,
+        )) {
+      return;
+    }
+    _controller?.load();
+  }
+
   @override
   void dispose() {
+    widget.moveRefreshSignal?.removeListener(_onMoveRefresh);
     _controller
       ?..removeListener(_changed)
       ..dispose();
@@ -133,10 +188,37 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
     if (confirmed == true) await controller.load();
   }
 
+  WorkoutRoutineStartRequest? _startRequest(RoutineDetailState? state) {
+    if (widget.onStartRoutinePressed == null ||
+        state == null ||
+        state.status != RoutineDetailStatus.ready) {
+      return null;
+    }
+    return _controller?.startRequest;
+  }
+
+  Future<void> _startRoutine(WorkoutRoutineStartRequest request) async {
+    if (_startingRoutine || !mounted) return;
+    setState(() => _startingRoutine = true);
+    try {
+      await widget.onStartRoutinePressed?.call(request);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Could not start this Routine. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _startingRoutine = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final state = _controller?.state;
+    final startRequest = _startRequest(state);
     return Scaffold(
       key: const ValueKey('routine-detail-page'),
       backgroundColor: colors.background,
@@ -158,9 +240,34 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
         ),
       ),
       body: SafeArea(
-        child: state != null &&
-                state.status == RoutineDetailStatus.ready
-            ? _readyList(state)
+        child: state != null && state.status == RoutineDetailStatus.ready
+            ? Column(
+                children: [
+                  if (startRequest != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        TioSpacing.lg,
+                        TioSpacing.md,
+                        TioSpacing.lg,
+                        TioSpacing.sm,
+                      ),
+                      child: TioButton.primary(
+                        key: const ValueKey('routine-detail-start-routine'),
+                        label: 'Start Routine',
+                        loadingLabel: 'Starting Routine',
+                        semanticLabel: 'Start ${state.routine!.name}',
+                        leading: const Icon(Icons.play_arrow),
+                        expand: true,
+                        loading: _startingRoutine,
+                        enabled: !_startingRoutine,
+                        onPressed: _startingRoutine
+                            ? null
+                            : () => _startRoutine(startRequest),
+                      ),
+                    ),
+                  Expanded(child: _readyList(state)),
+                ],
+              )
             : ListView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: TioSpacing.lg,
@@ -200,12 +307,14 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
                       Expanded(
                         child: Text(
                           'Exercises',
-                          key: const ValueKey('routine-detail-exercises-header'),
+                          key:
+                              const ValueKey('routine-detail-exercises-header'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: context.tioColors.textSecondary,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: context.tioColors.textSecondary,
+                                  ),
                         ),
                       ),
                       if (_canShowEdit(state))
@@ -217,7 +326,8 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
                     ],
                   ),
                   Semantics(
-                    label: '${state.exerciseCount} exercises, ${state.setCount} sets',
+                    label:
+                        '${state.exerciseCount} exercises, ${state.setCount} sets',
                     child: Text(
                       '${state.exerciseCount} ${state.exerciseCount == 1 ? 'exercise' : 'exercises'} · '
                       '${state.setCount} ${state.setCount == 1 ? 'set' : 'sets'}',
@@ -317,23 +427,30 @@ class _RoutineEntryPreview extends StatelessWidget {
         RoutineSetType.drop => 'D',
       };
 
-  Widget _cell(String value, {Color? color, TextAlign align = TextAlign.center}) =>
-      Text(value, textAlign: align,
-        style: TextStyle(color: color, fontSize: TioFontSize.size14));
+  Widget _cell(String value,
+          {Color? color, TextAlign align = TextAlign.center}) =>
+      Text(value,
+          textAlign: align,
+          style: TextStyle(color: color, fontSize: TioFontSize.size14));
 
   Widget _setRow(
-    BuildContext context, int index, ExerciseType? profile,
+    BuildContext context,
+    int index,
+    ExerciseType? profile,
   ) {
     final sets = item.entry.sets;
     final p = sets[index].prescription;
-    final normalNumber = sets.take(index + 1)
+    final normalNumber = sets
+        .take(index + 1)
         .where((s) => s.prescription.setType == RoutineSetType.normal)
         .length;
     final weight = p.loadKg == null
         ? '–'
         : weightUnit == null
             ? 'Load unavailable'
-            : UnitFormatters.formatWeight(p.loadKg!, weightUnit!).split(' ').first;
+            : UnitFormatters.formatWeight(p.loadKg!, weightUnit!)
+                .split(' ')
+                .first;
     final reps = p.repsMax == null
         ? (p.reps?.toString() ?? '–')
         : '${p.reps}–${p.repsMax}';
@@ -379,10 +496,84 @@ class _RoutineEntryPreview extends StatelessWidget {
     );
   }
 
+  InlineSpan _buildRestTimerSpan(TioColors colors) {
+    final preset = RoutineRestTimerPreset.fromPrescriptions(
+      item.entry.sets.map((s) => s.prescription),
+    );
+    final normal = preset.normalRestSeconds;
+    final warmUp = preset.warmUpRestSeconds;
+    final hasWarmUpSet = item.entry.sets
+        .any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final baseStyle = TextStyle(
+      fontSize: TioFontSize.size13,
+      color: colors.textSecondary,
+      fontWeight: TioFontWeight.w400,
+    );
+
+    if (normal != null && normal > 0) {
+      if (warmUp != null && warmUp > 0 && warmUp != normal) {
+        return TextSpan(
+          style: baseStyle,
+          children: [
+            TextSpan(
+              text:
+                  'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)} ',
+            ),
+            TextSpan(
+              text: '(${RoutineRestTimerFormatter.formatSeconds(warmUp)})',
+              style: TextStyle(
+                color: hasWarmUpSet ? colors.warning : colors.textMuted,
+              ),
+            ),
+          ],
+        );
+      }
+      return TextSpan(
+        style: baseStyle,
+        text: 'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)}',
+      );
+    }
+    if (warmUp != null && warmUp > 0) {
+      return TextSpan(
+        style: baseStyle,
+        children: [
+          const TextSpan(text: 'Rest Timer: '),
+          TextSpan(
+            text: '(${RoutineRestTimerFormatter.formatSeconds(warmUp)})',
+            style: TextStyle(
+              color: hasWarmUpSet ? colors.warning : colors.textMuted,
+            ),
+          ),
+        ],
+      );
+    }
+    return TextSpan(style: baseStyle, text: '');
+  }
+
+  String? get _restTimerLabel {
+    final preset = RoutineRestTimerPreset.fromPrescriptions(
+      item.entry.sets.map((s) => s.prescription),
+    );
+    if (preset.isOff) return null;
+    final normal = preset.normalRestSeconds;
+    final warmUp = preset.warmUpRestSeconds;
+    if (normal != null && normal > 0) {
+      if (warmUp != null && warmUp > 0 && warmUp != normal) {
+        return 'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)} (${RoutineRestTimerFormatter.formatSeconds(warmUp)})';
+      }
+      return 'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)}';
+    }
+    if (warmUp != null && warmUp > 0) {
+      return 'Rest Timer: (${RoutineRestTimerFormatter.formatSeconds(warmUp)})';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final entry = item.entry;
+    final restLabel = _restTimerLabel;
     final source = item.exercise;
     final profile = routineEntryMeasurementProfile(
       source?.exerciseType,
@@ -399,8 +590,7 @@ class _RoutineEntryPreview extends StatelessWidget {
       children: [
         Row(
           children: [
-            if (thumbnail != null)
-              ExerciseThumbnail(url: thumbnail),
+            if (thumbnail != null) ExerciseThumbnail(url: thumbnail),
             Expanded(
               child: Text(
                 item.exercise?.displayName ?? 'Exercise unavailable',
@@ -429,7 +619,25 @@ class _RoutineEntryPreview extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: TioSpacing.md),
+        if (restLabel != null) ...[
+          const SizedBox(height: TioSpacing.xs),
+          Row(
+            children: [
+              Icon(
+                Icons.timer_outlined,
+                size: TioSize.dp16,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: TioSpacing.xs),
+              Text.rich(
+                _buildRestTimerSpan(colors),
+                key: ValueKey('routine-detail-rest-timer-${entry.id}'),
+              ),
+            ],
+          ),
+          const SizedBox(height: TioSpacing.sm),
+        ] else
+          const SizedBox(height: TioSpacing.md),
         Row(
           children: [
             const SizedBox(
@@ -444,10 +652,13 @@ class _RoutineEntryPreview extends StatelessWidget {
             ] else if (profile == ExerciseType.duration) ...[
               const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
             ] else ...[
-              Expanded(child: Text(
+              Expanded(
+                  child: Text(
                 weightUnit == null
                     ? 'WEIGHT'
-                    : weightUnit == WeightUnit.lb ? 'LB' : 'KG',
+                    : weightUnit == WeightUnit.lb
+                        ? 'LB'
+                        : 'KG',
                 textAlign: TextAlign.center,
               )),
               const SizedBox(width: TioSpacing.sm),

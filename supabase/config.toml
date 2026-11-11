@@ -37,6 +37,11 @@ verify_jwt = false
 [functions.nutrition-meal-text-parse]
 verify_jwt = true
 
+# Gym search must receive a valid signed-in-user JWT; the handler also verifies
+# the token against Auth so the shared anon JWT cannot invoke billable Places.
+[functions.nearby-gyms]
+verify_jwt = true
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"

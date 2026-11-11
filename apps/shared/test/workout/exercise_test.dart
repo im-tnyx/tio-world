@@ -9,6 +9,8 @@ void main() {
     String displayName = 'Bench Press',
     String? description,
     ExerciseType? exerciseType,
+    Map<String, String> localizedTitles = const {},
+    Map<String, List<String>> localizedInstructions = const {},
     String? muscleGroup = 'chest',
     List<String> primaryMuscles = const ['pectoralis_major'],
     List<String> secondaryMuscles = const ['triceps', 'anterior_deltoid'],
@@ -21,6 +23,8 @@ void main() {
         ref: ref ?? ExerciseRef.catalog('ex_barbell_bench_press'),
         displayName: displayName,
         description: description,
+        localizedTitles: localizedTitles,
+        localizedInstructions: localizedInstructions,
         exerciseType: exerciseType,
         muscleGroup: muscleGroup,
         primaryMuscles: primaryMuscles,
@@ -204,6 +208,77 @@ void main() {
       expect(exercise.primaryMuscles, ['first', 'second']);
       expect(exercise.secondaryMuscles, ['third', 'fourth']);
       expect(exercise.levels, ['beginner', 'advanced']);
+    });
+  });
+
+  group('localized content', () {
+    test('defensively copies nested localized content', () {
+      final titles = <String, String>{'en': 'Bench Press'};
+      final instructions = <String, List<String>>{
+        'en': ['Set up', 'Press'],
+      };
+      final exercise = createExercise(
+        localizedTitles: titles,
+        localizedInstructions: instructions,
+      );
+
+      titles['hi'] = 'बेंच प्रेस';
+      instructions['en']!.add('Reset');
+
+      expect(exercise.localizedTitles, {'en': 'Bench Press'});
+      expect(exercise.localizedInstructions, {
+        'en': ['Set up', 'Press'],
+      });
+      expect(
+        () => exercise.localizedInstructions['en']!.add('Reset'),
+        throwsUnsupportedError,
+      );
+    });
+
+    test('rejects blank locales, titles and instruction steps', () {
+      expect(
+        () => createExercise(localizedTitles: {' ': 'Title'}),
+        throwsArgumentError,
+      );
+      expect(
+        () => createExercise(localizedTitles: {'en': ' '}),
+        throwsArgumentError,
+      );
+      expect(
+        () => createExercise(localizedInstructions: {'en': const []}),
+        throwsArgumentError,
+      );
+      expect(
+        () => createExercise(localizedInstructions: {
+          'en': ['Set up', ' '],
+        }),
+        throwsArgumentError,
+      );
+    });
+
+    test('participates in equality and hash semantics', () {
+      final base = createExercise(
+        localizedTitles: const {'en': 'Bench Press'},
+        localizedInstructions: const {
+          'en': ['Set up', 'Press'],
+        },
+      );
+      final same = createExercise(
+        localizedTitles: <String, String>{'en': 'Bench Press'},
+        localizedInstructions: <String, List<String>>{
+          'en': ['Set up', 'Press'],
+        },
+      );
+      expect(base, same);
+      expect(base.hashCode, same.hashCode);
+      expect(
+        base,
+        isNot(createExercise(
+          localizedInstructions: const {
+            'en': ['Press', 'Set up'],
+          },
+        )),
+      );
     });
   });
 

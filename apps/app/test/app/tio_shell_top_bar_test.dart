@@ -234,6 +234,72 @@ void main() {
     });
   }
 
+  testWidgets('Progress root shares canonical top bar, no fake streak',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: TioShell(
+          state: const ShellUiState(
+            selectedTab: ShellTab.progress,
+            visibleTabs: [
+              ShellTab.home,
+              ShellTab.workout,
+              ShellTab.nutrition,
+              ShellTab.progress,
+            ],
+          ),
+          onAction: (_) {},
+          child: const SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    expect(find.byType(TioShellStatusTopBar), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.text('Progress'), findsWidgets);
+    expect(find.byKey(const ValueKey('shell-status-streak-icon')), findsNothing);
+    expect(find.byKey(const ValueKey('shell-workout-streak')), findsNothing);
+    expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsNothing);
+    expect(find.text('TIO'), findsNothing);
+    final bar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(bar.toolbarHeight, TioNavigationTokens.topBarHeight);
+    expect(bar.shape, isNull);
+    expect(bar.elevation, 0);
+    expect(bar.scrolledUnderElevation, 0);
+    expect(
+      tester.widget<TioShellStatusTopBar>(
+        find.byType(TioShellStatusTopBar),
+      ).preferredSize.height,
+      TioNavigationTokens.topBarHeight,
+    );
+  });
+
+  testWidgets('Progress nested sub-screen retains no root top bar',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: TioShell(
+          state: const ShellUiState(
+            selectedTab: ShellTab.progress,
+            visibleTabs: [ShellTab.home, ShellTab.progress],
+            isRootTopBarVisible: false,
+          ),
+          onAction: (_) {},
+          child: const SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.byType(TioShellStatusTopBar), findsNothing);
+  });
+
   testWidgets('feature status shows only a real positive count',
       (tester) async {
     await tester.pumpWidget(

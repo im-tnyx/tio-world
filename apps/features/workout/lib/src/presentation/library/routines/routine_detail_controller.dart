@@ -5,6 +5,7 @@ import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
+import '../../../domain/models/workout_routine_start_request.dart';
 
 enum RoutineDetailStatus { loading, ready, notFound, failed }
 
@@ -74,6 +75,40 @@ final class RoutineDetailController extends ChangeNotifier {
 
   RoutineDetailState _state = const RoutineDetailState.loading();
   RoutineDetailState get state => _state;
+
+  /// Builds the same executable, owner-verified snapshot for every Routine
+  /// start surface. Unresolved or incomplete content fails closed.
+  WorkoutRoutineStartRequest? get startRequest {
+    final readyState = _state;
+    final ownedRoutine = readyState.routine;
+    final revision = readyState.revision;
+    if (readyState.status != RoutineDetailStatus.ready ||
+        ownedRoutine == null ||
+        revision == null) {
+      return null;
+    }
+    try {
+      final exercises = <ExerciseRef, Exercise>{};
+      for (final item in readyState.entries) {
+        final exercise = item.exercise;
+        if (exercise != null) exercises[item.entry.exercise] = exercise;
+      }
+      final request = WorkoutRoutineStartRequest(
+        routine: ownedRoutine,
+        composition: RoutineCompositionSnapshot(
+          routineId: ownedRoutine.id,
+          revision: revision,
+          name: ownedRoutine.name,
+          entries: readyState.entries.map((item) => item.entry).toList(),
+        ),
+        exercises: exercises,
+      );
+      return request.isExecutable ? request : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   var _version = 0;
   var _disposed = false;
 

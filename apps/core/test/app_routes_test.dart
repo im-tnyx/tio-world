@@ -79,6 +79,39 @@ void main() {
     expect(AppRoutes.workoutExercises.chromePolicy.showsBottomNav, isFalse);
   });
 
+  test('Active Workout route nests under Workout without bottom nav', () {
+    expect(AppRoutes.workoutActive.path, '/workout/active');
+    expect(
+      AppRoutes.workoutActive.path
+          .startsWith('${FeatureRoutes.workout.path}/'),
+      isTrue,
+    );
+    expect(AppRoutes.workoutActive.title, 'Active Workout');
+    expect(AppRoutes.workoutActive.chromePolicy, ChromePolicy.noBottomBar);
+    expect(AppRoutes.workoutActive.chromePolicy.showsBottomNav, isFalse);
+  });
+
+  test('Exercise Detail route nests under Exercises without bottom nav', () {
+    expect(
+      AppRoutes.workoutExerciseDetail.path,
+      '/workout/exercises/:exerciseId',
+    );
+    expect(
+      AppRoutes.workoutExerciseDetail.path
+          .startsWith('${FeatureRoutes.workout.path}/'),
+      isTrue,
+    );
+    expect(AppRoutes.workoutExerciseDetail.title, 'Exercise Detail');
+    expect(
+      AppRoutes.workoutExerciseDetail.chromePolicy,
+      ChromePolicy.noBottomBar,
+    );
+    expect(
+      AppRoutes.workoutExerciseDetail.chromePolicy.showsBottomNav,
+      isFalse,
+    );
+  });
+
   test('Library route nests under the Workout branch without bottom nav', () {
     expect(AppRoutes.workoutLibrary.path, '/workout/library');
     expect(

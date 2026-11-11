@@ -14,6 +14,11 @@ import '../../../theme/theme.dart';
 /// rather than leaving it live behind the sheet. Core does not decide this:
 /// only the caller knows which navigator its editor belongs above.
 ///
+/// [isDismissible] defaults to Flutter's existing barrier behavior. A
+/// saving editor may set it false and expose its own close action so tapping
+/// behind the modal never drops an in-flight commit. Back still needs a
+/// caller-owned PopScope to disable it during saving.
+///
 /// [useSafeArea] is forwarded the same way and defaults to Flutter's own
 /// `false` so no existing sheet moves. It matters more here than the name
 /// suggests: with it false the route applies
@@ -27,12 +32,14 @@ Future<T?> showTioEditorSheet<T>({
   required WidgetBuilder builder,
   bool useRootNavigator = false,
   bool useSafeArea = false,
+  bool isDismissible = true,
 }) =>
     showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       useRootNavigator: useRootNavigator,
       useSafeArea: useSafeArea,
+      isDismissible: isDismissible,
       backgroundColor: TioPalette.transparent,
       enableDrag: false,
       showDragHandle: false,

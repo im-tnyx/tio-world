@@ -9,8 +9,45 @@ import 'routine_move_destination_controller.dart';
 import '../programs/programs_controller.dart';
 import '../programs/programs_surface.dart';
 
-/// The future server-atomic Create+Move capability. This slice does not wire
-/// one into the app; the New Program action stays hidden without it.
+/// Frozen receipt from a server-confirmed existing-Program Move.
+/// Provides exactly the identity needed to dispatch a protected reverse Move.
+/// Never carries credentials; login-cycle is re-validated at Undo dispatch.
+final class _MoveUndoReceipt {
+  const _MoveUndoReceipt({
+    required this.routineId,
+    required this.routineName,
+    required this.originalProgramId,
+    required this.originalProgramName,
+    required this.destinationProgramId,
+    required this.postMoveRevision,
+    required this.ownerId,
+    required this.loginCycleId,
+  });
+
+  /// The moved Routine; must match the server record at Undo time.
+  final RoutineId routineId;
+  final String routineName;
+
+  /// Program A — where the Routine was before the Move.
+  final ProgramId originalProgramId;
+  final String originalProgramName;
+
+  /// Program B — where the Routine currently resides after the confirmed Move.
+  final ProgramId destinationProgramId;
+
+  /// expectedRevision + 1 from the confirmed Move RPC response.
+  /// A fresh inspect at Undo time must observe exactly this revision; any
+  /// higher revision means an intervening write has occurred and Undo is unsafe.
+  final int postMoveRevision;
+
+  /// Frozen owner/cycle. A new login invalidates Undo silently; never use
+  /// stale identity to dispatch a reverse Move under a different session.
+  final String ownerId;
+  final String loginCycleId;
+}
+
+/// The server-atomic Create+Move capability. New Program stays hidden unless
+/// the app provides the protected repository-backed operation.
 typedef RoutineCreateMoveCallback = Future<RoutineMoveResult> Function({
   required RoutineMoveTarget target,
   required ProgramId newProgramId,
@@ -19,6 +56,7 @@ typedef RoutineCreateMoveCallback = Future<RoutineMoveResult> Function({
 });
 
 enum _MoveDestinationChoice { newProgram }
+
 enum _MoveSheetAbort { stale, noDestinations }
 
 typedef _MoveSheetChoice = ({
@@ -56,20 +94,48 @@ final class RoutineMoveFlow {
     required RoutineMoveRepository repository,
     required bool Function() canWrite,
     RoutineCreateMoveCallback? createAndMove,
+
     /// Development-only visual preview: never dispatch either Move RPC.
     bool previewOnly = false,
     Widget Function(BuildContext dialogContext, Widget content)? modalGuard,
+
+    /// Called after a server-confirmed existing-Program Move and again after a
+    /// server-confirmed Undo. Not called for Create & Move, UNKNOWN outcomes,
+    /// or Undo failures. The caller must guard with its own owner/session check.
+    VoidCallback? onMoveConfirmed,
+
+    /// Called when an existing-Program Undo reverse Move write was dispatched
+    /// across the network (including confirmed, UNKNOWN outcome, or post-dispatch
+    /// exceptions).
+    /// Used by the caller to invalidate and reconcile owner-scoped Program and
+    /// Routine lists without treating the signal as confirmed success.
+    /// Never called if target inspection fails or the request is rejected before dispatch.
+    VoidCallback? onUndoWriteAttempted,
+
+    /// Called after the atomic M5B full-Undo RPC may have reached the server.
+    /// The caller must refresh only the frozen current owner/session.
+    VoidCallback? onCreateMoveUndoWriteAttempted,
+
+    /// Stable identity predicate for post-dispatch feedback and callbacks:
+    /// returns true if the current authenticated owner and login cycle match
+    /// the session that initiated the flow.
+    /// When omitted, falls back to [canWrite].
+    bool Function()? sameAuthenticatedOwner,
   }) async {
-    if (routine.programId != sourceProgram.id || !canWrite() ||
+    if (routine.programId != sourceProgram.id ||
+        !canWrite() ||
         !_opening.add(routine.id)) {
       return false;
     }
 
     final controller = RoutineMoveDestinationController(
-      moves: repository, programs: programs, canWrite: canWrite,
+      moves: repository,
+      programs: programs,
+      canWrite: canWrite,
     );
     var attempted = false;
     String? dispatchedMutationId;
+    VoidCallback? showConfirmedCreateMoveUndo;
     try {
       // Push the sheet immediately. The authenticated owner-scoped reads
       // continue inside its content; no destination is shown/selectable until
@@ -148,7 +214,10 @@ final class RoutineMoveFlow {
                 }
 
                 void choose(Object choice) {
-                  if (!canWrite()) return;
+                  if (!canWrite()) {
+                    Navigator.of(sheetContext).pop();
+                    return;
+                  }
                   final _MoveSheetChoice result =
                       (selection: selection, choice: choice);
                   Navigator.of(sheetContext).pop(result);
@@ -172,8 +241,8 @@ final class RoutineMoveFlow {
                       ListTile(
                         key: ValueKey(
                             'routine-move-destination-${program.id.value}'),
-                        title: Text(program.name, maxLines: 2,
-                            overflow: TextOverflow.ellipsis),
+                        title: Text(program.name,
+                            maxLines: 2, overflow: TextOverflow.ellipsis),
                         trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: () => choose(program.id),
                       ),
@@ -218,22 +287,14 @@ final class RoutineMoveFlow {
           id: ProgramId(_uuidV4()),
           name: proposedName,
         );
-        final confirmed = await _confirm(
-          context: context,
-          routineName: target.name,
-          destination: proposed,
-          modalGuard: modalGuard,
-          createProgram: true,
-        );
-        if (confirmed != true || !context.mounted || !canWrite()) return false;
         // Preview is a real owner-scoped, read-only UI flow. Never create a
-        // Program or send the atomic Create+Move command even after confirm.
+        // Program or send the atomic Create+Move command even after submit.
         if (previewOnly) {
           _show(context, 'Preview only · No changes', preview: true);
           return false;
         }
 
-        // Re-check the owner-scoped source after the confirmation; server CAS
+        // Re-check the owner-scoped source after the name sheet; server CAS
         // is still the final ownership, revision and atomicity authority.
         final current = await programs.list();
         if (!context.mounted || !canWrite()) return false;
@@ -246,6 +307,41 @@ final class RoutineMoveFlow {
         attempted = true;
         final mutationId = _newMutationId();
         dispatchedMutationId = mutationId;
+        final fullUndoRepository =
+            repository is RoutineCreateMoveUndoRepository &&
+                    repository is RoutineCreateMoveUndoUnknownVerifier
+                ? repository as RoutineCreateMoveUndoRepository
+                : null;
+        if (fullUndoRepository == null) {
+          _show(context,
+              'Could not verify full Undo capability. Try again later.');
+          return false;
+        }
+        // Freeze the receipt before dispatch. A lost response can still be
+        // confirmed by the exact mutation readback, and that confirmation must
+        // retain the same identities and revision for the Undo action.
+        final receipt = RoutineCreateMoveUndoReceipt(
+          routineId: routine.id,
+          originalProgramId: target.sourceProgramId,
+          originalProgramName: sourceProgram.name,
+          createdProgramId: proposed.id,
+          originalMoveMutationId: mutationId.toLowerCase(),
+          expectedRevision: target.expectedRevision + 1,
+          ownerId: target.ownerId,
+          loginCycleId: target.loginCycleId,
+        );
+        showConfirmedCreateMoveUndo = () => _showConfirmedWithUndo(
+              context,
+              'Routine moved.',
+              onUndo: () => _executeCreateMoveUndo(
+                context,
+                receipt: receipt,
+                repository: fullUndoRepository,
+                canWrite: canWrite,
+                sameAuthenticatedOwner: sameAuthenticatedOwner,
+                onUndoWriteAttempted: onCreateMoveUndoWriteAttempted,
+              ),
+            );
         final result = await createAndMove(
           target: target,
           newProgramId: proposed.id,
@@ -254,9 +350,11 @@ final class RoutineMoveFlow {
         );
         // The atomic write may have committed before auth/widget changed.
         // Preserve the caller's refresh signal without showing old-user data.
-        if (!context.mounted || !canWrite()) return attempted;
+        if (!context.mounted || !(sameAuthenticatedOwner ?? canWrite)()) {
+          return attempted;
+        }
         if (result == RoutineMoveResult.confirmed) {
-          _show(context, 'Routine moved.', confirmed: true);
+          showConfirmedCreateMoveUndo.call();
         }
         return true;
       }
@@ -273,13 +371,6 @@ final class RoutineMoveFlow {
         return false;
       }
 
-      final confirmed = await _confirm(
-        context: context,
-        routineName: target.name,
-        destination: destination,
-        modalGuard: modalGuard,
-      );
-      if (confirmed != true || !context.mounted || !canWrite()) return false;
       // Preview must not reach the existing Program Move RPC either. False
       // means no write occurred and no success/refresh may be reported.
       if (previewOnly) {
@@ -296,9 +387,34 @@ final class RoutineMoveFlow {
         mutationId: mutationId,
       );
       // The existing-Program RPC has the same post-dispatch uncertainty.
-      if (!context.mounted || !canWrite()) return attempted;
+      if (!context.mounted || !(sameAuthenticatedOwner ?? canWrite)()) {
+        return attempted;
+      }
       if (result == RoutineMoveResult.confirmed) {
-        _show(context, 'Routine moved.', confirmed: true);
+        final receipt = _MoveUndoReceipt(
+          routineId: routine.id,
+          routineName: routine.name,
+          originalProgramId: target.sourceProgramId,
+          originalProgramName: sourceProgram.name,
+          destinationProgramId: destination.id,
+          postMoveRevision: target.expectedRevision + 1,
+          ownerId: target.ownerId,
+          loginCycleId: target.loginCycleId,
+        );
+        _showConfirmedWithUndo(
+          context,
+          'Moved to ${destination.name}',
+          onUndo: () => _executeUndo(
+            context,
+            receipt: receipt,
+            programs: programs,
+            repository: repository,
+            canWrite: canWrite,
+            sameAuthenticatedOwner: sameAuthenticatedOwner,
+            onMoveConfirmed: onMoveConfirmed,
+            onUndoWriteAttempted: onUndoWriteAttempted,
+          ),
+        );
         return true;
       }
       return true;
@@ -309,13 +425,16 @@ final class RoutineMoveFlow {
       // from destination membership / a later unrelated mutation.
       var confirmedByReadback = false;
       final tokenToVerify = dispatchedMutationId;
-      if (attempted && tokenToVerify != null &&
-          context.mounted && canWrite() &&
+      if (attempted &&
+          tokenToVerify != null &&
+          context.mounted &&
+          canWrite() &&
           repository is RoutineMoveUnknownVerifier) {
         try {
-          final readback = await (repository as RoutineMoveUnknownVerifier)
-              .verifyUnknown(
-            routineId: routine.id, mutationId: tokenToVerify,
+          final readback =
+              await (repository as RoutineMoveUnknownVerifier).verifyUnknown(
+            routineId: routine.id,
+            mutationId: tokenToVerify,
           );
           confirmedByReadback =
               readback.kind == RoutineMoveReadbackKind.confirmedLatestMutation;
@@ -325,9 +444,16 @@ final class RoutineMoveFlow {
         }
       }
       // A read may complete after widget disposal or account/cycle switch.
-      if (attempted && context.mounted && canWrite()) {
+      if (attempted &&
+          context.mounted &&
+          canWrite() &&
+          (sameAuthenticatedOwner ?? canWrite)()) {
         if (confirmedByReadback) {
-          _show(context, 'Routine moved.', confirmed: true);
+          if (showConfirmedCreateMoveUndo != null) {
+            showConfirmedCreateMoveUndo.call();
+          } else {
+            _show(context, 'Routine moved.', confirmed: true);
+          }
         } else {
           _show(context,
               'Move status is unconfirmed. Refresh Programs; do not retry.');
@@ -339,14 +465,16 @@ final class RoutineMoveFlow {
       switch (error.kind) {
         case RoutineMoveFailureKind.unauthorized:
         case RoutineMoveFailureKind.forbidden:
-          _show(context, 'Your session changed. Sign in again to move Routines.');
+          _show(
+              context, 'Your session changed. Sign in again to move Routines.');
         case RoutineMoveFailureKind.inProgress:
           _show(context, 'Another Move is still in progress.');
         case RoutineMoveFailureKind.notFound:
         case RoutineMoveFailureKind.revisionConflict:
         case RoutineMoveFailureKind.mutationConflict:
         case RoutineMoveFailureKind.staleTarget:
-          _show(context, 'This Routine changed. Refresh Programs and try again.');
+          _show(
+              context, 'This Routine changed. Refresh Programs and try again.');
         case RoutineMoveFailureKind.malformedData:
           _show(context, 'Could not verify Programs. Refresh and try again.');
         default:
@@ -364,94 +492,228 @@ final class RoutineMoveFlow {
     }
   }
 
-  Future<bool?> _confirm({
-    required BuildContext context,
-    required String routineName,
-    required Program destination,
-    Widget Function(BuildContext, Widget)? modalGuard,
-    bool createProgram = false,
-  }) => showDialog<bool>(
-    context: context,
-    builder: (dialogContext) {
-      final theme = Theme.of(dialogContext);
-      // Only this confirmation card uses the owner-approved compact visual
-      // button height. Preserve Core button intent, colours, radius and padded
-      // accessible tap target; global TioButtonTokens.height stays 46dp.
-      const compactMinimum = WidgetStatePropertyAll<Size>(
-        Size(TioButtonTokens.minimumWidth, TioSize.dp42),
-      );
-      final compactButtonsTheme = theme.copyWith(
-        filledButtonTheme: FilledButtonThemeData(
-          style: theme.filledButtonTheme.style?.copyWith(
-            minimumSize: compactMinimum,
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: theme.outlinedButtonTheme.style?.copyWith(
-            minimumSize: compactMinimum,
-          ),
-        ),
-      );
-      final card = Dialog(
-        key: const ValueKey('routine-move-confirmation'),
-        backgroundColor: TioPalette.transparent,
-        elevation: TioElevation.none,
-        insetPadding: const EdgeInsets.all(TioSpacing.lg),
-        child: SizedBox(
-          width: TioSize.dp320,
-          child: SingleChildScrollView(
-            child: TioCard(
-              variant: TioCardVariant.elevated,
-              padding: const EdgeInsets.all(TioSpacing.lg),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.swap_horiz_rounded,
-                      size: TioSize.dp24,
-                      color: dialogContext.tioColors.textPrimary),
-                  const SizedBox(height: TioSpacing.sm),
-                  Text(createProgram
-                      ? 'Create Program & Move Routine?' : 'Move Routine?',
-                      style: Theme.of(dialogContext).textTheme.titleLarge,
-                      textAlign: TextAlign.center),
-                  const SizedBox(height: TioSpacing.sm),
-                  Text(createProgram
-                      ? 'Create "${destination.name}" and move "$routineName"?'
-                      : 'Move "$routineName" to "${destination.name}"?',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(dialogContext).textTheme.bodyMedium),
-                  const SizedBox(height: TioSpacing.lg),
-                  Theme(
-                    data: compactButtonsTheme,
-                    child: Row(
-                      children: [
-                        Expanded(child: TioButton.secondary(
-                          label: 'Cancel',
-                          expand: true,
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(false),
-                        )),
-                        const SizedBox(width: TioSpacing.sm),
-                        Expanded(child: TioButton.primary(
-                          label: createProgram ? 'Create & Move' : 'Move',
-                          expand: true,
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(true),
-                        )),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-      return modalGuard?.call(dialogContext, card) ?? card;
-    },
-  );
+  /// Shows a floating Undo pill after a server-confirmed Move.
+  /// The pill auto-dismisses after 5 seconds even if the Undo action is visible.
+  /// Tapping Undo dispatches [_executeUndo] exactly once.
+  void _showConfirmedWithUndo(
+    BuildContext context,
+    String message, {
+    required Future<void> Function() onUndo,
+  }) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger.hideCurrentSnackBar();
 
-  void _show(BuildContext context, String message, {
+    var undoTapped = false;
+
+    final colors = Theme.of(context).colorScheme;
+    messenger.showSnackBar(SnackBar(
+      key: const ValueKey('routine-move-confirmed-feedback'),
+      duration: const Duration(seconds: 5),
+      // Auto-dismiss even when the Undo action is present.
+      persist: false,
+      behavior: SnackBarBehavior.floating,
+      shape: const StadiumBorder(),
+      content: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.swap_horiz_rounded,
+            color: colors.onInverseSurface,
+          ),
+          const SizedBox(width: TioSpacing.sm),
+          Flexible(child: Text(message)),
+        ],
+      ),
+      action: SnackBarAction(
+        label: 'Undo',
+        backgroundColor: colors.onInverseSurface,
+        textColor: colors.inverseSurface,
+        onPressed: () {
+          if (undoTapped) return;
+          undoTapped = true;
+          messenger.hideCurrentSnackBar();
+          if (context.mounted) {
+            onUndo();
+          }
+        },
+      ),
+    ));
+  }
+
+  /// Dispatches a reverse (Undo) Move from destination back to the original
+  /// source Program using repository.inspect() + repository.move().
+  Future<void> _executeCreateMoveUndo(
+    BuildContext context, {
+    required RoutineCreateMoveUndoReceipt receipt,
+    required RoutineCreateMoveUndoRepository repository,
+    required bool Function() canWrite,
+    bool Function()? sameAuthenticatedOwner,
+    VoidCallback? onUndoWriteAttempted,
+  }) async {
+    if (!canWrite()) return;
+
+    final undoMutationId = _newMutationId();
+    var undoAttempted = false;
+    var confirmed = false;
+    try {
+      undoAttempted = true;
+      await repository.undoCreateAndMove(
+        receipt: receipt,
+        undoMutationId: undoMutationId,
+      );
+      confirmed = true;
+    } on RoutineMoveOutcomeUnknown {
+      if (context.mounted && canWrite()) {
+        try {
+          final readback = await repository.verifyUnknownCreateMoveUndo(
+            receipt: receipt,
+            undoMutationId: undoMutationId,
+          );
+          confirmed =
+              readback.kind == RoutineMoveReadbackKind.confirmedLatestMutation;
+        } catch (_) {
+          // An absent Routine, missing Program, stale session or failed read
+          // cannot prove the atomic deletion receipt.
+        }
+      }
+      if (!confirmed &&
+          context.mounted &&
+          (sameAuthenticatedOwner ?? canWrite)()) {
+        _show(
+          context,
+          'Undo status is unconfirmed. Refresh Programs; do not retry.',
+        );
+      }
+    } on RoutineMoveException {
+      if (context.mounted && (sameAuthenticatedOwner ?? canWrite)()) {
+        _show(context, 'Could not undo. The Program or Routine changed.');
+      }
+    } catch (_) {
+      if (context.mounted && (sameAuthenticatedOwner ?? canWrite)()) {
+        _show(context, 'Could not undo. Check your Programs.');
+      }
+    } finally {
+      // A dispatched request can commit despite a lost response or a disposed
+      // widget. Reconcile only after the caller validates owner and cycle.
+      if (undoAttempted) onUndoWriteAttempted?.call();
+    }
+
+    if (!context.mounted || !(sameAuthenticatedOwner ?? canWrite)()) return;
+    if (!confirmed) {
+      // UNKNOWN has already received a truthful message above. A direct
+      // definite failure is reported by its catch and never reaches success.
+      return;
+    }
+    if (confirmed) {
+      _show(context, 'Restored to ${receipt.originalProgramName}',
+          confirmed: true);
+    }
+  }
+
+  /// Dispatches a reverse (Undo) Move from destination back to the original
+  /// source Program using repository.inspect() + repository.move().
+  Future<void> _executeUndo(
+    BuildContext context, {
+    required _MoveUndoReceipt receipt,
+    required ProgramRepository programs,
+    required RoutineMoveRepository repository,
+    required bool Function() canWrite,
+    bool Function()? sameAuthenticatedOwner,
+    VoidCallback? onMoveConfirmed,
+    VoidCallback? onUndoWriteAttempted,
+  }) async {
+    // 1. Strict new mutation eligibility check before inspection.
+    if (!canWrite()) return;
+
+    RoutineMoveTarget? target;
+    try {
+      target = await repository.inspect(
+        sourceProgramId: receipt.destinationProgramId,
+        routineId: receipt.routineId,
+      );
+    } catch (_) {
+      if (context.mounted && (sameAuthenticatedOwner ?? canWrite)()) {
+        _show(context, 'Could not restore. Check your Programs.');
+      }
+      return;
+    }
+
+    // 2. Strict new mutation eligibility check before reverse move dispatch.
+    if (!context.mounted || !canWrite()) return;
+
+    // Validate the inspected target for safe Undo:
+    if (target == null ||
+        target.ownerId != receipt.ownerId ||
+        target.loginCycleId != receipt.loginCycleId ||
+        target.expectedRevision != receipt.postMoveRevision ||
+        target.sourceProgramId != receipt.destinationProgramId) {
+      // An intervening write occurred or the session changed — Undo is unsafe.
+      if (context.mounted && (sameAuthenticatedOwner ?? canWrite)()) {
+        _show(context, 'Could not restore. Check your Programs.');
+      }
+      return;
+    }
+
+    // 3. Post-dispatch UI feedback eligibility:
+    // Requires mounted context AND stable same authenticated owner + login cycle.
+    // When sameAuthenticatedOwner is omitted, falls back to canWrite().
+    // Mutable new-write eligibility (pending Create / QA toggle) does NOT suppress
+    // feedback for an already-dispatched mutation as long as the session identity matches.
+    bool canPresentFeedback() =>
+        context.mounted && (sameAuthenticatedOwner ?? canWrite)();
+
+    var reverseWriteAttempted = false;
+    RoutineMoveResult? result;
+    try {
+      reverseWriteAttempted = true;
+      result = await repository.move(
+        target: target,
+        destinationProgramId: receipt.originalProgramId,
+        mutationId: _newMutationId(),
+      );
+    } on RoutineMoveOutcomeUnknown {
+      if (context.mounted && canPresentFeedback()) {
+        _show(
+          context,
+          'Restore status unconfirmed. Check your Programs.',
+        );
+      }
+    } on RoutineMoveException {
+      if (context.mounted && canPresentFeedback()) {
+        _show(context, 'Could not restore. Check your Programs.');
+      }
+    } catch (_) {
+      if (context.mounted && canPresentFeedback()) {
+        _show(context, 'Could not restore. Try again later.');
+      }
+    } finally {
+      // The reverse write was dispatched across the network and may have
+      // committed on the server. Signal the caller to invalidate and re-read
+      // owner-scoped state (without interpreting this signal as confirmed success).
+      // Decouple post-dispatch reconciliation from mutable new-write eligibility
+      // (e.g. pending-create in source program or QA toggle change).
+      // The reconciliation callback is invoked whenever the reverse write was
+      // attempted; the caller verifies frozen owner and login-cycle identity
+      // before requesting refresh, preventing cross-owner invalidation.
+      if (reverseWriteAttempted) {
+        onUndoWriteAttempted?.call();
+      }
+    }
+
+    if (!context.mounted || !canPresentFeedback()) return;
+
+    if (result == RoutineMoveResult.confirmed) {
+      _show(context, 'Restored to ${receipt.originalProgramName}');
+      onMoveConfirmed?.call();
+    } else if (result != null) {
+      _show(context, 'Could not restore. Check your Programs.');
+    }
+  }
+
+  void _show(
+    BuildContext context,
+    String message, {
     bool confirmed = false,
     bool preview = false,
   }) {

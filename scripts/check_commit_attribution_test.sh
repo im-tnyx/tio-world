@@ -78,6 +78,25 @@ run_case() {
   report "$expect" "$expected_rc" "$rc" "$desc" "$output"
 }
 
+# Same as run_case, but the message is passed through a file so a large
+# body does not exceed the process argument limit.
+run_case_file() {
+  local expect="$1" desc="$2" message="$3"
+  local expected_rc
+  expected_rc="$(expected_rc_for "$expect")"
+
+  (cd "$repo" && git reset -q --hard "$base_sha")
+  printf '%s\n' "$message" > "$workdir/commit-message.txt"
+  (cd "$repo" && git commit --allow-empty -q -F "$workdir/commit-message.txt")
+  local head_sha
+  head_sha="$(cd "$repo" && git rev-parse HEAD)"
+
+  local output rc=0
+  output="$(cd "$repo" && bash "$checker" "$base_sha" "$head_sha" 2>&1)" || rc=$?
+
+  report "$expect" "$expected_rc" "$rc" "$desc" "$output"
+}
+
 # Four-argument exception-aware fixtures.
 run_case_ex() {
   local expect="$1" desc="$2" message="$3" pr_number="$4" exception_pr="$5"
@@ -111,16 +130,16 @@ run_invalid_ref_case() {
 run_case pass "no Co-Authored-By trailer" \
   "$(printf 'feat: add widget\n\nRegular commit body with no trailer at all.')"
 
-# --- PASS: single ordinary human co-author ---
-run_case pass "single human co-author" \
+# --- FAIL: any Co-authored-by trailer, including a human ---
+run_case fail "single human co-author trailer" \
   "$(printf 'feat: add widget\n\nBody text.\n\nCo-Authored-By: Jane Developer <jane@example.com>')"
 
-# --- PASS: multiple ordinary human co-authors ---
-run_case pass "multiple human co-authors" \
+# --- FAIL: multiple Co-authored-by trailers ---
+run_case fail "multiple human co-author trailers" \
   "$(printf 'feat: add widget\n\nBody text.\n\nCo-Authored-By: Jane Developer <jane@example.com>\nCo-Authored-By: John Smith <john@example.com>')"
 
-# --- PASS: human whose first name happens to be "Claude" ---
-run_case pass "human named Claude with a personal email" \
+# --- FAIL: human named Claude still cannot appear as a Co-authored-by trailer ---
+run_case fail "human named Claude as a Co-authored-by trailer" \
   "$(printf 'fix: correct off-by-one\n\nBody text.\n\nCo-Authored-By: Claude Dupont <claude.dupont@example.com>')"
 
 # --- PASS: ordinary prose mentioning AI vendor names outside a trailer ---
@@ -154,6 +173,79 @@ run_case fail "OpenAI Codex identity" \
 # --- FAIL: AI trailer mixed among otherwise-normal human co-authors ---
 run_case fail "AI trailer mixed among human co-authors" \
   "$(printf 'feat: x\n\nBody.\n\nCo-Authored-By: Jane Developer <jane@example.com>\nCo-Authored-By: Claude <noreply@anthropic.com>')"
+
+# --- FAIL: Cursor agent trailer (common Cursor IDE auto-attribution) ---
+run_case fail "Cursor with cursoragent.com email" \
+  "$(printf 'feat: x\n\nBody.\n\nCo-authored-by: Cursor <cursoragent@cursor.com>')"
+
+# --- FAIL: Cursor display name with cursor.com email ---
+run_case fail "Cursor with cursor.com email" \
+  "$(printf 'feat: x\n\nBody.\n\nCo-Authored-By: Cursor <agent@cursor.com>')"
+
+# --- FAIL: the PR #742 identity, any case of the trailer key ---
+run_case fail "Cursor Agent co-author trailer" \
+  "$(printf 'feat: x\n\nBody.\n\nCo-authored-by: Cursor Agent <cursoragent@cursor.com>')"
+
+# --- FAIL: early co-author line in a large body is not a formal trailer ---
+# interpret-trailers ignores this line. The raw scan must still fail, including
+# when the message is large enough for grep -q to close a pipe early.
+large_pad="$(printf 'ordinary body text\n%.0s' {1..8000})"
+run_case_file fail "large message with early non-trailer co-author line" \
+  "$(printf 'Co-authored-by: Cursor Agent <cursoragent@cursor.com>\n\n%s' "$large_pad")"
+
+run_identity_case() {
+  local expect="$1" desc="$2" author_name="$3" author_email="$4" committer_name="$5" committer_email="$6" message="$7"
+  local expected_rc
+  expected_rc="$(expected_rc_for "$expect")"
+
+  (cd "$repo" && git reset -q --hard "$base_sha")
+  (
+    cd "$repo"
+    GIT_AUTHOR_NAME="$author_name" \
+    GIT_AUTHOR_EMAIL="$author_email" \
+    GIT_COMMITTER_NAME="$committer_name" \
+    GIT_COMMITTER_EMAIL="$committer_email" \
+      git commit --allow-empty -q -m "$message"
+  )
+  local head_sha
+  head_sha="$(cd "$repo" && git rev-parse HEAD)"
+
+  local output rc=0
+  output="$(cd "$repo" && bash "$checker" "$base_sha" "$head_sha" 2>&1)" || rc=$?
+
+  report "$expect" "$expected_rc" "$rc" "$desc" "$output"
+}
+
+# --- PASS: human author whose name resembles a provider, no trailer ---
+run_identity_case pass "human author named Claude Dupont, no trailer" \
+  "Claude Dupont" "claude.dupont@example.com" \
+  "Claude Dupont" "claude.dupont@example.com" \
+  "$(printf 'fix: correct off-by-one\n\nNo trailer.')"
+
+# --- FAIL: Cursor Agent author, clean message ---
+run_identity_case fail "Cursor Agent author with cursoragent email" \
+  "Cursor Agent" "cursoragent@cursor.com" \
+  "Test Runner" "test-runner@example.invalid" \
+  "$(printf 'feat: clean message\n\nNo trailer.')"
+
+# --- FAIL: Cursor Agent committer, clean message ---
+run_identity_case fail "Cursor Agent committer with cursoragent email" \
+  "Test Runner" "test-runner@example.invalid" \
+  "Cursor Agent" "cursoragent@cursor.com" \
+  "$(printf 'feat: clean message\n\nNo trailer.')"
+
+# --- FAIL: an earlier commit in the range, not only HEAD ---
+(
+  cd "$repo"
+  git reset -q --hard "$base_sha"
+  git commit --allow-empty -q -m "$(printf 'feat: bad\n\nCo-authored-by: Cursor Agent <cursoragent@cursor.com>')"
+  git commit --allow-empty -q -m "$(printf 'feat: later clean commit\n\nNo trailer.')"
+)
+range_head="$(cd "$repo" && git rev-parse HEAD)"
+range_output=""
+range_rc=0
+range_output="$(cd "$repo" && bash "$checker" "$base_sha" "$range_head" 2>&1)" || range_rc=$?
+report fail 1 "$range_rc" "earlier commit in base..head still fails when HEAD is clean" "$range_output"
 
 # --- Exception-contract fixtures (4-argument form) ---
 

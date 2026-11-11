@@ -193,7 +193,7 @@ may use the semantic gradient ring, and Pro may use the semantic hexagon frame;
 State: Riverpod
 Navigation: go_router with typed routes
 Data: offline-first repository pattern
-Local persistence: Drift, Isar, or similar after the first real data slice is chosen
+Future structured phone offline persistence: Drift + SQLite selected (not yet implemented; see docs/data/DATA_AND_SYNC.md)
 Code generation: freezed + json_serializable
 HTTP/API: dio when remote APIs are introduced
 Design system: Material 3 Expressive direction through `apps/core` tokens and components
@@ -236,6 +236,7 @@ melos test
 Start here:
 
 - [Documentation index](docs/README.md)
+- [Design guide](DESIGN.md)
 - [Architecture](docs/architecture/ARCHITECTURE.md)
 - [AI context and active tasks](.ai/README.md)
 - [Onboarding flow architecture](docs/architecture/ONBOARDING_ARCHITECTURE.md)

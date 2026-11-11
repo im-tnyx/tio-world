@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/models/routine_composition_limits.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
@@ -90,6 +91,15 @@ final class RoutineEditorController extends ChangeNotifier {
   /// Name-only updates never rewrite or validate historical Set rows.
   bool get updateExceedsSetLimit => _compositionDirty && exceedsSetLimit;
 
+  /// Whether any Exercise in the draft currently violates the Warm-up ordering invariant.
+  bool get hasInvalidSetOrder => _draft.any(
+      (entry) => !RoutineCompositionLimits.hasValidSetOrder(
+            entry.sets.map((s) => s.prescription),
+          ));
+
+  /// Name-only updates never rewrite or validate historical Set rows.
+  bool get updateHasInvalidSetOrder => _compositionDirty && hasInvalidSetOrder;
+
   List<RoutineCompositionEntry> _baseline = const [];
   List<RoutineCompositionEntry> _draft = const [];
   String _baselineName = '';
@@ -97,6 +107,7 @@ final class RoutineEditorController extends ChangeNotifier {
   // Selected Custom definition per newly added/replaced entry. Historical
   // entries have no such snapshot: validate their stored target shape.
   final Map<String, ExerciseType?> _pickedCustomTypes = {};
+  final Map<String, RoutineRestTimerPreset> _restPresets = {};
   int _revision = 0;
   RoutineCompositionSave? _uncertainCommand;
   RoutineAggregateUpdate? _uncertainAggregateCommand;
@@ -160,6 +171,13 @@ final class RoutineEditorController extends ChangeNotifier {
       _baseline = current.entries;
       _draft = current.entries;
       _pickedCustomTypes.clear();
+      _restPresets.clear();
+      for (final entry in current.entries) {
+        final preset = RoutineRestTimerPreset.fromPrescriptions(entry.sets.map((s) => s.prescription));
+        if (!preset.isOff) {
+          _restPresets[entry.id] = preset;
+        }
+      }
       _revision = current.revision;
       _uncertainCommand = null;
       _uncertainAggregateCommand = null;
@@ -210,6 +228,7 @@ final class RoutineEditorController extends ChangeNotifier {
     final newId = _newUuid();
     final setId = _newUuid();
     _pickedCustomTypes.remove(entryId);
+    _restPresets.remove(entryId);
     if (exercise.ref is UserCreatedExerciseRef) {
       _pickedCustomTypes[newId] = exercise.exerciseType;
     }
@@ -230,6 +249,7 @@ final class RoutineEditorController extends ChangeNotifier {
     if (!_state.canEdit || !_draft.any((e) => e.id == entryId)) return false;
     _setDraft(_draft.where((e) => e.id != entryId).toList());
     _pickedCustomTypes.remove(entryId);
+    _restPresets.remove(entryId);
     return true;
   }
 
@@ -246,6 +266,54 @@ final class RoutineEditorController extends ChangeNotifier {
     return true;
   }
 
+  RoutineRestTimerPreset getExerciseRestPreset(String entryId) {
+    return _restPresets[entryId] ?? const RoutineRestTimerPreset();
+  }
+
+  bool configureExerciseRestTimer(
+    String entryId, {
+    required int? normalRestSeconds,
+    required int? warmUpRestSeconds,
+  }) {
+    if (!_state.canEdit) return false;
+    final index = _draft.indexWhere((e) => e.id == entryId);
+    if (index < 0) return false;
+    final entry = _draft[index];
+    final preset = RoutineRestTimerPreset(
+      normalRestSeconds: normalRestSeconds,
+      warmUpRestSeconds: warmUpRestSeconds,
+    );
+    _restPresets[entryId] = preset;
+
+    final updatedSets = [
+      for (final s in entry.sets)
+        RoutineCompositionSet(
+          id: s.id,
+          prescription: SetPrescription(
+            reps: s.prescription.reps,
+            repsMax: s.prescription.repsMax,
+            setType: s.prescription.setType,
+            loadKg: s.prescription.loadKg,
+            distanceMeters: s.prescription.distanceMeters,
+            durationSeconds: s.prescription.durationSeconds,
+            restSeconds: preset.isOff
+                ? s.prescription.restSeconds
+                : preset.effectiveRestFor(s.prescription.setType),
+          ),
+        ),
+    ];
+
+    _replaceEntry(
+      index,
+      RoutineCompositionEntry(
+        id: entry.id,
+        exercise: entry.exercise,
+        sets: updatedSets,
+      ),
+    );
+    return true;
+  }
+
   String? addSet(String entryId, SetPrescription prescription) {
     if (!_state.canEdit) return null;
     final index = _draft.indexWhere((e) => e.id == entryId);
@@ -259,22 +327,34 @@ final class RoutineEditorController extends ChangeNotifier {
         current.sets.first.prescription.isRepRange;
     // Existing-Routine Edit must not introduce a fixed Set into an Exercise
     // containing ranged Sets, which the canonical RPC correctly rejects.
+    final preset = getExerciseRestPreset(current.id);
+    final effectiveRest = preset.isOff
+        ? prescription.restSeconds
+        : preset.effectiveRestFor(prescription.setType);
     final initial = SetPrescription(
       reps: prescription.reps,
-      repsMax: range ? prescription.reps : null,
-      setType: RoutineSetType.normal,
+      repsMax: range ? (prescription.repsMax ?? prescription.reps) : null,
+      setType: prescription.setType,
       loadKg: prescription.loadKg,
       distanceMeters: prescription.distanceMeters,
       durationSeconds: prescription.durationSeconds,
-      restSeconds: prescription.restSeconds,
+      restSeconds: effectiveRest,
     );
+    final newSet = RoutineCompositionSet(id: id, prescription: initial);
+    final nextSets = [...current.sets];
+    if (initial.setType == RoutineSetType.warmUp) {
+      final lastWarmUp = nextSets.lastIndexWhere(
+        (s) => s.prescription.setType == RoutineSetType.warmUp,
+      );
+      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
+      nextSets.insert(insertIndex, newSet);
+    } else {
+      nextSets.add(newSet);
+    }
     _replaceEntry(index, RoutineCompositionEntry(
       id: current.id,
       exercise: current.exercise,
-      sets: [
-        ...current.sets,
-        RoutineCompositionSet(id: id, prescription: initial),
-      ],
+      sets: nextSets,
     ));
     return id;
   }
@@ -286,15 +366,32 @@ final class RoutineEditorController extends ChangeNotifier {
     final entry = _draft[index];
     final setIndex = entry.sets.indexWhere((s) => s.id == setId);
     if (setIndex < 0) return false;
-    final next = [...entry.sets];
-    next[setIndex] = RoutineCompositionSet(
+    final current = entry.sets[setIndex];
+
+    final updated = RoutineCompositionSet(
       id: setId,
       prescription: prescription,
     );
+
+    final wasWarmUp = current.prescription.setType == RoutineSetType.warmUp;
+    final isWarmUp = prescription.setType == RoutineSetType.warmUp;
+
+    final nextSets = [...entry.sets];
+    if (wasWarmUp == isWarmUp) {
+      nextSets[setIndex] = updated;
+    } else {
+      nextSets.removeAt(setIndex);
+      final lastWarmUp = nextSets.lastIndexWhere(
+        (s) => s.prescription.setType == RoutineSetType.warmUp,
+      );
+      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
+      nextSets.insert(insertIndex, updated);
+    }
+
     _replaceEntry(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
-      sets: next,
+      sets: nextSets,
     ));
     return true;
   }
@@ -345,6 +442,43 @@ final class RoutineEditorController extends ChangeNotifier {
     return true;
   }
 
+  /// Classification belongs to an identified Set; preserves target values and
+  /// maintains the Warm-up ordering invariant (all Warm-up sets must precede
+  /// non-Warm-up sets).
+  bool changeSetType(String entryId, String setId, RoutineSetType type) {
+    if (!_state.canEdit) return false;
+    final index = _draft.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final entry = _draft[index];
+    final currentSetIndex = entry.sets.indexWhere((set) => set.id == setId);
+    if (currentSetIndex < 0) return false;
+    final current = entry.sets[currentSetIndex];
+    final p = current.prescription;
+    if (p.setType == type) return true;
+
+    final preset = getExerciseRestPreset(entryId);
+    final int? newRestSeconds;
+    if (!preset.isOff) {
+      newRestSeconds = preset.effectiveRestFor(type);
+    } else {
+      newRestSeconds = p.restSeconds;
+    }
+
+    return editSet(
+      entryId,
+      setId,
+      SetPrescription(
+        reps: p.reps,
+        repsMax: p.repsMax,
+        setType: type,
+        loadKg: p.loadKg,
+        distanceMeters: p.distanceMeters,
+        durationSeconds: p.durationSeconds,
+        restSeconds: newRestSeconds,
+      ),
+    );
+  }
+
   bool moveSet(String entryId, int from, int to) {
     if (!_state.canEdit) return false;
     final index = _draft.indexWhere((e) => e.id == entryId);
@@ -357,6 +491,11 @@ final class RoutineEditorController extends ChangeNotifier {
     }
     final reordered = [...entry.sets];
     reordered.insert(to, reordered.removeAt(from));
+    if (!RoutineCompositionLimits.hasValidSetOrder(
+      reordered.map((s) => s.prescription),
+    )) {
+      return false;
+    }
     _replaceEntry(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
@@ -386,6 +525,12 @@ final class RoutineEditorController extends ChangeNotifier {
     }
     if (_compositionDirty && exceedsSetLimit) {
       _publish(_ready(message: 'Reduce each Exercise to at most 8 Sets before Update.'));
+      return false;
+    }
+    if (_compositionDirty && hasInvalidSetOrder) {
+      _publish(_ready(
+        message: 'Warm-up sets must appear at the beginning of each Exercise.',
+      ));
       return false;
     }
     if (!_state.dirty) {
@@ -496,6 +641,18 @@ final class RoutineEditorController extends ChangeNotifier {
     // runs on a Flutter frame, so disposal alone is not a write capability.
     if (!_authorized) return false;
     final compositionDirty = _compositionDirty;
+    if (compositionDirty) {
+      for (final entry in _draft) {
+        if (!RoutineCompositionLimits.hasValidSetOrder(
+          entry.sets.map((s) => s.prescription),
+        )) {
+          _publish(_ready(
+            message: 'Warm-up sets must appear at the beginning of each Exercise.',
+          ));
+          return false;
+        }
+      }
+    }
     final nameDirty = _nameDirty;
     final mutationId = _newUuid();
     final command = nameDirty

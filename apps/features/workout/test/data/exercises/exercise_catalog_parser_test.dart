@@ -24,8 +24,12 @@ Map<String, Object?> syntheticRow({
       'isCustom': false,
     };
 
-Map<String, Object?> withField(String key, Object? value) =>
-    syntheticRow()..[key] = value;
+Map<String, Object?> withField(
+  String key,
+  Object? value, {
+  String id = 'ex_synthetic_alpha',
+}) =>
+    syntheticRow(id: id)..[key] = value;
 
 Map<String, Object?> withoutField(String key) => syntheticRow()..remove(key);
 
@@ -67,19 +71,48 @@ void main() {
     test('maps optional Exercise Type without inferring it from category', () {
       final old = parser.parse([syntheticRow()]).all.single;
       expect(old.exerciseType, isNull);
-      final typed = parser.parse([
-        withField('exerciseType', ExerciseType.distanceDuration.storageValue),
-      ]).all.single;
+      final typed = parser
+          .parse([
+            withField(
+                'exerciseType', ExerciseType.distanceDuration.storageValue),
+          ])
+          .all
+          .single;
       expect(typed.exerciseType, ExerciseType.distanceDuration);
       expect(typed.category, 'kind_a');
       expect(typed.primaryEquipment, 'gear_a');
     });
 
+    test('maps localized titles and instruction steps', () {
+      final row = syntheticRow(id: 'ex_synthetic_localized')
+        ..['localizedTitles'] = {
+          'en': 'Synthetic Alpha Lift',
+          'hi': 'सिंथेटिक अल्फा लिफ्ट',
+        }
+        ..['localizedInstructions'] = {
+          'en': ['Set up', 'Lift'],
+          'hi': ['तैयार हों', 'उठाएँ'],
+        };
+      final exercise = parser.parse([row]).all.single;
+
+      expect(exercise.localizedTitles, {
+        'en': 'Synthetic Alpha Lift',
+        'hi': 'सिंथेटिक अल्फा लिफ्ट',
+      });
+      expect(exercise.localizedInstructions, {
+        'en': ['Set up', 'Lift'],
+        'hi': ['तैयार हों', 'उठाएँ'],
+      });
+    });
+
     test('accepts all canonical Exercise Type storage values', () {
       for (final kind in ExerciseType.values) {
-        final exercise = parser.parse([
-          withField('exerciseType', kind.storageValue),
-        ]).all.single;
+        final exercise = parser
+            .parse([
+              withField('exerciseType', kind.storageValue),
+            ])
+            .all
+            .single;
         expect(exercise.exerciseType, kind);
       }
     });
@@ -165,6 +198,27 @@ void main() {
         'secondaryMuscles',
       );
       expectSingleIssue(withField('levels', null), 'levels');
+    });
+
+    test('reject malformed localized titles and instructions', () {
+      expectSingleIssue(
+        withField('localizedTitles', {'en': ' '}),
+        'localizedTitles.en',
+      );
+      expectSingleIssue(
+        withField('localizedInstructions', {'en': <Object?>[]}),
+        'localizedInstructions.en',
+      );
+      expectSingleIssue(
+        withField('localizedInstructions', {
+          'en': ['Set up', 3],
+        }),
+        'localizedInstructions.en[1]',
+      );
+      expectSingleIssue(
+        withField('localizedInstructions', 'Set up'),
+        'localizedInstructions',
+      );
     });
 
     test('reject a malformed equipment object', () {

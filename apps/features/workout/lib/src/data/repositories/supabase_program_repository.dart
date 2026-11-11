@@ -26,7 +26,7 @@ final class SupabaseProgramTableGateway implements ProgramTableGateway {
   Future<List<Map<String, dynamic>>> listRows(String userId) async {
     final rows = await _client
         .from('user_workout_programs')
-        .select('id, name')
+        .select('id, name, is_default')
         .eq('user_id', userId)
         .order('created_at');
     return rows;
@@ -69,12 +69,22 @@ final class SupabaseProgramRepository implements ProgramRepository {
     if (userId == null || userId.isEmpty) return const [];
 
     final rows = await _gateway.listRows(userId);
+    if (_currentUserId()?.trim() != userId) {
+      throw StateError('Program owner changed during load.');
+    }
     return List.unmodifiable(rows.map(_programFromRow));
   }
 
   @override
   Future<void> create(Program program) async {
     final userId = _requireUserId();
+    if (program.isDefault) {
+      throw ArgumentError.value(
+        program.isDefault,
+        'isDefault',
+        'canonical default Programs must be created server-side',
+      );
+    }
     await _gateway.insertRow({
       'id': program.id.value,
       'user_id': userId,
@@ -107,9 +117,10 @@ final class SupabaseProgramRepository implements ProgramRepository {
   Program _programFromRow(Map<String, dynamic> row) {
     final id = row['id'];
     final name = row['name'];
-    if (id is! String || name is! String) {
+    final isDefault = row['is_default'];
+    if (id is! String || name is! String || isDefault is! bool) {
       throw const FormatException('Invalid canonical Program row.');
     }
-    return Program(id: ProgramId(id), name: name);
+    return Program(id: ProgramId(id), name: name, isDefault: isDefault);
   }
 }

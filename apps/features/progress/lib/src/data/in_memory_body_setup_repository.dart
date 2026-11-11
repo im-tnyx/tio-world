@@ -8,6 +8,12 @@ class InMemoryBodySetupRepository implements BodyRepository {
 
   final DateTime Function() _now;
   final List<BodyWeightEntry> _weightEntries = <BodyWeightEntry>[];
+  int _nextWeightLogId = 0;
+
+  String _newWeightLogId() {
+    _nextWeightLogId++;
+    return '00000000-0000-4000-8000-${_nextWeightLogId.toString().padLeft(12, '0')}';
+  }
 
   BodySetupData? _data;
   BodyGoalState? _activeGoal;
@@ -33,6 +39,9 @@ class InMemoryBodySetupRepository implements BodyRepository {
         (entry) => entry.source == BodyWeightSources.onboardingSetup,
       );
       final entry = BodyWeightEntry(
+        id: onboardingIndex == -1
+            ? _newWeightLogId()
+            : _weightEntries[onboardingIndex].id,
         weightKg: currentWeight,
         measuredAt: now,
         source: BodyWeightSources.onboardingSetup,
@@ -82,13 +91,90 @@ class InMemoryBodySetupRepository implements BodyRepository {
   @override
   Future<void> recordCurrentWeight(BodyWeightRecord record) async {
     _validateWeightRecord(record);
+    final id = record.submissionId;
+    final note = record.note?.trim();
+    final normalizedNote = note == null || note.isEmpty ? null : note;
+    if (id != null) {
+      for (final saved in _weightEntries.where((entry) => entry.id == id)) {
+        if (saved.weightKg != record.weightKg ||
+            !saved.measuredAt.isAtSameMomentAs(record.measuredAt) ||
+            saved.source != record.source.trim() ||
+            saved.note != normalizedNote) {
+          throw StateError('Weight submission ID belongs to another record.');
+        }
+        return;
+      }
+    }
     _weightEntries.add(
       BodyWeightEntry(
+        id: id ?? _newWeightLogId(),
         weightKg: record.weightKg,
         measuredAt: record.measuredAt.toUtc(),
         source: record.source.trim(),
+        note: normalizedNote,
       ),
     );
+  }
+
+
+  @override
+  Future<BodyWeightHistoryPage> getWeightHistory(
+    BodyWeightHistoryQuery query,
+  ) async {
+    query.validate();
+    final cursor = query.before;
+    final entries = _weightEntries.where((entry) {
+      final id = entry.id!;
+      final time = entry.measuredAt;
+      if (time.isBefore(query.fromInclusive) ||
+          !time.isBefore(query.toExclusive)) {
+        return false;
+      }
+      if (cursor == null) return true;
+      return time.isBefore(cursor.measuredAt) ||
+          (time.isAtSameMomentAs(cursor.measuredAt) &&
+              id.compareTo(cursor.id) < 0);
+    }).toList()
+      ..sort((left, right) {
+        final order = right.measuredAt.compareTo(left.measuredAt);
+        return order != 0 ? order : right.id!.compareTo(left.id!);
+      });
+
+    final hasMore = entries.length > query.limit;
+    final page = List<BodyWeightEntry>.unmodifiable(
+      entries.take(query.limit),
+    );
+    final last = page.isEmpty ? null : page.last;
+    return BodyWeightHistoryPage(
+      entries: page,
+      nextCursor: hasMore && last != null
+          ? BodyWeightHistoryCursor(measuredAt: last.measuredAt, id: last.id!)
+          : null,
+    );
+  }
+
+  @override
+  Future<bool> updateWeightLog(BodyWeightLogEdit edit) async {
+    edit.validate();
+    final index = _weightEntries.indexWhere((entry) => entry.id == edit.id);
+    if (index == -1) return false;
+    final previous = _weightEntries[index];
+    _weightEntries[index] = BodyWeightEntry(
+      id: previous.id,
+      weightKg: edit.weightKg,
+      measuredAt: edit.measuredAt.toUtc(),
+      source: previous.source,
+      note: previous.note,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> deleteWeightLog(String id) async {
+    BodyWeightLogIds.requireValid(id);
+    final before = _weightEntries.length;
+    _weightEntries.removeWhere((entry) => entry.id == id);
+    return _weightEntries.length != before;
   }
 
   @override
@@ -220,7 +306,8 @@ class InMemoryBodySetupRepository implements BodyRepository {
   }
 
   void _validateWeightRecord(BodyWeightRecord record) {
-    if (record.weightKg <= 0) {
+    record.validateNoteAndSubmission();
+    if (!record.weightKg.isFinite || record.weightKg <= 0) {
       throw ArgumentError.value(
         record.weightKg,
         'weightKg',

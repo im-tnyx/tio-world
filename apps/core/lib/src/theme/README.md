@@ -150,6 +150,8 @@ const SizedBox(width: TioSize.dp20);
 
 Do not add arbitrary values “just in case”. A new primitive must be evidenced by current UI or an approved design decision.
 
+`TioSize.dp34` is the owner-approved compact visual height for the Active Workout preview top-bar `Finish` action. It is a feature composition value, not a global `TioButton` height change.
+
 ### Foundation geometry
 
 Use semantic geometry when the role honestly matches:
@@ -565,14 +567,21 @@ Features still own callbacks, navigation, values, keys, domain copy, and intenti
 
 `showTioInformationBottomSheet` is the reusable presenter for standard explanatory/informational content. It owns the modal shell, safe-area handling, close action, icon slot, title/body layout, and governed primary dismiss button. Features supply only the title, message, action label, and optional icon. Do not rebuild a bespoke information sheet when this presenter matches the intent.
 
-`showTioEditorSheet` is the presenter for `TioEditorSheet`, the canonical editable modal. It owns the route-level flags the component depends on — scroll-controlled, no route drag, no Flutter drag handle — and forwards two optional booleans unchanged, both defaulting to Flutter's own `false`:
+`showTioEditorSheet` is the presenter for `TioEditorSheet`, the canonical editable modal. It owns the route-level flags the component depends on — scroll-controlled, no route drag, no Flutter drag handle — and forwards the existing two navigator/safe-area booleans unchanged (both default to Flutter's own `false`) plus an opt-in dismissal policy:
 
 - `useRootNavigator` — a caller inside a nested navigator, such as a `StatefulShellRoute` branch, passes `true` so the barrier covers the chrome outside that branch instead of leaving an app bar action or the bottom navigation live behind the sheet. Core does not choose this: only the caller knows which navigator its editor belongs above.
+- `isDismissible` — defaults to `true`, preserving all existing editor modal barrier behavior. Saving editors may pass `false` to block barrier dismissal, but must provide an explicit close action while idle and a separate `PopScope(canPop: !saving)` to protect system Back during an in-flight save; `TioEditorSheet.canDismiss` only guards its handle and is not sufficient route-level protection.
 - `useSafeArea` — matters more than the name suggests. Left `false`, the route applies `MediaQuery.removePadding(removeTop: true)`, so `TioEditorSheet`'s own `SafeArea` **cannot** bring the top inset back however it is configured, and an editor tall enough to reach the top of a short, split-screen or keyboard-raised viewport puts its handle and title under the status bar or a display cutout. Pass `true` for any editor that can grow that tall. Flutter wraps it as `SafeArea(bottom: false)`, so the component's inner `SafeArea` still owns the bottom and nothing is padded twice.
 
 `TioEditorSheet` keeps its actions pinned below the scroll view, separated by `TioEditorSheetTokens.actionGap`. `flushActions` removes that gap so the action region begins immediately below the body; it defaults to false, so no existing sheet moves. Pass true only when the action region draws its own boundary — a rule across the sheet, for instance — because a gap and a separator say the same thing twice and leave dead space above the line.
 
 `showTioConfirmationBottomSheet` is the reusable presenter for confirm/cancel decisions. It owns the modal shell, safe-area handling, presenter-level `TioConfirmationIntent`, boolean result semantics, and internal `TioCard` + `TioButton` composition. Features supply only the title, message, confirm/cancel labels, optional icon widget, and semantic confirmation intent. Do not rebuild a bespoke confirmation sheet when this presenter matches the intent.
+
+For an owner/session-scoped workflow that can lose authorization while the confirmation is open, callers may pass `activeWhileOpen: ValueListenable<bool>` to either Core confirmation presenter. When it becomes false, the presenter redacts the content and removes **only its own** modal route. Existing callers that omit this optional binding retain their original result and route behavior.
+
+`showTioConfirmationDialog` is the additive **centered** companion to `showTioConfirmationBottomSheet` under GitHub #173. Both presenters share one internal Core confirmation content/action/intent implementation and `true` / `false` / `null` confirm/cancel/dismiss contract. Only the centered dialog uses the existing Routine-approved `TioSize.dp320` card-width cap, `TioCard.elevated` theme, centered text and semantic icon, and scoped `TioSize.dp38` visual action minima with Material's padded accessible tap targets. It scrolls on narrow and large-text viewports. The old bottom-sheet presentation and its existing consumers remain unchanged; new feature consumers opt into the centered presenter individually with owner approval. First adoption: exact-record Progress Weight Delete. Routine Delete's feature-local dialog and all other confirmation consumers remain unchanged until their own migration slices.
+
+`TioWeightWheel` rounds **total canonical/display tenths before splitting whole and decimal drums** on external value synchronization and kg/lb unit switching. For example, canonical ~69.9894 kg from 154.3 lb must visually select `70.0 kg`, not `69.9 kg`; the underlying measurement is not silently rounded for storage.
 
 When a repeated pattern is missing, first ask whether the correct fix is an existing component, reusable variant, or direct governed primitives—not another token file.
 
@@ -636,3 +645,15 @@ theme/
 
 Keep this map and the rules above current whenever the theme system evolves.
 The owner-approved Workout Routine Delete centered confirmation caps its reusable `TioCard.elevated` surface at `TioSize.dp320` (320dp) rather than the former 480dp. The physical value belongs to the common `TioSize` registry; it does not introduce a Routine-specific Core token or change Core Card, generic confirmation presenters or global button geometry. The scoped actions use the existing 38dp visual minimum and retain padded accessible Material touch targets.
+
+## Pinned editor action footer (A3-F)
+
+`TioEditorActionFooter` composes a generic full-width 1dp separator, a bounded leading slot, right-aligned trailing slot, optional caller-owned note, and primary action, without feature domain rules. Supply it as `TioEditorSheet.actions` with `flushActions: true`. `TioEditorFooterAction` preserves the compact 44dp interactive treatment, key-controlled semantics and disabled opacity used by Nutrition's Meal footer. Nutrition still owns meal category selection, stable identities and DateTime policy; Progress owns Notes/Photo and Weight history logic. For anchored date-time use existing `TioDateTimePickerPopup`, not a second wheel.
+
+### Optional status for shell root top bar
+
+`TioShellStatusTopBar` accepts `statusLabel`, `statusKey` and `days` as optional: when the status label/key are absent together, it paints the same governed AppBar geometry without a fabricated status icon or count. Progress root uses this status-absent variant; Workout and Nutrition retain their status labels and streak semantics unchanged. `TioShell.state.isRootTopBarVisible` still gates the header for nested destinations.
+
+### DateTime popup elevation options
+
+`TioDateTimePickerPopup.elevatedCard` defaults to `true`, preserving existing Food editor's `TioCardVariant.elevated` and its shadow. A screen already presenting the anchored wheel over a raised sheet (e.g. Progress Log Weight) may pass `elevatedCard: false` to use one `TioCardVariant.surface` without an extra projected shadow. Only the paint treatment differs: the popup position, wheel, selection highlight, bounds, barrier and semantics are unchanged.

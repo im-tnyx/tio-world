@@ -26,7 +26,7 @@ Preferred mobile defaults:
 - Routing: `go_router`.
 - Networking: `dio`.
 - Models: `freezed` + `json_serializable` where useful.
-- Local database: `drift` or `isar`, chosen per actual need.
+- Future structured offline database for Flutter phones: `drift` over SQLite (selected, not implemented). Follow `docs/data/DATA_AND_SYNC.md`; preserve existing stores until an explicitly approved implementation slice.
 - Secure storage: `flutter_secure_storage`.
 - Monorepo tooling: `melos`.
 

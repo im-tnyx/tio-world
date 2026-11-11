@@ -25,6 +25,47 @@ ProviderContainer _moveContainer(
 ]);
 
 void main() {
+  test('Body A1 repo pins original login cycle and blocks old adapter', () async {
+    const owner = '11111111-1111-4111-8111-111111111111';
+    final c = _moveContainer(
+      _MoveAuth(_moveUser(owner)),
+      const AuthSessionAuthenticated(
+        AuthSession(userId: owner, loginCycleId: 'cycle-a'),
+      ),
+    );
+    addTearDown(c.dispose);
+    await c.read(authSessionStateProvider.future);
+    final stale = c.read(bodyRepositoryProvider);
+    expect(stale, isA<SupabaseBodySetupRepository>());
+
+    // Same user ID, distinct new interactive sign-in cycle.
+    c.read(_moveSessionProvider.notifier).state =
+        const AuthSessionAuthenticated(
+          AuthSession(userId: owner, loginCycleId: 'cycle-b'),
+        );
+    await c.read(authSessionStateProvider.future);
+    final current = c.read(bodyRepositoryProvider);
+    expect(identical(current, stale), isFalse);
+    expect(current, isA<SupabaseBodySetupRepository>());
+
+    // Old adapter must reject before accessing the Supabase query builder.
+    await expectLater(
+      () => stale.getWeightHistory(
+        BodyWeightHistoryQuery(
+          fromInclusive: DateTime.utc(2026, 10, 25),
+          toExclusive: DateTime.utc(2026, 10, 26),
+        ),
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('session'),
+        ),
+      ),
+    );
+  });
+
   test('Move denies missing, mismatched or incomplete authenticated sessions',
       () async {
     const owner = '11111111-1111-4111-8111-111111111111';
@@ -67,6 +108,44 @@ void main() {
     expect(identical(container.read(routineDeleteFlowProvider), flow), isTrue,
         reason: 'Program and Library must share one action single-flight');
   });
+  test('first-Routine QA opt-in requires debug AND explicit define', () {
+    for (final debugMode in <bool>[false, true]) {
+      for (final optedIn in <bool>[false, true]) {
+        expect(
+          firstRoutineQaOptInAllowed(
+            debugMode: debugMode,
+            optedIn: optedIn,
+          ),
+          debugMode && optedIn,
+        );
+      }
+    }
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    expect(container.read(myProgramRoutineCreateReleaseEnabledProvider), isFalse);
+    expect(container.read(myProgramRoutineCreateQaEnabledProvider), isFalse,
+        reason: 'normal test/debug without QA define must remain OFF');
+  });
+
+  test('Move QA opt-in requires debug AND explicit define', () {
+    for (final debugMode in <bool>[false, true]) {
+      for (final optedIn in <bool>[false, true]) {
+        expect(
+          moveRoutineQaOptInAllowed(
+            debugMode: debugMode,
+            optedIn: optedIn,
+          ),
+          debugMode && optedIn,
+        );
+      }
+    }
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    expect(container.read(routineMoveReleaseEnabledProvider), isFalse);
+    expect(container.read(routineMoveQaEnabledProvider), isFalse,
+        reason: 'ordinary debug/profile/release builds must not expose Move');
+  });
+
   test('Move release capability is OFF even with valid auth', () async {
     const owner = '11111111-1111-4111-8111-111111111111';
     final c = _moveContainer(

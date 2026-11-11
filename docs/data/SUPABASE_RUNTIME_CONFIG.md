@@ -1,7 +1,7 @@
 # Supabase Runtime Configuration
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-19
+Last Verified: 2026-10-24
 Owner: `apps/app` startup + Supabase platform
 Truth Boundary: Authoritative for client-safe Supabase runtime configuration requirements; source/config prove actual bootstrap behavior and release values.
 
@@ -52,39 +52,43 @@ configuration; for an installable QA APK, build explicitly from `apps/app`:
 flutter build apk --debug --dart-define-from-file=.runtime.qa.json
 ```
 
-## Manual iOS physical-device QA build
+## Manual mobile QA artifacts
 
-The **iOS UI Build** workflow remains `workflow_dispatch` only and defaults to
-`ui_only`, which does not require Supabase configuration. For an authenticated
-QA artifact, the owner manually selects `qa_login` and configures these GitHub
-repository Actions secrets:
+The **Tio Mobile QA Build** workflow uses only `workflow_dispatch`. The owner
+selects `android` for a debug APK or `ios` for an unsigned profile IPA. Both
+jobs require QA login configuration and use these existing GitHub repository
+Actions secrets:
 
 ```text
 TIO_IOS_QA_SUPABASE_URL
 TIO_IOS_QA_SUPABASE_PUBLISHABLE_KEY
 ```
 
-The workflow reads them only in the `qa_login`-gated step, validates an HTTPS
-Supabase project endpoint and the `sb_publishable_` key type, rejects
-privileged/service-role values, then creates a restrictive temporary
-`--dart-define-from-file` JSON under `$RUNNER_TEMP`. It removes the file after
-the build and does not log, cache, commit, or upload it. The ignored local
-`apps/app/.runtime.qa.json` file is not available to GitHub Actions and is not
-used by this iOS workflow.
+The iOS-prefixed names are historical and intentionally reused for both jobs
+to avoid breaking the configured QA setup. Only the selected job reads them.
+The shared validator requires an HTTPS Supabase project endpoint and an
+`sb_publishable_` key, rejects privileged/service-role values, and fails before
+build when either input is missing or invalid. It creates a mode-0600
+`--dart-define-from-file` JSON under `$RUNNER_TEMP`; cleanup runs after the
+build, including on failure. It is not printed, cached, committed or uploaded.
+The ignored local `apps/app/.runtime.qa.json` is still used by local Android
+Studio/CLI builds only and is not available to GitHub Actions.
 
 GitHub Secrets protect the build-time inputs; the URL and publishable key are
-embedded in the app and can be extracted from the compiled IPA. Configure only
+embedded in the app and can be extracted from either compiled artifact. Configure only
 an isolated QA Supabase project and a client-safe publishable key. The workflow
 can validate endpoint syntax but cannot infer whether a project is truly QA or
 production, so the owner must ensure the secret points to the QA project. Never
 configure a service-role, `sb_secret_`, Apple, OAuth, or account credential.
-Enter the existing QA account's email/password only on the iPhone during the
-manual smoke test.
+Enter an existing QA account's email/password only on the test phone during the
+manual smoke test. An Android debug build can retain the app's existing
+initialization-failure fallback; the supplied defines alone do not prove login.
 
 The workflow file must first exist on the default branch for GitHub to offer
-manual dispatch. After PR #608 is merged, select the
-`tnyx/ios-free-device-ui-testing` branch in the Run workflow selector and
-manually dispatch the workflow.
+manual dispatch. Use **Actions → Tio Mobile QA Build → Run workflow**, choose
+the intended branch and platform, then verify the download's checksum and
+provenance. See [the app QA runbook](../../apps/app/README.md) for Android
+installation and Windows-side iOS signing.
 
 ## Legacy compatibility
 

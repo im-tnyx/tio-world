@@ -1,6 +1,8 @@
 export 'routine_composition_limits.dart';
+export 'routine_rest_timer_preset.dart';
 export 'workout_duration.dart';
 export 'workout_equipment.dart';
+export 'workout_execution_readiness.dart';
 export 'workout_experience_level.dart';
 export 'workout_focus_area.dart';
 export 'workout_gym_access.dart';
@@ -9,3 +11,9 @@ export 'workout_split.dart';
 export 'workout_target_goal.dart';
 export 'workout_targets_data.dart';
 export 'workout_training_day.dart';
+export 'workout_session_record.dart';
+export 'workout_title_resolver.dart';
+export 'gym_location.dart';
+export 'active_workout_draft.dart';
+export 'workout_routine_start_request.dart';
+export 'workout_save_metadata_limits.dart';

@@ -11,6 +11,20 @@ import 'programs_controller.dart';
 
 enum _ProgramsSurfaceMode { standalone, library }
 
+/// Library owns the pull gesture. The mounted Programs surface performs the
+/// same content-preserving reread used by background refresh.
+final class LibraryProgramsRefresh {
+  Future<void> Function()? _action;
+
+  void attach(Future<void> Function() action) => _action = action;
+
+  void detach(Future<void> Function() action) {
+    if (identical(_action, action)) _action = null;
+  }
+
+  Future<void> call() => _action?.call() ?? Future<void>.value();
+}
+
 /// Reusable persisted user-Program collection presentation.
 ///
 /// The standalone mode backs `ProgramsPage`. The Library mode renders the same
@@ -28,22 +42,27 @@ class ProgramsSurface extends StatefulWidget {
         onManagePressed = null,
         onProgramPressed = null,
         onRoutinePressed = null,
+        onStartRoutinePressed = null,
         onEditRoutine = null,
         onMoveRoutine = null,
         onDeleteRoutine = null,
+        onDeleteProgram = null,
         actionSheetGuard = null,
         onAddRoutinePressed = null,
         hasUnconfirmedCreate = null,
-        routineRepository = null;
+        routineRepository = null,
+        pullRefresh = null;
 
   const ProgramsSurface.library({
     required this.repository,
     required this.onManagePressed,
     this.onProgramPressed,
     this.onRoutinePressed,
+    this.onStartRoutinePressed,
     this.onEditRoutine,
     this.onMoveRoutine,
     this.onDeleteRoutine,
+    this.onDeleteProgram,
     this.actionSheetGuard,
     this.onAddRoutinePressed,
     this.hasUnconfirmedCreate,
@@ -52,26 +71,35 @@ class ProgramsSurface extends StatefulWidget {
     this.moveRefreshSignal,
     this.moveRefreshOwnerId,
     this.moveRefreshLoginCycleId,
+    this.pullRefresh,
     super.key,
   }) : _mode = _ProgramsSurfaceMode.library;
 
   final ProgramRepository? repository;
   final ProgramIdGenerator? idGenerator;
+
   /// App-only owner/login-cycle bound invalidation, never Move success truth.
   final RoutineMoveRefreshSignal? moveRefreshSignal;
   final String? moveRefreshOwnerId;
   final String? moveRefreshLoginCycleId;
+
+  /// Set only by Library. Standalone Programs does not own this gesture.
+  final LibraryProgramsRefresh? pullRefresh;
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
+
   /// Program-scoped uncertain save flag scoped by caller auth/login-cycle.
   final bool Function(Program)? hasUnconfirmedCreate;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+  final Future<void> Function(Program, Routine)? onStartRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+
   /// Optional Move capability; production app shell does not inject it yet.
   final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
+  final Future<bool> Function(Program)? onDeleteProgram;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final RoutineRepository? routineRepository;
 
@@ -81,16 +109,19 @@ class ProgramsSurface extends StatefulWidget {
 
 class _ProgramsSurfaceState extends State<ProgramsSurface> {
   ProgramsController? _controller;
-  // The list child unmounts while ProgramsController publishes loading.
-  // Keep the view-only collapse state in this stable, owner-scoped parent.
+  // Preserve owner-scoped expansion and presentation-only load activity here.
   final Set<ProgramId> _collapsedPrograms = <ProgramId>{};
+  final Set<ProgramId> _loadingRoutinePrograms = <ProgramId>{};
   int _routineRefreshVersion = 0;
   bool _openingAddRoutine = false;
+  final Set<ProgramId> _openingProgramActions = <ProgramId>{};
 
   void _toggleExpanded(ProgramId id) {
     setState(() {
       if (!_collapsedPrograms.add(id)) {
         _collapsedPrograms.remove(id);
+      } else {
+        _loadingRoutinePrograms.remove(id);
       }
     });
   }
@@ -99,6 +130,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   void initState() {
     super.initState();
     widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    widget.pullRefresh?.attach(_refreshFromPull);
     _bindController();
   }
 
@@ -108,6 +140,10 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     if (!identical(oldWidget.moveRefreshSignal, widget.moveRefreshSignal)) {
       oldWidget.moveRefreshSignal?.removeListener(_onMoveRefresh);
       widget.moveRefreshSignal?.addListener(_onMoveRefresh);
+    }
+    if (!identical(oldWidget.pullRefresh, widget.pullRefresh)) {
+      oldWidget.pullRefresh?.detach(_refreshFromPull);
+      widget.pullRefresh?.attach(_refreshFromPull);
     }
     if (!identical(oldWidget.repository, widget.repository) ||
         !identical(oldWidget.idGenerator, widget.idGenerator) ||
@@ -121,6 +157,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     // Controller rebind covers repository/owner/login-cycle changes. Never
     // carry a former account's Program view preferences into a new session.
     _collapsedPrograms.clear();
+    _loadingRoutinePrograms.clear();
     _controller
       ?..removeListener(_onControllerChanged)
       ..dispose();
@@ -141,15 +178,44 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   }
 
   void _onControllerChanged() {
+    final state = _controller?.state;
+    if (state == null ||
+        (state.status != ProgramsStatus.ready &&
+            state.status != ProgramsStatus.refreshing)) {
+      _loadingRoutinePrograms.clear();
+    } else {
+      final visible = state.programs.map((program) => program.id).toSet();
+      _loadingRoutinePrograms.removeWhere(
+        (id) => !visible.contains(id) || _collapsedPrograms.contains(id),
+      );
+    }
     if (mounted) setState(() {});
+  }
+
+  void _onRoutineLoadingChanged(ProgramId programId, bool loading) {
+    final state = _controller?.state;
+    if (!mounted ||
+        state == null ||
+        (state.status != ProgramsStatus.ready &&
+            state.status != ProgramsStatus.refreshing) ||
+        _collapsedPrograms.contains(programId) ||
+        !state.programs.any((program) => program.id == programId)) {
+      return;
+    }
+    final changed = loading
+        ? _loadingRoutinePrograms.add(programId)
+        : _loadingRoutinePrograms.remove(programId);
+    if (changed) setState(() {});
   }
 
   void _onMoveRefresh() {
     final signal = widget.moveRefreshSignal;
-    if (!mounted || signal == null || !signal.matches(
-      ownerId: widget.moveRefreshOwnerId,
-      loginCycleId: widget.moveRefreshLoginCycleId,
-    )) {
+    if (!mounted ||
+        signal == null ||
+        !signal.matches(
+          ownerId: widget.moveRefreshOwnerId,
+          loginCycleId: widget.moveRefreshLoginCycleId,
+        )) {
       return;
     }
     // Existing Move leaves Program membership unchanged: refresh expanded
@@ -157,13 +223,21 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     // Create+Move may have created a Program, so re-read that collection too.
     if (signal.programsMayHaveChanged) {
       _controller?.load();
-    } else {
-      setState(() => _routineRefreshVersion++);
     }
+    setState(() => _routineRefreshVersion++);
+  }
+
+  Future<void> _refreshFromPull() async {
+    if (!mounted) return;
+    // Expanded Routine lists reread with the Program collection. Verified
+    // rows stay mounted while both reads are in flight.
+    setState(() => _routineRefreshVersion++);
+    await _controller?.load();
   }
 
   @override
   void dispose() {
+    widget.pullRefresh?.detach(_refreshFromPull);
     widget.moveRefreshSignal?.removeListener(_onMoveRefresh);
     _controller
       ?..removeListener(_onControllerChanged)
@@ -189,7 +263,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
   Future<void> _openAddRoutine(Program program) async {
     final open = widget.onAddRoutinePressed;
-    if (_openingAddRoutine || open == null ||
+    if (_openingAddRoutine ||
+        open == null ||
         (widget.hasUnconfirmedCreate?.call(program) ?? false)) {
       return;
     }
@@ -213,9 +288,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
     final controller = _controller;
     await onManagePressed();
-    if (controller == null ||
-        !mounted ||
-        !identical(controller, _controller)) {
+    if (controller == null || !mounted || !identical(controller, _controller)) {
       return;
     }
     await controller.load();
@@ -241,76 +314,132 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   }
 
   Future<void> _openProgramActions(Program program) async {
+    if (_openingProgramActions.contains(program.id)) return;
     final pendingSave = widget.hasUnconfirmedCreate?.call(program) ?? false;
-    var addRequested = false;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: TioSheet(
-          key: const ValueKey('program-actions-sheet'),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                program.name,
-                key: const ValueKey('program-actions-title'),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                      color: sheetContext.tioColors.textPrimary,
-                    ),
-              ),
-              const SizedBox(height: TioSpacing.lg),
-              TioGroupCard(
-                children: [
-                  TioSettingsNavigationRow(
-                    key: const ValueKey('program-action-edit'),
-                    leading: const TioSettingsLeadingIcon(
-                      icon: Icons.edit_outlined,
-                    ),
-                    title: 'Edit Program',
-                    supportingText: 'Rename this Program',
-                    showChevron: false,
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      await _openRename(program);
-                    },
+    final refreshing = _controller?.state.status == ProgramsStatus.refreshing;
+    // The sheet can outlive an owner or login-cycle rebind. Dispatch only
+    // while this same controller and session are still current.
+    final controller = _controller;
+    final ownerId = widget.moveRefreshOwnerId;
+    final loginCycleId = widget.moveRefreshLoginCycleId;
+    _openingProgramActions.add(program.id);
+    try {
+      // Use the same Core editor-sheet and outlined option-card treatment as
+      // Routine options; only the available Program-owned actions differ.
+      final selected = await showTioEditorSheet<_ProgramAction>(
+        context: context,
+        useSafeArea: true,
+        builder: (sheetContext) {
+          final sheet = TioEditorSheet(
+            key: const ValueKey('program-actions-sheet'),
+            title: program.name,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.onProgramPressed != null) ...[
+                  _ProgramActionOption(
+                    key: const ValueKey('program-action-open'),
+                    label: 'Open Program',
+                    icon: Icons.open_in_new_rounded,
+                    onTap: () =>
+                        Navigator.of(sheetContext).pop(_ProgramAction.open),
                   ),
-                  if (widget.onAddRoutinePressed != null)
-                    TioSettingsNavigationRow(
-                      key: const ValueKey('program-action-add-routine'),
-                      leading: const TioSettingsLeadingIcon(
-                        icon: Icons.add_rounded,
-                      ),
-                      title: 'Add New Routine',
-                      titleColor: pendingSave || _openingAddRoutine
-                          ? sheetContext.tioColors.textMuted
-                          : null,
-                      supportingText: pendingSave
-                          ? 'Check the previous save in Program'
-                          : _openingAddRoutine
-                              ? 'Another Routine is opening'
-                              : 'Create in this Program',
-                      showChevron: false,
-                      onTap: _openingAddRoutine || pendingSave ? null : () {
-                        addRequested = true;
-                        Navigator.of(sheetContext).pop();
-                      },
-                    ),
+                  const SizedBox(height: TioSpacing.sm),
                 ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    // The bottom-sheet transition must finish before the shell tests whether
-    // Library is still the current route and launches canonical Create.
-    if (addRequested && mounted) await _openAddRoutine(program);
+                _ProgramActionOption(
+                  key: const ValueKey('program-action-edit'),
+                  label: 'Edit Program',
+                  icon: Icons.edit_outlined,
+                  enabled: !refreshing,
+                  onTap: refreshing
+                      ? null
+                      : () =>
+                          Navigator.of(sheetContext).pop(_ProgramAction.edit),
+                ),
+                if (widget.onAddRoutinePressed != null) ...[
+                  const SizedBox(height: TioSpacing.sm),
+                  _ProgramActionOption(
+                    key: const ValueKey('program-action-add-routine'),
+                    label: 'Add New Routine',
+                    icon: Icons.add_rounded,
+                    onTap: pendingSave || _openingAddRoutine || refreshing
+                        ? null
+                        : () => Navigator.of(sheetContext)
+                            .pop(_ProgramAction.addRoutine),
+                    supportingText: pendingSave
+                        ? 'Check the previous save in Program'
+                        : _openingAddRoutine
+                            ? 'Another Routine is opening'
+                            : null,
+                    enabled: !pendingSave && !_openingAddRoutine && !refreshing,
+                  ),
+                ],
+                if (!program.isDefault && widget.onDeleteProgram != null) ...[
+                  const SizedBox(height: TioSpacing.sm),
+                  _ProgramActionOption(
+                    key: const ValueKey('program-action-delete'),
+                    label: 'Delete Program',
+                    icon: Icons.delete_outline_rounded,
+                    destructive: true,
+                    enabled: !refreshing,
+                    onTap: refreshing
+                        ? null
+                        : () => Navigator.of(sheetContext)
+                            .pop(_ProgramAction.delete),
+                  ),
+                ],
+              ],
+            ),
+          );
+          return widget.actionSheetGuard?.call(sheetContext, sheet) ?? sheet;
+        },
+      );
+
+      if (!_sameProgramSession(controller, ownerId, loginCycleId)) return;
+      final live = _visibleProgram(controller, program.id);
+      if (live == null) return;
+      switch (selected) {
+        case _ProgramAction.open:
+          await _openProgram(live);
+        case _ProgramAction.edit:
+          await _openRename(live);
+        case _ProgramAction.addRoutine:
+          await _openAddRoutine(live);
+        case _ProgramAction.delete:
+          final deleted = await widget.onDeleteProgram?.call(live) ?? false;
+          if (deleted && mounted) {
+            setState(() => _routineRefreshVersion++);
+            await _controller?.load();
+          }
+        case null:
+          break;
+      }
+    } finally {
+      _openingProgramActions.remove(program.id);
+    }
+  }
+
+  bool _sameProgramSession(
+    ProgramsController? controller,
+    String? ownerId,
+    String? loginCycleId,
+  ) =>
+      mounted &&
+      identical(controller, _controller) &&
+      widget.moveRefreshOwnerId == ownerId &&
+      widget.moveRefreshLoginCycleId == loginCycleId;
+
+  Program? _visibleProgram(ProgramsController? controller, ProgramId id) {
+    final state = controller?.state;
+    if (state == null ||
+        (state.status != ProgramsStatus.ready &&
+            state.status != ProgramsStatus.refreshing)) {
+      return null;
+    }
+    for (final item in state.programs) {
+      if (item.id == id) return item;
+    }
+    return null;
   }
 
   Future<void> _openCreate() async {
@@ -401,6 +530,21 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                     ),
               ),
             ),
+            if (controller?.state.status == ProgramsStatus.loading ||
+                controller?.state.status == ProgramsStatus.refreshing ||
+                _loadingRoutinePrograms.isNotEmpty)
+              const Padding(
+                padding: EdgeInsetsDirectional.only(start: TioSpacing.sm),
+                child: SizedBox(
+                  key: ValueKey('library-programs-refreshing'),
+                  width: TioSize.dp16,
+                  height: TioSize.dp16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: TioStroke.width2,
+                    semanticsLabel: 'Refreshing Programs',
+                  ),
+                ),
+              ),
             const Spacer(),
             IconButton(
               key: const ValueKey('library-programs-create'),
@@ -431,13 +575,14 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
     final state = controller.state;
     switch (state.status) {
       case ProgramsStatus.loading:
-        return const _ProgramsLoading();
+        return embedded ? const SizedBox.shrink() : const _ProgramsLoading();
       case ProgramsStatus.loadFailed:
         return _ProgramsLoadFailure(
           message:
               state.loadError ?? 'Could not load programs. Please try again.',
           onRetry: controller.retryLoad,
         );
+      case ProgramsStatus.refreshing:
       case ProgramsStatus.ready:
         if (state.programs.isEmpty) {
           return _ProgramsEmpty(onCreate: _openCreate);
@@ -448,21 +593,22 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           collapsedPrograms: _collapsedPrograms,
           onToggleExpanded: _toggleExpanded,
           onProgramActions: _openProgramActions,
-          onProgramPressed: widget.onProgramPressed == null
-              ? null
-              : _openProgram,
-          onAddRoutinePressed: widget.onAddRoutinePressed == null
-              ? null
-              : _openAddRoutine,
+          onProgramPressed:
+              widget.onProgramPressed == null ? null : _openProgram,
+          onAddRoutinePressed:
+              widget.onAddRoutinePressed == null ? null : _openAddRoutine,
           routineRepository: widget.routineRepository,
           onRoutinePressed: widget.onRoutinePressed,
-          onEditRoutine: widget.onEditRoutine == null ? null : _editLibraryRoutine,
+          onStartRoutinePressed: widget.onStartRoutinePressed,
+          onEditRoutine:
+              widget.onEditRoutine == null ? null : _editLibraryRoutine,
           onMoveRoutine: widget.onMoveRoutine,
           onDeleteRoutine: widget.onDeleteRoutine,
           actionSheetGuard: widget.actionSheetGuard,
           hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
           isLaunchingRoutine: _openingAddRoutine,
           routineRefreshVersion: _routineRefreshVersion,
+          onRoutineLoadingChanged: _onRoutineLoadingChanged,
         );
     }
   }
@@ -492,6 +638,7 @@ class _ProgramsList extends StatefulWidget {
     required this.onAddRoutinePressed,
     required this.routineRepository,
     required this.onRoutinePressed,
+    required this.onStartRoutinePressed,
     required this.onEditRoutine,
     required this.onMoveRoutine,
     required this.onDeleteRoutine,
@@ -499,6 +646,7 @@ class _ProgramsList extends StatefulWidget {
     required this.hasUnconfirmedCreate,
     required this.isLaunchingRoutine,
     required this.routineRefreshVersion,
+    required this.onRoutineLoadingChanged,
   });
 
   final List<Program> programs;
@@ -509,7 +657,9 @@ class _ProgramsList extends StatefulWidget {
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+  final Future<void> Function(Program, Routine)? onStartRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+
   /// Optional Move capability; production app shell does not inject it yet.
   final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
@@ -518,6 +668,7 @@ class _ProgramsList extends StatefulWidget {
   final bool Function(Program)? hasUnconfirmedCreate;
   final bool isLaunchingRoutine;
   final int routineRefreshVersion;
+  final void Function(ProgramId, bool) onRoutineLoadingChanged;
 
   @override
   State<_ProgramsList> createState() => _ProgramsListState();
@@ -562,9 +713,6 @@ class _ProgramsListState extends State<_ProgramsList> {
           expanded: expanded,
           onToggleExpanded: () => widget.onToggleExpanded(program.id),
           onOverflowPressed: () => widget.onProgramActions(program),
-          onProgramPressed: widget.onProgramPressed == null
-              ? null
-              : () => widget.onProgramPressed!(program),
         ),
       );
       if (expanded) {
@@ -574,9 +722,14 @@ class _ProgramsListState extends State<_ProgramsList> {
             program: program,
             repository: widget.routineRepository,
             refreshVersion: widget.routineRefreshVersion,
+            onLoadingChanged: (loading) =>
+                widget.onRoutineLoadingChanged(program.id, loading),
             onRoutinePressed: widget.onRoutinePressed == null
                 ? null
                 : (routine) => widget.onRoutinePressed!(program, routine),
+            onStartRoutinePressed: widget.onStartRoutinePressed == null
+                ? null
+                : (routine) => widget.onStartRoutinePressed!(program, routine),
             onEditRoutine: widget.onEditRoutine == null
                 ? null
                 : (routine) => widget.onEditRoutine!(program, routine),
@@ -601,7 +754,14 @@ class _ProgramsListState extends State<_ProgramsList> {
         );
       }
       if (index != widget.programs.length - 1) {
-        children.add(const _ProgramsDivider(indented: false));
+        // Owner decision 2026-10-27: no hairline between Library Programs.
+        // xxs is the smallest positive TioSpacing role, so rows keep a gap.
+        children.add(
+          SizedBox(
+            key: ValueKey('library-program-gap-$index'),
+            height: TioSpacing.xxs,
+          ),
+        );
       }
     }
 
@@ -643,13 +803,93 @@ class _StandaloneProgramRow extends StatelessWidget {
   }
 }
 
+enum _ProgramAction { open, edit, addRoutine, delete }
+
+class _ProgramActionOption extends StatelessWidget {
+  const _ProgramActionOption({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.supportingText,
+    this.enabled = true,
+    this.destructive = false,
+    super.key,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final String? supportingText;
+  final bool enabled;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final contentColor = enabled
+        ? (destructive ? colors.danger : colors.textPrimary)
+        : colors.textMuted;
+    return Semantics(
+      container: true,
+      button: true,
+      enabled: enabled,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: TioCard(
+        variant: TioCardVariant.outlined,
+        outlinedBorderWidth: TioCardTokens.borderThin,
+        padding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.md,
+          vertical: TioSpacing.sm,
+        ),
+        onTap: onTap,
+        child: Row(
+          children: [
+            SizedBox(
+              width: TioSize.dp38,
+              height: TioSize.dp38,
+              child: Center(
+                child: Icon(
+                  icon,
+                  color: contentColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: TioSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: contentColor,
+                        ),
+                  ),
+                  if (supportingText != null)
+                    Text(
+                      supportingText!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _LibraryProgramRow extends StatelessWidget {
   const _LibraryProgramRow({
     required this.program,
     required this.expanded,
     required this.onToggleExpanded,
     required this.onOverflowPressed,
-    required this.onProgramPressed,
     super.key,
   });
 
@@ -657,52 +897,45 @@ class _LibraryProgramRow extends StatelessWidget {
   final bool expanded;
   final VoidCallback onToggleExpanded;
   final VoidCallback onOverflowPressed;
-  final VoidCallback? onProgramPressed;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+      // Keep the overflow action at 48dp, but make the expand selection
+      // more compact and avoid adding extra vertical space around the row.
+      padding: EdgeInsets.zero,
       child: Row(
         children: [
-          IconButton(
-            key: ValueKey('program-expand-${program.id.value}'),
-            tooltip:
-                expanded ? 'Collapse ${program.name}' : 'Expand ${program.name}',
-            onPressed: onToggleExpanded,
-            color: colors.textSecondary,
-            padding: EdgeInsets.zero,
-            alignment: AlignmentDirectional.centerStart,
-            constraints: const BoxConstraints.tightFor(
-              width: TioSize.dp48,
-              height: TioSize.dp48,
-            ),
-            icon: Icon(
-              expanded
-                  ? Icons.keyboard_arrow_down_rounded
-                  : Icons.keyboard_arrow_right_rounded,
-            ),
-          ),
           Expanded(
-            child: onProgramPressed == null
-                ? Text(
-                    program.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontWeight: TioFontWeight.w700,
-                      fontSize: TioFontSize.size15,
-                    ),
-                  )
-                : ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: TioSize.dp48),
-                    child: InkWell(
-                      key: ValueKey('program-open-${program.id.value}'),
-                      onTap: onProgramPressed,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
+            child: Tooltip(
+              message: expanded
+                  ? 'Collapse ${program.name}'
+                  : 'Expand ${program.name}',
+              child: InkWell(
+                key: ValueKey('program-expand-${program.id.value}'),
+                onTap: onToggleExpanded,
+                borderRadius: BorderRadius.circular(TioRadius.md),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: TioSize.dp48),
+                  child: Row(
+                    children: [
+                      // Chevron starts at the Library's own leading padding.
+                      // The text and icon form ONE accessible expand target.
+                      SizedBox(
+                        width: TioSize.dp28,
+                        height: TioSize.dp48,
+                        child: Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Icon(
+                            expanded
+                                ? Icons.keyboard_arrow_down_rounded
+                                : Icons.keyboard_arrow_right_rounded,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Expanded(
                         child: Text(
                           program.name,
                           maxLines: 2,
@@ -714,21 +947,30 @@ class _LibraryProgramRow extends StatelessWidget {
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-          ),
-          IconButton(
-            key: ValueKey('program-overflow-${program.id.value}'),
-            tooltip: 'Program actions',
-            onPressed: onOverflowPressed,
-            color: colors.textSecondary,
-            padding: EdgeInsets.zero,
-            alignment: AlignmentDirectional.centerEnd,
-            constraints: const BoxConstraints.tightFor(
-              width: TioSize.dp48,
-              height: TioSize.dp48,
+                ),
+              ),
             ),
-            icon: const Icon(Icons.more_horiz_rounded),
+          ),
+          // Keep the 3-dot's geometry stable and prevent a disabled
+          // child control from falling through to the parent card/header.
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onOverflowPressed,
+            child: IconButton(
+              key: ValueKey('program-overflow-${program.id.value}'),
+              tooltip: 'Program actions',
+              onPressed: onOverflowPressed,
+              color: colors.textSecondary,
+              padding: EdgeInsets.zero,
+              alignment: AlignmentDirectional.centerEnd,
+              constraints: const BoxConstraints.tightFor(
+                width: TioSize.dp48,
+                height: TioSize.dp48,
+              ),
+              icon: const Icon(Icons.more_horiz_rounded),
+            ),
           ),
         ],
       ),
@@ -954,13 +1196,16 @@ class _CreateProgramSheet extends StatefulWidget {
     required this.onSubmit,
     this.currentError,
     this.nameOnly = false,
+    this.submitLabel,
   });
 
   final String initialName;
   final Future<bool> Function(String) onSubmit;
   final String? Function()? currentError;
+
   /// Name-only selection never persists a Program before Create & Move.
   final bool nameOnly;
+  final String? submitLabel;
 
   @override
   State<_CreateProgramSheet> createState() => _CreateProgramSheetState();
@@ -1016,6 +1261,21 @@ class _CreateProgramSheetState extends State<_CreateProgramSheet> {
     });
   }
 
+  String _submitButtonLabel() {
+    final custom = widget.submitLabel;
+    if (custom != null) {
+      if (_saving) {
+        if (custom == 'Save & Move') return 'Saving & Moving...';
+        return 'Saving...';
+      }
+      return custom;
+    }
+    if (widget.nameOnly) {
+      return _saving ? 'Continuing...' : 'Continue';
+    }
+    return _saving ? 'Creating...' : 'Create';
+  }
+
   @override
   Widget build(BuildContext context) {
     final canSubmit = !_saving && _nameController.text.trim().isNotEmpty;
@@ -1041,9 +1301,7 @@ class _CreateProgramSheetState extends State<_CreateProgramSheet> {
         ),
         actions: TioButton.primary(
           key: const ValueKey('program-create-submit'),
-          label: widget.nameOnly
-              ? (_saving ? 'Continuing...' : 'Continue')
-              : (_saving ? 'Creating...' : 'Create'),
+          label: _submitButtonLabel(),
           onPressed: canSubmit ? _submit : null,
         ),
       ),
@@ -1051,23 +1309,25 @@ class _CreateProgramSheetState extends State<_CreateProgramSheet> {
   }
 }
 
-
 /// Reuses the canonical Create Program name editor to return a draft only.
 /// In the Move workflow, this must never call ProgramRepository.create.
 Future<String?> promptCreateProgramName({
   required BuildContext context,
   required String initialName,
   Widget Function(BuildContext, Widget)? modalGuard,
-}) => showTioEditorSheet<String>(
-  context: context,
-  useRootNavigator: true,
-  useSafeArea: true,
-  builder: (sheetContext) {
-    final sheet = _CreateProgramSheet(
-      initialName: initialName,
-      onSubmit: (_) async => true,
-      nameOnly: true,
+  String submitLabel = 'Save & Move',
+}) =>
+    showTioEditorSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        final sheet = _CreateProgramSheet(
+          initialName: initialName,
+          onSubmit: (_) async => true,
+          nameOnly: true,
+          submitLabel: submitLabel,
+        );
+        return modalGuard?.call(sheetContext, sheet) ?? sheet;
+      },
     );
-    return modalGuard?.call(sheetContext, sheet) ?? sheet;
-  },
-);

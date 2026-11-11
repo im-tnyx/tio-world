@@ -16,6 +16,7 @@ class ProgramDetailPage extends StatefulWidget {
     super.key,
     this.newRoutineUuid,
     this.onRoutinePressed,
+    this.onStartRoutinePressed,
     this.onEditRoutine,
     this.onMoveRoutine,
     this.moveRefreshSignal,
@@ -35,15 +36,22 @@ class ProgramDetailPage extends StatefulWidget {
   /// Injected only for deterministic tests; production uses a random UUID v4.
   final String Function()? newRoutineUuid;
   final Future<void> Function(Routine routine)? onRoutinePressed;
+
+  /// Starts a Routine row using the app's owner/session-verified capability.
+  final Future<void> Function(Routine routine)? onStartRoutinePressed;
+
   /// Opens the same verified owner Edit composer as Routine Detail.
   final Future<bool> Function(Routine routine)? onEditRoutine;
+
   /// Optional owner-injected Move; true requests a current Program reread,
   /// not a claim of confirmed server mutation.
   final Future<bool> Function(Routine routine)? onMoveRoutine;
+
   /// Owner/cycle-scoped read invalidation from another visible Program route.
   final RoutineMoveRefreshSignal? moveRefreshSignal;
   final String? moveRefreshOwnerId;
   final String? moveRefreshLoginCycleId;
+
   /// Verified Delete returns true only when the owner-scoped list must refresh.
   final Future<bool> Function(Routine routine)? onDeleteRoutine;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
@@ -53,9 +61,11 @@ class ProgramDetailPage extends StatefulWidget {
   /// unconfirmed exit where the server may already have committed.
   /// Production must never fall back to metadata-only creation.
   final Future<bool> Function(String suggestedName)? onCreateRoutine;
+
   /// Volatile app owner/login-cycle protection, not stored Routine truth.
   final bool Function()? hasUnconfirmedCreate;
   final Future<bool> Function()? onVerifyUnconfirmedCreate;
+
   /// Refresh the disabled Create action when an in-flight RPC settles.
   /// No draft payload or auth credentials cross this notification boundary.
   final Listenable? pendingCreateChanges;
@@ -96,10 +106,12 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
 
   void _onMoveRefresh() {
     final signal = widget.moveRefreshSignal;
-    if (!mounted || signal == null || !signal.matches(
-      ownerId: widget.moveRefreshOwnerId,
-      loginCycleId: widget.moveRefreshLoginCycleId,
-    )) {
+    if (!mounted ||
+        signal == null ||
+        !signal.matches(
+          ownerId: widget.moveRefreshOwnerId,
+          loginCycleId: widget.moveRefreshLoginCycleId,
+        )) {
       return;
     }
     // List reads are authoritative even after an UNKNOWN Move; no success
@@ -114,7 +126,8 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
       oldWidget.moveRefreshSignal?.removeListener(_onMoveRefresh);
       widget.moveRefreshSignal?.addListener(_onMoveRefresh);
     }
-    if (!identical(oldWidget.pendingCreateChanges, widget.pendingCreateChanges)) {
+    if (!identical(
+        oldWidget.pendingCreateChanges, widget.pendingCreateChanges)) {
       oldWidget.pendingCreateChanges?.removeListener(_pendingChanged);
       widget.pendingCreateChanges?.addListener(_pendingChanged);
     }
@@ -170,8 +183,7 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
     final create = widget.onCreateRoutine;
     // No protected atomic Create capability means no Create action.
     // Never expose metadata-only name persistence as a fallback.
-    if (!_canEdit || _hasUnconfirmed ||
-        controller == null || create == null) {
+    if (!_canEdit || _hasUnconfirmed || controller == null || create == null) {
       return;
     }
     final shouldRefresh = await create(controller.suggestedName());
@@ -183,9 +195,11 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   Future<void> _openEditor(Routine routine) async {
     final controller = _controller;
     final edit = widget.onEditRoutine;
-    if (!_canEdit || controller == null || edit == null ||
-        routine.programId != widget.program.id || !
-        controller.state.routines.any((item) => item.id == routine.id)) {
+    if (!_canEdit ||
+        controller == null ||
+        edit == null ||
+        routine.programId != widget.program.id ||
+        !controller.state.routines.any((item) => item.id == routine.id)) {
       return;
     }
     final confirmed = await edit(routine);
@@ -197,7 +211,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   Future<void> _moveRoutine(Routine routine) async {
     final controller = _controller;
     final move = widget.onMoveRoutine;
-    if (!_canEdit || _hasUnconfirmed || controller == null || move == null ||
+    if (!_canEdit ||
+        _hasUnconfirmed ||
+        controller == null ||
+        move == null ||
         routine.programId != widget.program.id ||
         !controller.state.routines.any((item) => item.id == routine.id)) {
       return;
@@ -211,7 +228,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
   Future<void> _deleteRoutine(Routine routine) async {
     final controller = _controller;
     final delete = widget.onDeleteRoutine;
-    if (!_canEdit || _hasUnconfirmed || controller == null || delete == null ||
+    if (!_canEdit ||
+        _hasUnconfirmed ||
+        controller == null ||
+        delete == null ||
         routine.programId != widget.program.id ||
         !controller.state.routines.any((item) => item.id == routine.id)) {
       return;
@@ -249,10 +269,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             key: const ValueKey('program-detail-add-routine'),
             tooltip: 'Add Routine',
             color: colors.textPrimary,
-            onPressed: _canEdit && !_hasUnconfirmed &&
-                    widget.onCreateRoutine != null
-                ? _openCreate
-                : null,
+            onPressed:
+                _canEdit && !_hasUnconfirmed && widget.onCreateRoutine != null
+                    ? _openCreate
+                    : null,
             icon: const Icon(Icons.add_rounded),
           ),
         ],
@@ -281,6 +301,22 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
               ),
               const SizedBox(height: TioSpacing.lg),
             ],
+            if (_controller?.state.status == ProgramRoutinesStatus.refreshing)
+              const Padding(
+                padding: EdgeInsets.only(bottom: TioSpacing.sm),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: SizedBox(
+                    key: ValueKey('program-detail-refreshing'),
+                    width: TioSize.dp16,
+                    height: TioSize.dp16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: TioStroke.width2,
+                      semanticsLabel: 'Refreshing Routines',
+                    ),
+                  ),
+                ),
+              ),
             _body(),
           ],
         ),
@@ -319,7 +355,10 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
             ),
           ],
         );
+      case ProgramRoutinesStatus.refreshing:
       case ProgramRoutinesStatus.ready:
+        final refreshing = state.status == ProgramRoutinesStatus.refreshing;
+        final canShowActions = _canEdit || refreshing;
         if (state.routines.isEmpty) {
           return const _RoutineMessage(
             key: ValueKey('program-routines-empty'),
@@ -335,21 +374,35 @@ class _ProgramDetailPageState extends State<ProgramDetailPage> {
                 padding: const EdgeInsets.only(bottom: TioSpacing.sm),
                 child: RoutineMetadataCard(
                   routine: routine,
-                  supportingText: widget.onRoutinePressed == null
-                      ? null
-                      : 'View Routine',
-                  onTap: _canEdit && widget.onRoutinePressed != null
-                      ? () { widget.onRoutinePressed!(routine); }
+                  supportingText:
+                      widget.onRoutinePressed == null ? null : 'View Routine',
+                  // Keep the trailing overflow slot and read-only navigation
+                  // on a verified same-owner refresh; mutation callbacks stay
+                  // guarded by the controller's _canEdit check.
+                  actionsEnabled: _canEdit,
+                  onTap: canShowActions && widget.onRoutinePressed != null
+                      ? () {
+                          widget.onRoutinePressed!(routine);
+                        }
                       : null,
-                  onEdit: _canEdit && widget.onEditRoutine != null
-                      ? () => _openEditor(routine) : null,
+                  onStartRoutinePressed: widget.onStartRoutinePressed == null
+                      ? null
+                      : () => widget.onStartRoutinePressed!(routine),
+                  startEnabled: _canEdit,
+                  onEdit: canShowActions && widget.onEditRoutine != null
+                      ? () => _openEditor(routine)
+                      : null,
                   actionSheetGuard: widget.actionSheetGuard,
-                  onMove: _canEdit && !_hasUnconfirmed &&
+                  onMove: canShowActions &&
+                          !_hasUnconfirmed &&
                           widget.onMoveRoutine != null
-                      ? () => _moveRoutine(routine) : null,
-                  onDelete: _canEdit && !_hasUnconfirmed &&
+                      ? () => _moveRoutine(routine)
+                      : null,
+                  onDelete: canShowActions &&
+                          !_hasUnconfirmed &&
                           widget.onDeleteRoutine != null
-                      ? () => _deleteRoutine(routine) : null,
+                      ? () => _deleteRoutine(routine)
+                      : null,
                 ),
               ),
           ],
@@ -376,4 +429,3 @@ class _RoutineMessage extends StatelessWidget {
         ),
       );
 }
-

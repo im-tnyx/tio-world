@@ -132,7 +132,7 @@ jobs:
           if [ "${CHECKER_OUTCOME}" = "success" ] && [ "${CHECKER_RC}" = "0" ]; then
             conclusion=success
             title='No prohibited AI attribution'
-            summary='The trusted base-controlled checker found no prohibited AI Co-Authored-By attribution (or an exact owner-approved exception applied). See the Attribution guard runner log.'
+            summary='The trusted base-controlled checker found no Co-authored-by trailer and no AI/agent author, committer, or trailer identity (or an exact owner-approved exception applied). See the Attribution guard runner log.'
           else
             conclusion=failure
             title='Attribution guard failed'

@@ -403,6 +403,64 @@ void main() {
       DateTime.utc(2026, 8, 21, 18),
     );
   });
+
+  test('signed-out weight history stays empty without hitting table', () async {
+    final repo = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: null),
+    );
+    final page = await repo.getWeightHistory(
+      BodyWeightHistoryQuery(
+        fromInclusive: DateTime.utc(2026, 10, 25),
+        toExclusive: DateTime.utc(2026, 10, 26),
+      ),
+    );
+    expect(page.entries, isEmpty);
+    expect(page.nextCursor, isNull);
+    await expectLater(
+      () => repo.updateWeightLog(
+        BodyWeightLogEdit(
+          id: '00000000-0000-4000-8000-000000000001',
+          weightKg: 78,
+          measuredAt: DateTime.utc(2026, 10, 25),
+        ),
+      ),
+      throwsStateError,
+    );
+    await expectLater(
+      () => repo.deleteWeightLog('00000000-0000-4000-8000-000000000001'),
+      throwsStateError,
+    );
+  });
+
+  test('new Supabase history and edit validation rejects before table access',
+      () async {
+    final repo = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+    await expectLater(
+      () => repo.getWeightHistory(
+        BodyWeightHistoryQuery(
+          fromInclusive: DateTime.utc(2026, 10, 25),
+          toExclusive: DateTime.utc(2026, 10, 25),
+        ),
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      () => repo.updateWeightLog(
+        BodyWeightLogEdit(
+          id: '00000000-0000-4000-8000-000000000001',
+          weightKg: double.nan,
+          measuredAt: DateTime.utc(2026, 10, 25),
+        ),
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      () => repo.deleteWeightLog('not-a-uuid'),
+      throwsArgumentError,
+    );
+  });
 }
 
 class _AuthOnlySupabaseClient extends Fake implements SupabaseClient {

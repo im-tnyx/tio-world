@@ -1,14 +1,14 @@
 # Exercises Screen And Exercise Picker
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-10-05
+Last Verified: 2026-10-28
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Exercises screen/picker product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Nested phone Workout flow; never a primary tab
 **Route:** `/workout/exercises` (`AppRoutes.workoutExercises`), nested in the Workout branch
 **Primary owner:** `apps/features/workout`
-**Status (focused current-source verification 2026-10-17, `main@633dbf38`):** The unified bundled + user-owned Exercises screen is implemented and reachable through Workout Home → Library → Exercises (W3A/W3D3). `Custom` rows have a real feature-owned create/edit path; the separate Custom-only collection is retired. The **Routine-context Exercise picker** is also implemented via `RoutineExercisePickerPage` in merged Program-owned Routine Create/Edit (#551), with selection returning to the same guarded unsaved draft and no direct Workout Start. It is distinct from a standalone Exercise Detail destination, which remains gated, as do Favorites/Folders and future catalog capabilities. Implementation on merged `main` does not establish a published app release.
+**Status (focused current-source verification 2026-10-28, local W3B worktree):** The unified bundled + user-owned Exercises screen is implemented and reachable through Workout Home → Library → Exercises (W3A/W3D3). W3B now opens one canonical Exercise Detail/About presentation for catalog and active owner-scoped Custom rows; Custom editing is an explicit owner-only action from Detail. The Routine Create/Edit selection list exposes a separate Info action that opens the same Detail without changing pending selection state. Favorites/Folders and future catalog capabilities remain gated. Implementation on local `main` does not establish a published app release.
 
 ## Custom Exercises Runtime And Corrected Target
 
@@ -20,7 +20,7 @@ Merged W3D3 runtime follows the owner correction from 2026-10-04: there is one c
 └─ bundled catalog Exercise rows
 ```
 
-User-created Exercises must appear on the same canonical Exercises screen as catalog Exercises and remain normal canonical `Exercise` items. A `Custom` badge/tag is presentation metadata derived from identity/source, not a second domain model. Search/filter should compose over both sources where the relevant taxonomy exists. Tapping a Custom row enters its edit flow; successful create/edit returns to the same canonical Exercises surface. Library does not expose a Custom-only collection/state: its selected Exercises category offers **Create Exercise** and **Exercises**, and only the latter screen renders the unified collection. `Recent Exercises` remains capability-gated on real workout-history data and must not be fabricated.
+User-created Exercises must appear on the same canonical Exercises screen as catalog Exercises and remain normal canonical `Exercise` items. A `Custom` badge/tag is presentation metadata derived from identity/source, not a second domain model. Search/filter should compose over both sources where the relevant taxonomy exists. Tapping a Custom row opens the shared Exercise Detail; its overflow action exposes Edit only after the current authenticated owner and active status are revalidated. Library does not expose a Custom-only collection/state: its selected Exercises category offers **Create Exercise** and **Exercises**, and only the latter screen renders the unified collection. `Recent Exercises` remains capability-gated on real workout-history data and must not be fabricated.
 
 The editor itself remains W3D3-owned and exposes required name plus optional description, Exercise Type, Primary muscle, Secondary muscles, and Equipment using the already-live W3D2 persistence contract. Optional single-value selections can be cleared, secondary muscles cannot duplicate the primary muscle, archive requires destructive confirmation, and pending writes keep the editor mounted until their result is known. Media/Storage and execution-measurement semantics remain outside W3D3.
 
@@ -58,11 +58,11 @@ The long-term Exercises capability includes detail, but each slice ships only wh
 ```text
 W3A (TNYX-261)  Exercises route/screen + catalog/list, search, basic filters; no detail destination
 W6A (TNYX-266)  Library route with Workout Home entry; Library -> Exercises makes W3A user-reachable
-W3B (TNYX-262)  Exercise detail; detail navigation becomes available once W3B is ready
+W3B (TNYX-262)  Exercise detail/About for catalog, Custom, and Routine selection Info access
 W3C-W3E         Favorites, Custom Exercises, Folders
 ```
 
-W3A is the capability foundation: it delivers the Exercises route, screen and catalog repository, but has no user-facing entry of its own. The user-facing `Workout Home → Library → Exercises` path arrives with W6A. W3A must not add an interim entry elsewhere (for example a temporary Workout Home shortcut) without owner approval, and must not ship a fake, placeholder or unimplemented detail destination. Until W3B is ready, picker mode confirms a selection from the result list.
+W3A is the capability foundation: it delivers the Exercises route, screen and catalog repository, but has no user-facing entry of its own. The user-facing `Workout Home → Library → Exercises` path arrives with W6A. W3A must not add an interim entry elsewhere (for example a temporary Workout Home shortcut) without owner approval. W3B uses the real canonical Detail page; picker row taps still select/add, while the isolated Info action opens About and returns to the same picker state.
 
 ## Library Exercises Category
 
@@ -94,7 +94,7 @@ Workout Home
   -> Library
   -> Exercises
   -> dedicated Exercises screen (list / search / filters)
-  -> Exercise detail (once W3B is ready)
+  -> canonical Exercise detail/About
 ```
 
 Exercise picker context:
@@ -103,7 +103,7 @@ Exercise picker context:
 Routine or Program builder
   -> add / replace exercise in a selected session
   -> Exercise picker/search
-  -> confirm selection (exercise detail once W3B is ready)
+  -> Info action (optional canonical Exercise detail/About)
   -> return to the owning Routine or Program editor
 ```
 
@@ -124,7 +124,7 @@ W3D2 is merged and live. Canonical `Exercise` supports optional description and 
 
 W3A2a (TNYX-270) landed the bundled catalog boundary. The Workout-owned asset `apps/features/workout/assets/exercises/exercise_catalog.json` is registered in `tio_feature_workout` (asset key `packages/tio_feature_workout/assets/exercises/exercise_catalog.json`). `ExerciseCatalogDocumentDecoder` validates its `schemaVersion` / `catalogVersion` / `exercises` document envelope (supported `schemaVersion`: 1), `AssetBundleExerciseCatalogSource` is the production source over an injected `AssetBundle`, and the W3A1 `ExerciseCatalogParser` and repository remain the canonical row validation and mapping to `Exercise`. Missing-asset, asset-load, invalid-document, unsupported-schema and invalid-row failures are distinct typed exceptions.
 
-The shipped catalog carries the approved text fields (ID, title, muscle group, primary/secondary muscles, primary equipment, category, levels, archived/custom flags). Since TNYX-274 (`catalogVersion` 2, `schemaVersion` still 1) it also carries each row's owner-curated `media` object: `type`, `defaultGender`, optional `videoFallbackGender`, and `male` / `female` variants with `imageUrl`, `thumbnailUrl` and `videoUrl` as full provider URLs (owner-approved and owner-maintained). The owner updates those URLs in the catalog JSON directly. `Exercise.media` exposes them as https-validated URLs. `ExerciseMedia.urlFor` is the single selection rule for phone and watch: the viewer's gender, then `defaultGender`, then `videoFallbackGender` for video, then the other variant, else none (text-only). The app composition root maps the signed-in profile's gender to a media gender (`other` or unknown means none) and supplies it through `exerciseViewerMediaGenderProvider`, because Workout does not read Profile; the consuming controller then selects media through `ExerciseMedia.urlFor`. Phone surfaces may show image and video; watch surfaces show images only. Instructions, standards, icons and provider/source metadata are not shipped, and standards evaluation logic remains deferred. Source/licence/attribution rights for the shipped catalog version are owner-attested, with evidence retained outside the repository; this is not an independent legal verification. The Exercises screen and route are described under [Dedicated Exercises Screen (W3A2b)](#dedicated-exercises-screen-w3a2b); the user-facing Library entry arrived with W6A. Widgets must not read raw JSON directly.
+The shipped catalog carries the approved text fields (ID, title, muscle group, primary/secondary muscles, primary equipment, category, levels, archived/custom flags). Since TNYX-274 it also carries each row's owner-curated `media` object: `type`, `defaultGender`, optional `videoFallbackGender`, and `male` / `female` variants with `imageUrl`, `thumbnailUrl` and `videoUrl` as full provider URLs (owner-approved and owner-maintained). `catalogVersion` is now `4` with `schemaVersion` still `1`; the catalog contains `118` owner-source rows. The owner updates media URLs in the catalog JSON directly. `Exercise.media` exposes them as https-validated URLs. `ExerciseMedia.urlFor` is the single selection rule for phone and watch: the viewer's gender, then `defaultGender`, then `videoFallbackGender` for video, then the other variant, else none (text-only). The app composition root maps the signed-in profile's gender to a media gender (`other` or unknown means none) and supplies it through `exerciseViewerMediaGenderProvider`, because Workout does not read Profile; the consuming controller then selects media through `ExerciseMedia.urlFor`. Phone surfaces may show image and video; watch surfaces show images only. Bundled rows also carry owner-source `localizedTitles` and ordered `localizedInstructions` maps, currently with `en` content, through the canonical `Exercise` read model. Standards, icons and provider/source metadata are not shipped, and standards evaluation logic remains deferred. Source/licence/attribution rights for the shipped catalog version are owner-attested, with evidence retained outside the repository; this is not an independent legal verification. The Exercises screen and route are described under [Dedicated Exercises Screen (W3A2b)](#dedicated-exercises-screen-w3a2b); the user-facing Library entry arrived with W6A. Widgets must not read raw JSON directly.
 
 ## Dedicated Exercises Screen (W3A2b)
 
@@ -133,7 +133,7 @@ W3A2b (TNYX-272) delivered the dedicated screen; W6A (TNYX-266) made it reachabl
 - **Route:** `/workout/exercises` is a child of the Workout branch route, shown on the root navigator above the shell. It covers the bottom navigation and root top bar (`ChromePolicy.noBottomBar`) instead of the shell hiding them, so Workout Home underneath never relayouts during the push or pop transition. The page has a standard AppBar with back. A direct deep link opens the screen with `/workout` beneath it, and the screen follows the same onboarding and App Mode gating as `/workout`, so a mode without the Workout tab is redirected exactly as `/workout` would be.
 - **Ownership:** `apps/features/workout/lib/src/presentation/library/exercises/` owns `ExercisesController` (a `ChangeNotifier` behind `exercisesControllerProvider`), the immutable `ExercisesState`, `ExercisesPage`, the filter sheet and the rows. `exerciseCatalogRepositoryProvider` supplies the bundled `AssetBundleExerciseCatalogSource`. The presentation subtree is co-located with its shipped Library entry, but Library remains a navigation/collection surface: canonical Exercise domain/data ownership stays under the Workout Exercise capability, and the Library root still does not render the catalog.
 - **Search and filters:** the top bar reads back, `Exercises`, a search icon and a filter icon. The search icon swaps the title for a `Search exercises` field; its close action hides the field and clears the text. The field is closed by default, except when opened through Library's search icon or the `?search=true` deep link (`ExercisesPage.startSearching`), which open the screen with the field active and focused. Create Exercise is not an Exercises-page query mode. While search is open, the filter icon is hidden. The filter icon turns the primary color while any filter is active, and its tooltip announces the active count. It opens a sheet with single-select Muscle, Equipment and Category chips, `Clear all` and `Show results`. Choices stay a draft until `Show results`, and dismissing the sheet applies nothing. All matching goes through `ExerciseCatalogQuery`, and search applies as the user types. Filter values come from active Exercises, and labels are sentence-case forms of the taxonomy tokens (for example `Upper arms`, `EZ bar`).
-- **Rows:** one shared row component for both `Custom Exercises` and `All Exercises` sections, with a 56dp media column plus 12dp text gap, Exercise name and `Primary equipment • Muscle group`. Bundled catalog thumbnails are `urlFor(image)`, then `urlFor(thumbnail)`, for the viewer's media gender; absent or failed catalog artwork falls back to text-only during normal browse. A user-created Exercise without approved artwork instead shows a non-persisted Exercise icon in that same 56dp thumbnail position; its `Custom` badge and section header retain source identification. In Routine Add multi-selection, the existing 18dp selected check sits on the upper-right rim of either real artwork or the Custom icon, never at the trailing right edge for Custom. Normal browsing shows no selection check. Bundled catalog rows have no special icon, chevron, favorite/folder action, video or tap behavior until Exercise Detail (W3B) exists. User-created rows retain their existing browse chevron and direct-to-editor navigation until W3B is delivered; the approved future shared About-first navigation is separately tracked in #557. This narrow W4 #556 visual exception does not create another Custom-only screen, picker, data model, or media/Storage pipeline.
+- **Rows:** one shared row component for both `Custom Exercises` and `All Exercises` sections, with a 56dp media column plus 12dp text gap, Exercise name and `Primary equipment • Muscle group`. Bundled catalog thumbnails are `urlFor(image)`, then `urlFor(thumbnail)`, for the viewer's media gender; absent or failed catalog artwork falls back to text-only during normal browse. A user-created Exercise without approved artwork instead shows a non-persisted Exercise icon in that same 56dp thumbnail position; its `Custom` badge and section header retain source identification. In Routine Add multi-selection, the existing 18dp selected check sits on the upper-right rim of either real artwork or the Custom icon, never at the trailing right edge for Custom. Routine picker rows expose a separate trailing Info action; row taps retain selection/add semantics, the selected-state surface spans the full row, and Info does not mutate pending selection. Dedicated catalog and active owner-scoped Custom rows open the canonical Detail; Custom editing is available only as an explicit owner-only Detail action. This narrow W4 #556 visual exception does not create another Custom-only screen, picker, data model, or media/Storage pipeline.
 - **States:** loading, empty catalog, search/filter no-match, missing bundled catalog, malformed catalog (including an unsupported schema version) and unexpected failure. Every failure comes from the bundled asset, so none of them offers Retry.
 
 ## Target Content
@@ -156,8 +156,9 @@ W3A2b (TNYX-272) delivered the dedicated screen; W6A (TNYX-266) made it reachabl
 
 - The dedicated Exercises screen is reached from Library's selected Exercises category only through its **Exercises** action (or search/deep link). **Create Exercise** opens the existing W3D editor directly over Library and returns to Library on back/save. Picker mode is reached only from a Routine/Program exercise-selection context.
 - Both contexts use the same canonical Exercise and catalog repository.
-- W3A exposes no Exercise detail navigation; detail appears only once W3B is ready.
+- W3B exposes one canonical Detail/About presentation from dedicated browsing and Routine Create/Edit picker Info actions.
 - In picker mode, search, filter, selection, and return preserve the editor state safely.
+- Picker row taps still select/add, while Info opens About without changing pending selection.
 - The catalog supports stable IDs and schema validation, with a clear fallback when content cannot load.
 - Text labels and details remain usable without images, colour, or network access.
 

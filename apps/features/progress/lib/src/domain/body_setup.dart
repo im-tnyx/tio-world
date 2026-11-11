@@ -1,3 +1,5 @@
+import 'package:characters/characters.dart';
+
 /// Canonical Body Goal values shared across app modes.
 enum BodyGoalType {
   loseWeight,
@@ -23,6 +25,7 @@ abstract final class BodyWeightSources {
   static const onboardingSetup = 'onboarding_setup';
   static const profileSettings = 'profile_settings';
   static const bodyWeightSettings = 'body_weight_settings';
+  static const manual = 'manual';
 }
 
 /// Post-onboarding Body Goal mutation payload.
@@ -80,9 +83,14 @@ class BodyWeightEntry {
   const BodyWeightEntry({
     required this.weightKg,
     required this.measuredAt,
+    this.id,
     this.source,
+    this.note,
   });
 
+  /// Stable row identity; older current-state consumers may omit it.
+  /// Every entry returned by the history API has a non-null UUID.
+  final String? id;
   final double weightKg;
   final DateTime measuredAt;
 
@@ -90,6 +98,16 @@ class BodyWeightEntry {
   /// backend/device source. Null is preserved for legacy rows rather than
   /// inventing provenance.
   final String? source;
+
+  /// Optional private note on this measurement, not a photo caption.
+  final String? note;
+}
+
+/// The backend definitively rejected this insert before any row could commit.
+/// Only throw this for confirmed no-write responses. Transport/read-back
+/// failures are UNKNOWN and must retain the original submission UUID.
+final class BodyWeightSubmissionRejected implements Exception {
+  const BodyWeightSubmissionRejected();
 }
 
 /// Explicit command payload for recording a new post-onboarding weight row.
@@ -98,11 +116,114 @@ class BodyWeightRecord {
     required this.weightKg,
     required this.measuredAt,
     required this.source,
+    this.note,
+    this.submissionId,
   });
 
   final double weightKg;
   final DateTime measuredAt;
   final String source;
+
+  /// Optional note persisted in this row's existing metadata JSON.
+  final String? note;
+
+  /// Stable client UUID for a single manual draft's safe retries. Null keeps
+  /// existing Settings and onboarding create semantics unchanged.
+  final String? submissionId;
+
+  void validateNoteAndSubmission() {
+    final value = note?.trim();
+    if (value != null && value.characters.length > 500) {
+      throw ArgumentError.value(value.length, 'note', 'Maximum 500 characters.');
+    }
+    final id = submissionId;
+    if (id != null) BodyWeightLogIds.requireValid(id);
+  }
+}
+
+
+abstract final class BodyWeightLogIds {
+  static final RegExp _uuid = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
+  static void requireValid(String id) {
+    if (!_uuid.hasMatch(id)) {
+      throw ArgumentError.value(id, 'id', 'Expected a weight measurement UUID.');
+    }
+  }
+}
+
+/// Strict keyset boundary: (measuredAt DESC, id DESC).
+class BodyWeightHistoryCursor {
+  const BodyWeightHistoryCursor({required this.measuredAt, required this.id});
+
+  final DateTime measuredAt;
+  final String id;
+}
+
+/// Instants, not calendar dates. The window is [fromInclusive, toExclusive).
+/// The caller converts selected local calendar boundaries to absolute instants.
+class BodyWeightHistoryQuery {
+  const BodyWeightHistoryQuery({
+    required this.fromInclusive,
+    required this.toExclusive,
+    this.limit = 30,
+    this.before,
+  });
+
+  final DateTime fromInclusive;
+  final DateTime toExclusive;
+  final int limit;
+  final BodyWeightHistoryCursor? before;
+
+  void validate() {
+    if (!fromInclusive.isBefore(toExclusive)) {
+      throw ArgumentError('Weight history requires a positive date range.');
+    }
+    if (limit < 1 || limit > 100) {
+      throw ArgumentError.value(limit, 'limit', 'Expected 1..100.');
+    }
+    final cursor = before;
+    if (cursor != null) {
+      BodyWeightLogIds.requireValid(cursor.id);
+      if (cursor.measuredAt.isBefore(fromInclusive) ||
+          !cursor.measuredAt.isBefore(toExclusive)) {
+        throw ArgumentError('Weight history cursor is outside the date range.');
+      }
+    }
+  }
+}
+
+/// A cursor is present only if more records were observed. All entries have IDs.
+class BodyWeightHistoryPage {
+  const BodyWeightHistoryPage({required this.entries, this.nextCursor});
+
+  final List<BodyWeightEntry> entries;
+  final BodyWeightHistoryCursor? nextCursor;
+}
+
+/// Updates only measurement values on the exact owned ID; never reassigns owner,
+/// source, metadata, or Body Goal snapshot.
+class BodyWeightLogEdit {
+  const BodyWeightLogEdit({
+    required this.id,
+    required this.weightKg,
+    required this.measuredAt,
+  });
+
+  final String id;
+  final double weightKg;
+  final DateTime measuredAt;
+
+  void validate() {
+    BodyWeightLogIds.requireValid(id);
+    if (!weightKg.isFinite || weightKg <= 0) {
+      throw ArgumentError.value(
+        weightKg, 'weightKg', 'Must be positive and finite.',
+      );
+    }
+  }
 }
 
 /// Canonical active Body Goal read model.
@@ -154,6 +275,16 @@ abstract interface class BodyRepository implements BodySetupRepository {
   /// for [saveBodySetup] retry/reconciliation semantics and must be rejected by
   /// this command.
   Future<void> recordCurrentWeight(BodyWeightRecord record);
+
+  /// Owner-scoped history ordered by measured_at DESC, id DESC.
+  /// Signed-out reads return an empty page, never cached private data.
+  Future<BodyWeightHistoryPage> getWeightHistory(BodyWeightHistoryQuery query);
+
+  /// Returns false when the row is absent or inaccessible.
+  Future<bool> updateWeightLog(BodyWeightLogEdit edit);
+
+  /// Delete one exact row; user confirmation belongs to the later UI slice.
+  Future<bool> deleteWeightLog(String id);
 
   /// Post-onboarding Body Goal mutation command.
   ///

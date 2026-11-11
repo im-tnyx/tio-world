@@ -77,6 +77,7 @@ Keep task-level state current without turning project status into a per-task act
 - Follow `.ai/workflow.md` in order: Discovery → Codebase Exploration → Clarification → Architecture Design → Implementation → Quality Review → Final Handoff.
 - Keep only one implementation slice active at a time. Do not implement a large GitHub issue or epic as one broad change.
 - Keep at most one active `Implementation owner` for a task slice. Only that owner may modify implementation/source files for the slice. Planning and review owners may inspect, reason, and update task/review governance records, but must not modify implementation/source files unless implementation ownership is explicitly transferred.
+- This repository is multi-agent. In the task file, write which agent is doing the work. Set `Implementation owner` to that agent, such as Cursor, Codex, or Claude. When the agent changes, keep both names: `Previous agent` is the old owner, and `Implementation owner` is the new owner. Also set `Last commit agent` to the agent that made the latest slice commit, with that commit SHA. The next agent follows these task-file fields. Do not put the agent name in the commit author, committer, or a `Co-authored-by` trailer.
 - Follow `.ai/tasks/README.md` for planned handoff, unexpected takeover, repository-state reconstruction, and ownership-transfer rules.
 - GitHub Issues are backlog/tracking. `.ai/tasks` files are compact execution context and must not become transcript dumps.
 - Each task brief must record verified evidence, exact in-scope/out-of-scope boundaries, non-goals, decisions, validation, and handoff status.
@@ -114,6 +115,7 @@ Architecture, backend, auth, routing, persistence, and token cleanup do **not** 
 
 ## Architecture Rules
 
+- For structured offline data on Flutter phones, follow the approved Drift + SQLite direction and implementation gates in [docs/data/DATA_AND_SYNC.md](docs/data/DATA_AND_SYNC.md). This selection does not authorize new packages, migrations, queues, or replacement of existing local stores.
 - Keep changes small, focused, and reviewable.
 - Respect feature and package boundaries.
 - Prefer existing patterns before adding new abstractions.
@@ -212,6 +214,8 @@ After a PR merge, follow `.github/POST_MERGE_SYNC.md` before starting the next b
 ## Validation
 
 Use the smallest meaningful validation for the changed area.
+
+For changes to persisted data/identity, repository/DTO, Auth/RLS/RPC, protected integration, or phone↔watch sync contracts, apply the [future protected-API compatibility review](docs/development/TESTING_GUIDE.md#change-time-future-protected-api-compatibility-review-affected-contracts-only) and record its evidence. Unrelated UI/docs/mechanical changes are `N/A`.
 
 For Flutter mobile/package changes, prefer:
 

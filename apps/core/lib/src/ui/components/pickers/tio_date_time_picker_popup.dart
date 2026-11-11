@@ -26,6 +26,7 @@ class TioDateTimePickerPopup extends StatefulWidget {
     this.resolveDateTime,
     this.onPickerInteractionStart,
     this.passThroughAnchorKey,
+    this.elevatedCard = true,
   });
 
   /// A key on the caller's date/time control. It is presentation-only and has
@@ -46,6 +47,11 @@ class TioDateTimePickerPopup extends StatefulWidget {
   /// open, so swapping between two cards on the same strip costs one tap
   /// rather than two. Null keeps the plain behaviour.
   final GlobalKey? passThroughAnchorKey;
+
+  /// Keeps the existing elevated Food editor popup by default. Callers
+  /// already presenting this above a raised editor sheet may select one
+  /// flat card to avoid a second apparent shadow/card underneath the wheel.
+  final bool elevatedCard;
 
   final Widget child;
 
@@ -185,7 +191,9 @@ class _TioDateTimePickerPopupState extends State<TioDateTimePickerPopup> {
                 behavior: HitTestBehavior.opaque,
                 onTap: () {},
                 child: TioCard(
-                  variant: TioCardVariant.elevated,
+                  variant: widget.elevatedCard
+                      ? TioCardVariant.elevated
+                      : TioCardVariant.surface,
                   padding: const EdgeInsets.all(TioSpacing.xs),
                   child: SizedBox(
                     height: pickerHeight,

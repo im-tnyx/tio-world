@@ -79,7 +79,14 @@ class TioShell extends StatelessWidget {
                   trailingAction: statusTopBarTrailingAction,
                   center: statusTopBarCenter,
                 ),
-              ShellTab.ai || ShellTab.progress => null,
+              ShellTab.progress => TioShellStatusTopBar(
+                  title: statusTopBarTitle ?? ShellTab.progress.label,
+                  scrollOpacity: state.appBarOpacity,
+                  leadingAction: statusTopBarLeadingAction,
+                  trailingAction: statusTopBarTrailingAction,
+                  center: statusTopBarCenter,
+                ),
+              ShellTab.ai => null,
             }
           : null,
       body: child,

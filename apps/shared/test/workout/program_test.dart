@@ -28,6 +28,27 @@ void main() {
       }
     });
 
+    test('default identity is server-provided, not inferred from name', () {
+      final persistedDefault = Program(
+        id: ProgramId(uuid),
+        name: 'Strength',
+        isDefault: true,
+      );
+      final ordinaryWithSameName = Program(
+        id: ProgramId(uuid),
+        name: 'Strength',
+      );
+
+      expect(persistedDefault.isDefault, isTrue);
+      expect(ordinaryWithSameName.isDefault, isFalse);
+      expect(persistedDefault, isNot(ordinaryWithSameName));
+      expect(persistedDefault.hashCode, isNot(ordinaryWithSameName.hashCode));
+      expect(
+        Program(id: ProgramId(uuid), name: 'My Program').isDefault,
+        isFalse,
+      );
+    });
+
     test('equality includes identity and name', () {
       final a = Program(id: ProgramId(uuid), name: 'Program 1');
       final b = Program(id: ProgramId(uuid), name: 'Program 1');

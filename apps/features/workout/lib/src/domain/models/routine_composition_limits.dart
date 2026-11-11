@@ -39,4 +39,19 @@ abstract final class RoutineCompositionLimits {
     }
     return true;
   }
+
+  /// Within each Routine Exercise, all Warm-up sets must appear before every
+  /// non-Warm-up set (Normal, Failure, Drop). Once a non-Warm-up set occurs,
+  /// no subsequent set may be a Warm-up set.
+  static bool hasValidSetOrder(Iterable<SetPrescription> prescriptions) {
+    var seenNonWarmUp = false;
+    for (final p in prescriptions) {
+      if (p.setType == RoutineSetType.warmUp) {
+        if (seenNonWarmUp) return false;
+      } else {
+        seenNonWarmUp = true;
+      }
+    }
+    return true;
+  }
 }

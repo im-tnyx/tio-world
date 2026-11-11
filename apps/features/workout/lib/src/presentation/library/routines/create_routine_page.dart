@@ -9,7 +9,10 @@ import 'package:tio_shared/shared.dart';
 import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
+import '../../../domain/repositories/my_program_routine_create_repository.dart';
+import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
+import '../../../domain/repositories/routine_notes_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import 'routine_create_controller.dart';
 import '../exercises/exercises_controller.dart';
@@ -19,9 +22,13 @@ import 'routine_set_input_row.dart';
 import 'routine_set_type_badge.dart';
 import 'routine_set_type_option.dart';
 import 'routine_composer_screen.dart';
+import 'routine_rest_timer_sheet.dart';
+import 'routine_notes_controller.dart';
+import 'routine_notes_save_bridge.dart';
 
-/// Full-screen, Program-owned Create draft. Nothing persists until Save
-/// calls an atomic Create repository. This is NOT the existing-Routine editor.
+/// Full-screen canonical Create draft. Existing-Program and dormant programless
+/// modes share the same composition/editor UI and distinct atomic repositories.
+/// Nothing persists until Save; this is NOT the existing-Routine editor.
 class CreateRoutinePage extends StatefulWidget {
   const CreateRoutinePage({
     required this.program,
@@ -31,8 +38,12 @@ class CreateRoutinePage extends StatefulWidget {
     required this.weightUnit,
     this.userExerciseRepository,
     this.viewerMediaGender,
+    this.onExerciseInfoPressed,
     this.routineRepository,
     this.compositionRepository,
+    this.routineNotesRepository,
+    this.routineNotesOwnerId,
+    this.isRoutineNotesSessionCurrent,
     this.onUnconfirmedExit,
     this.returnToLibrary = false,
     this.onWriteStarted,
@@ -41,30 +52,85 @@ class CreateRoutinePage extends StatefulWidget {
     this.canWrite,
     this.newUuid,
     super.key,
-  });
+  })  : myProgramRepository = null,
+        programRepository = null,
+        onMyProgramUnconfirmedExit = null,
+        onMyProgramWriteStarted = null,
+        onMyProgramWriteResolved = null,
+        onMyProgramDefiniteFailure = null;
 
-  final Program program;
+  /// Dormant #568 entry to the SAME Exercise/Set composer. A Program is
+  /// resolved only inside the atomic server RPC; no fake ProgramId is used.
+  /// App-shell wiring and the client EXECUTE grant remain separate gates.
+  const CreateRoutinePage.forMyProgram({
+    required this.initialName,
+    required MyProgramRoutineCreateRepository this.myProgramRepository,
+    required ProgramRepository this.programRepository,
+    required this.catalogRepository,
+    required this.weightUnit,
+    this.userExerciseRepository,
+    this.viewerMediaGender,
+    this.onExerciseInfoPressed,
+    this.routineRepository,
+    this.compositionRepository,
+    this.routineNotesRepository,
+    this.routineNotesOwnerId,
+    this.isRoutineNotesSessionCurrent,
+    required this.onMyProgramUnconfirmedExit,
+    required this.onMyProgramWriteStarted,
+    required this.onMyProgramWriteResolved,
+    required this.onMyProgramDefiniteFailure,
+    this.returnToLibrary = true,
+    required this.canWrite,
+    this.newUuid,
+    super.key,
+  })  : program = null,
+        createRepository = null,
+        onUnconfirmedExit = null,
+        onWriteStarted = null,
+        onWriteResolved = null,
+        onDefiniteFailure = null;
+
+  final Program? program;
   final String initialName;
-  final RoutineCreateRepository createRepository;
+  final RoutineCreateRepository? createRepository;
+  final MyProgramRoutineCreateRepository? myProgramRepository;
+  final ProgramRepository? programRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+
+  /// Opens canonical Exercise About without changing the pending draft.
+  final ValueChanged<Exercise>? onExerciseInfoPressed;
+
   /// Resolved at app/profile boundary; null follows catalog default gender.
   final ExerciseMediaGender? viewerMediaGender;
   final RoutineRepository? routineRepository;
   final RoutineCompositionRepository? compositionRepository;
+  final RoutineNotesRepository? routineNotesRepository;
+  final String? routineNotesOwnerId;
+  final bool Function()? isRoutineNotesSessionCurrent;
+
   /// App composition uses this to refresh the Program after an explicitly
   /// unconfirmed Create exit; this does not mean a write was acknowledged.
   final ValueChanged<RoutineCreateCommand>? onUnconfirmedExit;
+  final ValueChanged<MyProgramRoutineCreateCommand>? onMyProgramUnconfirmedExit;
+
   /// The visible exit destination when Create was launched from Library.
   final bool returnToLibrary;
+
   /// Reserve the immutable Create identity BEFORE the network request;
   /// revoking the private route cannot cancel an already dispatched RPC.
   final ValueChanged<RoutineCreateCommand>? onWriteStarted;
+  final ValueChanged<MyProgramRoutineCreateCommand>? onMyProgramWriteStarted;
+
   /// Release that reservation only on acknowledged Save or definite failure.
   final ValueChanged<RoutineCreateCommand>? onWriteResolved;
+  final ValueChanged<MyProgramRoutineCreateCommand>? onMyProgramWriteResolved;
+
   /// Exact RPC rejection can arrive after auth revoked and disposed this
   /// screen; pending-gate cleanup must not depend on a widget listener.
   final ValueChanged<RoutineCreateCommand>? onDefiniteFailure;
+  final ValueChanged<MyProgramRoutineCreateCommand>? onMyProgramDefiniteFailure;
   final WeightUnit weightUnit;
   final bool Function()? canWrite;
   final String Function()? newUuid;
@@ -88,6 +154,17 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   String? _openSetId;
   bool _unknownExitPromptOpen = false;
   RoutineCreateCommand? _trackedWriteAttempt;
+  MyProgramRoutineCreateCommand? _trackedMyProgramWriteAttempt;
+  final Map<String, List<ExerciseNoteDraftSnapshot>> _inlineNoteDrafts = {};
+  RoutineNotesSaveBridge? _notesBridge;
+  RoutineNotesRepository? _notesBridgeRepository;
+  String? _notesBridgeOwnerId;
+  RoutineNotesControllerRegistry? _notesRegistry;
+  bool _notesCommitPending = false;
+  bool _notesSaving = false;
+  bool _notesExitBlocked = false;
+  final Set<String> _confirmedNoteDraftIds = {};
+  String? _notesMessage;
 
   @override
   void initState() {
@@ -98,9 +175,14 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   @override
   void didUpdateWidget(covariant CreateRoutinePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.program.id != widget.program.id ||
+    if (oldWidget.program?.id != widget.program?.id ||
         !identical(oldWidget.createRepository, widget.createRepository) ||
-        !identical(oldWidget.userExerciseRepository, widget.userExerciseRepository)) {
+        !identical(oldWidget.myProgramRepository, widget.myProgramRepository) ||
+        !identical(
+            oldWidget.userExerciseRepository, widget.userExerciseRepository) ||
+        !identical(
+            oldWidget.routineNotesRepository, widget.routineNotesRepository) ||
+        oldWidget.routineNotesOwnerId != widget.routineNotesOwnerId) {
       _draft.removeListener(_changed);
       _draft.dispose();
       _name.dispose();
@@ -109,42 +191,90 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _draftRangeEntryIds.clear();
       _untouchedRepSetIds.clear();
       _openSetId = null;
+      _trackedWriteAttempt = null;
+      _trackedMyProgramWriteAttempt = null;
+      _inlineNoteDrafts.clear();
+      _notesBridge = null;
+      _notesBridgeRepository = null;
+      _notesBridgeOwnerId = null;
+      _notesRegistry?.dispose();
+      _notesRegistry = null;
+      _notesCommitPending = false;
+      _notesSaving = false;
+      _notesExitBlocked = false;
+      _confirmedNoteDraftIds.clear();
+      _notesMessage = null;
       _bind();
     }
   }
 
   void _bind() {
+    _notesRegistry?.dispose();
+    _notesRegistry = RoutineNotesControllerRegistry();
+    _inlineNoteDrafts.clear();
+    _notesBridge = null;
+    _notesBridgeRepository = null;
+    _notesBridgeOwnerId = null;
+    _notesCommitPending = false;
+    _notesSaving = false;
+    _notesExitBlocked = false;
+    _confirmedNoteDraftIds.clear();
+    _notesMessage = null;
     _name = TextEditingController(text: widget.initialName);
-    _draft = RoutineCreateController(
-      program: widget.program,
-      initialName: _name.text,
-      repository: widget.createRepository,
-      userExercises: widget.userExerciseRepository,
-      canWrite: widget.canWrite,
-      onDefiniteFailure: widget.onDefiniteFailure,
-      newUuid: widget.newUuid,
-    )..addListener(_changed);
+    _draft = widget.program == null
+        ? RoutineCreateController.forMyProgram(
+            initialName: _name.text,
+            myProgramRepository: widget.myProgramRepository!,
+            userExercises: widget.userExerciseRepository,
+            canWrite: widget.canWrite,
+            onMyProgramWriteStarted: widget.onMyProgramWriteStarted,
+            onMyProgramDefiniteFailure: widget.onMyProgramDefiniteFailure,
+            newUuid: widget.newUuid,
+          )
+        : RoutineCreateController(
+            program: widget.program!,
+            initialName: _name.text,
+            repository: widget.createRepository!,
+            userExercises: widget.userExerciseRepository,
+            canWrite: widget.canWrite,
+            onDefiniteFailure: widget.onDefiniteFailure,
+            newUuid: widget.newUuid,
+          );
+    _draft.addListener(_changed);
   }
 
   void _changed() {
     if (!mounted) return;
     final inFlight = _draft.inFlightAttempt;
-    if (inFlight != null &&
-        !identical(_trackedWriteAttempt, inFlight)) {
+    if (inFlight != null && !identical(_trackedWriteAttempt, inFlight)) {
       _trackedWriteAttempt = inFlight;
       widget.onWriteStarted?.call(inFlight);
     } else if (_trackedWriteAttempt != null &&
         (_draft.state.status == RoutineCreateStatus.ready ||
-         _draft.state.status == RoutineCreateStatus.saved)) {
+            _draft.state.status == RoutineCreateStatus.saved)) {
       final resolved = _trackedWriteAttempt!;
       _trackedWriteAttempt = null;
       widget.onWriteResolved?.call(resolved);
+    }
+    final myInFlight = _draft.inFlightMyProgramAttempt;
+    if (myInFlight != null &&
+        !identical(_trackedMyProgramWriteAttempt, myInFlight)) {
+      _trackedMyProgramWriteAttempt = myInFlight;
+      // Reservation already happened synchronously in the controller BEFORE
+      // entering saving. Never invoke the potentially throwing gate here.
+    } else if (_trackedMyProgramWriteAttempt != null &&
+        (_draft.state.status == RoutineCreateStatus.ready ||
+            _draft.state.status == RoutineCreateStatus.saved)) {
+      final resolved = _trackedMyProgramWriteAttempt!;
+      _trackedMyProgramWriteAttempt = null;
+      widget.onMyProgramWriteResolved?.call(resolved);
     }
     setState(() {});
   }
 
   @override
   void dispose() {
+    _notesRegistry?.dispose();
     _draft.removeListener(_changed);
     _draft.dispose();
     _name.dispose();
@@ -167,6 +297,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             child: ExercisesPage(
               catalogRepository: widget.catalogRepository,
               userExerciseRepository: widget.userExerciseRepository,
+              onExerciseInfoPressed: widget.onExerciseInfoPressed,
               onExerciseSelected: (selected) =>
                   Navigator.of(routeContext).pop<Exercise>(selected),
             ),
@@ -181,6 +312,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             child: ExercisesPage(
               catalogRepository: widget.catalogRepository,
               userExerciseRepository: widget.userExerciseRepository,
+              onExerciseInfoPressed: widget.onExerciseInfoPressed,
               onExercisesAdded: (selected) =>
                   Navigator.of(routeContext).pop<List<Exercise>>(selected),
             ),
@@ -188,14 +320,17 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         ),
       );
     }
-    if (!mounted || !_enabled || !identical(openingDraft, _draft) ||
-        chosen == null || chosen.isEmpty) {
+    if (!mounted ||
+        !_enabled ||
+        !identical(openingDraft, _draft) ||
+        chosen == null ||
+        chosen.isEmpty) {
       return;
     }
     if (replacing != null) {
       final exercise = chosen.single;
-      final oldEntries = _draft.state.entries
-          .where((current) => current.id == replacing.id);
+      final oldEntries =
+          _draft.state.entries.where((current) => current.id == replacing.id);
       if (oldEntries.length != 1) return;
       final old = oldEntries.single;
       final newId = _draft.replacePickedExercise(old.id, exercise);
@@ -240,8 +375,10 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (!_enabled) return;
     final openingDraft = _draft;
     final action = await showRoutineExerciseOptionsSheet(context);
-    if (!mounted || !identical(openingDraft, _draft) ||
-        !_enabled || action == null) {
+    if (!mounted ||
+        !identical(openingDraft, _draft) ||
+        !_enabled ||
+        action == null) {
       return;
     }
     if (!_draft.state.entries.any((current) => current.id == entry.id)) return;
@@ -338,8 +475,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     // remains guarded by _invalidSetIds until those fields are valid.
     if (!_enabled) return;
     final isRange = _draftRangeEntryIds.contains(entry.id) ||
-        (entry.sets.isNotEmpty &&
-         entry.sets.first.prescription.isRepRange);
+        (entry.sets.isNotEmpty && entry.sets.first.prescription.isRepRange);
     final chosen = await showTioEditorSheet<bool>(
       context: context,
       useSafeArea: true,
@@ -383,8 +519,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         continue;
       }
       final hasFilledRange = entry.sets.any((s) => s.prescription.isRepRange);
-      if (hasFilledRange &&
-          entry.sets.any((s) => !s.prescription.isRepRange)) {
+      if (hasFilledRange && entry.sets.any((s) => !s.prescription.isRepRange)) {
         return false;
       }
     }
@@ -392,22 +527,136 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   }
 
   Future<void> _save() async {
-    if (!_draft.state.canSave || !_enabled ||
-        _invalidSetIds.isNotEmpty || !_rangeCanSave) {
+    if (_notesCommitPending) {
+      final confirmed = await _persistInlineNotes(_draft.savedRoutineId);
+      if (confirmed && mounted) _closeConfirmed();
+      return;
+    }
+    if (!_draft.state.canSave ||
+        !_enabled ||
+        _invalidSetIds.isNotEmpty ||
+        !_rangeCanSave) {
       return;
     }
     final confirmed = await _draft.save();
-    if (confirmed && mounted) _closeConfirmed();
+    if (confirmed && mounted) {
+      final notesConfirmed = await _completeConfirmedRoutineSave(
+        _draft.savedRoutineId,
+      );
+      if (notesConfirmed && mounted) _closeConfirmed();
+    }
   }
 
   Future<void> _verify() async {
     final routines = widget.routineRepository;
     final compositions = widget.compositionRepository;
-    if (routines == null || compositions == null) return;
+    if (routines == null ||
+        compositions == null ||
+        (widget.program == null && widget.programRepository == null)) {
+      return;
+    }
     final confirmed = await _draft.reconcileUnknown(
-      routines: routines, compositions: compositions,
+      programs: widget.programRepository,
+      routines: routines,
+      compositions: compositions,
     );
-    if (confirmed && mounted) _closeConfirmed();
+    if (confirmed && mounted) {
+      final notesConfirmed = await _completeConfirmedRoutineSave(
+        _draft.savedRoutineId,
+      );
+      if (notesConfirmed && mounted) _closeConfirmed();
+    }
+  }
+
+  void _captureInlineNoteDrafts(
+    String entryId,
+    List<ExerciseNoteDraftSnapshot> drafts,
+  ) {
+    final activeIds = drafts.map((draft) => draft.draftId).toSet();
+    _confirmedNoteDraftIds.removeWhere(
+      (draftId) =>
+          draftId.startsWith('$entryId:') && !activeIds.contains(draftId),
+    );
+    if (drafts.isEmpty) {
+      _inlineNoteDrafts.remove(entryId);
+    } else {
+      _inlineNoteDrafts[entryId] = List.unmodifiable(drafts);
+    }
+  }
+
+  List<ExerciseNoteDraftSnapshot> _currentInlineNoteDrafts() => [
+        for (final entry in _draft.state.entries)
+          ...?_inlineNoteDrafts[entry.id],
+      ];
+
+  RoutineNotesSaveBridge? _notesBridgeForSave() {
+    final repository = widget.routineNotesRepository;
+    final ownerId = widget.routineNotesOwnerId;
+    final isCurrent = widget.isRoutineNotesSessionCurrent;
+    if (repository == null || ownerId == null || isCurrent == null) return null;
+    if (_notesBridge == null ||
+        !identical(_notesBridgeRepository, repository) ||
+        _notesBridgeOwnerId != ownerId) {
+      _notesBridge = RoutineNotesSaveBridge(
+        repository: repository,
+        ownerId: ownerId,
+        isSessionCurrent: isCurrent,
+        newUuid: widget.newUuid,
+      );
+      _notesBridgeRepository = repository;
+      _notesBridgeOwnerId = ownerId;
+    } else {
+      _notesBridge!.updateSessionIsCurrent(isCurrent);
+    }
+    return _notesBridge;
+  }
+
+  Future<bool> _completeConfirmedRoutineSave(RoutineId? routineId) async {
+    final bridge = _notesBridgeForSave();
+    _notesCommitPending =
+        _currentInlineNoteDrafts().isNotEmpty || bridge?.hasPending == true;
+    if (!_notesCommitPending) return true;
+    return _persistInlineNotes(routineId);
+  }
+
+  Future<bool> _persistInlineNotes(RoutineId? routineId) async {
+    final drafts = _currentInlineNoteDrafts();
+    final bridge = _notesBridgeForSave();
+    if (drafts.isEmpty && bridge?.hasPending != true) {
+      if (mounted) {
+        setState(() {
+          _notesCommitPending = false;
+          _notesExitBlocked = false;
+        });
+      }
+      return true;
+    }
+    if (bridge == null) {
+      if (mounted) {
+        setState(() {
+          _notesCommitPending = true;
+          _notesExitBlocked = true;
+          _notesMessage =
+              'Routine was saved, but Notes persistence is unavailable.';
+        });
+      }
+      return false;
+    }
+    if (mounted) setState(() => _notesSaving = true);
+    final result = await bridge.save(drafts: drafts, routineId: routineId);
+    if (!mounted) return false;
+    setState(() {
+      _notesSaving = false;
+      _confirmedNoteDraftIds.addAll(result.confirmedDraftIds);
+      _notesCommitPending = !result.isSuccess;
+      _notesExitBlocked = bridge.hasUnknown ||
+          (!result.isSuccess &&
+              (result.status == RoutineNotesSaveStatus.unknown ||
+                  result.status == RoutineNotesSaveStatus.unavailable ||
+                  result.status == RoutineNotesSaveStatus.unauthorized));
+      _notesMessage = result.message;
+    });
+    return result.isSuccess;
   }
 
   void _closeConfirmed() {
@@ -422,7 +671,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   // not silently discard the frozen mutation and suggest that no write
   // happened. Leaving is deliberate, followed by an owner-scoped list refresh.
   Future<void> _confirmUnknownExit() async {
-    if (!mounted || _unknownExitPromptOpen ||
+    if (!mounted ||
+        _unknownExitPromptOpen ||
         _draft.state.status != RoutineCreateStatus.outcomeUnknown) {
       return;
     }
@@ -434,19 +684,28 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         context: context,
         cardKey: const ValueKey('create-routine-unknown-confirmation'),
         title: 'Routine save not confirmed',
-        message: 'This Routine may already have been saved. Check your '
-            'Program before creating another Routine.',
+        message: widget.program == null
+            ? 'This Routine may already have been saved. Check your '
+                'Library before creating another Routine.'
+            : 'This Routine may already have been saved. Check your '
+                'Program before creating another Routine.',
         cancelLabel: 'Keep verifying',
         confirmLabel: returnToLibraryLabel,
       );
-      if (!mounted || leave != true ||
+      if (!mounted ||
+          leave != true ||
           _draft.state.status != RoutineCreateStatus.outcomeUnknown ||
           (widget.canWrite != null && !widget.canWrite!())) {
         return;
       }
       final attempt = _draft.unconfirmedAttempt;
-      if (attempt == null) return;
-      widget.onUnconfirmedExit?.call(attempt);
+      final myAttempt = _draft.unconfirmedMyProgramAttempt;
+      if (attempt == null && myAttempt == null) return;
+      if (myAttempt != null) {
+        widget.onMyProgramUnconfirmedExit?.call(myAttempt);
+      } else {
+        widget.onUnconfirmedExit?.call(attempt!);
+      }
       Navigator.of(context).pop<bool>(false);
     } finally {
       _unknownExitPromptOpen = false;
@@ -458,10 +717,16 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     final colors = context.tioColors;
     final status = _draft.state.status;
     final locked = status == RoutineCreateStatus.saving;
-    final canSave = _enabled && _draft.state.canSave &&
-        _invalidSetIds.isEmpty && _rangeCanSave;
+    final canSave = _enabled &&
+        _draft.state.canSave &&
+        _invalidSetIds.isEmpty &&
+        _rangeCanSave;
+    final canSubmit = !_notesSaving && (canSave || _notesCommitPending);
     return PopScope(
-      canPop: !locked && status != RoutineCreateStatus.outcomeUnknown,
+      canPop: !locked &&
+          !_notesSaving &&
+          status != RoutineCreateStatus.outcomeUnknown &&
+          !_notesExitBlocked,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && status == RoutineCreateStatus.outcomeUnknown) {
           unawaited(_confirmUnknownExit());
@@ -472,12 +737,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         mode: RoutineComposerMode.create,
         pageKey: const ValueKey('create-routine-page'),
         cancelKey: const ValueKey('create-routine-cancel'),
-        cancelEnabled: !locked,
+        cancelEnabled: !locked && !_notesSaving && !_notesExitBlocked,
         cancel: status == RoutineCreateStatus.outcomeUnknown
             ? _confirmUnknownExit
             : () => Navigator.of(context).pop<bool>(false),
         submitKey: const ValueKey('create-routine-save'),
-        onSubmit: canSave ? _save : null,
+        onSubmit: canSubmit ? _save : null,
         content: RoutineComposerContent(
           mode: RoutineComposerMode.create,
           scrollKey: const ValueKey('create-routine-scroll'),
@@ -530,12 +795,27 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
                     ),
                   ),
                 ),
+              if (_notesMessage != null)
+                Semantics(
+                  liveRegion: true,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: TioSpacing.md,
+                    ),
+                    child: Text(
+                      _notesMessage!,
+                      style: TextStyle(color: colors.danger),
+                    ),
+                  ),
+                ),
               if (status == RoutineCreateStatus.outcomeUnknown)
                 TioButton.secondary(
                   key: const ValueKey('create-routine-verify'),
                   label: 'Verify saved Routine',
                   onPressed: widget.routineRepository != null &&
-                          widget.compositionRepository != null
+                          widget.compositionRepository != null &&
+                          (widget.program != null ||
+                              widget.programRepository != null)
                       ? _verify
                       : null,
                   expand: true,
@@ -574,13 +854,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         ),
       );
 
-
   Widget _setRow(
     RoutineCompositionEntry entry,
     RoutineCompositionSet set,
     int index,
   ) =>
-      RoutineSetInputRow(
+      WorkoutSetInputRow(
         key: ValueKey('create-routine-set-${set.id}'),
         set: set,
         index: index,
@@ -615,6 +894,26 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     }
   }
 
+  Future<void> _configureRestTimer(RoutineCompositionEntry entry) async {
+    final current = _draft.getExerciseRestPreset(entry.id);
+    final hasWarmUpSets =
+        entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final result = await showRoutineRestTimerSheet(
+      context: context,
+      initialNormalRestSeconds: current.normalRestSeconds,
+      initialWarmUpRestSeconds: current.warmUpRestSeconds,
+      exerciseName: _entryExercises[entry.id]?.displayName,
+      hasWarmUpSets: hasWarmUpSets,
+    );
+    if (result != null && mounted) {
+      _draft.configureExerciseRestTimer(
+        entry.id,
+        normalRestSeconds: result.normalRestSeconds,
+        warmUpRestSeconds: result.warmUpRestSeconds,
+      );
+    }
+  }
+
   Widget _exerciseCard(RoutineCompositionEntry entry, int position) {
     final selected = _entryExercises[entry.id];
     final thumbnail = selected == null
@@ -640,8 +939,18 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       showOptions: () => _showExerciseOptions(entry),
       selectRepetitionMode: () => _selectRepetitionMode(entry),
       buildSetRow: (set, index) => _setRow(entry, set, index),
+      restPreset: _draft.getExerciseRestPreset(entry.id),
+      onConfigureRestTimer: () => _configureRestTimer(entry),
+      routineNotesRepository: widget.routineNotesRepository,
+      routineNotesOwnerId: widget.routineNotesOwnerId,
+      isRoutineNotesSessionCurrent: widget.isRoutineNotesSessionCurrent,
+      controllerRegistry: _notesRegistry,
+      notesEnabled: (_enabled || _notesCommitPending) && !_notesSaving,
+      initialNoteDrafts: _inlineNoteDrafts[entry.id] ?? const [],
+      readOnlyNoteDraftIds: _confirmedNoteDraftIds,
+      onNoteDraftsChanged: (drafts) =>
+          _captureInlineNoteDrafts(entry.id, drafts),
       addSet: () => _addSet(entry),
     );
   }
-
 }

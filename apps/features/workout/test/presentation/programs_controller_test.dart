@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
@@ -18,6 +20,51 @@ void main() {
     expect(controller.state.status, ProgramsStatus.ready);
     expect(controller.state.programs, [_program(1, 'Strength')]);
     expect(repository.listCalls, 1);
+  });
+
+  test('background Program refresh retains verified rows until read returns',
+      () async {
+    final repository = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    final controller = ProgramsController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+    final gate = Completer<void>();
+    repository.readGate = gate;
+    final refreshing = controller.load();
+    expect(controller.state.status, ProgramsStatus.refreshing);
+    expect(controller.state.programs.single.name, 'Strength');
+    // Mutating Program actions do not use an unverified refresh snapshot.
+    expect(await controller.create('New Program'), isFalse);
+    gate.complete();
+    repository.readGate = null;
+    await refreshing;
+    expect(controller.state.status, ProgramsStatus.ready);
+    expect(controller.state.programs.single.name, 'Strength');
+  });
+
+  test('renaming the persisted default keeps its canonical identity',
+      () async {
+    final original = Program(
+      id: _id(1),
+      name: 'My Program',
+      isDefault: true,
+    );
+    final repository = _FakeProgramRepository(programs: [original]);
+    final controller = ProgramsController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    expect(
+      await controller.rename(program: original, name: 'Strength'),
+      isNull,
+    );
+
+    expect(controller.state.programs.single.name, 'Strength');
+    expect(controller.state.programs.single.isDefault, isTrue);
+    expect(repository.programs.single.isDefault, isTrue);
+    expect(repository.renameCalls, 1);
   });
 
   test('load failure exposes retry and later recovers', () async {
@@ -204,10 +251,13 @@ final class _FakeProgramRepository implements ProgramRepository {
   Object? createErrorAfterWrite;
   int listCalls = 0;
   int renameCalls = 0;
+  Completer<void>? readGate;
 
   @override
   Future<List<Program>> list() async {
     listCalls++;
+    final gate = readGate;
+    if (gate != null) await gate.future;
     if (loadFailuresRemaining > 0) {
       loadFailuresRemaining--;
       throw Exception('load failed');
@@ -237,6 +287,10 @@ final class _FakeProgramRepository implements ProgramRepository {
     renameCalls++;
     final index = programs.indexWhere((program) => program.id == id);
     if (index < 0) throw StateError('Program not found');
-    programs[index] = Program(id: id, name: name);
+    programs[index] = Program(
+      id: id,
+      name: name,
+      isDefault: programs[index].isDefault,
+    );
   }
 }

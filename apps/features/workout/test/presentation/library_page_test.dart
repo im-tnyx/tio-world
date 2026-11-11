@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -11,8 +12,11 @@ Future<void> _pump(
   Future<void> Function()? onProgramsManagePressed,
   Future<void> Function(Program)? onProgramPressed,
   Future<void> Function(Program)? onAddRoutinePressed,
+  Future<void> Function()? onCreateRoutinePressed,
+  Future<void> Function()? onVerifyPendingRoutine,
   bool Function(Program)? hasUnconfirmedCreate,
   Future<void> Function(Program, Routine)? onRoutinePressed,
+  Future<void> Function(Program, Routine)? onStartRoutinePressed,
   Future<bool> Function(Program, Routine)? onEditRoutine,
   Future<bool> Function(Program, Routine)? onMoveRoutine,
   RoutineMoveRefreshSignal? moveRefreshSignal,
@@ -28,6 +32,7 @@ Future<void> _pump(
   bool canCreateExercise = true,
   VoidCallback? onSearchPressed,
   TioThemeMode mode = TioThemeMode.light,
+  TextDirection textDirection = TextDirection.ltr,
 }) async {
   final resolvedProgramRepository = withProgramRepository
       ? programRepository ??
@@ -42,25 +47,31 @@ Future<void> _pump(
         config: TioThemeConfig(mode: mode),
         child: child ?? const SizedBox.shrink(),
       ),
-      home: LibraryPage(
-        programRepository: resolvedProgramRepository,
-        routineRepository: routineRepository,
-        programIdGenerator: programIdGenerator,
-        onProgramsManagePressed: onProgramsManagePressed ?? () async {},
-        onProgramPressed: onProgramPressed,
-        onAddRoutinePressed: onAddRoutinePressed,
-        hasUnconfirmedCreate: hasUnconfirmedCreate,
-        onRoutinePressed: onRoutinePressed,
-        onEditRoutine: onEditRoutine,
-        onMoveRoutine: onMoveRoutine,
-        moveRefreshSignal: moveRefreshSignal,
-        moveRefreshOwnerId: moveRefreshOwnerId,
-        moveRefreshLoginCycleId: moveRefreshLoginCycleId,
-        onDeleteRoutine: onDeleteRoutine,
-        onExercisesPressed: onExercisesPressed ?? () {},
-        onCreateExercisePressed: onCreateExercisePressed ?? () {},
-        canCreateExercise: canCreateExercise,
-        onSearchPressed: onSearchPressed ?? () {},
+      home: Directionality(
+        textDirection: textDirection,
+        child: LibraryPage(
+          programRepository: resolvedProgramRepository,
+          routineRepository: routineRepository,
+          programIdGenerator: programIdGenerator,
+          onProgramsManagePressed: onProgramsManagePressed ?? () async {},
+          onProgramPressed: onProgramPressed,
+          onAddRoutinePressed: onAddRoutinePressed,
+          onCreateRoutinePressed: onCreateRoutinePressed,
+          onVerifyPendingRoutine: onVerifyPendingRoutine,
+          hasUnconfirmedCreate: hasUnconfirmedCreate,
+          onRoutinePressed: onRoutinePressed,
+          onStartRoutinePressed: onStartRoutinePressed,
+          onEditRoutine: onEditRoutine,
+          onMoveRoutine: onMoveRoutine,
+          moveRefreshSignal: moveRefreshSignal,
+          moveRefreshOwnerId: moveRefreshOwnerId,
+          moveRefreshLoginCycleId: moveRefreshLoginCycleId,
+          onDeleteRoutine: onDeleteRoutine,
+          onExercisesPressed: onExercisesPressed ?? () {},
+          onCreateExercisePressed: onCreateExercisePressed ?? () {},
+          canCreateExercise: canCreateExercise,
+          onSearchPressed: onSearchPressed ?? () {},
+        ),
       ),
     ),
   );
@@ -68,14 +79,67 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('Library first Routine action stays absent until capability',
+      (tester) async {
+    await _pump(tester,
+        programRepository: _FakeProgramRepository(programs: []));
+    expect(find.byKey(const ValueKey('library-create-routine')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('library-programs-create')), findsOneWidget);
+  });
 
-  testWidgets('Library Move-only action carries Program/Routine and rereads source',
+  testWidgets('programless Create button works without a saved Program',
+      (tester) async {
+    var calls = 0;
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(programs: []),
+      onCreateRoutinePressed: () async {
+        calls++;
+      },
+    );
+    final action = find.byKey(const ValueKey('library-create-routine'));
+    expect(action, findsOneWidget);
+    expect(tester.widget<IconButton>(action).tooltip, 'Create Routine');
+    await tester.tap(action);
+    await tester.pump();
+    expect(calls, 1);
+  });
+
+  testWidgets('pending first Routine shows Verify instead of a second Create',
+      (tester) async {
+    var created = 0;
+    var verified = 0;
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(programs: []),
+      onCreateRoutinePressed: () async {
+        created++;
+      },
+      onVerifyPendingRoutine: () async {
+        verified++;
+      },
+      mode: TioThemeMode.dark,
+    );
+    final button = tester.widget<IconButton>(
+        find.byKey(const ValueKey('library-create-routine')));
+    expect(button.tooltip, 'Verify saved Routine');
+    await tester.tap(find.byKey(const ValueKey('library-create-routine')));
+    await tester.pump();
+    expect(created, 0);
+    expect(verified, 1);
+  });
+
+  testWidgets(
+      'Library Move-only action carries Program/Routine and rereads source',
       (tester) async {
     final routine = _routine(1, 101, 'Push');
     final repository = _FakeRoutineRepository([routine]);
     Program? movedFrom;
     Routine? moved;
-    await _pump(tester, routineRepository: repository,
+    await _pump(
+      tester,
+      routineRepository: repository,
       onMoveRoutine: (program, candidate) async {
         movedFrom = program;
         moved = candidate;
@@ -87,8 +151,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('routine-move-${routine.id.value}')),
         findsOneWidget);
-    expect(find.byKey(ValueKey('routine-edit-${routine.id.value}')), findsNothing);
-    expect(find.byKey(ValueKey('routine-delete-${routine.id.value}')), findsNothing);
+    expect(
+        find.byKey(ValueKey('routine-edit-${routine.id.value}')), findsNothing);
+    expect(find.byKey(ValueKey('routine-delete-${routine.id.value}')),
+        findsNothing);
     await tester.tap(find.byKey(ValueKey('routine-move-${routine.id.value}')));
     await tester.pumpAndSettle();
     expect(movedFrom?.id, _id(1));
@@ -99,7 +165,208 @@ void main() {
         greaterThanOrEqualTo(2));
   });
 
-  testWidgets('Move refreshes both expanded Program Routine lists, keeps collapse',
+  testWidgets('shared Programs header is the only Routine refresh spinner',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final signal = RoutineMoveRefreshSignal();
+      addTearDown(signal.dispose);
+      final routines = _FakeRoutineRepository([
+        _routine(1, 101, 'Push'),
+        _routine(2, 201, 'Legs'),
+      ]);
+      var navigations = 0;
+      var edits = 0;
+      await _pump(
+        tester,
+        onRoutinePressed: (_, __) async {
+          navigations++;
+        },
+        onEditRoutine: (_, __) async {
+          edits++;
+          return false;
+        },
+        programRepository: _FakeProgramRepository(
+          programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+        ),
+        routineRepository: routines,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-a',
+        moveRefreshLoginCycleId: 'cycle-a',
+      );
+      // An edit-capable card must retain its overflow and exact rect even while
+      // the same owner has two concurrent expanded Program reads.
+      final firstCard = find.byKey(ValueKey(
+          'library-routine-${_id(1).value}-${_routine(1, 101, 'Push').id.value}'));
+      final secondCard = find.byKey(ValueKey(
+          'library-routine-${_id(2).value}-${_routine(2, 201, 'Legs').id.value}'));
+      final menu = find
+          .byKey(ValueKey('routine-menu-${_routine(1, 101, 'Push').id.value}'));
+      final beforeFirst = tester.getRect(firstCard);
+      final beforeSecond = tester.getRect(secondCard);
+      expect(menu, findsOneWidget);
+      final pending = Completer<void>();
+      routines.readGate = pending;
+      signal.request(
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+        programsMayHaveChanged: false,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('library-programs-refreshing')),
+          findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        tester.getSemantics(find.byType(CircularProgressIndicator)).label,
+        contains('Refreshing Programs'),
+      );
+      expect(find.text('Push'), findsOneWidget);
+      expect(find.text('Legs'), findsOneWidget);
+      expect(tester.getRect(firstCard), beforeFirst);
+      expect(tester.getRect(secondCard), beforeSecond);
+      expect(menu, findsOneWidget, reason: '3-dot slot must never blink away');
+      final disabledButton = tester.widget<IconButton>(
+        find.descendant(of: menu, matching: find.byType(IconButton)),
+      );
+      expect(disabledButton.onPressed, isNull);
+      // A disabled overflow press must not fall through to card navigation.
+      await tester.tap(menu);
+      await tester.pump();
+      expect(navigations, 0);
+      expect(edits, 0);
+      expect(
+        find.byKey(ValueKey(
+          'routine-actions-sheet-${_routine(1, 101, 'Push').id.value}',
+        )),
+        findsNothing,
+      );
+      // Verified read-only navigation is still permitted during refresh.
+      await tester.tap(firstCard);
+      await tester.pump();
+      expect(navigations, 1);
+      expect(edits, 0);
+      expect(find.byKey(ValueKey('library-routines-${_id(1).value}')),
+          findsOneWidget);
+      expect(find.byKey(ValueKey('library-routines-${_id(2).value}')),
+          findsOneWidget);
+
+      pending.complete();
+      routines.readGate = null;
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('library-programs-refreshing')),
+          findsNothing);
+      expect(find.text('Push'), findsOneWidget);
+      expect(find.text('Legs'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
+  });
+
+  testWidgets('Program collection refresh retains expanded rows and one cue',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final signal = RoutineMoveRefreshSignal();
+      addTearDown(signal.dispose);
+      final programs = _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      );
+      final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+      await _pump(
+        tester,
+        programRepository: programs,
+        routineRepository: routines,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-a',
+        moveRefreshLoginCycleId: 'cycle-a',
+      );
+      final pendingPrograms = Completer<void>();
+      final pendingRoutines = Completer<void>();
+      programs.readGate = pendingPrograms;
+      routines.readGate = pendingRoutines;
+      signal.request(
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+        programsMayHaveChanged: true,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('library-programs-refreshing')),
+          findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        tester.getSemantics(find.byType(CircularProgressIndicator)).label,
+        contains('Refreshing Programs'),
+      );
+      expect(find.text('Push'), findsOneWidget);
+      expect(
+          find.byKey(ValueKey('program-row-${_id(1).value}')), findsOneWidget);
+      expect(
+          find.byKey(ValueKey('program-row-${_id(2).value}')), findsOneWidget);
+
+      pendingPrograms.complete();
+      pendingRoutines.complete();
+      programs.readGate = null;
+      routines.readGate = null;
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('library-programs-refreshing')),
+          findsNothing);
+      expect(find.text('Push'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
+  });
+
+  testWidgets('Program Edit and Add stay disabled during collection refresh',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    final pending = Completer<void>();
+    await _pump(
+      tester,
+      programRepository: programs,
+      onProgramPressed: (_) async {},
+      onAddRoutinePressed: (_) async {},
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    programs.readGate = pending;
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: true,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    TioCard optionCard(ValueKey<String> key) => tester.widget<TioCard>(
+          find.descendant(
+            of: find.byKey(key),
+            matching: find.byType(TioCard),
+          ),
+        );
+    expect(optionCard(const ValueKey('program-action-open')).onTap, isNotNull);
+    expect(optionCard(const ValueKey('program-action-edit')).onTap, isNull);
+    expect(
+      optionCard(const ValueKey('program-action-add-routine')).onTap,
+      isNull,
+    );
+    pending.complete();
+    programs.readGate = null;
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+      'Move refreshes both expanded Program Routine lists, keeps collapse',
       (tester) async {
     final signal = RoutineMoveRefreshSignal();
     addTearDown(signal.dispose);
@@ -111,17 +378,24 @@ void main() {
       _routine(1, 101, 'Push'),
       _routine(2, 201, 'Legs'),
     ]);
-    await _pump(tester, routineRepository: routines,
-      programRepository: programs, moveRefreshSignal: signal,
-      moveRefreshOwnerId: 'owner-a', moveRefreshLoginCycleId: 'cycle-a',
+    await _pump(
+      tester,
+      routineRepository: routines,
+      programRepository: programs,
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
       onMoveRoutine: (sourceProgram, candidate) async {
         expect(sourceProgram.id, _id(1));
         routines.rows.removeWhere((r) => r.id == id);
         routines.rows.add(Routine(
-          id: id, programId: _id(2), name: 'Push',
+          id: id,
+          programId: _id(2),
+          name: 'Push',
         ));
         signal.request(
-          ownerId: 'owner-a', loginCycleId: 'cycle-a',
+          ownerId: 'owner-a',
+          loginCycleId: 'cycle-a',
           programsMayHaveChanged: false,
         );
         // App shell already broadcast; the old source-only callback
@@ -144,7 +418,8 @@ void main() {
     expect(one, findsOneWidget);
     expect(two, findsOneWidget);
     expect(find.descendant(of: one, matching: find.text('Push')), findsNothing);
-    expect(find.descendant(of: two, matching: find.text('Push')), findsOneWidget);
+    expect(
+        find.descendant(of: two, matching: find.text('Push')), findsOneWidget);
     expect(routines.rows.singleWhere((r) => r.id == id).id, id);
   });
 
@@ -153,16 +428,20 @@ void main() {
     final signal = RoutineMoveRefreshSignal();
     addTearDown(signal.dispose);
     final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
-    await _pump(tester,
+    await _pump(
+      tester,
       routineRepository: routines,
       programRepository: _FakeProgramRepository(
         programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
       ),
       moveRefreshSignal: signal,
-      moveRefreshOwnerId: 'owner-a', moveRefreshLoginCycleId: 'cycle-a',
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
     );
     final initialReads = routines.queries.length;
-    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-a',
+    signal.request(
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
         programsMayHaveChanged: false);
     await tester.pumpAndSettle();
     expect(routines.queries.length, greaterThanOrEqualTo(initialReads + 2));
@@ -170,10 +449,12 @@ void main() {
     expect(find.byKey(ValueKey('library-routines-${_id(2).value}')),
         findsOneWidget);
     // Reads cannot attribute a late/cross-device mutation to our RPC.
-    expect(find.descendant(
-      of: find.byKey(ValueKey('library-routines-${_id(2).value}')),
-      matching: find.text('Push'),
-    ), findsNothing);
+    expect(
+        find.descendant(
+          of: find.byKey(ValueKey('library-routines-${_id(2).value}')),
+          matching: find.text('Push'),
+        ),
+        findsNothing);
   });
 
   testWidgets('atomic Create and Move refresh includes newly saved Program',
@@ -186,9 +467,11 @@ void main() {
     final id = _routine(1, 101, 'Push').id;
     final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
     await _pump(tester,
-      programRepository: programs, routineRepository: routines,
-      moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-a',
-      moveRefreshLoginCycleId: 'cycle-a');
+        programRepository: programs,
+        routineRepository: routines,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-a',
+        moveRefreshLoginCycleId: 'cycle-a');
     // The ProgramsController briefly publishes loading during atomic refresh.
     // Collapsed view state must survive the list widget being unmounted.
     final first = ValueKey('library-routines-${_id(1).value}');
@@ -199,7 +482,9 @@ void main() {
     routines.rows
       ..clear()
       ..add(Routine(id: id, programId: _id(3), name: 'Push'));
-    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-a',
+    signal.request(
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
         programsMayHaveChanged: true);
     await tester.pumpAndSettle();
     expect(programs.listReads, 2);
@@ -209,9 +494,51 @@ void main() {
         findsOneWidget);
     expect(find.byKey(first), findsNothing,
         reason: 'Atomic Program reload must preserve collapsed source cards');
-    expect(find.byKey(ValueKey('program-row-${_id(1).value}')),
-        findsOneWidget);
+    expect(find.byKey(ValueKey('program-row-${_id(1).value}')), findsOneWidget);
     expect(routines.rows.single.id, id);
+  });
+
+  testWidgets(
+      'atomic Create and Move reloads routines for expanded source Program',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    final id = _routine(1, 101, 'Push').id;
+    final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
+    await _pump(tester,
+        programRepository: programs,
+        routineRepository: routines,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-a',
+        moveRefreshLoginCycleId: 'cycle-a');
+
+    final first = ValueKey('library-routines-${_id(1).value}');
+    expect(find.byKey(first), findsOneWidget);
+    expect(find.descendant(of: find.byKey(first), matching: find.text('Push')),
+        findsOneWidget);
+
+    await programs.create(_program(3, 'New Program'));
+    routines.rows
+      ..clear()
+      ..add(Routine(id: id, programId: _id(3), name: 'Push'));
+    signal.request(
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-a',
+        programsMayHaveChanged: true);
+    await tester.pumpAndSettle();
+
+    expect(programs.listReads, 2);
+    expect(find.byKey(first), findsOneWidget);
+    expect(find.descendant(of: find.byKey(first), matching: find.text('Push')),
+        findsNothing);
+
+    final three = find.byKey(ValueKey('library-routines-${_id(3).value}'));
+    expect(three, findsOneWidget);
+    expect(find.descendant(of: three, matching: find.text('Push')),
+        findsOneWidget);
   });
 
   testWidgets('rebind to a different owner cycle resets collapsed Program view',
@@ -221,9 +548,12 @@ void main() {
     final programs = _FakeProgramRepository(
         programs: [_program(1, 'Strength'), _program(2, 'Cardio')]);
     final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
-    await _pump(tester, programRepository: programs,
-      routineRepository: routines, moveRefreshSignal: signal,
-      moveRefreshOwnerId: 'owner-a', moveRefreshLoginCycleId: 'cycle-a');
+    await _pump(tester,
+        programRepository: programs,
+        routineRepository: routines,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-a',
+        moveRefreshLoginCycleId: 'cycle-a');
     await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
     await tester.pumpAndSettle();
     final first = ValueKey('library-routines-${_id(1).value}');
@@ -231,9 +561,12 @@ void main() {
 
     // Reuse the mounted Library root: the owner/cycle rebind, not a new
     // navigation route, must reset account-scoped collapse state.
-    await _pump(tester, programRepository: programs,
-      routineRepository: routines, moveRefreshSignal: signal,
-      moveRefreshOwnerId: 'owner-b', moveRefreshLoginCycleId: 'cycle-b');
+    await _pump(tester,
+        programRepository: programs,
+        routineRepository: routines,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-b',
+        moveRefreshLoginCycleId: 'cycle-b');
     expect(find.byKey(first), findsOneWidget);
     expect(programs.listReads, greaterThanOrEqualTo(2));
   });
@@ -243,27 +576,35 @@ void main() {
     final signal = RoutineMoveRefreshSignal();
     addTearDown(signal.dispose);
     final routines = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
-    final programs = _FakeProgramRepository(
-        programs: [_program(1, 'Strength')]);
+    final programs =
+        _FakeProgramRepository(programs: [_program(1, 'Strength')]);
     await _pump(tester,
-      programRepository: programs, routineRepository: routines,
-      moveRefreshSignal: signal, moveRefreshOwnerId: 'owner-b',
-      moveRefreshLoginCycleId: 'cycle-2');
+        programRepository: programs,
+        routineRepository: routines,
+        moveRefreshSignal: signal,
+        moveRefreshOwnerId: 'owner-b',
+        moveRefreshLoginCycleId: 'cycle-2');
     final reads = routines.queries.length;
-    signal.request(ownerId: 'owner-a', loginCycleId: 'cycle-2',
+    signal.request(
+        ownerId: 'owner-a',
+        loginCycleId: 'cycle-2',
         programsMayHaveChanged: true);
-    signal.request(ownerId: 'owner-b', loginCycleId: 'cycle-1',
+    signal.request(
+        ownerId: 'owner-b',
+        loginCycleId: 'cycle-1',
         programsMayHaveChanged: true);
     await tester.pumpAndSettle();
     expect(routines.queries.length, reads);
     expect(programs.listReads, 1);
   });
 
-  testWidgets('Library Move suppressed during pending Create and without callback',
+  testWidgets(
+      'Library Move suppressed during pending Create and without callback',
       (tester) async {
     final routine = _routine(1, 101, 'Push');
     var calls = 0;
-    await _pump(tester,
+    await _pump(
+      tester,
       routineRepository: _FakeRoutineRepository([routine]),
       onMoveRoutine: (program, candidate) async {
         calls++;
@@ -271,15 +612,18 @@ void main() {
       },
       hasUnconfirmedCreate: (program) => program.id == _id(1),
     );
-    expect(find.byKey(ValueKey('routine-menu-${routine.id.value}')), findsNothing);
+    expect(
+        find.byKey(ValueKey('routine-menu-${routine.id.value}')), findsNothing);
     expect(calls, 0);
-    await _pump(tester,
+    await _pump(
+      tester,
       routineRepository: _FakeRoutineRepository([routine]),
       onEditRoutine: (program, candidate) async => false,
     );
     await tester.tap(find.byKey(ValueKey('routine-menu-${routine.id.value}')));
     await tester.pumpAndSettle();
-    expect(find.byKey(ValueKey('routine-move-${routine.id.value}')), findsNothing);
+    expect(
+        find.byKey(ValueKey('routine-move-${routine.id.value}')), findsNothing);
   });
 
   testWidgets('expanded Library Delete refreshes only owner Routine cards',
@@ -287,7 +631,9 @@ void main() {
     final routine = _routine(1, 101, 'Push');
     final repository = _FakeRoutineRepository([routine]);
     Routine? deleted;
-    await _pump(tester, routineRepository: repository,
+    await _pump(
+      tester,
+      routineRepository: repository,
       onDeleteRoutine: (program, candidate) async {
         expect(program.id, _id(1));
         deleted = candidate;
@@ -300,7 +646,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('routine-delete-${routine.id.value}')),
         findsOneWidget);
-    await tester.tap(find.byKey(ValueKey('routine-delete-${routine.id.value}')));
+    await tester
+        .tap(find.byKey(ValueKey('routine-delete-${routine.id.value}')));
     await tester.pumpAndSettle();
     expect(deleted?.id, routine.id);
     expect(find.text('Push'), findsNothing);
@@ -317,7 +664,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(BackButton), findsOneWidget);
-    expect(find.byKey(const ValueKey('library-category-strip')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('library-category-strip')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('library-category-programs')),
       findsOneWidget,
@@ -361,31 +709,58 @@ void main() {
     expect(find.text('Routines'), findsNothing);
   });
 
-  testWidgets('inline Program rows are plain and expose collapse state',
+  testWidgets('Library Program rows keep spacing and draw no divider',
       (tester) async {
-    await _pump(tester);
+    await _pump(
+      tester,
+      programRepository: _FakeProgramRepository(
+        programs: [_program(1, 'Strength'), _program(2, 'Cardio')],
+      ),
+    );
 
-    final programs = find.byKey(const ValueKey('library-programs-content'));
+    final list = find.byKey(const ValueKey('programs-list'));
+    expect(list, findsOneWidget);
     expect(
-      find.descendant(of: programs, matching: find.byType(TioGroupCard)),
+      find.descendant(of: list, matching: find.byType(Divider)),
       findsNothing,
     );
+
+    final gap = find.byKey(const ValueKey('library-program-gap-0'));
+    expect(find.descendant(of: list, matching: gap), findsOneWidget);
+    expect(tester.getSize(gap).height, TioSpacing.xxs);
+
+    await tester.tap(find.text('Strength'));
+    await tester.pump();
+    await tester.tap(find.text('Cardio'));
+    await tester.pump();
+
+    final first = tester.getRect(
+      find.byKey(ValueKey('program-row-${_id(1).value}')),
+    );
+    final second = tester.getRect(
+      find.byKey(ValueKey('program-row-${_id(2).value}')),
+    );
+    expect(
+      find.descendant(of: list, matching: find.byType(Divider)),
+      findsNothing,
+    );
+    expect(second.top - first.bottom, closeTo(TioSpacing.xxs, 0.1));
+  });
+
+  testWidgets('Program header combines chevron and title as one toggle',
+      (tester) async {
+    await _pump(tester);
+    final programs = find.byKey(const ValueKey('library-programs-content'));
+    expect(find.descendant(of: programs, matching: find.byType(TioGroupCard)),
+        findsNothing);
 
     final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
     final padding = tester.widget<Padding>(
       find.descendant(of: row, matching: find.byType(Padding)).first,
     );
-    expect(
-      padding.padding,
-      const EdgeInsets.symmetric(vertical: TioSpacing.sm),
-    );
+    expect(padding.padding, EdgeInsets.zero);
 
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
-    expect(toggle, findsOneWidget);
-    expect(
-      tester.widget<IconButton>(toggle).tooltip,
-      'Collapse Strength',
-    );
     final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
     final leftGlyph = find.descendant(
       of: toggle,
@@ -396,52 +771,132 @@ void main() {
       matching: find.byIcon(Icons.more_horiz_rounded),
     );
     final sectionRect = tester.getRect(programs);
-    final leftAction = tester.widget<IconButton>(toggle);
-    final rightAction = tester.widget<IconButton>(overflow);
-    expect(leftAction.padding, EdgeInsets.zero);
-    expect(rightAction.padding, EdgeInsets.zero);
-    expect(leftAction.alignment, AlignmentDirectional.centerStart);
-    expect(rightAction.alignment, AlignmentDirectional.centerEnd);
-    expect(tester.getSize(toggle), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.widget<InkWell>(toggle).onTap, isNotNull);
+    expect(tester.getSize(toggle).height, greaterThanOrEqualTo(TioSize.dp48));
+    expect(tester.getSize(toggle).width, greaterThan(TioSize.dp48 * 2));
     expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
-    // The glyphs meet the same outer bounds as the Routine and dotted cards.
-    // Do not shrink accessible hit targets just to remove visible side gaps.
-    expect(tester.getRect(leftGlyph).left, closeTo(sectionRect.left, 0.1));
+    expect(find.byTooltip('Collapse Strength'), findsOneWidget);
     expect(tester.getRect(rightGlyph).right, closeTo(sectionRect.right, 0.1));
+    final titleRect = tester.getRect(find.text('Strength'));
+    final glyphRect = tester.getRect(leftGlyph);
+    expect(glyphRect.left, closeTo(sectionRect.left, 0.1));
+    expect(titleRect.left - glyphRect.right, closeTo(TioSpacing.xs, 0.1));
 
-    await tester.tap(toggle);
+    // Tapping text, not just the arrow, must collapse the same Program.
+    await tester.tap(find.text('Strength'));
     await tester.pump();
-
-    expect(
-      tester.widget<IconButton>(toggle).tooltip,
-      'Expand Strength',
-    );
+    expect(find.byTooltip('Expand Strength'), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-routines-unavailable')),
+        findsNothing);
+    await tester.tap(find.descendant(
+      of: toggle,
+      matching: find.byIcon(Icons.keyboard_arrow_right_rounded),
+    ));
+    await tester.pump();
+    expect(find.byTooltip('Collapse Strength'), findsOneWidget);
+    expect(find.byKey(const ValueKey('library-routines-unavailable')),
+        findsOneWidget);
   });
 
-  testWidgets('Program name has a 48dp action target and the right identity',
+  testWidgets('Program Detail opens only from the 3-dot Open Program action',
       (tester) async {
     Program? selected;
     await _pump(tester, onProgramPressed: (program) async {
       selected = program;
     });
-
-    final target = find.byKey(
-      ValueKey('program-open-${_id(1).value}'),
-    );
-    expect(target, findsOneWidget);
-    expect(tester.getSize(target).height, greaterThanOrEqualTo(TioSize.dp48));
-    await tester.tap(target);
-    await tester.pump();
-    expect(selected?.id, _id(1));
-
-    // The existing separate collapse/expand control still owns its action.
     final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
+    expect(find.byKey(ValueKey('program-open-${_id(1).value}')), findsNothing);
+    await tester.tap(find.text('Strength'));
+    await tester.pump();
+    expect(selected, isNull);
+    expect(find.byTooltip('Expand Strength'), findsOneWidget);
     await tester.tap(toggle);
     await tester.pump();
-    expect(
-      tester.widget<IconButton>(toggle).tooltip,
-      'Expand Strength',
+
+    final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
+    await tester.tap(overflow);
+    await tester.pumpAndSettle();
+    final open = find.byKey(const ValueKey('program-action-open'));
+    expect(open, findsOneWidget);
+    expect(find.text('Open Program'), findsOneWidget);
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+    expect(selected?.id, _id(1));
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsNothing);
+  });
+
+  testWidgets('owner rebind drops an open Program action still in the sheet',
+      (tester) async {
+    Program? opened;
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
     );
+    Future<void> select(Program program) async {
+      opened = program;
+    }
+
+    await _pump(
+      tester,
+      programRepository: programs,
+      onProgramPressed: select,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+
+    await _pump(
+      tester,
+      programRepository: programs,
+      onProgramPressed: select,
+      moveRefreshOwnerId: 'owner-b',
+      moveRefreshLoginCycleId: 'cycle-b',
+    );
+    expect(find.byKey(const ValueKey('program-actions-sheet')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('program-action-open')));
+    await tester.pumpAndSettle();
+    expect(opened, isNull);
+  });
+
+  testWidgets('RTL Program header remains one accessible toggle and menu',
+      (tester) async {
+    Program? opened;
+    await _pump(
+      tester,
+      textDirection: TextDirection.rtl,
+      onProgramPressed: (program) async {
+        opened = program;
+      },
+    );
+    final toggle = find.byKey(ValueKey('program-expand-${_id(1).value}'));
+    final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
+    final glyph = find.descendant(
+      of: toggle,
+      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+    );
+    final section = find.byKey(const ValueKey('library-programs-content'));
+    expect(tester.getSize(toggle).height, greaterThanOrEqualTo(TioSize.dp48));
+    expect(tester.getSize(overflow), const Size(TioSize.dp48, TioSize.dp48));
+    expect(tester.getRect(glyph).right,
+        closeTo(tester.getRect(section).right, 0.1));
+    expect(
+        tester.getRect(glyph).left -
+            tester.getRect(find.text('Strength')).right,
+        closeTo(TioSpacing.xs, 0.1));
+
+    await tester.tap(find.text('Strength'));
+    await tester.pump();
+    expect(opened, isNull);
+    expect(find.byTooltip('Expand Strength'), findsOneWidget);
+    await tester.tap(toggle);
+    await tester.pump();
+    expect(find.byTooltip('Collapse Strength'), findsOneWidget);
+    await tester.tap(overflow);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-open')));
+    await tester.pumpAndSettle();
+    expect(opened?.id, _id(1));
   });
 
   testWidgets('expanded Programs render only their persisted Routine children',
@@ -462,10 +917,13 @@ void main() {
     final two = find.byKey(ValueKey('library-routines-${_id(2).value}'));
     expect(one, findsOneWidget);
     expect(two, findsOneWidget);
-    expect(find.descendant(of: one, matching: find.text('Push')), findsOneWidget);
-    expect(find.descendant(of: one, matching: find.text('Pull')), findsOneWidget);
+    expect(
+        find.descendant(of: one, matching: find.text('Push')), findsOneWidget);
+    expect(
+        find.descendant(of: one, matching: find.text('Pull')), findsOneWidget);
     expect(find.descendant(of: one, matching: find.text('Legs')), findsNothing);
-    expect(find.descendant(of: two, matching: find.text('Legs')), findsOneWidget);
+    expect(
+        find.descendant(of: two, matching: find.text('Legs')), findsOneWidget);
     expect(find.descendant(of: one, matching: find.byType(TioCard)),
         findsNWidgets(2));
 
@@ -474,10 +932,10 @@ void main() {
     final section = find.byKey(const ValueKey('library-programs-content'));
     final left = tester.getTopLeft(section).dx;
     final right = tester.getTopRight(section).dx;
-    final firstCard = find.byKey(
-        ValueKey('library-routine-${_id(1).value}-${_routine(1, 101, 'Push').id.value}'));
-    final secondCard = find.byKey(
-        ValueKey('library-routine-${_id(2).value}-${_routine(2, 201, 'Legs').id.value}'));
+    final firstCard = find.byKey(ValueKey(
+        'library-routine-${_id(1).value}-${_routine(1, 101, 'Push').id.value}'));
+    final secondCard = find.byKey(ValueKey(
+        'library-routine-${_id(2).value}-${_routine(2, 201, 'Legs').id.value}'));
     for (final card in [firstCard, secondCard]) {
       expect(tester.getTopLeft(card).dx, closeTo(left, 0.1));
       expect(tester.getTopRight(card).dx, closeTo(right, 0.1));
@@ -497,7 +955,8 @@ void main() {
     await tester.tap(find.byKey(ValueKey('program-expand-${_id(1).value}')));
     await tester.pumpAndSettle();
     expect(one, findsOneWidget);
-    expect(find.descendant(of: one, matching: find.text('Push')), findsOneWidget);
+    expect(
+        find.descendant(of: one, matching: find.text('Push')), findsOneWidget);
   });
 
   testWidgets('expanded owner Routine invokes Detail navigation without Edit',
@@ -525,6 +984,37 @@ void main() {
     expect(find.byKey(const ValueKey('routine-name-field')), findsNothing);
   });
 
+  testWidgets('expanded Library Routine play starts without opening Detail',
+      (tester) async {
+    final routine = _routine(1, 101, 'Glutes & thighs (day 1)');
+    var detailCalls = 0;
+    var startCalls = 0;
+    await _pump(
+      tester,
+      routineRepository: _FakeRoutineRepository([routine]),
+      onRoutinePressed: (program, selected) async {
+        expect(program.id, routine.programId);
+        expect(selected.id, routine.id);
+        detailCalls++;
+      },
+      onStartRoutinePressed: (program, selected) async {
+        expect(program.id, routine.programId);
+        expect(selected.id, routine.id);
+        startCalls++;
+      },
+    );
+
+    final play = find.byKey(
+      ValueKey('routine-start-button-${routine.id.value}'),
+    );
+    expect(play, findsOneWidget);
+    await tester.tap(play);
+    await tester.pumpAndSettle();
+    expect(startCalls, 1);
+    expect(detailCalls, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('expanded Library Routine shows the shared outlined Edit sheet',
       (tester) async {
     final repository = _FakeRoutineRepository([_routine(1, 101, 'Push')]);
@@ -548,8 +1038,7 @@ void main() {
     final sheet = find.byKey(ValueKey('routine-actions-sheet-$id'));
     expect(sheet, findsOneWidget);
     expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
-    final outlined = find.descendant(
-        of: sheet, matching: find.byType(TioCard));
+    final outlined = find.descendant(of: sheet, matching: find.byType(TioCard));
     expect(outlined, findsOneWidget);
     expect(tester.widget<TioCard>(outlined).variant, TioCardVariant.outlined);
     expect(find.byKey(ValueKey('routine-move-$id')), findsNothing);
@@ -574,7 +1063,9 @@ void main() {
       },
     );
     expect(find.text('New Routine'), findsNothing);
-    await tester.tap(find.byKey(ValueKey('program-open-${_id(1).value}')));
+    await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-open')));
     await tester.pumpAndSettle();
     expect(find.text('New Routine'), findsOneWidget);
     expect(repository.queries.where((p) => p == _id(1)).length,
@@ -656,9 +1147,11 @@ void main() {
     // The next Program remains visible but cannot open another draft.
     final secondCard = second;
     expect(
-      tester.widget<InkWell>(
-        find.descendant(of: secondCard, matching: find.byType(InkWell)),
-      ).onTap,
+      tester
+          .widget<InkWell>(
+            find.descendant(of: secondCard, matching: find.byType(InkWell)),
+          )
+          .onTap,
       isNull,
     );
     await tester.tap(find.byKey(ValueKey('program-overflow-${_id(2).value}')));
@@ -666,7 +1159,11 @@ void main() {
     final action = find.byKey(const ValueKey('program-action-add-routine'));
     expect(action, findsOneWidget);
     expect(
-      tester.widget<TioSettingsNavigationRow>(action).onTap,
+      tester
+          .widget<TioCard>(
+            find.descendant(of: action, matching: find.byType(TioCard)),
+          )
+          .onTap,
       isNull,
     );
     hold.complete();
@@ -674,7 +1171,8 @@ void main() {
     expect(calls, 1);
   });
 
-  testWidgets('pending save disables both Add entries and explains verification',
+  testWidgets(
+      'pending save disables both Add entries and explains verification',
       (tester) async {
     await _pump(
       tester,
@@ -697,17 +1195,22 @@ void main() {
     expect(find.byKey(ValueKey('library-verify-routine-${_id(1).value}')),
         findsOneWidget);
     expect(
-      tester.widget<InkWell>(
-        find.descendant(of: blocked, matching: find.byType(InkWell)),
-      ).onTap,
+      tester
+          .widget<InkWell>(
+            find.descendant(of: blocked, matching: find.byType(InkWell)),
+          )
+          .onTap,
       isNull,
     );
     await tester.tap(find.byKey(ValueKey('program-overflow-${_id(1).value}')));
     await tester.pumpAndSettle();
+    final addAction = find.byKey(const ValueKey('program-action-add-routine'));
     expect(
-      tester.widget<TioSettingsNavigationRow>(
-        find.byKey(const ValueKey('program-action-add-routine')),
-      ).onTap,
+      tester
+          .widget<TioCard>(
+            find.descendant(of: addAction, matching: find.byType(TioCard)),
+          )
+          .onTap,
       isNull,
     );
   });
@@ -735,17 +1238,19 @@ void main() {
     expect(find.text('No routines yet'), findsOneWidget);
   });
 
-  testWidgets('dotted Add new routine keeps Core dark theme and remains tappable',
+  testWidgets(
+      'dotted Add new routine keeps Core dark theme and remains tappable',
       (tester) async {
     ProgramId? target;
     await _pump(
       tester,
       mode: TioThemeMode.dark,
       routineRepository: _FakeRoutineRepository([]),
-      onAddRoutinePressed: (program) async { target = program.id; },
+      onAddRoutinePressed: (program) async {
+        target = program.id;
+      },
     );
-    final action =
-        find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
+    final action = find.byKey(ValueKey('library-add-routine-${_id(1).value}'));
     expect(action, findsOneWidget);
     expect(
       find.descendant(of: action, matching: find.text('Add new routine')),
@@ -781,15 +1286,16 @@ void main() {
     expect(find.byKey(const ValueKey('program-actions-sheet')), findsNothing);
   });
 
-  testWidgets('Routine child load error retries without leaking another Program',
+  testWidgets(
+      'Routine child load error retries without leaking another Program',
       (tester) async {
     final repository = _FakeRoutineRepository([_routine(2, 201, 'Foreign')])
       ..loadFailures = 1;
     await _pump(tester, routineRepository: repository);
     expect(find.text('Could not load routines.'), findsOneWidget);
     expect(find.text('Foreign'), findsNothing);
-    await tester.tap(find.byKey(
-        ValueKey('library-routines-retry-${_id(1).value}')));
+    await tester
+        .tap(find.byKey(ValueKey('library-routines-retry-${_id(1).value}')));
     await tester.pumpAndSettle();
     expect(find.text('No routines yet'), findsOneWidget);
 
@@ -866,15 +1372,18 @@ void main() {
     expect(find.byType(ProgramsPage), findsNothing);
   });
 
-  testWidgets('Program name stays non-navigable until W4 detail exists',
+  testWidgets('Program name expands in place and does not open detail',
       (tester) async {
     await _pump(tester);
 
     final name = find.text('Strength');
     expect(name, findsOneWidget);
     expect(
-      find.ancestor(of: name, matching: find.byType(InkWell)),
-      findsNothing,
+      find.ancestor(
+        of: name,
+        matching: find.byKey(ValueKey('program-expand-${_id(1).value}')),
+      ),
+      findsOneWidget,
     );
   });
 
@@ -885,8 +1394,7 @@ void main() {
     );
     await _pump(tester, programRepository: repository);
 
-    final overflow =
-        find.byKey(ValueKey('program-overflow-${_id(1).value}'));
+    final overflow = find.byKey(ValueKey('program-overflow-${_id(1).value}'));
     expect(overflow, findsOneWidget);
 
     await tester.tap(overflow);
@@ -962,11 +1470,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final title = tester.widget<Text>(
-      find.byKey(const ValueKey('program-actions-title')),
-    );
-    expect(title.maxLines, 2);
-    expect(title.overflow, TextOverflow.ellipsis);
+    final sheet = find.byKey(const ValueKey('program-actions-sheet'));
+    expect(sheet, findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.text(longName)),
+        findsOneWidget);
+    final rect = tester.getRect(sheet);
+    expect(rect.left, greaterThanOrEqualTo(0));
+    expect(rect.right, lessThanOrEqualTo(800));
     expect(find.text('Edit Program'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -1002,7 +1512,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('library-category-clear')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('library-category-clear')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('library-category-exercises')),
       findsOneWidget,
@@ -1023,7 +1534,8 @@ void main() {
       find.byKey(const ValueKey('library-create-exercise-entry')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('library-exercises-entry')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('library-exercises-entry')), findsOneWidget);
     expect(find.byType(TioGroupCard), findsNothing);
     expect(
       find.byKey(const ValueKey('library-create-exercise-card')),
@@ -1113,7 +1625,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('library-category-clear')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('library-category-clear')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('library-category-programs')),
       findsOneWidget,
@@ -1184,6 +1697,49 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('pull moves Programs down and keeps them while rereading',
+      (tester) async {
+    final programs = _FakeProgramRepository(
+      programs: [_program(1, 'Strength')],
+    );
+    await _pump(tester, programRepository: programs);
+    final row = find.byKey(ValueKey('program-row-${_id(1).value}'));
+    final before = tester.getTopLeft(row).dy;
+    final readsBefore = programs.listReads;
+    final scroll = find.byKey(const ValueKey('library-scroll'));
+    final view = tester.widget<CustomScrollView>(scroll);
+    expect(view.physics, isA<BouncingScrollPhysics>());
+    expect(view.physics?.parent, isA<AlwaysScrollableScrollPhysics>());
+    expect(view.slivers.first, isA<CupertinoSliverRefreshControl>());
+
+    final gate = Completer<void>();
+    programs.readGate = gate;
+    final touch = await tester.startGesture(tester.getCenter(row));
+    await touch.moveBy(const Offset(0, 190));
+    await tester.pump();
+    await touch.moveBy(const Offset(0, 230));
+    await tester.pump();
+
+    expect(tester.getTopLeft(row).dy, greaterThan(before + TioSpacing.lg));
+    expect(tester.getRect(scroll).top, lessThan(tester.getTopLeft(row).dy));
+    expect(
+      tester.getTopLeft(find.text('Library')).dy,
+      lessThan(before),
+    );
+    await touch.up();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(programs.listReads, greaterThan(readsBefore));
+    expect(find.text('Strength'), findsOneWidget);
+
+    programs.programs[0] = _program(1, 'Power');
+    gate.complete();
+    programs.readGate = null;
+    await tester.pumpAndSettle();
+    expect(find.text('Power'), findsOneWidget);
+    expect(find.text('Strength'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 ProgramId _id(int value) => ProgramId(
@@ -1213,10 +1769,13 @@ final class _FakeProgramRepository implements ProgramRepository {
   final List<Program> created = [];
   final List<({ProgramId id, String name})> renamed = [];
   final Object? renameErrorAfterWrite;
+  Completer<void>? readGate;
 
   @override
   Future<List<Program>> list() async {
     listReads++;
+    final gate = readGate;
+    if (gate != null) await gate.future;
     return List.unmodifiable(programs);
   }
 
@@ -1255,10 +1814,13 @@ final class _FakeRoutineRepository implements RoutineRepository {
   final List<ProgramId> queries = [];
   int loadFailures = 0;
   bool returnForeign = false;
+  Completer<void>? readGate;
 
   @override
   Future<List<Routine>> list(ProgramId programId) async {
     queries.add(programId);
+    final gate = readGate;
+    if (gate != null) await gate.future;
     if (loadFailures > 0) {
       loadFailures--;
       throw StateError('temporary failure');

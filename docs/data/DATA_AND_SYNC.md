@@ -168,7 +168,11 @@ Do not build permanent bidirectional synchronization between legacy and canonica
 
 ## Local Persistence Direction
 
-Core fitness flows should become offline-capable behind repositories. Candidate local persistence technologies include Drift/Isar or another store that supports the required slice.
+Core fitness flows should become offline-capable behind repositories. **Approved Flutter Android/iOS technology selection (owner decision 2026-11-10): Drift over SQLite** for future structured offline relational data and pending sync queues. Do not choose Isar/Isar Community or another phone local-database engine without a new, explicit owner-approved architecture decision. This is **selected future direction, not an implemented database or active offline sync**; do not install packages, create tables, alter current stores or claim offline operation based only on this policy.
+
+Supabase PostgreSQL + RLS remains the canonical authenticated user-data owner. Preserve the existing approved encrypted `flutter_secure_storage` workout-draft store and lightweight `SharedPreferences` device preferences; neither should be reinterpreted as a general sync queue. This Flutter phone selection does not set the Apple Watch/watchOS storage engine; wearable apps retain only minimal platform-appropriate local state.
+
+Each later implementation slice must separately verify the pinned Flutter/Dart/CI toolchain and Drift version, transactional SQLite schema/migrations, per-owner isolation and logout/user-switch cleanup, safe stable IDs and idempotent retries, conflict reconciliation and multi-device lifecycle, encryption-at-rest/key management for sensitive health data, and on-device interruption/recovery tests. Plaintext SQLite is not an approved store for sensitive health records without an explicitly reviewed protection design.
 
 Minimum future local/sync surfaces may include:
 

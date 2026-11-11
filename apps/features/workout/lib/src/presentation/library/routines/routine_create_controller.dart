@@ -4,7 +4,10 @@ import 'package:uuid/uuid.dart';
 
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/models/routine_composition_limits.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
+import '../../../domain/repositories/my_program_routine_create_repository.dart';
+import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
@@ -27,12 +30,17 @@ final class RoutineCreateState {
       status == RoutineCreateStatus.ready &&
       name.trim().isNotEmpty &&
       entries.isNotEmpty &&
-      entries.every((entry) => entry.sets.isNotEmpty);
+      entries.every((entry) =>
+          entry.sets.isNotEmpty &&
+          RoutineCompositionLimits.hasValidSetOrder(
+            entry.sets.map((s) => s.prescription),
+          ));
 }
 
-/// One in-memory Program-owned draft; no metadata-only persistence path.
-/// Every selected Exercise immediately owns an identified Set; numeric targets
-/// remain genuinely unspecified until the user chooses to prescribe them.
+/// One canonical in-memory Routine draft for an existing Program or the
+/// server-owned default Program. Neither mode allows metadata-only writes.
+/// Every picked Exercise owns an identified Set; numeric targets remain
+/// unspecified until the user chooses to prescribe them.
 final class RoutineCreateController extends ChangeNotifier {
   RoutineCreateController({
     required this.program,
@@ -42,15 +50,45 @@ final class RoutineCreateController extends ChangeNotifier {
     this.canWrite,
     this.onDefiniteFailure,
     String Function()? newUuid,
-  })  : _name = initialName,
+  })  : myProgramRepository = null,
+        onMyProgramWriteStarted = null,
+        onMyProgramDefiniteFailure = null,
+        _name = initialName,
         _newUuid = newUuid ?? (() => const Uuid().v4()) {
     _publish();
   }
 
-  final Program program;
-  final RoutineCreateRepository repository;
+  /// Reuse this exact composer for a direct Library Create without inventing
+  /// a temporary ProgramId. Only the atomic default resolver owns persistence.
+  RoutineCreateController.forMyProgram({
+    required String initialName,
+    required MyProgramRoutineCreateRepository this.myProgramRepository,
+    this.userExercises,
+    required this.canWrite,
+    required this.onMyProgramWriteStarted,
+    this.onMyProgramDefiniteFailure,
+    String Function()? newUuid,
+  })  : program = null,
+        repository = null,
+        onDefiniteFailure = null,
+        _name = initialName,
+        _newUuid = newUuid ?? (() => const Uuid().v4()) {
+    _publish();
+  }
+
+  final Program? program;
+  final RoutineCreateRepository? repository;
+  final MyProgramRoutineCreateRepository? myProgramRepository;
+
+  /// Reserve the frozen command before dispatch. Rejection is a safe no-write
+  /// outcome, not a transport UNKNOWN and never leaves the composer locked.
+  final ValueChanged<MyProgramRoutineCreateCommand>? onMyProgramWriteStarted;
+
+  /// Definite server rejections release only the frozen programless command.
+  final ValueChanged<MyProgramRoutineCreateCommand>? onMyProgramDefiniteFailure;
   final UserExerciseRepository? userExercises;
   final bool Function()? canWrite;
+
   /// The rejected command can outlive a revoked/disposed Create route.
   /// This callback never transfers session capabilities or draft content.
   final ValueChanged<RoutineCreateCommand>? onDefiniteFailure;
@@ -60,15 +98,29 @@ final class RoutineCreateController extends ChangeNotifier {
   // One selected Custom measurement contract per *entry* (not per Exercise
   // ref: duplicate refs may be added independently to a Routine).
   final Map<String, ExerciseType?> _pickedCustomTypes = {};
+  final Map<String, RoutineRestTimerPreset> _restPresets = {};
   RoutineCreateStatus _status = RoutineCreateStatus.ready;
   RoutineCreateCommand? _attempt;
+  MyProgramRoutineCreateCommand? _myProgramAttempt;
+
   /// The exact uncertain mutation, for owner-scoped recovery on route exit.
   RoutineCreateCommand? get unconfirmedAttempt =>
       _status == RoutineCreateStatus.outcomeUnknown ? _attempt : null;
+  MyProgramRoutineCreateCommand? get unconfirmedMyProgramAttempt =>
+      _status == RoutineCreateStatus.outcomeUnknown ? _myProgramAttempt : null;
+
   /// Capturable only once the atomic write is actually dispatched, before
   /// its network Future can outlive an auth-revoked Create route.
   RoutineCreateCommand? get inFlightAttempt =>
       _status == RoutineCreateStatus.saving ? _attempt : null;
+  MyProgramRoutineCreateCommand? get inFlightMyProgramAttempt =>
+      _status == RoutineCreateStatus.saving ? _myProgramAttempt : null;
+
+  /// Durable identity available only after the atomic Create is confirmed or
+  /// an unknown outcome is positively reconciled.
+  RoutineId? get savedRoutineId => _status == RoutineCreateStatus.saved
+      ? _attempt?.routine.id ?? _myProgramAttempt?.routineId
+      : null;
   String? _message;
   bool _disposed = false;
 
@@ -76,7 +128,7 @@ final class RoutineCreateController extends ChangeNotifier {
   RoutineCreateState get state => _state;
 
   bool get _authorized {
-    if (_disposed) return false;
+    if (_disposed || (program == null && canWrite == null)) return false;
     try {
       return canWrite?.call() ?? true;
     } catch (_) {
@@ -88,7 +140,10 @@ final class RoutineCreateController extends ChangeNotifier {
     if (_disposed) return;
     _message = message;
     _state = RoutineCreateState(
-      status: _status, name: _name, entries: _entries, message: _message,
+      status: _status,
+      name: _name,
+      entries: _entries,
+      message: _message,
     );
     notifyListeners();
   }
@@ -102,7 +157,8 @@ final class RoutineCreateController extends ChangeNotifier {
   }
 
   String? addPickedExercise(Exercise exercise) {
-    if (!_editable || exercise.status != ExerciseStatus.active ||
+    if (!_editable ||
+        exercise.status != ExerciseStatus.active ||
         !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
       return null;
     }
@@ -131,7 +187,8 @@ final class RoutineCreateController extends ChangeNotifier {
   /// Replace in the same ordered slot, but never reuse old Exercise targets.
   /// Fresh entry/Set UUIDs prevent cross-exercise prescription attribution.
   String? replacePickedExercise(String entryId, Exercise exercise) {
-    if (!_editable || !_authorized ||
+    if (!_editable ||
+        !_authorized ||
         exercise.status != ExerciseStatus.active ||
         !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
       return null;
@@ -141,19 +198,22 @@ final class RoutineCreateController extends ChangeNotifier {
     final newId = _newUuid();
     final setId = _newUuid();
     _pickedCustomTypes.remove(entryId);
+    _restPresets.remove(entryId);
     if (exercise.ref is UserCreatedExerciseRef) {
       _pickedCustomTypes[newId] = exercise.exerciseType;
     }
-    _replace(index, RoutineCompositionEntry(
-      id: newId,
-      exercise: exercise.ref,
-      sets: [
-        RoutineCompositionSet(
-          id: setId,
-          prescription: SetPrescription(),
-        ),
-      ],
-    ));
+    _replace(
+        index,
+        RoutineCompositionEntry(
+          id: newId,
+          exercise: exercise.ref,
+          sets: [
+            RoutineCompositionSet(
+              id: setId,
+              prescription: SetPrescription(),
+            ),
+          ],
+        ));
     return newId;
   }
 
@@ -161,19 +221,72 @@ final class RoutineCreateController extends ChangeNotifier {
     if (!_editable || !_entries.any((e) => e.id == entryId)) return false;
     _entries = _entries.where((e) => e.id != entryId).toList();
     _pickedCustomTypes.remove(entryId);
+    _restPresets.remove(entryId);
     _publish();
     return true;
   }
 
   bool moveExercise(int from, int to) {
-    if (!_editable || from < 0 || to < 0 ||
-        from >= _entries.length || to >= _entries.length || from == to) {
+    if (!_editable ||
+        from < 0 ||
+        to < 0 ||
+        from >= _entries.length ||
+        to >= _entries.length ||
+        from == to) {
       return false;
     }
     final next = [..._entries];
     next.insert(to, next.removeAt(from));
     _entries = next;
     _publish();
+    return true;
+  }
+
+  RoutineRestTimerPreset getExerciseRestPreset(String entryId) {
+    return _restPresets[entryId] ?? const RoutineRestTimerPreset();
+  }
+
+  bool configureExerciseRestTimer(
+    String entryId, {
+    required int? normalRestSeconds,
+    required int? warmUpRestSeconds,
+  }) {
+    if (!_editable) return false;
+    final index = _entries.indexWhere((e) => e.id == entryId);
+    if (index < 0) return false;
+    final entry = _entries[index];
+    final preset = RoutineRestTimerPreset(
+      normalRestSeconds: normalRestSeconds,
+      warmUpRestSeconds: warmUpRestSeconds,
+    );
+    _restPresets[entryId] = preset;
+
+    final updatedSets = [
+      for (final s in entry.sets)
+        RoutineCompositionSet(
+          id: s.id,
+          prescription: SetPrescription(
+            reps: s.prescription.reps,
+            repsMax: s.prescription.repsMax,
+            setType: s.prescription.setType,
+            loadKg: s.prescription.loadKg,
+            distanceMeters: s.prescription.distanceMeters,
+            durationSeconds: s.prescription.durationSeconds,
+            restSeconds: preset.isOff
+                ? s.prescription.restSeconds
+                : preset.effectiveRestFor(s.prescription.setType),
+          ),
+        ),
+    ];
+
+    _replace(
+      index,
+      RoutineCompositionEntry(
+        id: entry.id,
+        exercise: entry.exercise,
+        sets: updatedSets,
+      ),
+    );
     return true;
   }
 
@@ -188,24 +301,40 @@ final class RoutineCreateController extends ChangeNotifier {
       return null;
     }
     final id = _newUuid();
-    // Repetition mode is Exercise-wide. New Set remains Normal in that mode.
-    final inRange = entry.sets.isNotEmpty &&
-        entry.sets.first.prescription.isRepRange;
+    // Repetition mode is Exercise-wide.
+    final inRange =
+        entry.sets.isNotEmpty && entry.sets.first.prescription.isRepRange;
+    final preset = getExerciseRestPreset(entry.id);
+    final effectiveRest = preset.isOff
+        ? prescription.restSeconds
+        : preset.effectiveRestFor(prescription.setType);
     final initial = SetPrescription(
       reps: prescription.reps,
-      repsMax: inRange ? prescription.reps : null,
-      setType: RoutineSetType.normal,
+      repsMax: inRange ? (prescription.repsMax ?? prescription.reps) : null,
+      setType: prescription.setType,
       loadKg: prescription.loadKg,
       distanceMeters: prescription.distanceMeters,
       durationSeconds: prescription.durationSeconds,
-      restSeconds: prescription.restSeconds,
+      restSeconds: effectiveRest,
     );
-    _replace(index, RoutineCompositionEntry(
-      id: entry.id,
-      exercise: entry.exercise,
-      sets: [...entry.sets,
-        RoutineCompositionSet(id: id, prescription: initial)],
-    ));
+    final newSet = RoutineCompositionSet(id: id, prescription: initial);
+    final nextSets = [...entry.sets];
+    if (initial.setType == RoutineSetType.warmUp) {
+      final lastWarmUp = nextSets.lastIndexWhere(
+        (s) => s.prescription.setType == RoutineSetType.warmUp,
+      );
+      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
+      nextSets.insert(insertIndex, newSet);
+    } else {
+      nextSets.add(newSet);
+    }
+    _replace(
+        index,
+        RoutineCompositionEntry(
+          id: entry.id,
+          exercise: entry.exercise,
+          sets: nextSets,
+        ));
     return id;
   }
 
@@ -214,34 +343,104 @@ final class RoutineCreateController extends ChangeNotifier {
     final index = _entries.indexWhere((e) => e.id == entryId);
     if (index < 0) return false;
     final entry = _entries[index];
-    if (!entry.sets.any((s) => s.id == setId)) return false;
-    _replace(index, RoutineCompositionEntry(
-      id: entry.id,
-      exercise: entry.exercise,
-      sets: [
-        for (final set in entry.sets)
-          set.id == setId
-              ? RoutineCompositionSet(id: setId, prescription: prescription)
-              : set,
-      ],
-    ));
+    final currentSetIndex = entry.sets.indexWhere((s) => s.id == setId);
+    if (currentSetIndex < 0) return false;
+    final current = entry.sets[currentSetIndex];
+
+    final updated = RoutineCompositionSet(
+      id: setId,
+      prescription: prescription,
+    );
+
+    final wasWarmUp = current.prescription.setType == RoutineSetType.warmUp;
+    final isWarmUp = prescription.setType == RoutineSetType.warmUp;
+
+    final nextSets = [...entry.sets];
+    if (wasWarmUp == isWarmUp) {
+      nextSets[currentSetIndex] = updated;
+    } else {
+      nextSets.removeAt(currentSetIndex);
+      final lastWarmUp = nextSets.lastIndexWhere(
+        (s) => s.prescription.setType == RoutineSetType.warmUp,
+      );
+      final insertIndex = lastWarmUp == -1 ? 0 : lastWarmUp + 1;
+      nextSets.insert(insertIndex, updated);
+    }
+
+    _replace(
+        index,
+        RoutineCompositionEntry(
+          id: entry.id,
+          exercise: entry.exercise,
+          sets: nextSets,
+        ));
     return true;
   }
 
-  /// Classification belongs to an identified Set; preserves target values.
+  /// Classification belongs to an identified Set; preserves target values and
+  /// maintains the Warm-up ordering invariant (all Warm-up sets must precede
+  /// non-Warm-up sets).
   bool changeSetType(String entryId, String setId, RoutineSetType type) {
     if (!_editable) return false;
-    final e = _entries.where((entry) => entry.id == entryId);
-    if (e.length != 1) return false;
-    final current = e.single.sets.where((set) => set.id == setId);
-    if (current.length != 1) return false;
-    final p = current.single.prescription;
+    final index = _entries.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final entry = _entries[index];
+    final currentSetIndex = entry.sets.indexWhere((set) => set.id == setId);
+    if (currentSetIndex < 0) return false;
+    final current = entry.sets[currentSetIndex];
+    final p = current.prescription;
     if (p.setType == type) return true;
-    return editSet(entryId, setId, SetPrescription(
-      reps: p.reps, repsMax: p.repsMax, setType: type,
-      loadKg: p.loadKg, distanceMeters: p.distanceMeters,
-      durationSeconds: p.durationSeconds, restSeconds: p.restSeconds,
-    ));
+
+    final preset = getExerciseRestPreset(entryId);
+    final int? newRestSeconds;
+    if (!preset.isOff) {
+      newRestSeconds = preset.effectiveRestFor(type);
+    } else {
+      newRestSeconds = p.restSeconds;
+    }
+
+    return editSet(
+      entryId,
+      setId,
+      SetPrescription(
+        reps: p.reps,
+        repsMax: p.repsMax,
+        setType: type,
+        loadKg: p.loadKg,
+        distanceMeters: p.distanceMeters,
+        durationSeconds: p.durationSeconds,
+        restSeconds: newRestSeconds,
+      ),
+    );
+  }
+
+  bool moveSet(String entryId, int from, int to) {
+    if (!_editable) return false;
+    final index = _entries.indexWhere((e) => e.id == entryId);
+    if (index < 0) return false;
+    final entry = _entries[index];
+    if (from < 0 ||
+        to < 0 ||
+        from >= entry.sets.length ||
+        to >= entry.sets.length ||
+        from == to) {
+      return false;
+    }
+    final reordered = [...entry.sets];
+    reordered.insert(to, reordered.removeAt(from));
+    if (!RoutineCompositionLimits.hasValidSetOrder(
+      reordered.map((s) => s.prescription),
+    )) {
+      return false;
+    }
+    _replace(
+        index,
+        RoutineCompositionEntry(
+          id: entry.id,
+          exercise: entry.exercise,
+          sets: reordered,
+        ));
+    return true;
   }
 
   /// Exercise-level Reps / Rep Range selector. No second stored mode field.
@@ -251,27 +450,29 @@ final class RoutineCreateController extends ChangeNotifier {
     if (index < 0) return false;
     final entry = _entries[index];
     if (entry.sets.isEmpty) return false;
-    _replace(index, RoutineCompositionEntry(
-      id: entry.id,
-      exercise: entry.exercise,
-      sets: [
-        for (final s in entry.sets)
-          RoutineCompositionSet(
-            id: s.id,
-            prescription: SetPrescription(
-              reps: s.prescription.reps,
-              repsMax: range
-                  ? (s.prescription.repsMax ?? s.prescription.reps)
-                  : null,
-              setType: s.prescription.setType,
-              loadKg: s.prescription.loadKg,
-              distanceMeters: s.prescription.distanceMeters,
-              durationSeconds: s.prescription.durationSeconds,
-              restSeconds: s.prescription.restSeconds,
-            ),
-          ),
-      ],
-    ));
+    _replace(
+        index,
+        RoutineCompositionEntry(
+          id: entry.id,
+          exercise: entry.exercise,
+          sets: [
+            for (final s in entry.sets)
+              RoutineCompositionSet(
+                id: s.id,
+                prescription: SetPrescription(
+                  reps: s.prescription.reps,
+                  repsMax: range
+                      ? (s.prescription.repsMax ?? s.prescription.reps)
+                      : null,
+                  setType: s.prescription.setType,
+                  loadKg: s.prescription.loadKg,
+                  distanceMeters: s.prescription.distanceMeters,
+                  durationSeconds: s.prescription.durationSeconds,
+                  restSeconds: s.prescription.restSeconds,
+                ),
+              ),
+          ],
+        ));
     return true;
   }
 
@@ -284,10 +485,13 @@ final class RoutineCreateController extends ChangeNotifier {
     // Create drafts cannot retain an Exercise after its final Set is removed.
     // This invariant belongs to the controller, not only to swipe UI.
     if (entry.sets.length == 1) return removeExercise(entryId);
-    _replace(index, RoutineCompositionEntry(
-      id: entry.id, exercise: entry.exercise,
-      sets: entry.sets.where((s) => s.id != setId).toList(),
-    ));
+    _replace(
+        index,
+        RoutineCompositionEntry(
+          id: entry.id,
+          exercise: entry.exercise,
+          sets: entry.sets.where((s) => s.id != setId).toList(),
+        ));
     return true;
   }
 
@@ -302,6 +506,15 @@ final class RoutineCreateController extends ChangeNotifier {
   /// will check Custom owner/active state atomically only after #536 deploy.
   Future<bool> save() async {
     if (!_state.canSave || !_authorized) return false;
+    for (final entry in _entries) {
+      if (!RoutineCompositionLimits.hasValidSetOrder(
+        entry.sets.map((s) => s.prescription),
+      )) {
+        _status = RoutineCreateStatus.ready;
+        _publish('Warm-up sets must appear at the beginning of each Exercise.');
+        return false;
+      }
+    }
     final customRefs = _entries
         .map((entry) => entry.exercise)
         .whereType<UserCreatedExerciseRef>()
@@ -339,7 +552,8 @@ final class RoutineCreateController extends ChangeNotifier {
       // Do not persist reps/load under a newly STEPS/TIME-only definition.
       if (current.any((exercise) =>
           customRefs.contains(exercise.ref) &&
-          !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType))) {
+          !RoutineCompositionLimits.supportsExerciseType(
+              exercise.exerciseType))) {
         _status = RoutineCreateStatus.ready;
         _publish('Steps & Duration Exercises cannot be saved to Routines yet.');
         return false;
@@ -349,7 +563,9 @@ final class RoutineCreateController extends ChangeNotifier {
         _publish('A selected Custom Exercise is no longer active.');
         return false;
       }
-      final currentByRef = {for (final exercise in current) exercise.ref: exercise};
+      final currentByRef = {
+        for (final exercise in current) exercise.ref: exercise
+      };
       for (final entry in _entries) {
         if (entry.exercise is! UserCreatedExerciseRef) continue;
         final live = currentByRef[entry.exercise]!;
@@ -366,22 +582,62 @@ final class RoutineCreateController extends ChangeNotifier {
       }
     }
     if (!_authorized) return false;
-    final command = _attempt ??= RoutineCreateCommand(
-      routine: Routine(
-        id: RoutineId(_newUuid()),
-        programId: program.id,
+    RoutineCreateCommand? command;
+    MyProgramRoutineCreateCommand? myCommand;
+    if (program != null) {
+      command = _attempt ??= RoutineCreateCommand(
+        routine: Routine(
+          id: RoutineId(_newUuid()),
+          programId: program!.id,
+          name: _name.trim(),
+        ),
+        mutationId: _newUuid(),
+        entries: _entries,
+        expectedCustomTypes: _pickedCustomTypes,
+      );
+    } else {
+      myCommand = _myProgramAttempt ??= MyProgramRoutineCreateCommand(
+        routineId: RoutineId(_newUuid()),
         name: _name.trim(),
-      ),
-      mutationId: _newUuid(),
-      entries: _entries,
-      expectedCustomTypes: _pickedCustomTypes,
-    );
+        mutationId: _newUuid(),
+        entries: _entries,
+        expectedCustomTypes: _pickedCustomTypes,
+      );
+    }
+    if (myCommand != null) {
+      try {
+        // An existing unresolved Create or stale login-cycle binding must
+        // reject BEFORE changing UI state to saving or dispatching the RPC.
+        onMyProgramWriteStarted!(myCommand);
+      } catch (_) {
+        _myProgramAttempt = null; // No write was dispatched.
+        _status = RoutineCreateStatus.ready;
+        _publish('Another Routine Create needs verification before saving.');
+        return false;
+      }
+      if (!_authorized) {
+        // Session invalidated after reservation but before network dispatch.
+        // Release only this un-dispatched identity, never a foreign pending one.
+        try {
+          onMyProgramDefiniteFailure?.call(myCommand);
+        } catch (_) {}
+        _myProgramAttempt = null;
+        _status = RoutineCreateStatus.ready;
+        _publish('Session changed. Reopen Routine Create.');
+        return false;
+      }
+    }
     _status = RoutineCreateStatus.saving;
     _publish();
     try {
-      final revision = await repository.create(command);
+      final revision = myCommand != null
+          ? (await myProgramRepository!.createInMyProgram(myCommand))
+              .compositionRevision
+          : await repository!.create(command!);
       if (!_authorized) return false;
-      if (revision != 1) throw const FormatException('Invalid Create revision.');
+      if (revision != 1) {
+        throw const FormatException('Invalid Create revision.');
+      }
       _status = RoutineCreateStatus.saved;
       _publish();
       return true;
@@ -390,7 +646,11 @@ final class RoutineCreateController extends ChangeNotifier {
       // controller was disposed by auth revocation, release the old pending
       // identity through the app's owner-bound gate. Do not notify UI state.
       try {
-        onDefiniteFailure?.call(command);
+        if (myCommand != null) {
+          onMyProgramDefiniteFailure?.call(myCommand);
+        } else {
+          onDefiniteFailure?.call(command!);
+        }
       } catch (_) {
         // Fail closed: a broken cleanup callback must not turn a rejection
         // into an unhandled error or a new/unknown write attempt.
@@ -400,6 +660,7 @@ final class RoutineCreateController extends ChangeNotifier {
       // Keep the editable Exercise/Set draft, but discard the rejected
       // identity+mutation attempt so an explicit Save can try afresh.
       _attempt = null;
+      _myProgramAttempt = null;
       _status = RoutineCreateStatus.ready;
       _publish('Could not create Routine. Review Exercises and try again.');
       return false;
@@ -416,31 +677,63 @@ final class RoutineCreateController extends ChangeNotifier {
   /// Read-only authoritative confirmation; an unknown outcome is not auto-
   /// retried and does not allow generating a new mutation token.
   Future<bool> reconcileUnknown({
+    ProgramRepository? programs,
     required RoutineRepository routines,
     required RoutineCompositionRepository compositions,
   }) async {
-    final attempted = _attempt;
-    if (_disposed || attempted == null ||
-        _status != RoutineCreateStatus.outcomeUnknown || !_authorized) {
+    if (_disposed ||
+        _status != RoutineCreateStatus.outcomeUnknown ||
+        !_authorized) {
       return false;
     }
     try {
-      final owned = await routines.list(program.id);
-      if (!_authorized) return false;
-      final found = owned.where((r) => r.id == attempted.routine.id).toList();
-      if (found.length != 1 ||
-          found.single.programId != program.id) {
-        return false;
-      }
-      final snapshot = await compositions.read(attempted.routine.id);
-      if (!_authorized) return false;
-      if (snapshot == null || !attempted.confirmsPersistedRoutine(snapshot)) {
-        return false;
+      final myCommand = _myProgramAttempt;
+      if (myCommand != null) {
+        if (programs == null) return false;
+        // Match the server-owned is_default identity, not the display name.
+        final defaults =
+            (await programs.list()).where((p) => p.isDefault).toList();
+        if (!_authorized || defaults.length != 1) return false;
+        final defaultProgram = defaults.single;
+        final rows = await routines.list(defaultProgram.id);
+        if (!_authorized) return false;
+        final matches = rows
+            .where((r) =>
+                r.id == myCommand.routineId && r.programId == defaultProgram.id)
+            .toList();
+        if (matches.length != 1) return false;
+        final snapshot = await compositions.read(myCommand.routineId);
+        if (!_authorized ||
+            snapshot == null ||
+            !myCommand.confirmsPersistedInCanonicalDefault(
+              program: defaultProgram,
+              routine: matches.single,
+              snapshot: snapshot,
+            )) {
+          return false;
+        }
+      } else {
+        final attempted = _attempt;
+        final ownerProgram = program;
+        if (attempted == null || ownerProgram == null) return false;
+        final owned = await routines.list(ownerProgram.id);
+        if (!_authorized) return false;
+        final found = owned.where((r) => r.id == attempted.routine.id).toList();
+        if (found.length != 1 || found.single.programId != ownerProgram.id) {
+          return false;
+        }
+        final snapshot = await compositions.read(attempted.routine.id);
+        if (!_authorized ||
+            snapshot == null ||
+            !attempted.confirmsPersistedRoutine(snapshot)) {
+          return false;
+        }
       }
       _status = RoutineCreateStatus.saved;
       _publish();
       return true;
     } catch (_) {
+      // Any missing/ambiguous read stays UNKNOWN and cannot trigger a retry.
       return false;
     }
   }

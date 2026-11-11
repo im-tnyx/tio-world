@@ -1,35 +1,30 @@
 # Active Workout Screen
 
-Document Status: Planned/Future Doc
-Last Verified: 2026-09-28
+Document Status: Canonical Live Doc
+Last Verified: 2026-11-11 (main source `3e5b70c6467c704d2a67fd7210b0babd55aa2215`; Routine Start source is in progress on `codex/w7-routine-start`)
 Owner: `apps/features/workout`
-Truth Boundary: Authoritative for the planned Active Workout screen product contract and ownership; not evidence the screen is implemented or scheduled.
+Truth Boundary: Authoritative for Active Workout ownership and intended behavior; source/merge state and device acceptance are recorded separately.
 
 **Surface:** Nested Phone Workout execution flow
-**Route:** No route exists yet
+**Route:** `/workout/active`
 **Primary owner:** `apps/features/workout`
-**Status:** Planned only; no workout execution or local persistence is verified in current source.
+**Status:** The Active Workout route and account-bound local Save-only draft are merged source. Home Play opens an empty ad-hoc draft. Routine Detail `Start Routine` and direct Routine-row Play from Program Detail/expanded Library seed this draft through one guarded flow; the UI entry work is in progress on `codex/w7-routine-start`. No distributed release or device acceptance is claimed.
 
 ## Purpose
 
-Guide the user through one already-selected Routine or scheduled PlannedWorkout context and record the work performed. It is not a direct entry screen and it does not provide a standalone Quick Start workout.
+Let the user record a workout from either an empty ad-hoc start or an explicitly selected Routine. Routine Start preloads the Routine name, ordered Exercises, and planned Sets into the same Log Workout screen. The screen keeps planned prescriptions separate from performed values.
 
 ## Entry Rule
 
-An active session can begin only after the user explicitly selects:
+The Workout Home Play action starts an empty local draft. The Active Workout app-bar title remains `Log Workout` for all entry paths. `Start Routine` appears on Routine Detail, and an outlined Play action appears on owner/session-authorized Routine rows in Program Detail and expanded Library. Each Routine entry reads a current owner-verified composition and copies its title, ordered Exercises and planned Sets into the same local draft. The Routine name pre-fills the editable Save title. If another workout exists, the existing Resume / Start New / Cancel conflict flow applies. Resume keeps the current workout; Start New replaces it before seeding the selected Routine.
 
-- a Routine inside its owning [Program](programs.md) for an unscheduled Routine start, or
-- a scheduled PlannedWorkout from TrainingPlan/following state.
-
-A reusable Program by itself does not own a scheduled session.
-
-The screen shows the selected plan context at the top so the user knows what is being performed.
+Routine Start does not create a W7B server session. Saved history continues to use the current Save-only `origin='ad_hoc'` contract; Routine provenance is not persisted by this slice. A reusable Program itself does not own a scheduled session.
 
 ## Target Content
 
 - Session header: selected Routine/PlannedWorkout context, elapsed time, finish/discard action, and truthful save/sync status.
 - Ordered exercise list from the selected plan.
-- Per-exercise set input for the approved values such as weight, reps, and completion state.
+- Per-exercise set input for values such as weight, performed reps and completion state. A planned reps range such as `8 - 12` appears in the single `REPS` field as a hint/reference; the actual field remains blank until the user enters reps, and the hint is never logged as performed data.
 - Rest timer that is tied to an action only when the configured workout behavior supports it.
 - Exercise information from the selected catalog entry; changing the plan uses an explicit edit flow, not unscoped search.
 - Finish review with incomplete-set handling before the session is saved to history.
@@ -37,9 +32,9 @@ The screen shows the selected plan context at the top so the user knows what is 
 ## Data And State Boundaries
 
 - Workout owns session state, validation, rest timing, completion rules, and repository events.
-- The first implementation must decide local persistence and pending-sync behavior before it claims reliable history.
+- A new workout start is held in the account-bound encrypted local draft until the user saves it; a local start alone is not a completed history event or authenticated Save E2E evidence.
 - Back/close must offer resume, discard, or save-as-incomplete behavior when safe; it must never lose recorded user input silently.
-- Require loading-plan, invalid-plan, timer interruption, failed local save, pending sync, offline, and finish-confirmation states.
+- Keep loading, invalid/unavailable Routine, timer interruption, failed local save, pending sync, offline, and finish-confirmation states explicit.
 - Active-session state is independent from the selected navigation layout. If Workout or Library is hidden/reordered, a persistent shell/Home Resume entry must still reach this canonical session.
 - A mode/layout change during a live session preserves recorded input and cannot start a duplicate session. Any destructive discard remains an explicit Workout-owned confirmation.
 
@@ -48,7 +43,8 @@ The screen shows the selected plan context at the top so the user knows what is 
 - The selected Routine/PlannedWorkout context is visible and cannot change invisibly mid-workout.
 - Set changes have accessible labels, validation feedback, and a clear saved/pending state.
 - Finishing produces a Workout-owned history event that can later feed Workout Insights and Progress.
-- No active session is created from a global Quick Start button.
+- Home Play remains an empty workout; Routine Detail Start preloads its selected Routine without a server session write.
+- Planned rep ranges remain reference hints until actual performed reps are entered and the set is logged.
 - Resume from Home, Workout, Library, or persistent chrome restores the same session and saved/pending state.
 
 ## Related

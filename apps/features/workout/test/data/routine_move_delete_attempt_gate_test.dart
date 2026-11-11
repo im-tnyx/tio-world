@@ -25,6 +25,7 @@ final class _MoveGateway implements RoutineMoveGateway {
   Future<Map<String, dynamic>?> Function()? onRead;
   Future<Object?> Function()? onMove;
   Future<Object?> Function()? onAtomic;
+  int undoWrites = 0;
   int reads = 0;
   int writes = 0;
   int atomicWrites = 0;
@@ -60,6 +61,19 @@ final class _MoveGateway implements RoutineMoveGateway {
   }) async {
     atomicWrites++;
     return onAtomic == null ? expectedRevision + 1 : await onAtomic!();
+  }
+
+  @override
+  Future<Object?> undoCreateAndMove({
+    required String routineId,
+    required String originalProgramId,
+    required String createdProgramId,
+    required String originalMoveMutationId,
+    required int expectedRevision,
+    required String undoMutationId,
+  }) async {
+    undoWrites++;
+    return expectedRevision + 1;
   }
 }
 

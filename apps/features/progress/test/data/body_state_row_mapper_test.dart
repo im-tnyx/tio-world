@@ -102,4 +102,37 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('history mapper requires a stable UUID and preserves legacy source',
+      () {
+    const valid = '00000000-0000-4000-8000-000000000001';
+    final entry = mapper.mapHistoryWeight({
+      'id': valid,
+      'weight_kg': 73,
+      'measured_at': '2026-10-25T07:30:00Z',
+      'source': null,
+    });
+    expect(entry.id, valid);
+    expect(entry.source, isNull);
+    expect(entry.measuredAt, DateTime.utc(2026, 10, 25, 7, 30));
+  });
+
+  test('history mapper rejects rows missing ID instead of inventing it', () {
+    expect(
+      () => mapper.mapHistoryWeight({
+        'weight_kg': 71,
+        'measured_at': '2026-10-25T07:30:00Z',
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => mapper.mapHistoryWeight({
+        'id': 'invalid',
+        'weight_kg': 71,
+        'measured_at': '2026-10-25T07:30:00Z',
+      }),
+      throwsFormatException,
+    );
+  });
+
 }

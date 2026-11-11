@@ -11,6 +11,8 @@ Use this section for user-facing features, cross-package changes, navigation, pe
 - Clarifications and decisions:
 - Chosen architecture and rejected alternative:
 - Quality-review outcome:
+- Applicable acceptance criteria → changed behavior/files → verification result + SHA (or scoped `Not applicable`):
+- Review provenance: reviewer/tool, independent vs self-review, reviewed SHA, findings/disposition, unavailable evidence (do not treat chat-only bot verdicts as GitHub `APPROVED`):
 
 ## Stack And Scope Audit
 

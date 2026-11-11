@@ -56,7 +56,7 @@ RoutineCompositionSnapshot _snapshot({
     );
 
 class _Fixtures {
-  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true, this.canWrite})
+  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true, this.canWrite, this.onExerciseInfoPressed, this.onRoutineWriteResolved})
       : compositions = _Compositions(_snapshot()),
         catalog = _Catalog(),
         users = _Users();
@@ -65,6 +65,8 @@ class _Fixtures {
   final Routine? routine;
   final bool repositoryAvailable;
   final bool Function()? canWrite;
+  final ValueChanged<Exercise>? onExerciseInfoPressed;
+  final VoidCallback? onRoutineWriteResolved;
   final _Compositions compositions;
   final _Catalog catalog;
   final _Users users;
@@ -98,7 +100,9 @@ class _Fixtures {
                         repositoryAvailable ? compositions : null,
                     catalogRepository: catalog,
                     userExerciseRepository: users,
+                    onExerciseInfoPressed: onExerciseInfoPressed,
                     canWrite: canWrite,
+                    onRoutineWriteResolved: onRoutineWriteResolved,
                     weightUnit: unit,
                     newUuid: newId,
                   ),
@@ -182,6 +186,22 @@ void main() {
     expect(fixture.compositions.aggregateCalls, 1);
     expect(fixture.compositions.lastAggregate!.entries, isNull);
     expect(fixture.compositions.saveCount, 0);
+  });
+
+  testWidgets('confirmed parent Update reports before returning from Edit',
+      (tester) async {
+    var callbacks = 0;
+    final fixture = _Fixtures(onRoutineWriteResolved: () => callbacks++);
+    await fixture.open(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('edit-routine-name')),
+      'Strength Push',
+    );
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+
+    expect(fixture.editorResult, isTrue);
+    expect(callbacks, 1);
   });
 
   testWidgets('Edit Set Type sheet uses shared semantic badges and preserves actions',
@@ -352,14 +372,24 @@ void main() {
 
   testWidgets('Edit batch Add queues two Exercises and saves once',
       (tester) async {
-    final f = _Fixtures();
+    var infoCalls = 0;
+    final f = _Fixtures(onExerciseInfoPressed: (_) => infoCalls++);
     f.compositions.snapshot = _snapshot(entries: const []);
     await f.open(tester);
     await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bench Press'));
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-info-ex_bench_press')),
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Run on Treadmill'));
+    expect(infoCalls, 1);
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_bench_press')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('exercise-row-ex_run_on_treadmill')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Add 2 exercises'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
@@ -1046,7 +1076,7 @@ void main() {
     await tester.pumpAndSettle();
     final added = f.compositions.lastSave!.entries.single.sets.last;
     expect(added.prescription.reps, 6);
-    expect(added.prescription.restSeconds, isNull);
+    expect(added.prescription.restSeconds, 60);
     expect(added.prescription.loadKg, 22.5);
     expect(added.id, isNot(_setId));
   });

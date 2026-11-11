@@ -55,6 +55,8 @@
 	<string>Tio uses the camera when you choose a profile image.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Tio lets you select a profile image from your photo library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Tio needs your location to find gyms near you.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

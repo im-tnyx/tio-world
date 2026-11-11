@@ -25,6 +25,8 @@ class RoutineSetTypeBadge extends StatelessWidget {
     required this.setType,
     required this.normalNumber,
     this.useEditSetNumberColor = false,
+    this.backgroundColor,
+    this.textColor,
     this.containerKey,
     super.key,
   });
@@ -32,6 +34,8 @@ class RoutineSetTypeBadge extends StatelessWidget {
   final RoutineSetType setType;
   final int normalNumber;
   final bool useEditSetNumberColor;
+  final Color? backgroundColor;
+  final Color? textColor;
 
   /// Preserves existing widget-test and semantics finder keys on the
   /// actual painted Container, rather than on a parent widget.
@@ -40,7 +44,8 @@ class RoutineSetTypeBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final preferred = switch (setType) {
+    final bg = backgroundColor ?? colors.surfaceVariant;
+    final preferred = textColor ?? switch (setType) {
       RoutineSetType.normal =>
         useEditSetNumberColor ? colors.primary : colors.textPrimary,
       RoutineSetType.warmUp => colors.warning,
@@ -59,13 +64,13 @@ class RoutineSetTypeBadge extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: TioSize.dp38),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: colors.surfaceVariant,
+        color: bg,
         borderRadius: BorderRadius.circular(TioInputTokens.radius),
       ),
       child: Text(
         text,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: _readableSetBadgeColor(preferred, colors.surfaceVariant),
+          color: textColor ?? _readableSetBadgeColor(preferred, bg),
         ),
       ),
     );

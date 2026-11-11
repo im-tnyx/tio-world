@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
@@ -28,15 +29,19 @@ class LibraryPage extends StatefulWidget {
     required this.onProgramsManagePressed,
     this.onProgramPressed,
     this.onAddRoutinePressed,
+    this.onCreateRoutinePressed,
+    this.onVerifyPendingRoutine,
     this.hasUnconfirmedCreate,
     this.pendingCreateChanges,
     this.onRoutinePressed,
+    this.onStartRoutinePressed,
     this.onEditRoutine,
     this.onMoveRoutine,
     this.moveRefreshSignal,
     this.moveRefreshOwnerId,
     this.moveRefreshLoginCycleId,
     this.onDeleteRoutine,
+    this.onDeleteProgram,
     this.actionSheetGuard,
     required this.onExercisesPressed,
     required this.onCreateExercisePressed,
@@ -52,17 +57,30 @@ class LibraryPage extends StatefulWidget {
   final Future<void> Function() onProgramsManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
+
+  /// Direct Library Create resolves My Program on the server, not in the UI.
+  /// Null means its production release capability is intentionally unavailable.
+  final Future<void> Function()? onCreateRoutinePressed;
+
+  /// An uncertain first Create only permits owner-safe read verification.
+  final Future<void> Function()? onVerifyPendingRoutine;
   final bool Function(Program)? hasUnconfirmedCreate;
+
   /// Rebuilds pending Program actions as uncertain writes settle.
   final Listenable? pendingCreateChanges;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+
+  /// Starts an owner-verified Routine from its expanded Library row.
+  final Future<void> Function(Program, Routine)? onStartRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+
   /// Optional Move action, hidden until injected by the app-shell release gate.
   final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final RoutineMoveRefreshSignal? moveRefreshSignal;
   final String? moveRefreshOwnerId;
   final String? moveRefreshLoginCycleId;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
+  final Future<bool> Function(Program)? onDeleteProgram;
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
   final VoidCallback onExercisesPressed;
   final VoidCallback onCreateExercisePressed;
@@ -81,6 +99,8 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   _LibraryCategory? _selectedCategory;
+  bool _openingRootRoutine = false;
+  final _programsRefresh = LibraryProgramsRefresh();
 
   _LibraryCategory get _contentCategory =>
       _selectedCategory ?? _LibraryCategory.programs;
@@ -95,6 +115,18 @@ class _LibraryPageState extends State<LibraryPage> {
     setState(() => _selectedCategory = null);
   }
 
+  Future<void> _openRootRoutine() async {
+    final action =
+        widget.onVerifyPendingRoutine ?? widget.onCreateRoutinePressed;
+    if (_openingRootRoutine || action == null) return;
+    setState(() => _openingRootRoutine = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _openingRootRoutine = false);
+    }
+  }
+
   Widget _programsContent() => ProgramsSurface.library(
         key: const ValueKey('library-programs-content'),
         repository: widget.programRepository,
@@ -105,13 +137,16 @@ class _LibraryPageState extends State<LibraryPage> {
         onAddRoutinePressed: widget.onAddRoutinePressed,
         hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
         onRoutinePressed: widget.onRoutinePressed,
+        onStartRoutinePressed: widget.onStartRoutinePressed,
         onEditRoutine: widget.onEditRoutine,
         onMoveRoutine: widget.onMoveRoutine,
         moveRefreshSignal: widget.moveRefreshSignal,
         moveRefreshOwnerId: widget.moveRefreshOwnerId,
         moveRefreshLoginCycleId: widget.moveRefreshLoginCycleId,
         onDeleteRoutine: widget.onDeleteRoutine,
+        onDeleteProgram: widget.onDeleteProgram,
         actionSheetGuard: widget.actionSheetGuard,
+        pullRefresh: _programsRefresh,
       );
 
   @override
@@ -135,6 +170,19 @@ class _LibraryPageState extends State<LibraryPage> {
           ),
         ),
         actions: [
+          if (widget.onCreateRoutinePressed != null ||
+              widget.onVerifyPendingRoutine != null)
+            IconButton(
+              key: const ValueKey('library-create-routine'),
+              tooltip: widget.onVerifyPendingRoutine != null
+                  ? 'Verify saved Routine'
+                  : 'Create Routine',
+              color: colors.textPrimary,
+              onPressed: _openingRootRoutine ? null : _openRootRoutine,
+              icon: Icon(widget.onVerifyPendingRoutine != null
+                  ? Icons.verified_outlined
+                  : Icons.add_rounded),
+            ),
           IconButton(
             key: const ValueKey('library-search'),
             tooltip: 'Search exercises',
@@ -145,32 +193,48 @@ class _LibraryPageState extends State<LibraryPage> {
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.lg,
-            vertical: TioSpacing.md,
+        child: CustomScrollView(
+          key: const ValueKey('library-scroll'),
+          // Match Progress: the refresh sliver takes real top space so the
+          // list moves down under the stationary Library bar.
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
           ),
-          children: [
-            _LibraryCategoryStrip(
-              selectedCategory: _selectedCategory,
-              onCategoryPressed: _selectCategory,
-              onClearPressed: _clearCategorySelection,
+          slivers: [
+            CupertinoSliverRefreshControl(
+              key: const ValueKey('library-pull-space'),
+              onRefresh: _programsRefresh.call,
             ),
-            const SizedBox(height: TioSpacing.lg),
-            switch (_contentCategory) {
-              _LibraryCategory.programs =>
-                widget.pendingCreateChanges == null
-                    ? _programsContent()
-                    : ListenableBuilder(
-                        listenable: widget.pendingCreateChanges!,
-                        builder: (_, __) => _programsContent(),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: TioSpacing.lg,
+                vertical: TioSpacing.md,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _LibraryCategoryStrip(
+                    selectedCategory: _selectedCategory,
+                    onCategoryPressed: _selectCategory,
+                    onClearPressed: _clearCategorySelection,
+                  ),
+                  const SizedBox(height: TioSpacing.lg),
+                  switch (_contentCategory) {
+                    _LibraryCategory.programs =>
+                      widget.pendingCreateChanges == null
+                          ? _programsContent()
+                          : ListenableBuilder(
+                              listenable: widget.pendingCreateChanges!,
+                              builder: (_, __) => _programsContent(),
+                            ),
+                    _LibraryCategory.exercises => _ExercisesContent(
+                        canCreateExercise: widget.canCreateExercise,
+                        onCreateExercisePressed: widget.onCreateExercisePressed,
+                        onExercisesPressed: widget.onExercisesPressed,
                       ),
-              _LibraryCategory.exercises => _ExercisesContent(
-                  canCreateExercise: widget.canCreateExercise,
-                  onCreateExercisePressed: widget.onCreateExercisePressed,
-                  onExercisesPressed: widget.onExercisesPressed,
-                ),
-            },
+                  },
+                ]),
+              ),
+            ),
           ],
         ),
       ),

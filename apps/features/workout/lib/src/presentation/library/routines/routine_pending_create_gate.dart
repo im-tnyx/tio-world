@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../../domain/repositories/my_program_routine_create_repository.dart';
+import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
@@ -14,6 +16,9 @@ final class RoutinePendingCreateGate extends ChangeNotifier {
   String? _owner;
   String? _cycle;
   final Map<String, Map<ProgramId, RoutineCreateCommand>> _pendingByOwner = {};
+  // Programless Create has no destination ProgramId until the server ACK.
+  // Keep its owner-scoped reservation separate from Program-owned Create.
+  final Map<String, MyProgramRoutineCreateCommand> _pendingMyProgramByOwner = {};
 
   Map<ProgramId, RoutineCreateCommand> _forOwner(String owner) =>
       _pendingByOwner.putIfAbsent(owner, () => {});
@@ -96,6 +101,116 @@ final class RoutinePendingCreateGate extends ChangeNotifier {
       pending!.remove(id);
       if (pending.isEmpty) _pendingByOwner.remove(owner);
       notifyListeners();
+    }
+  }
+
+
+  /// Only a matching active owner/login-cycle may observe this reservation.
+  /// A timed-out RPC may still commit after session revocation.
+  bool hasPendingMyProgram({
+    required String owner,
+    required String loginCycle,
+  }) =>
+      _same(owner, loginCycle) && _pendingMyProgramByOwner.containsKey(owner);
+
+  /// Boolean-only arbitration across login cycles. Never exposes the command.
+  bool hasPendingMyProgramForOwner({required String owner}) =>
+      _pendingMyProgramByOwner.containsKey(owner);
+
+  /// Reserve the frozen first-Routine identity BEFORE dispatching its RPC.
+  /// The server, not the caller, resolves the canonical default ProgramId.
+  void retainMyProgram({
+    required String owner,
+    required String loginCycle,
+    required MyProgramRoutineCreateCommand command,
+  }) {
+    if (!_same(owner, loginCycle)) {
+      throw StateError('Unverified My Program Create owner.');
+    }
+    final previous = _pendingMyProgramByOwner[owner];
+    if (previous != null && !identical(previous, command)) {
+      throw StateError('Unconfirmed My Program Create already exists.');
+    }
+    _pendingMyProgramByOwner[owner] = command;
+    notifyListeners();
+  }
+
+  /// ACK or definite failure in the opening cycle only. Never use this for
+  /// network timeouts, missing read-back records, or a later login cycle.
+  void releaseMyProgram({
+    required String owner,
+    required String loginCycle,
+    required MyProgramRoutineCreateCommand command,
+  }) {
+    if (!_same(owner, loginCycle)) return;
+    if (identical(_pendingMyProgramByOwner[owner], command)) {
+      _pendingMyProgramByOwner.remove(owner);
+      notifyListeners();
+    }
+  }
+
+  /// A *definite* server rejection may arrive after owner A logged out.
+  /// Clear only A's exact command, never B's or a replacement reservation.
+  void releaseDefiniteMyProgramForOwner({
+    required String owner,
+    required MyProgramRoutineCreateCommand command,
+  }) {
+    if (identical(_pendingMyProgramByOwner[owner], command)) {
+      _pendingMyProgramByOwner.remove(owner);
+      notifyListeners();
+    }
+  }
+
+  /// Reconcile UNKNOWN from owner-scoped authoritative reads, without writes.
+  /// Caller must bind the authenticated owner/login-cycle and supply repositories
+  /// scoped to that same owner. A negative or partial read leaves UNKNOWN
+  /// reserved; neither a display name nor absent rows proves rollback.
+  Future<bool> verifyMyProgram({
+    required String owner,
+    required String loginCycle,
+    required ProgramRepository programs,
+    required RoutineRepository routines,
+    required RoutineCompositionRepository compositions,
+    required bool Function() canWrite,
+  }) async {
+    if (!_same(owner, loginCycle)) return false;
+    final command = _pendingMyProgramByOwner[owner];
+    if (command == null) return false;
+    try {
+      if (!canWrite()) return false;
+      final defaults =
+          (await programs.list()).where((p) => p.isDefault).toList();
+      if (!_same(owner, loginCycle) || !canWrite() ||
+          !identical(_pendingMyProgramByOwner[owner], command) ||
+          defaults.length != 1) {
+        return false;
+      }
+      final program = defaults.single;
+      final rows = await routines.list(program.id);
+      if (!_same(owner, loginCycle) || !canWrite() ||
+          !identical(_pendingMyProgramByOwner[owner], command)) {
+        return false;
+      }
+      final matches = rows.where((row) =>
+          row.id == command.routineId && row.programId == program.id).toList();
+      if (matches.length != 1) return false;
+      final snapshot = await compositions.read(command.routineId);
+      if (!_same(owner, loginCycle) || !canWrite() ||
+          !identical(_pendingMyProgramByOwner[owner], command) ||
+          snapshot == null ||
+          !command.confirmsPersistedInCanonicalDefault(
+            program: program,
+            routine: matches.single,
+            snapshot: snapshot,
+          )) {
+        return false;
+      }
+      _pendingMyProgramByOwner.remove(owner);
+      notifyListeners();
+      return true;
+    } catch (_) {
+      // Read conflicts, network errors, and auth changes do not prove failure.
+      return false;
     }
   }
 

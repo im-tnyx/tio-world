@@ -1,8 +1,15 @@
 export 'program_repository.dart';
+export 'program_delete_repository.dart';
 export 'workout_profile_repository.dart';
 export 'workout_targets_repository.dart';
 export 'routine_repository.dart';
 export 'routine_composition_repository.dart';
 export 'routine_create_repository.dart';
+export 'my_program_routine_create_repository.dart';
 export 'routine_delete_repository.dart';
 export 'routine_move_repository.dart';
+export 'routine_notes_repository.dart';
+export 'workout_session_repository.dart';
+export 'gym_location_repository.dart';
+export 'active_workout_draft_store.dart';
+export 'workout_draft_save_repository.dart';

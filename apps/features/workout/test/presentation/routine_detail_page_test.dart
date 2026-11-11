@@ -29,6 +29,9 @@ Future<void> _pump(
   TioThemeMode mode = TioThemeMode.light,
   WeightUnit? weightUnit = WeightUnit.kg,
   Future<bool?> Function(Routine)? onEditPressed,
+  RoutineMoveRefreshSignal? moveRefreshSignal,
+  String? moveRefreshOwnerId,
+  String? moveRefreshLoginCycleId,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -44,6 +47,9 @@ Future<void> _pump(
         catalogRepository: _Catalog(),
         weightUnit: weightUnit,
         onEditPressed: onEditPressed,
+        moveRefreshSignal: moveRefreshSignal,
+        moveRefreshOwnerId: moveRefreshOwnerId,
+        moveRefreshLoginCycleId: moveRefreshLoginCycleId,
       ),
     ),
   );
@@ -536,6 +542,45 @@ void main() {
     expect(find.text('10'), findsOneWidget);
   });
 
+  testWidgets('partial parent save signal re-reads Routine Detail',
+      (tester) async {
+    final signal = RoutineMoveRefreshSignal();
+    addTearDown(signal.dispose);
+    final compositions = _Compositions(_snapshot());
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: compositions,
+      moveRefreshSignal: signal,
+      moveRefreshOwnerId: 'owner-a',
+      moveRefreshLoginCycleId: 'cycle-a',
+    );
+    expect(compositions.readCount, 1);
+    expect(find.byKey(const ValueKey('routine-detail-empty')), findsOneWidget);
+
+    compositions.snapshot = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 10, restSeconds: 45),
+          ),
+        ],
+      ),
+    ]);
+    signal.request(
+      ownerId: 'owner-a',
+      loginCycleId: 'cycle-a',
+      programsMayHaveChanged: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(compositions.readCount, 2);
+    expect(find.text('10'), findsOneWidget);
+  });
+
   testWidgets('Detail to real Edit screen saves once and refreshes server truth',
       (tester) async {
     final comp = _Compositions(_snapshot());
@@ -713,6 +758,79 @@ void main() {
     expect(find.byType(BackButton), findsOneWidget);
     expect(find.text('Push Day'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('displays rest timer when exercise sets configure restSeconds',
+      (tester) async {
+    final composition = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 8, restSeconds: 20),
+          ),
+        ],
+      ),
+    ]);
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(composition),
+    );
+
+    expect(find.byKey(const ValueKey('routine-detail-rest-timer-$_e1')), findsOneWidget);
+    expect(find.text('Rest Timer: 20s'), findsOneWidget);
+    expect(find.byIcon(Icons.timer_outlined), findsOneWidget);
+  });
+
+  testWidgets('omits rest timer row when exercise sets have no restSeconds',
+      (tester) async {
+    final composition = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 8, restSeconds: null),
+          ),
+        ],
+      ),
+    ]);
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(composition),
+    );
+
+    expect(find.byKey(const ValueKey('routine-detail-rest-timer-$_e1')), findsNothing);
+    expect(find.textContaining('Rest Timer:'), findsNothing);
+  });
+
+  testWidgets('omits rest timer row when restSeconds is 0',
+      (tester) async {
+    final composition = _snapshot(entries: [
+      RoutineCompositionEntry(
+        id: _e1,
+        exercise: ExerciseRef.catalog('ex_bench_press'),
+        sets: [
+          RoutineCompositionSet(
+            id: _s1,
+            prescription: SetPrescription(reps: 8, restSeconds: 0),
+          ),
+        ],
+      ),
+    ]);
+    await _pump(
+      tester,
+      routines: _Routines([_routine]),
+      compositions: _Compositions(composition),
+    );
+
+    expect(find.byKey(const ValueKey('routine-detail-rest-timer-$_e1')), findsNothing);
+    expect(find.textContaining('Rest Timer:'), findsNothing);
   });
 }
 

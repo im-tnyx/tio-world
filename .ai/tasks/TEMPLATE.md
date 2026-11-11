@@ -21,7 +21,10 @@ When a trigger applies, record the proposed boundary and owner approval before i
 This is a compact recovery checkpoint, not a live activity log. Refresh it only at meaningful durable checkpoints, when implementation pauses, when ownership changes, or when recovery is needed. Use `Not applicable` where no handoff state exists.
 
 **Planning owner:**
-**Implementation owner:**
+**Implementation owner:** the agent doing this work, such as Cursor, Codex, or Claude
+**Previous agent:** Not applicable, or the agent who owned the slice before this change
+**Last commit agent:** the agent that made the latest slice commit
+**Last commit SHA:**
 **Review owner:**
 **Implementation ownership state:** Not started | Active | Handoff pending | Paused | Blocked | Complete
 **Ownership transition:** Previous Implementation Owner → Receiving Implementation Owner | Not applicable
@@ -109,6 +112,25 @@ UI -> Controller/Notifier -> Use case -> Repository -> Data source
 Not run yet.
 ```
 
+### Acceptance Evidence (substantive scope)
+
+Map only the approved, applicable criteria; use `Not applicable` with a reason for mechanical/docs-only changes that do not need this matrix. Do not equate a passing check with an untested user outcome.
+
+| Criterion | Changed behavior / file | Test or manual evidence + actual result | Observed SHA / environment | Remaining risk |
+|---|---|---|---|---|
+| | | | | |
+
+### Review Provenance
+
+**Review source / link:** GitHub PR | external agent (Grok/Codex/Cursor/etc.) | human/manual | chat-only | self-review | Not available
+**Reviewer / relation to implementer:**
+**Diff or commit SHA actually reviewed:**
+**Review result and finding IDs/dispositions:**
+**Independent review?** Yes | No (self-review) | Unknown / unavailable
+**Limitations and unmet required gates:**
+
+A chat-only bot verdict, self-review, unavailable reviewer, or failed review service does not imply GitHub `APPROVED`, clean independent review, passing tests or a waived required gate. Record only actual evidence and keep findings open until their fixes are verified.
+
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
@@ -128,3 +150,5 @@ Use `Open`, `Resolved`, or `Deferred`. A Review owner records findings but does 
 ### Final Status
 
 `PASS` | `REVIEW` | `PARTIAL` | `BLOCKED`
+
+Apply the [canonical evidence-based Final Status Decision Rule](../FEATURE_DEVELOPMENT.md#final-status-decision-rule); task `Status`, PR review state, and final handoff result are different fields.
