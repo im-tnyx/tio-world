@@ -34,6 +34,7 @@ class LibraryPage extends StatefulWidget {
     this.hasUnconfirmedCreate,
     this.pendingCreateChanges,
     this.onRoutinePressed,
+    this.onStartRoutinePressed,
     this.onEditRoutine,
     this.onMoveRoutine,
     this.moveRefreshSignal,
@@ -56,16 +57,23 @@ class LibraryPage extends StatefulWidget {
   final Future<void> Function() onProgramsManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
+
   /// Direct Library Create resolves My Program on the server, not in the UI.
   /// Null means its production release capability is intentionally unavailable.
   final Future<void> Function()? onCreateRoutinePressed;
+
   /// An uncertain first Create only permits owner-safe read verification.
   final Future<void> Function()? onVerifyPendingRoutine;
   final bool Function(Program)? hasUnconfirmedCreate;
+
   /// Rebuilds pending Program actions as uncertain writes settle.
   final Listenable? pendingCreateChanges;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+
+  /// Starts an owner-verified Routine from its expanded Library row.
+  final Future<void> Function(Program, Routine)? onStartRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+
   /// Optional Move action, hidden until injected by the app-shell release gate.
   final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final RoutineMoveRefreshSignal? moveRefreshSignal;
@@ -129,6 +137,7 @@ class _LibraryPageState extends State<LibraryPage> {
         onAddRoutinePressed: widget.onAddRoutinePressed,
         hasUnconfirmedCreate: widget.hasUnconfirmedCreate,
         onRoutinePressed: widget.onRoutinePressed,
+        onStartRoutinePressed: widget.onStartRoutinePressed,
         onEditRoutine: widget.onEditRoutine,
         onMoveRoutine: widget.onMoveRoutine,
         moveRefreshSignal: widget.moveRefreshSignal,
@@ -219,8 +228,7 @@ class _LibraryPageState extends State<LibraryPage> {
                             ),
                     _LibraryCategory.exercises => _ExercisesContent(
                         canCreateExercise: widget.canCreateExercise,
-                        onCreateExercisePressed:
-                            widget.onCreateExercisePressed,
+                        onCreateExercisePressed: widget.onCreateExercisePressed,
                         onExercisesPressed: widget.onExercisesPressed,
                       ),
                   },

@@ -100,6 +100,121 @@ void _pushCanonicalExerciseDetail({
   );
 }
 
+/// One app-owned entry for Routine starts from Detail, Program and Library.
+/// It rechecks the opening Auth cycle, reads a fresh owner-verified composition
+/// when needed, and delegates conflict/draft behavior to the existing flow.
+Future<void> _startRoutineFromEntry({
+  required BuildContext context,
+  required WidgetRef ref,
+  required Program program,
+  required Routine routine,
+  required String? ownerId,
+  required String? loginCycleId,
+  required RoutineRepository? routineRepository,
+  required RoutineCompositionRepository? compositionRepository,
+  required ExerciseCatalogRepository? catalogRepository,
+  required UserExerciseRepository? userExerciseRepository,
+  WorkoutRoutineStartRequest? request,
+}) async {
+  if (ownerId == null ||
+      loginCycleId == null ||
+      routine.programId != program.id) {
+    throw StateError('Routine start is unavailable.');
+  }
+
+  final openingRoute = ModalRoute.of(context);
+  bool entryIsCurrent() =>
+      context.mounted &&
+      (openingRoute == null ||
+          (openingRoute.isActive && openingRoute.isCurrent));
+
+  bool sameOpeningSession() {
+    try {
+      final boot = ref.read(appSessionBootstrapControllerProvider).state;
+      final value = ref.read(authSessionStateProvider);
+      final auth = value.isLoading || value.hasError ? null : value.valueOrNull;
+      return boot is AppSessionBootstrapReady &&
+          boot.userId == ownerId &&
+          auth is AuthSessionAuthenticated &&
+          auth.session.userId == ownerId &&
+          auth.session.loginCycleId == loginCycleId &&
+          ref.read(supabaseClientProvider)?.auth.currentUser?.id == ownerId;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  if (!entryIsCurrent() || !sameOpeningSession()) {
+    throw StateError('Routine start is unavailable.');
+  }
+
+  var verifiedRequest = request;
+  if (verifiedRequest == null) {
+    final routines = routineRepository;
+    final compositions = compositionRepository;
+    final catalog = catalogRepository;
+    if (routines == null || compositions == null || catalog == null) {
+      throw StateError('Routine start is unavailable.');
+    }
+    final controller = RoutineDetailController(
+      program: program,
+      routine: routine,
+      routines: routines,
+      compositions: compositions,
+      catalog: catalog,
+      userExercises: userExerciseRepository,
+    );
+    try {
+      await controller.load();
+      if (!entryIsCurrent() || !sameOpeningSession()) {
+        throw StateError('Routine start is unavailable.');
+      }
+      verifiedRequest = controller.startRequest;
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  final startRequest = verifiedRequest;
+  if (startRequest == null ||
+      !startRequest.isExecutable ||
+      startRequest.routine.id != routine.id ||
+      startRequest.routine.programId != program.id ||
+      startRequest.composition.routineId != routine.id) {
+    throw StateError('Routine start is unavailable.');
+  }
+
+  final draftController = ref.read(activeWorkoutDraftControllerProvider);
+  final draftStore = ref.read(activeWorkoutDraftStoreProvider);
+  if (draftController == null || draftStore == null) {
+    throw StateError('Routine start is unavailable.');
+  }
+  final sessionController = ref.read(activeWorkoutControllerProvider);
+  if (!context.mounted) return;
+
+  await runWorkoutPlayStart(
+    context: context,
+    draftController: draftController,
+    draftStore: draftStore,
+    sessionController: sessionController,
+    prepareNewWorkout: () async {
+      if (!entryIsCurrent() || !sameOpeningSession()) {
+        throw StateError('Routine start is unavailable.');
+      }
+      final started = await draftController.startFromRoutine(startRequest);
+      if (!started || !sameOpeningSession()) {
+        throw StateError('Routine start is unavailable.');
+      }
+      return true;
+    },
+    openActive: ({required bool resumeExisting}) {
+      if (!entryIsCurrent() || !sameOpeningSession()) return;
+      final query = resumeExisting ? '?preview=1&resume=1' : '?preview=1';
+      context.push('${AppRoutes.workoutActive.path}$query');
+    },
+  );
+}
+
 Widget _exerciseDetailRoutePage(
   BuildContext context,
   GoRouterState state,
@@ -918,9 +1033,32 @@ List<RouteBase> _shellBranchChildRoutes(
                     // owner-scoped Detail repository or an Edit capability.
                     final verifiedOwner =
                         ownerId != null && ownerId == authUserId;
+                    final draftController =
+                        ref.watch(activeWorkoutDraftControllerProvider);
+                    final draftStore =
+                        ref.watch(activeWorkoutDraftStoreProvider);
                     final mayEdit = verifiedOwner &&
                         weightUnit != null &&
                         userExerciseRepository != null;
+
+                    Future<void> startRoutine(
+                      WorkoutRoutineStartRequest request,
+                    ) async {
+                      await _startRoutineFromEntry(
+                        context: context,
+                        ref: ref,
+                        program: program,
+                        routine: routine,
+                        ownerId: ownerId,
+                        loginCycleId: authCycleId,
+                        routineRepository: routineRepository,
+                        compositionRepository: compositions,
+                        catalogRepository: catalog,
+                        userExerciseRepository: userExerciseRepository,
+                        request: request,
+                      );
+                    }
+
                     return RoutineDetailPage(
                       key: ValueKey(
                         'routine-detail-owner-${ownerId ?? 'none'}-auth-${authUserId ?? 'none'}-cycle-${authCycleId ?? 'none'}',
@@ -951,6 +1089,12 @@ List<RouteBase> _shellBranchChildRoutes(
                               }
                               return editRoutine(program, ownedRoutine);
                             },
+                      onStartRoutinePressed: verifiedOwner &&
+                              authCycleId != null &&
+                              draftController != null &&
+                              draftStore != null
+                          ? startRoutine
+                          : null,
                     );
                   },
                 ),
@@ -1295,6 +1439,15 @@ List<RouteBase> _shellBranchChildRoutes(
                     // If an initially authenticated route is revoked, keep
                     // the page/nav alive but dispose its owner-bound reader.
                     final revoked = openingCycle != null && !authorized;
+                    final startDraftController =
+                        routeRef.watch(activeWorkoutDraftControllerProvider);
+                    final startDraftStore =
+                        routeRef.watch(activeWorkoutDraftStoreProvider);
+                    final canStartRoutine = !revoked &&
+                        authorized &&
+                        compositions != null &&
+                        startDraftController != null &&
+                        startDraftStore != null;
                     return ProgramDetailPage(
                       key: ValueKey(
                           'program-detail-$openingOwner-$openingCycle'),
@@ -1318,6 +1471,20 @@ List<RouteBase> _shellBranchChildRoutes(
                       onRoutinePressed: revoked || compositions == null
                           ? null
                           : (routine) => openRoutine(program, routine),
+                      onStartRoutinePressed: !canStartRoutine
+                          ? null
+                          : (routine) => _startRoutineFromEntry(
+                                context: routeContext,
+                                ref: routeRef,
+                                program: program,
+                                routine: routine,
+                                ownerId: openingOwner,
+                                loginCycleId: openingCycle,
+                                routineRepository: routineRepository,
+                                compositionRepository: compositions,
+                                catalogRepository: catalog,
+                                userExerciseRepository: userExerciseRepository,
+                              ),
                       onEditRoutine: revoked ||
                               compositions == null ||
                               userExerciseRepository == null
@@ -1386,7 +1553,9 @@ List<RouteBase> _shellBranchChildRoutes(
                   auth.session.userId == currentOwner
               ? auth.session.loginCycleId
               : null;
-
+          final draftController =
+              ref.watch(activeWorkoutDraftControllerProvider);
+          final draftStore = ref.watch(activeWorkoutDraftStoreProvider);
           // #568: the root entry reuses the existing canonical composer.
           // There is NO client-side Program INSERT, default-name identity
           // inference or second write path. QA may opt in on debug only;
@@ -1709,6 +1878,27 @@ List<RouteBase> _shellBranchChildRoutes(
                     compositions == null || routineRepository == null
                         ? null
                         : openRoutine,
+                onStartRoutinePressed: !bound ||
+                        !canCreateForSession ||
+                        currentOwner == null ||
+                        currentCycle == null ||
+                        routineRepository == null ||
+                        compositions == null ||
+                        draftController == null ||
+                        draftStore == null
+                    ? null
+                    : (program, routine) => _startRoutineFromEntry(
+                          context: context,
+                          ref: ref,
+                          program: program,
+                          routine: routine,
+                          ownerId: currentOwner,
+                          loginCycleId: currentCycle,
+                          routineRepository: routineRepository,
+                          compositionRepository: compositions,
+                          catalogRepository: catalog,
+                          userExerciseRepository: userExerciseRepository,
+                        ),
                 onEditRoutine: !bound ||
                         !canCreateForSession ||
                         routineRepository == null ||

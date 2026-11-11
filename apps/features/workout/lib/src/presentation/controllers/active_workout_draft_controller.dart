@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/models/active_workout_draft.dart';
 import '../../domain/models/routine_composition_limits.dart';
 import '../../domain/models/routine_rest_timer_preset.dart';
+import '../../domain/models/workout_routine_start_request.dart';
 import '../../domain/models/workout_save_metadata_limits.dart';
 import '../../domain/repositories/active_workout_draft_store.dart';
 import '../../domain/repositories/workout_draft_save_repository.dart';
@@ -39,6 +40,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   Future<void> _mutationTail = Future<void>.value();
   bool _disposed = false;
   Object? _error;
+
   /// Backgrounding that arrived while restore had not published a draft yet.
   DateTime? _pendingBackgroundedAtUtc;
 
@@ -63,6 +65,73 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     return _restore(createIfMissing: false);
   }
 
+  /// Starts a local Save-only draft from one complete, verified Routine.
+  /// Existing in-memory or durable drafts are never overwritten.
+  Future<bool> startFromRoutine(WorkoutRoutineStartRequest request) async {
+    await _mutationTail;
+    if (_disposed || _busy || _draft != null) return false;
+    _busy = true;
+    _error = null;
+    _notify();
+    try {
+      request.validate();
+      // An unreadable or occupied secure slot is not equivalent to absence.
+      if (await _store.load() != null) return false;
+
+      final entries = request.composition.entries;
+      final exercises = <ActiveWorkoutDraftExercise>[];
+      for (final entry in entries) {
+        final exercise = request.exercises[entry.exercise]!;
+        final prescriptions =
+            entry.sets.map((set) => set.prescription).toList(growable: false);
+        exercises.add(ActiveWorkoutDraftExercise(
+          id: _newUuid(),
+          exerciseRef: exercise.ref,
+          displayName: exercise.displayName,
+          exerciseType: exercise.exerciseType,
+          thumbnailUrl: ExercisesController.thumbnailUrlFor(exercise),
+          restPreset: RoutineRestTimerPreset.fromPrescriptions(prescriptions),
+          sets: [
+            for (final prescription in prescriptions)
+              ActiveWorkoutDraftSet(
+                id: _newUuid(),
+                prescription: prescription,
+              ),
+          ],
+        ));
+      }
+
+      final startedAtUtc = _nowUtc();
+      final candidate = ActiveWorkoutDraft(
+        id: _newUuid(),
+        ownerId: _ownerId,
+        saveRequestId: _newUuid(),
+        time: WorkoutTime.start(startedAtUtc: startedAtUtc),
+        lastActivityAtUtc: startedAtUtc,
+        workoutTitle: request.routine.name,
+        exercises: exercises,
+      );
+      if (_disposed) return false;
+      // Match existing Play behavior: publish the account-bound draft first,
+      // then persist best-effort so a transient secure-store write does not
+      // strand the user before the Active Workout screen opens.
+      _draft = candidate;
+      _notify();
+      try {
+        await _store.save(candidate);
+      } catch (error) {
+        if (!_disposed) _error = error;
+      }
+      return !_disposed;
+    } catch (error) {
+      if (!_disposed) _error = error;
+      return false;
+    } finally {
+      _busy = false;
+      _notify();
+    }
+  }
+
   Future<bool> _restore({required bool createIfMissing}) async {
     if (_busy || _disposed) return false;
     _busy = true;
@@ -83,6 +152,9 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       if (restored != null && restored.ownerId != _ownerId) {
         throw StateError('Workout draft belongs to another account.');
       }
+      if (_draft != null && _draft!.ownerId != _ownerId) {
+        throw StateError('Workout draft belongs to another account.');
+      }
       if (restored == null && !createIfMissing) {
         // No draft to attach to; drop stale backgrounding so a later fresh
         // Play start cannot inherit an older pending marker.
@@ -90,7 +162,10 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         return true;
       }
       final startedAt = _nowUtc();
+      // A Routine seed may be in memory when its first secure-store write
+      // failed. Reuse it on page restore instead of creating an empty draft.
       var candidate = restored ??
+          _draft ??
           ActiveWorkoutDraft(
             id: _newUuid(),
             ownerId: _ownerId,
@@ -176,7 +251,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       return !_disposed;
     } catch (error) {
       if (!_disposed) _error = error;
-      return _draft != null && !_disposed;
+      return _draft != null && _draft!.ownerId == _ownerId && !_disposed;
     } finally {
       _busy = false;
       _notify();
@@ -647,8 +722,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     final trimmedTitle = title?.trim() ?? '';
     if (requireNonEmptyTitle) {
       if (!WorkoutSaveMetadataLimits.isValidTitle(title)) return false;
-    } else if (trimmedTitle.length >
-        WorkoutSaveMetadataLimits.maxTitleLength) {
+    } else if (trimmedTitle.length > WorkoutSaveMetadataLimits.maxTitleLength) {
       return false;
     }
     return WorkoutSaveMetadataLimits.isValidDescription(description) &&
