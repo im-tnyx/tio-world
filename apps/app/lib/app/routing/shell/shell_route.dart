@@ -918,9 +918,88 @@ List<RouteBase> _shellBranchChildRoutes(
                     // owner-scoped Detail repository or an Edit capability.
                     final verifiedOwner =
                         ownerId != null && ownerId == authUserId;
+                    final draftController =
+                        ref.watch(activeWorkoutDraftControllerProvider);
+                    final draftStore =
+                        ref.watch(activeWorkoutDraftStoreProvider);
+                    final sessionController =
+                        ref.watch(activeWorkoutControllerProvider);
                     final mayEdit = verifiedOwner &&
                         weightUnit != null &&
                         userExerciseRepository != null;
+
+                    Future<void> startRoutine(
+                      WorkoutRoutineStartRequest request,
+                    ) async {
+                      final openingOwner = ownerId;
+                      final openingCycle = authCycleId;
+                      if (openingOwner == null ||
+                          openingCycle == null ||
+                          request.routine.id != routine.id ||
+                          request.routine.programId != program.id ||
+                          request.composition.routineId != routine.id) {
+                        throw StateError('Routine start is unavailable.');
+                      }
+
+                      bool sameOpeningSession() {
+                        try {
+                          final boot = ref
+                              .read(appSessionBootstrapControllerProvider)
+                              .state;
+                          final value = ref.read(authSessionStateProvider);
+                          final auth = value.isLoading || value.hasError
+                              ? null
+                              : value.valueOrNull;
+                          return boot is AppSessionBootstrapReady &&
+                              boot.userId == openingOwner &&
+                              auth is AuthSessionAuthenticated &&
+                              auth.session.userId == openingOwner &&
+                              auth.session.loginCycleId == openingCycle &&
+                              ref
+                                      .read(supabaseClientProvider)
+                                      ?.auth
+                                      .currentUser
+                                      ?.id ==
+                                  openingOwner;
+                        } catch (_) {
+                          return false;
+                        }
+                      }
+
+                      if (!sameOpeningSession() ||
+                          draftController == null ||
+                          draftStore == null) {
+                        throw StateError('Routine start is unavailable.');
+                      }
+
+                      await runWorkoutPlayStart(
+                        context: context,
+                        draftController: draftController,
+                        draftStore: draftStore,
+                        sessionController: sessionController,
+                        prepareNewWorkout: () async {
+                          if (!sameOpeningSession()) {
+                            throw StateError('Routine start is unavailable.');
+                          }
+                          final started =
+                              await draftController.startFromRoutine(request);
+                          if (!started || !sameOpeningSession()) {
+                            throw StateError('Routine start is unavailable.');
+                          }
+                          return true;
+                        },
+                        openActive: ({required bool resumeExisting}) {
+                          if (!sameOpeningSession()) return;
+                          final query = resumeExisting
+                              ? '?preview=1&resume=1'
+                              : '?preview=1';
+                          context.push(
+                            '${AppRoutes.workoutActive.path}$query',
+                          );
+                        },
+                      );
+                    }
+
                     return RoutineDetailPage(
                       key: ValueKey(
                         'routine-detail-owner-${ownerId ?? 'none'}-auth-${authUserId ?? 'none'}-cycle-${authCycleId ?? 'none'}',
@@ -951,6 +1030,12 @@ List<RouteBase> _shellBranchChildRoutes(
                               }
                               return editRoutine(program, ownedRoutine);
                             },
+                      onStartRoutinePressed: verifiedOwner &&
+                              authCycleId != null &&
+                              draftController != null &&
+                              draftStore != null
+                          ? startRoutine
+                          : null,
                     );
                   },
                 ),

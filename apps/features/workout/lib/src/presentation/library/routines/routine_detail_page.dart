@@ -3,6 +3,8 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/exercise_catalog_repository.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
+import '../../../domain/models/workout_routine_start_request.dart';
 import '../exercises/exercises_controller.dart';
 import 'routine_set_input_limits.dart';
 import 'routine_measurement_profile.dart';
@@ -12,7 +14,6 @@ import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import '../../../domain/repositories/routine_notes_repository.dart';
 import 'routine_detail_controller.dart';
-import '../../../domain/models/routine_rest_timer_preset.dart';
 import 'routine_notes_controller.dart';
 
 import 'routine_move_refresh_signal.dart';
@@ -30,6 +31,7 @@ class RoutineDetailPage extends StatefulWidget {
     this.viewerMediaGender,
     this.weightUnit = WeightUnit.kg,
     this.onEditPressed,
+    this.onStartRoutinePressed,
     // Compatibility-only: Detail no longer renders a separate Notes section.
     this.routineNotesRepository,
     this.routineNotesOwnerId,
@@ -70,6 +72,10 @@ class RoutineDetailPage extends StatefulWidget {
   /// No edit capability is inferred from a read-only Detail repository.
   final Future<bool?> Function(Routine routine)? onEditPressed;
 
+  /// App-provided, account-verified Save-only start from this Routine snapshot.
+  final Future<void> Function(WorkoutRoutineStartRequest request)?
+      onStartRoutinePressed;
+
   @override
   State<RoutineDetailPage> createState() => _RoutineDetailPageState();
 }
@@ -77,6 +83,7 @@ class RoutineDetailPage extends StatefulWidget {
 class _RoutineDetailPageState extends State<RoutineDetailPage> {
   RoutineDetailController? _controller;
   bool _editing = false;
+  bool _startingRoutine = false;
 
   @override
   void initState() {
@@ -179,10 +186,61 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
     if (confirmed == true) await controller.load();
   }
 
+  WorkoutRoutineStartRequest? _startRequest(RoutineDetailState? state) {
+    final readyState = state;
+    final routine = readyState?.routine;
+    final revision = readyState?.revision;
+    if (widget.onStartRoutinePressed == null ||
+        readyState == null ||
+        readyState.status != RoutineDetailStatus.ready ||
+        routine == null ||
+        revision == null) {
+      return null;
+    }
+    try {
+      final exercises = <ExerciseRef, Exercise>{};
+      for (final item in readyState.entries) {
+        final exercise = item.exercise;
+        if (exercise != null) exercises[item.entry.exercise] = exercise;
+      }
+      final request = WorkoutRoutineStartRequest(
+        routine: routine,
+        composition: RoutineCompositionSnapshot(
+          routineId: routine.id,
+          revision: revision,
+          name: routine.name,
+          entries: readyState.entries.map((item) => item.entry).toList(),
+        ),
+        exercises: exercises,
+      );
+      return request.isExecutable ? request : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _startRoutine(WorkoutRoutineStartRequest request) async {
+    if (_startingRoutine || !mounted) return;
+    setState(() => _startingRoutine = true);
+    try {
+      await widget.onStartRoutinePressed?.call(request);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Could not start this Routine. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _startingRoutine = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final state = _controller?.state;
+    final startRequest = _startRequest(state);
     return Scaffold(
       key: const ValueKey('routine-detail-page'),
       backgroundColor: colors.background,
@@ -206,7 +264,33 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
       body: SafeArea(
         child: state != null &&
                 state.status == RoutineDetailStatus.ready
-            ? _readyList(state)
+            ? Column(
+                children: [
+                  if (startRequest != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        TioSpacing.lg,
+                        TioSpacing.md,
+                        TioSpacing.lg,
+                        TioSpacing.sm,
+                      ),
+                      child: TioButton.primary(
+                        key: const ValueKey('routine-detail-start-routine'),
+                        label: 'Start Routine',
+                        loadingLabel: 'Starting Routine',
+                        semanticLabel: 'Start ${state.routine!.name}',
+                        leading: const Icon(Icons.play_arrow),
+                        expand: true,
+                        loading: _startingRoutine,
+                        enabled: !_startingRoutine,
+                        onPressed: _startingRoutine
+                            ? null
+                            : () => _startRoutine(startRequest),
+                      ),
+                    ),
+                  Expanded(child: _readyList(state)),
+                ],
+              )
             : ListView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: TioSpacing.lg,

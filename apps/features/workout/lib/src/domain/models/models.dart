@@ -15,4 +15,5 @@ export 'workout_session_record.dart';
 export 'workout_title_resolver.dart';
 export 'gym_location.dart';
 export 'active_workout_draft.dart';
+export 'workout_routine_start_request.dart';
 export 'workout_save_metadata_limits.dart';

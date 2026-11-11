@@ -13,7 +13,7 @@ enum _WorkoutPresence {
   unknown,
 }
 
-/// Opens Active Workout from Play, guarding against duplicate starts.
+/// Opens Active Workout while guarding against duplicate starts.
 ///
 /// When a local draft or running legacy session already exists, presents the
 /// owner conflict card. Resume never creates a new draft; Start new permanently
@@ -27,6 +27,7 @@ Future<void> runWorkoutPlayStart({
   ActiveWorkoutDraftController? draftController,
   ActiveWorkoutDraftStore? draftStore,
   ActiveWorkoutController? sessionController,
+  Future<bool> Function()? prepareNewWorkout,
 }) async {
   final presence = await _workoutPresence(
     draftController: draftController,
@@ -39,6 +40,11 @@ Future<void> runWorkoutPlayStart({
     case _WorkoutPresence.unknown:
       return;
     case _WorkoutPresence.absent:
+      if (prepareNewWorkout != null) {
+        final prepared = await prepareNewWorkout();
+        if (!prepared) return;
+      }
+      if (!context.mounted) return;
       openActive(resumeExisting: false);
       return;
     case _WorkoutPresence.present:
@@ -61,6 +67,11 @@ Future<void> runWorkoutPlayStart({
         sessionController: sessionController,
       );
       if (!context.mounted || !replaced) return;
+      if (prepareNewWorkout != null) {
+        final prepared = await prepareNewWorkout();
+        if (!prepared) return;
+      }
+      if (!context.mounted) return;
       openActive(resumeExisting: false);
   }
 }

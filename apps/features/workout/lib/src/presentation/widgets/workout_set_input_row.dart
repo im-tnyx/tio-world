@@ -114,6 +114,14 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
   bool get _rangeMode =>
       !widget.isExecution &&
       (widget.showRangeDraft || widget.set.prescription.isRepRange);
+  bool get _showRepRangeReference =>
+      widget.isExecution &&
+      !widget.isLogged &&
+      widget.set.prescription.reps != null &&
+      widget.set.prescription.repsMax != null;
+  String? get _repRangeReference => _showRepRangeReference
+      ? '${widget.set.prescription.reps} - ${widget.set.prescription.repsMax}'
+      : null;
 
   static const double _revealWidth = TioSize.dp48 + TioSize.dp48;
   static const double _threshold = _revealWidth / 2;
@@ -146,7 +154,8 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
     _pastRevealThreshold = widget.isOpen;
     _valid = true;
 
-    final initialReps = widget.performedReps ?? widget.set.prescription.reps;
+    final initialReps = widget.performedReps ??
+        (_showRepRangeReference ? null : widget.set.prescription.reps);
     _reps = TextEditingController(
       text: widget.startWithBlankReps ? '' : initialReps?.toString() ?? '',
     );
@@ -201,7 +210,7 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
     final unitChanged = oldWidget.unit != widget.unit;
 
     if (changedExternally && before.reps != after.reps) {
-      _reps.text = after.reps?.toString() ?? '';
+      _reps.text = _showRepRangeReference ? '' : after.reps?.toString() ?? '';
     }
     if (modeChanged && _rangeMode) {
       _repsMax.text = '';
@@ -846,14 +855,16 @@ class _WorkoutSetInputRowState extends State<WorkoutSetInputRow>
                     children: [
                       Expanded(
                         child: Semantics(
-                          label:
-                              'Set $setNumber ${_rangeMode ? 'minimum Reps' : 'Reps'}',
+                          label: _repRangeReference == null
+                              ? 'Set $setNumber ${_rangeMode ? 'minimum Reps' : 'Reps'}'
+                              : 'Set $setNumber Reps, planned range '
+                                  '$_repRangeReference',
                           child: TioInput.boxedNumber(
                             key: widget.repsKey ??
                                 ValueKey('routine-set-reps-${widget.set.id}'),
                             controller: _reps,
                             enabled: widget.enabled,
-                            hint: '–',
+                            hint: _repRangeReference ?? '–',
                             keyboardType: TextInputType.number,
                             textInputAction: _rangeMode
                                 ? TextInputAction.next
