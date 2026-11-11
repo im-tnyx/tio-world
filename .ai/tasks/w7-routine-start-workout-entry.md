@@ -1,6 +1,6 @@
 # W7 Routine Start Workout Entry
 
-**Status:** PR #748 open; review pending
+**Status:** PR #748 open; automated P2 review fix validated, exact-head CI/review pending
 
 **Primary owner:** Codex
 
@@ -28,11 +28,11 @@
 
 **Last commit agent:** Codex
 
-**Last implementation commit SHA:** `bb9b57f222b01016b145d65a6e334762fbc5a634` (Program/Library Routine Play implementation)
+**Last implementation commit SHA:** `97d36f6b47dc9880eda711ddbdf216cd97ec31fa` (P2 Routine seed recovery fix)
 
 **Review owner:** Pending independent reviewer
 
-**Implementation ownership state:** Ready for review
+**Implementation ownership state:** Codex validated the automated review fix; PR review gate pending
 
 **Ownership transition:** Not applicable
 
@@ -40,13 +40,13 @@
 
 **Branch:** `codex/w7-routine-start`
 
-**Validated source HEAD SHA:** `bb9b57f222b01016b145d65a6e334762fbc5a634` (implementation commit; handoff-only commits follow it)
+**Validated source HEAD SHA:** `97d36f6b47dc9880eda711ddbdf216cd97ec31fa` (focused P2 regression/analyzer validation; earlier feature validation at `bb9b57f222b01016b145d65a6e334762fbc5a634`)
 
 **PR opening head SHA:** `31c44a504fc5673a0eb90f3e3ef304f8666ac425` (historical opening checkpoint; resolve current head from GitHub)
 
-**Observed working-tree state:** Both linked worktrees were clean when PR #748 opened; this handoff update is the only modification after opening. Isolated worktree: `.claude/worktrees/w7-routine-start`.
+**Observed working-tree state:** At the pre-push review, root checkout was clean and the isolated `.claude/worktrees/w7-routine-start` worktree had the implementation fix committed at `97d36f6b`, with only handoff documentation pending commit.
 
-**Observed uncommitted/dirty files:** `.ai/tasks/w7-routine-start-workout-entry.md` only while recording the PR handoff. The root checkout is clean and aligned with its upstream branch.
+**Observed uncommitted/dirty files:** At the pre-push review, `.ai/tasks/w7-routine-start-workout-entry.md` and `.ai/tasks/README.md` only. The root checkout was clean and aligned with its upstream branch.
 
 **PR / tracker:** [GitHub PR #748](https://github.com/im-tnyx/tio-world/pull/748) is open against `main`; Linear TNYX-84 is In Progress. W3/W4 and authenticated Save E2E blockers remain.
 
@@ -54,15 +54,15 @@
 
 **Relevant execution surfaces:** Routine Detail CTA, Program Detail Routine-row play, and expanded Library Routine-row play -> owner/session-verified app callback -> the same verified Routine composition request and existing `runWorkoutPlayStart` conflict flow -> local draft controller -> existing Active Workout route.
 
-**Validation completed at SHA:** `bb9b57f222b01016b145d65a6e334762fbc5a634`.
+**Validation completed at SHA:** `bb9b57f222b01016b145d65a6e334762fbc5a634` for earlier feature/route checks; `97d36f6b47dc9880eda711ddbdf216cd97ec31fa` for the 20 focused controller tests, Workout analyzer and two-file format check.
 
 **Validation remaining:** Repository CI's pinned Melos 2.9.0 bootstrap/analyze/test has not run locally. The available Melos 8.6.0 rejects this legacy workspace configuration; affected-package formatting, analysis and focused tests were run directly. Exact-head CI and independent review remain pending.
 
-**Current blocker:** PR #748 exact-head CI and independent review remain required before merge.
+**Current blocker:** Exact-head CI/review after publication; independent human approval remains absent.
 
-**Open review finding IDs:** None.
+**Open review finding IDs:** PR #748 thread `PRRT_kwDOTOXwB862LqYG`, comment `4538275707` (P2, automated `chatgpt-codex-connector` COMMENTED review on historical head `31c44a504f`).
 
-**Next exact action:** Inspect PR #748 CI and independent review on its current GitHub head, then address any actionable finding. Keep TNYX-84 In Progress.
+**Next exact action:** After publishing the validated P2 fix to PR #748, reply to the finding with evidence and inspect exact-head CI/review. Keep TNYX-84 In Progress.
 
 ## Global UI / Design-System Guardrail
 
@@ -121,7 +121,7 @@ Reuse `RoutineCompositionSnapshot`, resolved non-archived `Exercise` values, `Ro
 
 ### Chosen Approach
 
-Routine Detail constructs a feature-owned immutable start request from the verified Routine and ordered resolved composition. App shell binds a callback only when bootstrap owner and authenticated owner match and captures login cycle. Existing workout conflict flow runs first; Resume never seeds. On absent or confirmed Start New, controller verifies local memory/store are empty, validates the whole request, and persists a new local draft before routing to the existing Active Workout page.
+Routine Detail constructs a feature-owned immutable start request from the verified Routine and ordered resolved composition. App shell binds a callback only when bootstrap owner and authenticated owner match and captures login cycle. Existing workout conflict flow runs first; Resume never seeds. On absent or confirmed Start New, controller verifies local memory/store are empty, validates the whole request, publishes a new local draft and attempts secure persistence before routing to the existing Active Workout page. A failed first write leaves the seeded in-memory draft available for page restore and a later retry.
 
 ### Ownership and Data Flow
 
@@ -142,7 +142,7 @@ Calling `ActiveWorkoutController.startSessionFromRoutine` would create a server 
 
 ### Failure and Accessibility States
 
-Hide the CTA unless the verified Routine has 1–100 supported/resolved Exercise entries with valid 1–8 planned Sets each. Keep the existing Detail loading/failed/not-found states. If auth changes, draft storage is unreadable/non-empty, or seed validation/persistence fails, do not navigate; announce a safe generic failure without private backend details. Use a labeled `TioButton`.
+Hide the CTA unless the verified Routine has 1–100 supported/resolved Exercise entries with valid 1–8 planned Sets each. Keep the existing Detail loading/failed/not-found states. If auth changes, draft storage is unreadable/non-empty, or seed validation fails, do not navigate; announce a safe generic failure without private backend details. A first secure-store write failure follows the existing memory-first Play behavior; page restore must retain the seeded draft and retry persistence. Use a labeled `TioButton`.
 
 ## 5. Implementation Plan
 
@@ -166,6 +166,8 @@ PASS: `flutter analyze --no-pub` in `apps/app` and `apps/features/workout`; no i
 PASS: 91 focused Workout Library, Program Detail and Routine controller tests; all 92 `workout_exercises_route_test.dart` cases, including direct Program Detail/Library Play reaching the current Active Workout route with one seeded local draft.
 PASS: `flutter analyze --no-pub` in `apps/app` and `apps/features/workout`; no issues found.
 PASS: `git diff --check` and `git diff --cached --check`.
+PASS: P2 review remediation: `flutter test --no-pub test/presentation/active_workout_draft_controller_test.dart` in `apps/features/workout` passed 20/20, including first-write-fails/empty-read Routine seed retention and later persistence retry.
+PASS: P2 review remediation: `flutter analyze --no-pub` in `apps/features/workout` reported no issues; `dart format --output=none --set-exit-if-changed` on the two changed Dart files reported 0 changes after formatting; `git diff --check` passed.
 BLOCKED: The repository-pinned Melos 2.9.0 workflow was not run locally; an earlier attempt with available Melos 8.6.0 exited 1 because it rejected the legacy workspace (`Your current directory does not appear to be within a Melos workspace`). `melos analyze` and `melos test` were not run with that incompatible version. CI pins Melos 2.9.0. Affected packages were validated directly; exact-head CI remains pending.
 NOTE: The Workout test command emitted the existing `uses-material-design` package-configuration warning; all 183 tests passed.
 NOT RUN: authenticated Save E2E, device acceptance, and visual/runtime review.
@@ -190,9 +192,9 @@ NOT RUN: authenticated Save E2E, device acceptance, and visual/runtime review.
 
 **Diff or commit SHA actually reviewed:** `bb9b57f222b01016b145d65a6e334762fbc5a634` on `codex/w7-routine-start`, parent `3e5b70c6467c704d2a67fd7210b0babd55aa2215`
 
-**Review result and finding IDs/dispositions:** Manual scope and boundary review; no independent findings collected.
+**Review result and finding IDs/dispositions:** Automated P2 review on historical PR head `31c44a504f` found a concrete seed-loss path: `startFromRoutine()` publishes a Routine draft despite a first secure-store write failure, then `ActiveWorkoutPage` calls `restoreOrStart()`, whose empty-slot fallback replaces the seeded draft with a blank one. Thread `PRRT_kwDOTOXwB862LqYG`, comment `4538275707`. Fix `97d36f6b` keeps the owner-bound in-memory draft on an empty store read and retries persistence; focused regression 20/20 and analyzer passed. Publication/thread disposition pending. No human approval.
 
-**Independent review?** No (self-review)
+**Independent review?** Automated comment received; no human approval.
 
 **Limitations and unmet required gates:** PR #748 is open; repository-wide Melos 2.9.0 CI, independent PR review, authenticated Save E2E and device acceptance have not completed.
 
@@ -200,6 +202,7 @@ NOT RUN: authenticated Save E2E, device acceptance, and visual/runtime review.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
+| PR #748 / `PRRT_kwDOTOXwB862LqYG` | P2 | Fixed at `97d36f6b`; PR thread reply pending | Routine seed is replaced with an empty draft when the first secure-store save fails and page restore reads an empty slot. | `31c44a504f` review; reproduced by source flow at `bdae3615` | `_restore()` now reuses the owner-bound in-memory draft on empty store read; regression proves title, Exercise, prescription and stable IDs survive failed writes and persist on retry. Focused tests 20/20; analyzer passed. |
 
 ## 7. Final Handoff
 
@@ -212,6 +215,7 @@ NOT RUN: authenticated Save E2E, device acceptance, and visual/runtime review.
 - `apps/features/workout/lib/src/domain/models/models.dart`
 - `apps/features/workout/lib/src/domain/models/workout_routine_start_request.dart`
 - `apps/features/workout/lib/src/presentation/controllers/active_workout_draft_controller.dart`
+- `apps/features/workout/test/presentation/active_workout_draft_controller_test.dart`
 - `apps/features/workout/lib/src/presentation/library/library_page.dart`
 - `apps/features/workout/lib/src/presentation/library/programs/program_detail_page.dart`
 - `apps/features/workout/lib/src/presentation/library/programs/programs_surface.dart`
@@ -243,4 +247,4 @@ Routine source identity is not saved. Existing TNYX-84 W3/W4 dependencies, authe
 
 ### One Next Task
 
-Inspect PR #748 CI and independent review on its current GitHub head, then address any actionable finding. Keep TNYX-84 In Progress.
+Inspect PR #748 CI and independent review on its current GitHub head after publication. Keep TNYX-84 In Progress.
