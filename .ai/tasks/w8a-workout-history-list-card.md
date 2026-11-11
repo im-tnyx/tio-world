@@ -15,7 +15,7 @@ Owner approved the Workout root History action, authenticated completed-session 
 
 ## Reconciled evidence
 
-- Linear TNYX-85 was Backlog and blocked by TNYX-84 at discovery; it moved to In Progress for this approved slice. TNYX-84 remains In Progress. W7 source and hosted migrations exist, but authenticated Save E2E/device acceptance and W3/W4 dependencies remain. W8A can read existing completed rows without claiming W7 acceptance or changing its status.
+- Linear TNYX-85 was Backlog and blocked by TNYX-84 at discovery; it moved through In Progress to In Review for PR #752 while broader W8 remains open. TNYX-84 remains In Progress. W7 source and hosted migrations exist, but authenticated Save E2E/device acceptance and W3/W4 dependencies remain. W8A can read existing completed rows without claiming W7 acceptance or changing its status.
 - `WorkoutHomePage` owns calendar/Library/Play only; `TioShellStatusTopBar` already supports a right trailing action, presently used by Meal Diary. Workout root retains title and streak.
 - `WorkoutSessionRepository`/`SupabaseWorkoutSessionRepository`/gateway own W7 reads and owner/login-cycle checks. `user_workout_sessions` and `user_workout_performed_sets` grant authenticated SELECT under owner RLS. W7 Save persists `workout_title`, `workout_at_utc`, `workout_utc_offset_minutes`, `notes`, `gym_name`, `workout_duration_seconds`, frozen exercise snapshot, and performed sets. No authoritative PR, bpm, or calorie field was found.
 - `AppRoutes` and Workout shell child routes keep nested destinations under `/workout`; `appModeRedirect` applies Workout mode gating to child paths.
@@ -35,7 +35,7 @@ Show saved duration and truthful performed previews. W7 stores actual external `
 - [x] Feature-owned read model and existing W7 gateway/repository projection: five completed headers per page, stable keyset cursor, owner filter/RLS and bounded batched performed-set reads. Refresh and account-cycle guards drop stale data; the UI deduplicates page boundaries.
 - [x] Core route contract, Workout child route, root trailing History action, and read-only list/cards. No Detail route or tap action.
 - [x] Focused repository/gateway, widget, routing/top-bar and regression tests. `dart analyze apps/features/workout`, `apps/app`, `apps/core`: each exit 0. `flutter analyze --no-pub` in each package: each exit 0. Full Workout `flutter test --no-pub`: 1435/1435, exit 0. Focused app route/top-bar suite: 66/66 plus compact top-bar test 1/1, exit 0. Core route test: 8/8, exit 0. Final History widget test: 5/5, exit 0. `git diff --check`: exit 0. Existing `uses-material-design` pubspec warning did not fail tests.
-- [x] Publish scoped PR and link PR/task brief to TNYX-85; broader W8 remains In Progress.
+- [x] Publish scoped PR and link PR/task brief to TNYX-85; broader W8 remains open in In Review.
 - [ ] Inspect exact-head CI/review and request independent review. Merge requires PR-specific owner approval.
 
 **Owner Volume correction validation:** `dart format` on seven changed Dart files: exit 0. Focused gateway/repository/card tests: 54/54, exit 0. Workout `flutter analyze --no-pub`: exit 0. Full Workout `flutter test --no-pub`: 1437/1437, exit 0. Existing Material icons pubspec warning and one pre-existing hit-test warning did not fail tests. Exact new PR-head CI remains pending.
