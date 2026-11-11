@@ -1,6 +1,6 @@
 # W7 Routine Start Workout Entry
 
-**Status:** Blocked
+**Status:** Ready for review
 
 **Primary owner:** Codex
 
@@ -28,11 +28,11 @@
 
 **Last commit agent:** Codex
 
-**Last commit SHA:** `93891b88b735a6b25b066355021d53df029796c3` (implementation slice)
+**Last commit SHA:** `ebb7868924fa19308e23bb8e95c0ae2a8403ff3f` (formatted implementation slice)
 
 **Review owner:** Pending
 
-**Implementation ownership state:** Blocked
+**Implementation ownership state:** Ready for review
 
 **Ownership transition:** Not applicable
 
@@ -40,7 +40,7 @@
 
 **Branch:** `codex/w7-routine-start`
 
-**HEAD SHA:** `93891b88b735a6b25b066355021d53df029796c3` (implementation reviewed; source commit)
+**HEAD SHA:** `ebb7868924fa19308e23bb8e95c0ae2a8403ff3f` (implementation reviewed; source commit)
 
 **Observed working-tree state:** Clean at task start; isolated worktree `.claude/worktrees/w7-routine-start`.
 
@@ -48,19 +48,19 @@
 
 **PR / tracker:** Linear TNYX-84 In Progress; W3/W4 and authenticated Save E2E blockers remain. No PR for this slice.
 
-**Current implementation state:** Routine Detail CTA, validated start request, local draft seeding and rep-range hint are implemented in this isolated worktree. Source/docs review is pending tool-backed validation.
+**Current implementation state:** Routine Detail CTA, validated start request, local draft seeding and rep-range hint are implemented and formatted in this isolated worktree. Affected-package analysis and focused tests pass; independent review and exact-head CI are pending. No PR has been opened.
 
 **Relevant execution surface:** Routine Detail -> owner/session-verified app callback -> existing `runWorkoutPlayStart` conflict flow -> local draft controller -> existing Active Workout route.
 
-**Validation completed at SHA:** `git diff --check` and staged `git diff --cached --check` passed (exit 0) for implementation commit `93891b88b735a6b25b066355021d53df029796c3`.
+**Validation completed at SHA:** `ebb7868924fa19308e23bb8e95c0ae2a8403ff3f` (implementation source; formatting, analysis and focused tests passed).
 
-**Validation remaining:** `dart`, `flutter`, `melos` and `fvm` are not available on PATH. A safe executable-name scan under `G:\dev` (excluding protected credential/session/history/log/cache areas) found none of those binaries. The repository has no local wrapper. `melos bootstrap`, `melos analyze` and `melos test` were each attempted and failed before execution with PowerShell command-not-found (exit 127); formatting, analysis and tests therefore remain unverified.
+**Validation remaining:** Repository CI's pinned Melos 2.9.0 bootstrap/analyze/test has not run locally. The available Melos 8.6.0 rejects this legacy workspace configuration; direct offline dependency resolution, formatting, affected-package analysis and focused tests were used instead. Exact-head CI and independent review remain pending.
 
-**Current blocker:** Flutter/Dart formatter and analyzer unavailable; code is not ready for PR/merge review.
+**Current blocker:** None for local review. Exact-head CI and independent review remain required before merge.
 
 **Open review finding IDs:** None.
 
-**Next exact action:** Run formatter and targeted Flutter analysis with the repository-compatible Dart toolchain; fix findings before PR review.
+**Next exact action:** Open a PR for independent review and run exact-head CI with the repository-pinned Melos 2.9.0 workflow; resolve any findings before merge.
 
 ## Global UI / Design-System Guardrail
 
@@ -149,16 +149,21 @@ Hide the CTA unless the verified Routine has 1–100 supported/resolved Exercise
 - [x] Extend shared Play conflict flow with an optional seed callback, called only for fresh/new; keep existing callers unchanged.
 - [x] Add the Routine Detail CTA and owner/login-cycle guarded app route callback.
 - [x] Reconcile directly conflicting screen documentation and the current task index.
-- [ ] Format and run the required Flutter bootstrap, analyzer and tests when the repository-compatible SDK/CLI is available; `git diff --check` passed.
+- [x] Format changed Dart files and run affected-package dependency resolution, analysis, and focused regression tests; `git diff --check` passed.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-PASS: `git diff --check` (exit 0), 2026-11-11.
-BLOCKED: `melos bootstrap`, `melos analyze`, `melos test` each exited 127 because `melos` is not recognized; `dart`, `flutter`, `melos` and `fvm` were absent from PATH and from the safe `G:\dev` executable scan.
-NOT RUN: `dart format`, targeted widget tests and runtime/device verification because no Dart/Flutter SDK was available.
+PASS: Flutter 3.44.6 / Dart 3.12.2 tool versions verified; `dart format --output=none --set-exit-if-changed` on 7 changed Dart files (0 changes after formatting).
+PASS: `flutter pub get --offline --enforce-lockfile` in `apps/app` and `apps/features/workout`; no lockfile changes.
+PASS: `flutter analyze --no-pub` in `apps/app` and `apps/features/workout`; no issues found after formatting.
+PASS: 79 focused Workout tests across Routine Detail, draft controller, Play start flow and set input; 90 app workout/routine route tests.
+PASS: `git diff --check` and `git diff --cached --check`.
+BLOCKED: `melos bootstrap` via Melos 8.6.0 exited 1 because it rejected the legacy workspace (`Your current directory does not appear to be within a Melos workspace`); `melos analyze` and `melos test` were not run with that incompatible version. CI pins Melos 2.9.0. Affected packages were validated directly; exact-head CI remains pending.
+NOTE: Focused Flutter tests emitted the existing `uses-material-design` package-configuration warning; all 169 tests passed.
+NOT RUN: authenticated Save E2E, device acceptance, and visual/runtime review.
 ```
 
 ### Acceptance Evidence
@@ -173,17 +178,17 @@ NOT RUN: `dart format`, targeted widget tests and runtime/device verification be
 
 ### Review Provenance
 
-**Review source / link:** Self-review of staged source diff before commit
+**Review source / link:** Self-review of formatted source commit; independent review is pending
 
 **Reviewer / relation to implementer:** Codex, implementer
 
-**Diff or commit SHA actually reviewed:** `93891b88b735a6b25b066355021d53df029796c3` on `codex/w7-routine-start`, parent `3e5b70c6467c704d2a67fd7210b0babd55aa2215`
+**Diff or commit SHA actually reviewed:** `ebb7868924fa19308e23bb8e95c0ae2a8403ff3f` on `codex/w7-routine-start`, parent `3e5b70c6467c704d2a67fd7210b0babd55aa2215`
 
 **Review result and finding IDs/dispositions:** Manual scope and boundary review; no independent findings collected.
 
 **Independent review?** No (self-review)
 
-**Limitations and unmet required gates:** Formatter/analyzer unavailable; no tests, independent review, authenticated Save E2E, device acceptance or PR CI run yet.
+**Limitations and unmet required gates:** Repository-wide Melos 2.9.0 CI workflow, independent PR review, authenticated Save E2E and device acceptance have not run.
 
 ### Review Findings and Resolution
 
@@ -218,8 +223,8 @@ Routine source identity is not saved. Existing TNYX-84 W3/W4 dependencies, authe
 
 ### Final Status
 
-`BLOCKED` — implementation is present, but Dart formatting and Flutter analysis could not run; do not open or merge a PR until validated.
+`REVIEW` — formatting, affected-package analysis and focused regression tests pass. Independent review and exact-head CI remain pending; this is not a merge or completion claim.
 
 ### One Next Task
 
-Run formatter and targeted Flutter analysis with the repository-compatible Dart toolchain, fix findings, and refresh this handoff before PR review.
+Open a PR for independent review and exact-head CI with the repository-pinned Melos 2.9.0 workflow; resolve findings before merge.
