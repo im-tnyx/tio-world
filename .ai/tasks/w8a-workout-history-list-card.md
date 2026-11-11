@@ -3,7 +3,7 @@
 **Tracker:** [TNYX-85](https://linear.app/tnyx/issue/TNYX-85/w8-workout-history-completed-session-timeline-and-detail)
 **Implementation owner:** Codex
 **Previous agent:** None
-**Last commit agent / SHA:** Codex / `39111163747387ddc1eda103906ba34b3abd4fc4` (implementation commit)
+**Last commit agent / SHA:** Codex / `eb2fc10c20619750d6e9c5d1912cf594f069a217` (latest implementation commit)
 **Branch:** `codex/tnyx-85-w8a-workout-history`
 **PR:** [#752](https://github.com/im-tnyx/tio-world/pull/752) — review/merge gate, no merge without PR-specific owner approval
 **Base:** `main@23310eeef6c1d42142f3af8f8563e759350d087c` (matched `origin/main` after fetch, 2026-11-11)
