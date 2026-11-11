@@ -5,10 +5,10 @@
 **Planning owner:** Codex
 **Implementation owner:** Codex
 **Previous agent:** Not applicable
-**Last commit agent / SHA:** Codex / `a3543c42dc4788c989dcb2ac599bb4a802db8e38` (latest W8B implementation commit)
+**Last commit agent / SHA:** Codex / `68178edcddf72f0d8b292376194fd7bf3b89b644` (latest W8B implementation fix)
 **Branch:** `codex/tnyx-85-w8a-workout-history`
 **PR / tracker:** [#752](https://github.com/im-tnyx/tio-world/pull/752) / [TNYX-85](https://linear.app/tnyx/issue/TNYX-85/w8-workout-history-completed-session-timeline-and-detail)
-**Repository state last verified:** W8B implementation committed at `a3543c42dc4788c989dcb2ac599bb4a802db8e38`; `origin/main@23310eeef6c1d42142f3af8f8563e759350d087c` remains an ancestor. Working tree was clean before this handoff edit.
+**Repository state last verified:** W8B implementation `a3543c42dc4788c989dcb2ac599bb4a802db8e38` plus saved set-number correction `68178edcddf72f0d8b292376194fd7bf3b89b644`; `origin/main@23310eeef6c1d42142f3af8f8563e759350d087c` remains an ancestor. Working tree was clean before this handoff edit.
 
 ## Owner Approval and Scope Boundary
 
@@ -35,7 +35,7 @@
 
 ## Quality Review and Handoff
 
-**Validation completed (same source tree as W8B implementation commit `a3543c42`):** `dart format` on 17 affected Dart files exit 0. Workout `flutter analyze --no-pub` exit 0 and full `flutter test --no-pub` 1446/1446 exit 0. App and Core `flutter analyze --no-pub` exit 0 each. Focused Workout repository/card/Detail tests 48/48, gateway 14/14, app routing/policy 47/47, and Core route 8/8: all exit 0. `git diff --cached --check` exit 0. Existing Material icons pubspec warning did not fail tests. W8A `8f595c18` Flutter/Android/required CI passed; W8B exact-head CI pending after push.
+**Validation completed:** `dart format` on 17 affected Dart files exit 0; follow-up two-file format exit 0. At `a3543c42`, Workout `flutter analyze --no-pub` exit 0 and full `flutter test --no-pub` 1446/1446 exit 0; app and Core analysis exit 0 each. Focused Workout repository/card/Detail 48/48, gateway 14/14, app routing/policy 47/47, and Core route 8/8 passed. After `68178edc`, Detail widget 5/5 and Workout analysis passed, each exit 0; the full suite awaits exact-head CI. `git diff --cached --check` exit 0. Existing Material icons pubspec warning did not fail tests. W8A `8f595c18` Flutter/Android/required CI passed; W8B exact-head CI pending after push.
 **Future protected-API compatibility:** Compatible + evidence. Canonical `WorkoutSessionId`, W7 table shape and owner/RLS boundary are unchanged; a later separately approved adapter can implement the same read-only History repository result without re-keying cards or changing presentation. Current owner-scoped gateway filter, DTO validation, bounded set read, revision retry and stale-account tests passed. A future adapter, older-client mix and authenticated Save E2E were not tested.
 **Review provenance:** No W8B review yet.
 **Known limitations:** Device acceptance unavailable; Edit Workout separately specified later. W7/TNYX-84 remains In Progress.
