@@ -1,7 +1,10 @@
 # Feature Task: W7C-3 Active Workout execution and completion
 
-**Status:** Source merged — PR #740 squash-merged to `main` at `975b6edd62dab505b66804aa80ac063073a6140d` on 2026-11-10 18:59 IST by im-tnyx. Final PR head `06db3985ecf0d6f3f712809293fe4afe5f291646` has source-level `im-tio` approval, and all 14 CI checks on that head passed. Hosted Supabase W7B/W7C migration and deploy remain a separate owner gate. Device validation and W7B-2B remain pending. This is not production readiness and not a hosted deploy.
-**Primary owner:** Current local Codex implementation owner, continuing PR #740 on the existing branch
+**Status:** Source merged — PR #740 squash-merged to `main` at `975b6edd62dab505b66804aa80ac063073a6140d` on 2026-11-10 18:59 IST by im-tnyx. Final PR head `06db3985ecf0d6f3f712809293fe4afe5f291646` has source-level `im-tio` approval, and all 14 CI checks on that head passed. Hosted W7 migrations are now deployed; see [the deployment receipt](w7-testing-only-hosted-migration-deployment.md). Authenticated Save E2E, device validation and W7B-2B remain pending. This is not production readiness.
+
+**Hosted deployment follow-up (2026-11-10):** Ledger is 84/84 through `20261110044130`; the three reviewed migrations and Save-only RPC are installed. Catalog signature/grant checks and exact `prosrc` digest parity passed. No authenticated Save mutation or device test was run. The W7 trigger-helper mutable-search-path/PUBLIC-execute Security Advisor finding requires separate disposition; broader W7 remains `In Progress` and blocked by W3/W4. This supersedes only the hosted-state snapshots below; their implementation and review history remains historical evidence.
+**Primary owner:** Historical source implementation owner (Codex); no active implementation owner is assigned in this post-merge handoff.
+**Current handoff:** PR #740 is merged and GitHub #739 is closed. Keep Linear TNYX-84 In Progress; W3/W4 blockers remain. Sequence authenticated Save E2E and device acceptance separately after those blockers, and do not continue implementation on the completed #740 branch.
 **Affected platforms:** Flutter Android and iOS phone
 
 ## Note type selection follow-up (2026-11-10)
@@ -355,4 +358,4 @@ PR #740 (W7C-3 Active Workout UI + Play FAB) is source-merged. Tracking issue Gi
 
 Earlier "In progress", "Do not merge", and "no merge occurred" notes above are dated pre-merge checkpoints.
 
-**Still pending:** hosted Supabase W7B/W7C migration and deploy (separate owner gate), device validation, and W7B-2B. Source merge is not production readiness and is not a hosted deploy.
+**Still pending:** authenticated Save E2E, device validation, W7B-2B, and broader W7 acceptance blocked by TNYX-80/TNYX-81. Hosted W7B/W7C migrations are deployed as recorded in the deployment receipt; the trigger-helper Security Advisor warning awaits its separate migration disposition. Source merge and testing-only deployment do not establish production readiness.
