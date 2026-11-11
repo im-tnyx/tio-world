@@ -9,6 +9,7 @@ import 'widgets/workout_in_progress_dialog.dart';
 enum _WorkoutPresence {
   absent,
   present,
+
   /// Secure-storage/keychain read failed. Do not treat as empty.
   unknown,
 }

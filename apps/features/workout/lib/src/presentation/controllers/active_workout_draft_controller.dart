@@ -40,6 +40,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   Future<void> _mutationTail = Future<void>.value();
   bool _disposed = false;
   Object? _error;
+
   /// Backgrounding that arrived while restore had not published a draft yet.
   DateTime? _pendingBackgroundedAtUtc;
 
@@ -81,9 +82,8 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       final exercises = <ActiveWorkoutDraftExercise>[];
       for (final entry in entries) {
         final exercise = request.exercises[entry.exercise]!;
-        final prescriptions = entry.sets
-            .map((set) => set.prescription)
-            .toList(growable: false);
+        final prescriptions =
+            entry.sets.map((set) => set.prescription).toList(growable: false);
         exercises.add(ActiveWorkoutDraftExercise(
           id: _newUuid(),
           exerciseRef: exercise.ref,
@@ -716,8 +716,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     final trimmedTitle = title?.trim() ?? '';
     if (requireNonEmptyTitle) {
       if (!WorkoutSaveMetadataLimits.isValidTitle(title)) return false;
-    } else if (trimmedTitle.length >
-        WorkoutSaveMetadataLimits.maxTitleLength) {
+    } else if (trimmedTitle.length > WorkoutSaveMetadataLimits.maxTitleLength) {
       return false;
     }
     return WorkoutSaveMetadataLimits.isValidDescription(description) &&

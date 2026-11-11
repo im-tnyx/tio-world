@@ -39,15 +39,13 @@ final class WorkoutRoutineStartRequest {
     }
     for (final entry in entries) {
       final exercise = exercises[entry.exercise];
-      final prescriptions = entry.sets
-          .map((set) => set.prescription)
-          .toList(growable: false);
+      final prescriptions =
+          entry.sets.map((set) => set.prescription).toList(growable: false);
       if (exercise == null ||
           exercise.ref != entry.exercise ||
           exercise.status != ExerciseStatus.active ||
           prescriptions.isEmpty ||
-          prescriptions.length >
-              RoutineCompositionLimits.maxSetsPerExercise ||
+          prescriptions.length > RoutineCompositionLimits.maxSetsPerExercise ||
           !RoutineCompositionLimits.supportsExerciseType(
             exercise.exerciseType,
           ) ||

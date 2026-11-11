@@ -48,8 +48,10 @@ class RoutineDetailPage extends StatefulWidget {
   final RoutineCompositionRepository? compositionRepository;
   final ExerciseCatalogRepository catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
+
   /// Media profile is resolved by the app; null follows the catalog fallback.
   final ExerciseMediaGender? viewerMediaGender;
+
   /// Null means the authenticated account's display unit has not resolved.
   final WeightUnit? weightUnit;
 
@@ -102,11 +104,11 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
     if (oldWidget.program.id != widget.program.id ||
         oldWidget.routine.id != widget.routine.id ||
         !identical(oldWidget.routineRepository, widget.routineRepository) ||
-        !identical(oldWidget.compositionRepository,
-            widget.compositionRepository) ||
+        !identical(
+            oldWidget.compositionRepository, widget.compositionRepository) ||
         !identical(oldWidget.catalogRepository, widget.catalogRepository) ||
-        !identical(oldWidget.userExerciseRepository,
-            widget.userExerciseRepository)) {
+        !identical(
+            oldWidget.userExerciseRepository, widget.userExerciseRepository)) {
       _bind();
     }
   }
@@ -262,8 +264,7 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
         ),
       ),
       body: SafeArea(
-        child: state != null &&
-                state.status == RoutineDetailStatus.ready
+        child: state != null && state.status == RoutineDetailStatus.ready
             ? Column(
                 children: [
                   if (startRequest != null)
@@ -330,12 +331,14 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
                       Expanded(
                         child: Text(
                           'Exercises',
-                          key: const ValueKey('routine-detail-exercises-header'),
+                          key:
+                              const ValueKey('routine-detail-exercises-header'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: context.tioColors.textSecondary,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: context.tioColors.textSecondary,
+                                  ),
                         ),
                       ),
                       if (_canShowEdit(state))
@@ -347,7 +350,8 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
                     ],
                   ),
                   Semantics(
-                    label: '${state.exerciseCount} exercises, ${state.setCount} sets',
+                    label:
+                        '${state.exerciseCount} exercises, ${state.setCount} sets',
                     child: Text(
                       '${state.exerciseCount} ${state.exerciseCount == 1 ? 'exercise' : 'exercises'} · '
                       '${state.setCount} ${state.setCount == 1 ? 'set' : 'sets'}',
@@ -447,23 +451,30 @@ class _RoutineEntryPreview extends StatelessWidget {
         RoutineSetType.drop => 'D',
       };
 
-  Widget _cell(String value, {Color? color, TextAlign align = TextAlign.center}) =>
-      Text(value, textAlign: align,
-        style: TextStyle(color: color, fontSize: TioFontSize.size14));
+  Widget _cell(String value,
+          {Color? color, TextAlign align = TextAlign.center}) =>
+      Text(value,
+          textAlign: align,
+          style: TextStyle(color: color, fontSize: TioFontSize.size14));
 
   Widget _setRow(
-    BuildContext context, int index, ExerciseType? profile,
+    BuildContext context,
+    int index,
+    ExerciseType? profile,
   ) {
     final sets = item.entry.sets;
     final p = sets[index].prescription;
-    final normalNumber = sets.take(index + 1)
+    final normalNumber = sets
+        .take(index + 1)
         .where((s) => s.prescription.setType == RoutineSetType.normal)
         .length;
     final weight = p.loadKg == null
         ? '–'
         : weightUnit == null
             ? 'Load unavailable'
-            : UnitFormatters.formatWeight(p.loadKg!, weightUnit!).split(' ').first;
+            : UnitFormatters.formatWeight(p.loadKg!, weightUnit!)
+                .split(' ')
+                .first;
     final reps = p.repsMax == null
         ? (p.reps?.toString() ?? '–')
         : '${p.reps}–${p.repsMax}';
@@ -515,7 +526,8 @@ class _RoutineEntryPreview extends StatelessWidget {
     );
     final normal = preset.normalRestSeconds;
     final warmUp = preset.warmUpRestSeconds;
-    final hasWarmUpSet = item.entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final hasWarmUpSet = item.entry.sets
+        .any((s) => s.prescription.setType == RoutineSetType.warmUp);
     final baseStyle = TextStyle(
       fontSize: TioFontSize.size13,
       color: colors.textSecondary,
@@ -528,7 +540,8 @@ class _RoutineEntryPreview extends StatelessWidget {
           style: baseStyle,
           children: [
             TextSpan(
-              text: 'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)} ',
+              text:
+                  'Rest Timer: ${RoutineRestTimerFormatter.formatSeconds(normal)} ',
             ),
             TextSpan(
               text: '(${RoutineRestTimerFormatter.formatSeconds(warmUp)})',
@@ -601,8 +614,7 @@ class _RoutineEntryPreview extends StatelessWidget {
       children: [
         Row(
           children: [
-            if (thumbnail != null)
-              ExerciseThumbnail(url: thumbnail),
+            if (thumbnail != null) ExerciseThumbnail(url: thumbnail),
             Expanded(
               child: Text(
                 item.exercise?.displayName ?? 'Exercise unavailable',
@@ -664,10 +676,13 @@ class _RoutineEntryPreview extends StatelessWidget {
             ] else if (profile == ExerciseType.duration) ...[
               const Expanded(child: Text('TIME', textAlign: TextAlign.center)),
             ] else ...[
-              Expanded(child: Text(
+              Expanded(
+                  child: Text(
                 weightUnit == null
                     ? 'WEIGHT'
-                    : weightUnit == WeightUnit.lb ? 'LB' : 'KG',
+                    : weightUnit == WeightUnit.lb
+                        ? 'LB'
+                        : 'KG',
                 textAlign: TextAlign.center,
               )),
               const SizedBox(width: TioSpacing.sm),
