@@ -73,6 +73,20 @@ Manual checks should include:
 - screen readability on round display
 - battery/background behavior where relevant
 
+## Android Native CI
+
+`.github/workflows/android-native-ci.yml` builds debug APKs with Flutter `3.47.9`.
+For pull requests to `main`, it compares the exact base and head commits:
+phone-only changes build `apps/app`, Wear-only changes build `apps/wear`, and
+shared, unknown, or empty diffs build both. The selection tests verify that
+`apps/features/**` is phone-only while `apps/core/**` and `apps/shared/**` affect
+both. Detection failure fails the `Build Android debug APKs` aggregate check.
+Manual `workflow_dispatch` runs always build both APKs.
+
+The workflow caches the Flutter SDK, Pub packages, and Gradle build state.
+Cache misses can make a run slower; compare complete workflow duration and
+cache-hit evidence before claiming a speed improvement.
+
 ## Supabase And Protected Backend
 
 For Supabase changes, run the approved feature's migration/RLS/security checks. For the future protected backend, run the selected runtime's lint and unit/integration checks once that workspace exists.
