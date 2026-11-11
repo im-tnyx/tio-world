@@ -26,9 +26,9 @@
 
 **Previous agent:** Not applicable
 
-**Last commit agent:** Not applicable
+**Last commit agent:** Codex
 
-**Last commit SHA:** Not applicable
+**Last commit SHA:** `93891b88b735a6b25b066355021d53df029796c3` (implementation slice)
 
 **Review owner:** Pending
 
@@ -40,7 +40,7 @@
 
 **Branch:** `codex/w7-routine-start`
 
-**HEAD SHA:** `3e5b70c6467c704d2a67fd7210b0babd55aa2215`
+**HEAD SHA:** `93891b88b735a6b25b066355021d53df029796c3` (implementation reviewed; source commit)
 
 **Observed working-tree state:** Clean at task start; isolated worktree `.claude/worktrees/w7-routine-start`.
 
@@ -52,7 +52,7 @@
 
 **Relevant execution surface:** Routine Detail -> owner/session-verified app callback -> existing `runWorkoutPlayStart` conflict flow -> local draft controller -> existing Active Workout route.
 
-**Validation completed at SHA:** `git diff --check` passed (exit 0) at `3e5b70c6467c704d2a67fd7210b0babd55aa2215` plus uncommitted changes.
+**Validation completed at SHA:** `git diff --check` and staged `git diff --cached --check` passed (exit 0) for implementation commit `93891b88b735a6b25b066355021d53df029796c3`.
 
 **Validation remaining:** `dart`, `flutter`, `melos` and `fvm` are not available on PATH. A safe executable-name scan under `G:\dev` (excluding protected credential/session/history/log/cache areas) found none of those binaries. The repository has no local wrapper. `melos bootstrap`, `melos analyze` and `melos test` were each attempted and failed before execution with PowerShell command-not-found (exit 127); formatting, analysis and tests therefore remain unverified.
 
@@ -173,11 +173,11 @@ NOT RUN: `dart format`, targeted widget tests and runtime/device verification be
 
 ### Review Provenance
 
-**Review source / link:** Self-review of uncommitted source diff
+**Review source / link:** Self-review of staged source diff before commit
 
 **Reviewer / relation to implementer:** Codex, implementer
 
-**Diff or commit SHA actually reviewed:** Uncommitted diff on `codex/w7-routine-start`, base `3e5b70c`
+**Diff or commit SHA actually reviewed:** `93891b88b735a6b25b066355021d53df029796c3` on `codex/w7-routine-start`, parent `3e5b70c6467c704d2a67fd7210b0babd55aa2215`
 
 **Review result and finding IDs/dispositions:** Manual scope and boundary review; no independent findings collected.
 
