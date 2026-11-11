@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for Active Workout ownership and intended behavior
 **Surface:** Nested Phone Workout execution flow
 **Route:** `/workout/active`
 **Primary owner:** `apps/features/workout`
-**Status:** The Active Workout route and account-bound local Save-only draft are merged source. Home Play opens an empty ad-hoc draft. The Routine Detail `Start Routine` entry that seeds this draft is in progress on `codex/w7-routine-start`; no distributed release or device acceptance is claimed.
+**Status:** The Active Workout route and account-bound local Save-only draft are merged source. Home Play opens an empty ad-hoc draft. Routine Detail `Start Routine` and direct Routine-row Play from Program Detail/expanded Library seed this draft through one guarded flow; the UI entry work is in progress on `codex/w7-routine-start`. No distributed release or device acceptance is claimed.
 
 ## Purpose
 
@@ -16,7 +16,7 @@ Let the user record a workout from either an empty ad-hoc start or an explicitly
 
 ## Entry Rule
 
-The Workout Home Play action starts an empty local draft. The Active Workout app-bar title remains `Log Workout` for both entry paths. `Start Routine` appears on a ready, executable Routine Detail below its app bar; it copies the verified Routine title, ordered Exercises and planned Sets into a local draft. The Routine name pre-fills the editable Save title. If another workout exists, the existing Resume / Start New / Cancel conflict flow applies. Resume keeps the current workout; Start New replaces it before seeding the selected Routine.
+The Workout Home Play action starts an empty local draft. The Active Workout app-bar title remains `Log Workout` for all entry paths. `Start Routine` appears on Routine Detail, and an outlined Play action appears on owner/session-authorized Routine rows in Program Detail and expanded Library. Each Routine entry reads a current owner-verified composition and copies its title, ordered Exercises and planned Sets into the same local draft. The Routine name pre-fills the editable Save title. If another workout exists, the existing Resume / Start New / Cancel conflict flow applies. Resume keeps the current workout; Start New replaces it before seeding the selected Routine.
 
 Routine Start does not create a W7B server session. Saved history continues to use the current Save-only `origin='ad_hoc'` contract; Routine provenance is not persisted by this slice. A reusable Program itself does not own a scheduled session.
 

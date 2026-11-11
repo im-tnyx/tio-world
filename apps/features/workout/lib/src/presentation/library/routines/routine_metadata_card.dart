@@ -10,24 +10,34 @@ class RoutineMetadataCard extends StatefulWidget {
     super.key,
     this.supportingText,
     this.onTap,
+    this.onStartRoutinePressed,
     this.onEdit,
     this.onMove,
     this.onDelete,
     this.actionSheetGuard,
     this.actionsEnabled = true,
+    this.startEnabled = true,
   });
 
   final Routine routine;
   final String? supportingText;
   final VoidCallback? onTap;
 
+  /// The caller supplies a current owner/session-verified start capability.
+  final Future<void> Function()? onStartRoutinePressed;
+
   /// The caller must supply only live, owner-verified capabilities.
   final VoidCallback? onEdit;
   final VoidCallback? onMove;
   final VoidCallback? onDelete;
+
   /// Keep action geometry while a same-owner verification read is in flight.
   /// Only the action menu is disabled; read-only Routine navigation remains.
   final bool actionsEnabled;
+
+  /// Keeps the play affordance visible while a Routine list refreshes.
+  final bool startEnabled;
+
   /// Optional app-owned auth-cycle guard for the separate options modal.
   /// Sheet ownership remains here; account identity never enters Workout.
   final Widget Function(BuildContext, Widget)? actionSheetGuard;
@@ -38,6 +48,40 @@ class RoutineMetadataCard extends StatefulWidget {
 
 class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
   bool _openingActions = false;
+  bool _startingRoutine = false;
+
+  @override
+  void didUpdateWidget(covariant RoutineMetadataCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.routine.id != widget.routine.id ||
+        oldWidget.routine.programId != widget.routine.programId) {
+      _startingRoutine = false;
+    }
+  }
+
+  Future<void> _startRoutine() async {
+    final start = widget.onStartRoutinePressed;
+    if (_startingRoutine || !widget.startEnabled || start == null) return;
+    final openingId = widget.routine.id;
+    final openingProgramId = widget.routine.programId;
+    setState(() => _startingRoutine = true);
+    try {
+      await start();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Could not start this Routine. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted &&
+          widget.routine.id == openingId &&
+          widget.routine.programId == openingProgramId) {
+        setState(() => _startingRoutine = false);
+      }
+    }
+  }
 
   Future<void> _openActions() async {
     if (_openingActions || !widget.actionsEnabled) return;
@@ -53,53 +97,53 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
         useSafeArea: true,
         builder: (sheetContext) {
           final sheet = TioEditorSheet(
-          key: ValueKey('routine-actions-sheet-${openingId.value}'),
-          title: widget.routine.name,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.onEdit != null) ...[
-                _RoutineActionOption(
-                  key: ValueKey('routine-edit-${openingId.value}'),
-                  label: 'Edit Routine',
-                  icon: Icons.edit_outlined,
-                  onTap: () => Navigator.of(sheetContext)
-                      .pop(_RoutineAction.edit),
-                ),
-                const SizedBox(height: TioSpacing.sm),
+            key: ValueKey('routine-actions-sheet-${openingId.value}'),
+            title: widget.routine.name,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.onEdit != null) ...[
+                  _RoutineActionOption(
+                    key: ValueKey('routine-edit-${openingId.value}'),
+                    label: 'Edit Routine',
+                    icon: Icons.edit_outlined,
+                    onTap: () =>
+                        Navigator.of(sheetContext).pop(_RoutineAction.edit),
+                  ),
+                  const SizedBox(height: TioSpacing.sm),
+                ],
+                if (widget.onMove != null) ...[
+                  _RoutineActionOption(
+                    key: ValueKey('routine-move-${openingId.value}'),
+                    label: 'Move Routine',
+                    icon: Icons.swap_horiz_rounded,
+                    onTap: () {
+                      // Begin the owner-guarded destination read while this
+                      // sheet animates out, rather than waiting for its reverse
+                      // transition and then starting network I/O. The app
+                      // callback still rechecks live Auth and Routine ownership.
+                      Navigator.of(sheetContext).pop(_RoutineAction.move);
+                      if (mounted &&
+                          widget.actionsEnabled &&
+                          widget.routine.id == openingId &&
+                          widget.routine.programId == openingProgramId) {
+                        widget.onMove?.call();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: TioSpacing.sm),
+                ],
+                if (widget.onDelete != null)
+                  _RoutineActionOption(
+                    key: ValueKey('routine-delete-${openingId.value}'),
+                    label: 'Delete Routine',
+                    icon: Icons.delete_outline,
+                    destructive: true,
+                    onTap: () =>
+                        Navigator.of(sheetContext).pop(_RoutineAction.delete),
+                  ),
               ],
-              if (widget.onMove != null) ...[
-                _RoutineActionOption(
-                  key: ValueKey('routine-move-${openingId.value}'),
-                  label: 'Move Routine',
-                  icon: Icons.swap_horiz_rounded,
-                  onTap: () {
-                    // Begin the owner-guarded destination read while this
-                    // sheet animates out, rather than waiting for its reverse
-                    // transition and then starting network I/O. The app
-                    // callback still rechecks live Auth and Routine ownership.
-                    Navigator.of(sheetContext).pop(_RoutineAction.move);
-                    if (mounted &&
-                        widget.actionsEnabled &&
-                        widget.routine.id == openingId &&
-                        widget.routine.programId == openingProgramId) {
-                      widget.onMove?.call();
-                    }
-                  },
-                ),
-                const SizedBox(height: TioSpacing.sm),
-              ],
-              if (widget.onDelete != null)
-                _RoutineActionOption(
-                  key: ValueKey('routine-delete-${openingId.value}'),
-                  label: 'Delete Routine',
-                  icon: Icons.delete_outline,
-                  destructive: true,
-                  onTap: () => Navigator.of(sheetContext)
-                      .pop(_RoutineAction.delete),
-                ),
-            ],
-          ),
+            ),
           );
           return widget.actionSheetGuard?.call(sheetContext, sheet) ?? sheet;
         },
@@ -173,6 +217,70 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
               ],
             ),
           ),
+          if (widget.onStartRoutinePressed != null) ...[
+            Semantics(
+              key: ValueKey('routine-start-${widget.routine.id.value}'),
+              container: true,
+              button: true,
+              enabled: widget.startEnabled && !_startingRoutine,
+              label: _startingRoutine
+                  ? 'Starting ${widget.routine.name}'
+                  : 'Start ${widget.routine.name}',
+              onTap: widget.startEnabled && !_startingRoutine
+                  ? _startRoutine
+                  : null,
+              child: ExcludeSemantics(
+                child: GestureDetector(
+                  // Keep a disabled child target from activating the card.
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.startEnabled && !_startingRoutine
+                      ? _startRoutine
+                      : () {},
+                  child: IconButton(
+                    key: ValueKey(
+                      'routine-start-button-${widget.routine.id.value}',
+                    ),
+                    tooltip: 'Start Routine',
+                    onPressed: widget.startEnabled && !_startingRoutine
+                        ? _startRoutine
+                        : null,
+                    alignment: Alignment.center,
+                    padding: EdgeInsets.zero,
+                    style: IconButton.styleFrom(
+                      foregroundColor: colors.primary,
+                      disabledForegroundColor: colors.textSecondary,
+                      shape: const CircleBorder(),
+                      side: BorderSide(
+                        color: widget.startEnabled && !_startingRoutine
+                            ? colors.primary
+                            : colors.outlineStrong,
+                        width: TioStroke.width2,
+                      ),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      minimumSize: const Size(TioSize.dp56, TioSize.dp56),
+                      fixedSize: const Size(TioSize.dp56, TioSize.dp56),
+                    ),
+                    icon: _startingRoutine
+                        ? const SizedBox(
+                            width: TioSize.dp16,
+                            height: TioSize.dp16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: TioStroke.width2,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.play_arrow_rounded,
+                            size: TioSize.dp32,
+                          ),
+                  ),
+                ),
+              ),
+            ),
+            if (widget.onEdit != null ||
+                widget.onMove != null ||
+                widget.onDelete != null)
+              const SizedBox(width: TioSpacing.xs),
+          ],
           if (widget.onEdit != null ||
               widget.onMove != null ||
               widget.onDelete != null)
@@ -193,8 +301,7 @@ class _RoutineMetadataCardState extends State<RoutineMetadataCard> {
                   onTap: widget.actionsEnabled ? _openActions : () {},
                   child: IconButton(
                     tooltip: 'Routine options',
-                    onPressed:
-                        widget.actionsEnabled ? _openActions : null,
+                    onPressed: widget.actionsEnabled ? _openActions : null,
                     // The 32dp target stays on the card's trailing edge.
                     // Center the mark so the press highlight surrounds it.
                     alignment: Alignment.center,

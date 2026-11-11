@@ -42,6 +42,7 @@ class ProgramsSurface extends StatefulWidget {
         onManagePressed = null,
         onProgramPressed = null,
         onRoutinePressed = null,
+        onStartRoutinePressed = null,
         onEditRoutine = null,
         onMoveRoutine = null,
         onDeleteRoutine = null,
@@ -57,6 +58,7 @@ class ProgramsSurface extends StatefulWidget {
     required this.onManagePressed,
     this.onProgramPressed,
     this.onRoutinePressed,
+    this.onStartRoutinePressed,
     this.onEditRoutine,
     this.onMoveRoutine,
     this.onDeleteRoutine,
@@ -75,20 +77,25 @@ class ProgramsSurface extends StatefulWidget {
 
   final ProgramRepository? repository;
   final ProgramIdGenerator? idGenerator;
+
   /// App-only owner/login-cycle bound invalidation, never Move success truth.
   final RoutineMoveRefreshSignal? moveRefreshSignal;
   final String? moveRefreshOwnerId;
   final String? moveRefreshLoginCycleId;
+
   /// Set only by Library. Standalone Programs does not own this gesture.
   final LibraryProgramsRefresh? pullRefresh;
   final _ProgramsSurfaceMode _mode;
   final Future<void> Function()? onManagePressed;
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
+
   /// Program-scoped uncertain save flag scoped by caller auth/login-cycle.
   final bool Function(Program)? hasUnconfirmedCreate;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+  final Future<void> Function(Program, Routine)? onStartRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+
   /// Optional Move capability; production app shell does not inject it yet.
   final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
@@ -203,10 +210,12 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
   void _onMoveRefresh() {
     final signal = widget.moveRefreshSignal;
-    if (!mounted || signal == null || !signal.matches(
-      ownerId: widget.moveRefreshOwnerId,
-      loginCycleId: widget.moveRefreshLoginCycleId,
-    )) {
+    if (!mounted ||
+        signal == null ||
+        !signal.matches(
+          ownerId: widget.moveRefreshOwnerId,
+          loginCycleId: widget.moveRefreshLoginCycleId,
+        )) {
       return;
     }
     // Existing Move leaves Program membership unchanged: refresh expanded
@@ -254,7 +263,8 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
   Future<void> _openAddRoutine(Program program) async {
     final open = widget.onAddRoutinePressed;
-    if (_openingAddRoutine || open == null ||
+    if (_openingAddRoutine ||
+        open == null ||
         (widget.hasUnconfirmedCreate?.call(program) ?? false)) {
       return;
     }
@@ -278,9 +288,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
 
     final controller = _controller;
     await onManagePressed();
-    if (controller == null ||
-        !mounted ||
-        !identical(controller, _controller)) {
+    if (controller == null || !mounted || !identical(controller, _controller)) {
       return;
     }
     await controller.load();
@@ -308,8 +316,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
   Future<void> _openProgramActions(Program program) async {
     if (_openingProgramActions.contains(program.id)) return;
     final pendingSave = widget.hasUnconfirmedCreate?.call(program) ?? false;
-    final refreshing =
-        _controller?.state.status == ProgramsStatus.refreshing;
+    final refreshing = _controller?.state.status == ProgramsStatus.refreshing;
     // The sheet can outlive an owner or login-cycle rebind. Dispatch only
     // while this same controller and session are still current.
     final controller = _controller;
@@ -364,8 +371,7 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
                         : _openingAddRoutine
                             ? 'Another Routine is opening'
                             : null,
-                    enabled:
-                        !pendingSave && !_openingAddRoutine && !refreshing,
+                    enabled: !pendingSave && !_openingAddRoutine && !refreshing,
                   ),
                 ],
                 if (!program.isDefault && widget.onDeleteProgram != null) ...[
@@ -587,15 +593,15 @@ class _ProgramsSurfaceState extends State<ProgramsSurface> {
           collapsedPrograms: _collapsedPrograms,
           onToggleExpanded: _toggleExpanded,
           onProgramActions: _openProgramActions,
-          onProgramPressed: widget.onProgramPressed == null
-              ? null
-              : _openProgram,
-          onAddRoutinePressed: widget.onAddRoutinePressed == null
-              ? null
-              : _openAddRoutine,
+          onProgramPressed:
+              widget.onProgramPressed == null ? null : _openProgram,
+          onAddRoutinePressed:
+              widget.onAddRoutinePressed == null ? null : _openAddRoutine,
           routineRepository: widget.routineRepository,
           onRoutinePressed: widget.onRoutinePressed,
-          onEditRoutine: widget.onEditRoutine == null ? null : _editLibraryRoutine,
+          onStartRoutinePressed: widget.onStartRoutinePressed,
+          onEditRoutine:
+              widget.onEditRoutine == null ? null : _editLibraryRoutine,
           onMoveRoutine: widget.onMoveRoutine,
           onDeleteRoutine: widget.onDeleteRoutine,
           actionSheetGuard: widget.actionSheetGuard,
@@ -632,6 +638,7 @@ class _ProgramsList extends StatefulWidget {
     required this.onAddRoutinePressed,
     required this.routineRepository,
     required this.onRoutinePressed,
+    required this.onStartRoutinePressed,
     required this.onEditRoutine,
     required this.onMoveRoutine,
     required this.onDeleteRoutine,
@@ -650,7 +657,9 @@ class _ProgramsList extends StatefulWidget {
   final Future<void> Function(Program)? onProgramPressed;
   final Future<void> Function(Program)? onAddRoutinePressed;
   final Future<void> Function(Program, Routine)? onRoutinePressed;
+  final Future<void> Function(Program, Routine)? onStartRoutinePressed;
   final Future<bool> Function(Program, Routine)? onEditRoutine;
+
   /// Optional Move capability; production app shell does not inject it yet.
   final Future<bool> Function(Program, Routine)? onMoveRoutine;
   final Future<bool> Function(Program, Routine)? onDeleteRoutine;
@@ -718,6 +727,9 @@ class _ProgramsListState extends State<_ProgramsList> {
             onRoutinePressed: widget.onRoutinePressed == null
                 ? null
                 : (routine) => widget.onRoutinePressed!(program, routine),
+            onStartRoutinePressed: widget.onStartRoutinePressed == null
+                ? null
+                : (routine) => widget.onStartRoutinePressed!(program, routine),
             onEditRoutine: widget.onEditRoutine == null
                 ? null
                 : (routine) => widget.onEditRoutine!(program, routine),
@@ -1190,6 +1202,7 @@ class _CreateProgramSheet extends StatefulWidget {
   final String initialName;
   final Future<bool> Function(String) onSubmit;
   final String? Function()? currentError;
+
   /// Name-only selection never persists a Program before Create & Move.
   final bool nameOnly;
   final String? submitLabel;
@@ -1296,7 +1309,6 @@ class _CreateProgramSheetState extends State<_CreateProgramSheet> {
   }
 }
 
-
 /// Reuses the canonical Create Program name editor to return a draft only.
 /// In the Move workflow, this must never call ProgramRepository.create.
 Future<String?> promptCreateProgramName({
@@ -1304,17 +1316,18 @@ Future<String?> promptCreateProgramName({
   required String initialName,
   Widget Function(BuildContext, Widget)? modalGuard,
   String submitLabel = 'Save & Move',
-}) => showTioEditorSheet<String>(
-  context: context,
-  useRootNavigator: true,
-  useSafeArea: true,
-  builder: (sheetContext) {
-    final sheet = _CreateProgramSheet(
-      initialName: initialName,
-      onSubmit: (_) async => true,
-      nameOnly: true,
-      submitLabel: submitLabel,
+}) =>
+    showTioEditorSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        final sheet = _CreateProgramSheet(
+          initialName: initialName,
+          onSubmit: (_) async => true,
+          nameOnly: true,
+          submitLabel: submitLabel,
+        );
+        return modalGuard?.call(sheetContext, sheet) ?? sheet;
+      },
     );
-    return modalGuard?.call(sheetContext, sheet) ?? sheet;
-  },
-);

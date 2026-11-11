@@ -189,36 +189,12 @@ class _RoutineDetailPageState extends State<RoutineDetailPage> {
   }
 
   WorkoutRoutineStartRequest? _startRequest(RoutineDetailState? state) {
-    final readyState = state;
-    final routine = readyState?.routine;
-    final revision = readyState?.revision;
     if (widget.onStartRoutinePressed == null ||
-        readyState == null ||
-        readyState.status != RoutineDetailStatus.ready ||
-        routine == null ||
-        revision == null) {
+        state == null ||
+        state.status != RoutineDetailStatus.ready) {
       return null;
     }
-    try {
-      final exercises = <ExerciseRef, Exercise>{};
-      for (final item in readyState.entries) {
-        final exercise = item.exercise;
-        if (exercise != null) exercises[item.entry.exercise] = exercise;
-      }
-      final request = WorkoutRoutineStartRequest(
-        routine: routine,
-        composition: RoutineCompositionSnapshot(
-          routineId: routine.id,
-          revision: revision,
-          name: routine.name,
-          entries: readyState.entries.map((item) => item.entry).toList(),
-        ),
-        exercises: exercises,
-      );
-      return request.isExecutable ? request : null;
-    } catch (_) {
-      return null;
-    }
+    return _controller?.startRequest;
   }
 
   Future<void> _startRoutine(WorkoutRoutineStartRequest request) async {

@@ -21,7 +21,8 @@ Routine _routine(String id, String program) =>
 RoutineCompositionSnapshot _snapshot({
   String routineId = _r1,
   List<RoutineCompositionEntry> entries = const [],
-}) => RoutineCompositionSnapshot(
+}) =>
+    RoutineCompositionSnapshot(
       routineId: RoutineId(routineId),
       revision: 3,
       entries: entries,
@@ -31,7 +32,8 @@ RoutineCompositionEntry _entry(
   String id,
   ExerciseRef ref, {
   List<RoutineCompositionSet> sets = const [],
-}) => RoutineCompositionEntry(id: id, exercise: ref, sets: sets);
+}) =>
+    RoutineCompositionEntry(id: id, exercise: ref, sets: sets);
 
 RoutineCompositionSet _set(String id, int reps) => RoutineCompositionSet(
       id: id,
@@ -44,7 +46,8 @@ RoutineDetailController _controller(
   _Catalog? catalog,
   UserExerciseRepository? userExercises,
   Routine? selected,
-}) => RoutineDetailController(
+}) =>
+    RoutineDetailController(
       program: _program(_p1),
       routine: selected ?? _routine(_r1, _p1),
       routines: routines,
@@ -54,6 +57,31 @@ RoutineDetailController _controller(
     );
 
 void main() {
+  test('builds the shared start request only from ready executable content',
+      () async {
+    final ref = ExerciseRef.catalog('ex_approved_bench');
+    final snapshot = _snapshot(entries: [
+      _entry(_e1, ref, sets: [_set(_s1, 8), _set(_s2, 12)]),
+    ]);
+    final controller = _controller(
+      _Routines([_routine(_r1, _p1)]),
+      _Compositions(snapshot),
+    );
+    addTearDown(controller.dispose);
+
+    expect(controller.startRequest, isNull);
+    await controller.load();
+
+    final request = controller.startRequest;
+    expect(request, isNotNull);
+    expect(request!.isExecutable, isTrue);
+    expect(request.routine.id, RoutineId(_r1));
+    expect(request.composition.revision, 3);
+    expect(request.composition.entries.single.sets.map((set) => set.id),
+        [_s1, _s2]);
+    expect(request.exercises[ref]?.displayName, 'Bench Press');
+  });
+
   test('reads only selected owner Routine and preserves repeated entries/sets',
       () async {
     final ref = ExerciseRef.catalog('ex_approved_bench');
@@ -83,7 +111,9 @@ void main() {
     final routines = _Routines([_routine(_r1, _p2)]);
     final comp = _Compositions(_snapshot());
     final controller = _controller(
-      routines, comp, selected: _routine(_r1, _p2),
+      routines,
+      comp,
+      selected: _routine(_r1, _p2),
     );
     addTearDown(controller.dispose);
     await controller.load();
@@ -114,7 +144,8 @@ void main() {
 
   test('inaccessible composition is not found', () async {
     final controller = _controller(
-      _Routines([_routine(_r1, _p1)]), _Compositions(null),
+      _Routines([_routine(_r1, _p1)]),
+      _Compositions(null),
     );
     addTearDown(controller.dispose);
     await controller.load();
@@ -148,7 +179,8 @@ void main() {
       () async {
     final compositions = _Compositions(_snapshot(entries: [
       _entry(_e1, ExerciseRef.catalog('ex_approved_bench')),
-    ]))..readGate = Completer<void>();
+    ]))
+      ..readGate = Completer<void>();
     final controller = _controller(
       _Routines([_routine(_r1, _p1)]),
       compositions,
@@ -217,7 +249,8 @@ void main() {
     final catalog = _Catalog()..failures = 1;
     final ref = ExerciseRef.userCreated(_custom);
     final users = _Users([
-      Exercise(ref: ref, displayName: 'Custom Curl', status: ExerciseStatus.active),
+      Exercise(
+          ref: ref, displayName: 'Custom Curl', status: ExerciseStatus.active),
     ]);
     final controller = _controller(
       _Routines([_routine(_r1, _p1)]),
@@ -228,7 +261,8 @@ void main() {
     addTearDown(controller.dispose);
     await controller.load();
     expect(controller.state.status, RoutineDetailStatus.ready);
-    expect(controller.state.entries.single.exercise?.displayName, 'Custom Curl');
+    expect(
+        controller.state.entries.single.exercise?.displayName, 'Custom Curl');
     expect(catalog.loadCount, 0);
     expect(users.includeArchived, isTrue);
   });
@@ -332,19 +366,22 @@ final class _Users implements UserExerciseRepository {
     required String displayName,
     CatalogExerciseRef? basedOnCatalogExercise,
     UserExerciseDefinition? definition,
-  }) async => throw UnimplementedError();
+  }) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> updateDefinition({
     required UserCreatedExerciseRef id,
     required UserExerciseDefinition definition,
-  }) async => throw UnimplementedError();
+  }) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> rename({
     required UserCreatedExerciseRef id,
     required String displayName,
-  }) async => throw UnimplementedError();
+  }) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> archive(UserCreatedExerciseRef id) async =>
