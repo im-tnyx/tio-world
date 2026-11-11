@@ -1,10 +1,10 @@
 # W7 Trigger Search-Path Hardening
 
-**Status:** PR #747 open; local validation complete; required branch checks pass; full Supabase Database CI is in progress; independent review pending
+**Status:** PR #747 is open. At review checkpoint `2a789378ddbe018d04f3a0e4be0d92ebf7fdd063`, Supabase Database CI, Docs Hygiene CI, and attribution checks passed. Reviewer `i-the` requested one correction to this handoff; the migration and focused SQL coverage were described as sound. This handoff correction requires fresh checks and review on the resulting PR head.
 **Planning owner:** Codex
 **Implementation owner:** Codex
 **Previous agent:** Codex (W7 hosted deployment handoff)
-**Review owner:** Independent `im-tio` reviewer
+**Review owner:** `i-the` (independent reviewer; current review requested a task-handoff correction)
 
 ## 1. Discovery
 
@@ -17,7 +17,7 @@ Fix the verified Supabase `function_search_path_mutable` warning on `public.trg_
 ## 2. Codebase Exploration
 
 - Verified Git root: `G:\projects\Tio-World`.
-- Starting current GitHub `main` and local `main`: `cec78bb4e383afe4fc13eb7833e3bfed5b159b48`; implementation branch created separately from it. PR #746 is an independent docs-only PR and is not this branch's parent.
+- The implementation branch was originally cut from `main@cec78bb4e383afe4fc13eb7833e3bfed5b159b48`. PR #746 subsequently merged to `main@e9f41dc5bf8a0ee9fa68b1841e03694fde9dc6fb`; PR #747 was non-force merge-updated onto that parent. Its current reviewed head at the checkpoint below is based on the new `main`.
 - Hosted project reverified read-only: `tio-world`, ref `oykupyiitspujzpwwvuj`, region `ap-south-1`.
 - Hosted catalog: function owner `postgres`; `prosecdef=false`; `proconfig=NULL`; attached to `public.user_workout_sessions` as `BEFORE INSERT`; `anon` and `authenticated` have EXECUTE through PUBLIC/default ACL.
 - Hosted function body calls `private.is_valid_workout_session_snapshot_v1/v2` with schema-qualified names and has no unqualified table/function references. The advisor finding identifies an unset search path; current evidence does not demonstrate exploitability.
@@ -47,13 +47,16 @@ Fix the verified Supabase `function_search_path_mutable` warning on `public.trg_
 ## 5. Active Handoff
 
 **Branch:** `codex/w7-trigger-search-path-hardening`
-**Base:** `main@cec78bb4e383afe4fc13eb7833e3bfed5b159b48`
+**Initial base:** `main@cec78bb4e383afe4fc13eb7833e3bfed5b159b48`
+**Current base:** `main@e9f41dc5bf8a0ee9fa68b1841e03694fde9dc6fb`
 **Initial HEAD:** `cec78bb4e383afe4fc13eb7833e3bfed5b159b48`
 **Last commit agent:** Codex
 **Last implementation commit SHA:** `7fe002022e5314cc4b1f281a9e52d681145fab51`
 **PR:** https://github.com/im-tnyx/tio-world/pull/747
-**Working tree:** Clean after publishing the three scoped paths; `.tmp/` local test workspace is ignored
+**Branch checkpoint:** GitHub PR branch `codex/w7-trigger-search-path-hardening` was at `2a789378ddbe018d04f3a0e4be0d92ebf7fdd063`, based on `main@e9f41dc5bf8a0ee9fa68b1841e03694fde9dc6fb` (3 ahead / 0 behind). The original local worktree had a handoff edit; it was preserved while preparing this correction.
 **Hosted changes:** None; deployment is explicitly excluded
 **Linear:** TNYX-84 remains In Progress; broader W3/W4 and Workout acceptance gates remain open
-**Review gate:** GitHub identifies `im-tio` as PR author and rejects requesting a review from the author. A distinct reviewer identity is required; no approval was submitted.
-**Next exact action:** Complete exact-head Supabase Database CI and obtain review from an independent GitHub identity. Keep TNYX-84 In Progress. Stop before merge or hosted deployment.
+**Review finding:** [GH-747-4534385523](https://github.com/im-tnyx/tio-world/pull/747#discussion_r4534385523) — `P2`, `Open` pending exact-head re-review; observed head `2a789378ddbe018d04f3a0e4be0d92ebf7fdd063`; path `.ai/tasks/w7-trigger-search-path-hardening.md`. This handoff now corrects the reviewer, base/merge checkpoint, and CI/review state. Local `git diff --check` passed; fresh exact-head checks and reviewer confirmation remain pending.
+**Review gate:** GitHub identifies `im-tio` as PR author. `i-the` approved prior head `6779f6975b3f0641eee4b12472d3edfa9c5db4fd`, then submitted `CHANGES_REQUESTED` on checkpoint head `2a789378ddbe018d04f3a0e4be0d92ebf7fdd063`. The sole unresolved thread is on this handoff (`.ai/tasks/w7-trigger-search-path-hardening.md`, line 6): it asked to correct the reviewer assignment, merge/base checkpoint, and stale CI/review status. The reviewer stated the migration and focused pgTAP coverage remain sound and cited passing Supabase Database CI #413 and Docs Hygiene CI #635. Hosted deployment remains separately gated.
+**Exact-head gates at review checkpoint:** On `2a789378ddbe018d04f3a0e4be0d92ebf7fdd063` (`main@e9f41dc5bf8a0ee9fa68b1841e03694fde9dc6fb`), Supabase Database CI, Docs Hygiene CI, Commit attribution guard, and Attribution guard runner passed. Cursor Approval Agent and Cursor Security Agent were `neutral` because the service quota was exhausted; they are not review evidence or security findings. These results predate this handoff-only correction and must not be reported as checks on its new head.
+**Next exact action:** Publish this focused handoff correction, verify the new PR head and changed-file scope, then wait for fresh exact-head checks and `i-the` re-review. Keep TNYX-84 In Progress; do not deploy hosted SQL or merge until the review and current merge gates are clear.
