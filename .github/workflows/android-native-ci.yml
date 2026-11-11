@@ -26,9 +26,17 @@ concurrency:
 
 jobs:
   build:
-    name: Build Android debug APKs
+    name: Build ${{ matrix.target }} Android debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: phone
+            directory: apps/app
+          - target: Wear
+            directory: apps/wear
 
     steps:
       - name: Checkout
@@ -49,18 +57,21 @@ jobs:
       - name: Toolchain info
         run: flutter --version
 
-      - name: Resolve phone app dependencies
-        working-directory: apps/app
+      - name: Resolve ${{ matrix.target }} app dependencies
+        working-directory: ${{ matrix.directory }}
         run: flutter pub get
 
-      - name: Build phone Android debug APK
-        working-directory: apps/app
+      - name: Build ${{ matrix.target }} Android debug APK
+        working-directory: ${{ matrix.directory }}
         run: flutter build apk --debug --no-pub
 
-      - name: Resolve Wear app dependencies
-        working-directory: apps/wear
-        run: flutter pub get
-
-      - name: Build Wear Android debug APK
-        working-directory: apps/wear
-        run: flutter build apk --debug --no-pub
+  build_gate:
+    name: Build Android debug APKs
+    runs-on: ubuntu-latest
+    needs: build
+    if: always()
+    steps:
+      - name: Require phone and Wear builds
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: test "$BUILD_RESULT" = success

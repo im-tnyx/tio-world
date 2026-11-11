@@ -49,6 +49,15 @@ From repo root after `pubspec.yaml` and `melos.yaml` are configured:
 melos bootstrap
 ```
 
+## Cursor Cloud Agent VM snapshot (2026-10-20)
+
+These observations from [PR #627](https://github.com/im-tnyx/tio-world/pull/627) describe one Cloud Agent image, not the setup for other machines. Check installed tools and the current workflow pins before using them.
+
+- Flutter was at `/opt/flutter` with `flutter` and `dart` on `PATH`; Melos `2.9.0` was available as `melos`. If Melos prompts for an update in a non-interactive shell, use `CI=true melos bootstrap`.
+- With the observed Flutter 3.47 image, a parallel bootstrap could leave `.dart_tool/package_graph.json` missing. After `melos bootstrap`, run `melos exec -c 1 -- flutter pub get` only for that failure. Review any tracked `pubspec.lock` hash changes; do not commit incidental SDK-pinned dependency churn.
+- That image lacked Android SDK and Docker. Analyzer and test commands were available, while `supabase db start` was unavailable. A Linux desktop smoke required `ninja`, GTK 3, and `g++-14`; generate any `linux/` runner only in a disposable checkout. A web build then failed on a JavaScript-unsafe integer literal; rerun the build before treating that historical failure as current.
+- As of 2026-11-11, the function and database CI workflows pin Deno `2.9.6` and Supabase CLI `2.116.0` respectively. Verify local versions and availability rather than assuming the Cloud image still matches those pins.
+
 ## Flutter Mobile App
 
 The Flutter phone app shell lives in:
