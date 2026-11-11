@@ -40,7 +40,7 @@
 
 **Branch:** `codex/w7-routine-start`
 
-**HEAD SHA:** `bb9b57f222b01016b145d65a6e334762fbc5a634` (validated implementation commit)
+**Validated source HEAD SHA:** `bb9b57f222b01016b145d65a6e334762fbc5a634` (implementation commit; handoff-only commits follow it)
 
 **Observed working-tree state:** Source commit `bb9b57f` is validated; this handoff update was the only modified file immediately before its documentation commit. Isolated worktree: `.claude/worktrees/w7-routine-start`.
 
