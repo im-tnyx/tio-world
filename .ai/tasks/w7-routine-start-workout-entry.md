@@ -1,6 +1,6 @@
 # W7 Routine Start Workout Entry
 
-**Status:** Ready for review
+**Status:** PR #748 open; review pending
 
 **Primary owner:** Codex
 
@@ -30,7 +30,7 @@
 
 **Last implementation commit SHA:** `bb9b57f222b01016b145d65a6e334762fbc5a634` (Program/Library Routine Play implementation)
 
-**Review owner:** Pending
+**Review owner:** Pending independent reviewer
 
 **Implementation ownership state:** Ready for review
 
@@ -42,13 +42,15 @@
 
 **Validated source HEAD SHA:** `bb9b57f222b01016b145d65a6e334762fbc5a634` (implementation commit; handoff-only commits follow it)
 
-**Observed working-tree state:** Source commit `bb9b57f` is validated; this handoff update was the only modified file immediately before its documentation commit. Isolated worktree: `.claude/worktrees/w7-routine-start`.
+**PR opening head SHA:** `31c44a504fc5673a0eb90f3e3ef304f8666ac425` (historical opening checkpoint; resolve current head from GitHub)
 
-**Observed uncommitted/dirty files:** `.ai/tasks/w7-routine-start-workout-entry.md` only immediately before its documentation commit. The root checkout is clean and aligned with its upstream branch.
+**Observed working-tree state:** Both linked worktrees were clean when PR #748 opened; this handoff update is the only modification after opening. Isolated worktree: `.claude/worktrees/w7-routine-start`.
 
-**PR / tracker:** Linear TNYX-84 In Progress; W3/W4 and authenticated Save E2E blockers remain. No PR for this slice.
+**Observed uncommitted/dirty files:** `.ai/tasks/w7-routine-start-workout-entry.md` only while recording the PR handoff. The root checkout is clean and aligned with its upstream branch.
 
-**Current implementation state:** Routine Detail CTA, validated start request, local draft seeding, rep-range hint, and direct play entry points on Program Detail and expanded Library Routine rows are implemented through the same guarded flow. No PR has been opened.
+**PR / tracker:** [GitHub PR #748](https://github.com/im-tnyx/tio-world/pull/748) is open against `main`; Linear TNYX-84 is In Progress. W3/W4 and authenticated Save E2E blockers remain.
+
+**Current implementation state:** Routine Detail CTA, validated start request, local draft seeding, rep-range hint, and direct play entry points on Program Detail and expanded Library Routine rows are implemented through the same guarded flow. PR #748 is open for CI and independent review.
 
 **Relevant execution surfaces:** Routine Detail CTA, Program Detail Routine-row play, and expanded Library Routine-row play -> owner/session-verified app callback -> the same verified Routine composition request and existing `runWorkoutPlayStart` conflict flow -> local draft controller -> existing Active Workout route.
 
@@ -56,11 +58,11 @@
 
 **Validation remaining:** Repository CI's pinned Melos 2.9.0 bootstrap/analyze/test has not run locally. The available Melos 8.6.0 rejects this legacy workspace configuration; affected-package formatting, analysis and focused tests were run directly. Exact-head CI and independent review remain pending.
 
-**Current blocker:** None for local review. Exact-head CI and independent review remain required before merge.
+**Current blocker:** PR #748 exact-head CI and independent review remain required before merge.
 
 **Open review finding IDs:** None.
 
-**Next exact action:** Open a PR for independent review and exact-head CI only when explicitly requested; keep TNYX-84 In Progress.
+**Next exact action:** Inspect PR #748 CI and independent review on its current GitHub head, then address any actionable finding. Keep TNYX-84 In Progress.
 
 ## Global UI / Design-System Guardrail
 
@@ -182,7 +184,7 @@ NOT RUN: authenticated Save E2E, device acceptance, and visual/runtime review.
 
 ### Review Provenance
 
-**Review source / link:** Self-review of `bb9b57f222b01016b145d65a6e334762fbc5a634`; independent review is pending
+**Review source / link:** [GitHub PR #748](https://github.com/im-tnyx/tio-world/pull/748); Codex self-review of `bb9b57f222b01016b145d65a6e334762fbc5a634`; independent review is pending
 
 **Reviewer / relation to implementer:** Codex, implementer
 
@@ -192,7 +194,7 @@ NOT RUN: authenticated Save E2E, device acceptance, and visual/runtime review.
 
 **Independent review?** No (self-review)
 
-**Limitations and unmet required gates:** Repository-wide Melos 2.9.0 CI workflow, independent PR review, authenticated Save E2E and device acceptance have not run. No PR was opened in this commit/push task.
+**Limitations and unmet required gates:** PR #748 is open; repository-wide Melos 2.9.0 CI, independent PR review, authenticated Save E2E and device acceptance have not completed.
 
 ### Review Findings and Resolution
 
@@ -241,4 +243,4 @@ Routine source identity is not saved. Existing TNYX-84 W3/W4 dependencies, authe
 
 ### One Next Task
 
-Push the validated commits to `codex/w7-routine-start`, then await exact-head CI and independent review through a PR when its creation is explicitly requested. Keep TNYX-84 In Progress.
+Inspect PR #748 CI and independent review on its current GitHub head, then address any actionable finding. Keep TNYX-84 In Progress.
