@@ -80,7 +80,8 @@ jobs:
       - name: Restore Gradle build cache
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          # PR caches are isolated to the PR ref; allow later runs of that PR to reuse them.
+          cache-read-only: false
 
       - name: Enable Gradle build cache for CI
         run: |
@@ -125,7 +126,8 @@ jobs:
       - name: Restore Gradle build cache
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          # PR caches are isolated to the PR ref; allow later runs of that PR to reuse them.
+          cache-read-only: false
 
       - name: Enable Gradle build cache for CI
         run: |
