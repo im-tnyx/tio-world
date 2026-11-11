@@ -152,6 +152,9 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       if (restored != null && restored.ownerId != _ownerId) {
         throw StateError('Workout draft belongs to another account.');
       }
+      if (_draft != null && _draft!.ownerId != _ownerId) {
+        throw StateError('Workout draft belongs to another account.');
+      }
       if (restored == null && !createIfMissing) {
         // No draft to attach to; drop stale backgrounding so a later fresh
         // Play start cannot inherit an older pending marker.
@@ -159,7 +162,10 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         return true;
       }
       final startedAt = _nowUtc();
+      // A Routine seed may be in memory when its first secure-store write
+      // failed. Reuse it on page restore instead of creating an empty draft.
       var candidate = restored ??
+          _draft ??
           ActiveWorkoutDraft(
             id: _newUuid(),
             ownerId: _ownerId,
@@ -245,7 +251,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
       return !_disposed;
     } catch (error) {
       if (!_disposed) _error = error;
-      return _draft != null && !_disposed;
+      return _draft != null && _draft!.ownerId == _ownerId && !_disposed;
     } finally {
       _busy = false;
       _notify();

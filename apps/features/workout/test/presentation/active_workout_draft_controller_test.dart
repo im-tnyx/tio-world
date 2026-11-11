@@ -81,6 +81,66 @@ Exercise _exercise(String ref, String name) => Exercise(
 void main() {
   const owner = '00000000-0000-4000-8000-000000000001';
 
+  test('Routine seed survives a failed first write and empty page restore',
+      () async {
+    final store = _Store()..failSave = true;
+    var nextId = 1000;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => DateTime.utc(2026, 11, 11, 8),
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(controller.dispose);
+    final exercise = _exercise('ex_routine_bench', 'Bench Press');
+    const routineId = '20000000-0000-4000-8000-000000000001';
+    final request = WorkoutRoutineStartRequest(
+      routine: Routine(
+        id: RoutineId(routineId),
+        programId: ProgramId('10000000-0000-4000-8000-000000000001'),
+        name: 'Day One',
+      ),
+      composition: RoutineCompositionSnapshot(
+        routineId: RoutineId(routineId),
+        revision: 1,
+        entries: [
+          RoutineCompositionEntry(
+            id: '30000000-0000-4000-8000-000000000001',
+            exercise: exercise.ref,
+            sets: [
+              RoutineCompositionSet(
+                id: '40000000-0000-4000-8000-000000000001',
+                prescription: SetPrescription(reps: 8, repsMax: 12),
+              ),
+            ],
+          ),
+        ],
+      ),
+      exercises: {exercise.ref: exercise},
+    );
+
+    expect(await controller.startFromRoutine(request), isTrue);
+    final seeded = controller.draft!;
+    expect(store.saved, isNull);
+    expect(seeded.workoutTitle, 'Day One');
+    expect(seeded.exercises.single.sets.single.prescription.reps, 8);
+    expect(seeded.exercises.single.sets.single.reps, isNull);
+
+    // ActiveWorkoutPage calls restoreOrStart on entry. The store still reads
+    // empty, and its retry writes still fail.
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(identical(controller.draft, seeded), isTrue);
+    expect(store.saved, isNull);
+
+    store.failSave = false;
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(identical(controller.draft, seeded), isTrue);
+    expect(store.saved!.id, seeded.id);
+    expect(store.saved!.saveRequestId, seeded.saveRequestId);
+    expect(store.saved!.workoutTitle, 'Day One');
+    expect(store.saved!.exercises.single.sets.single.reps, isNull);
+  });
+
   test('two-day background gap pauses at two hours and preserves the draft',
       () async {
     final store = _Store();
@@ -232,7 +292,8 @@ void main() {
     controller.dispose();
   });
 
-  test('backgrounding during busy restore still caps an in-memory running draft',
+  test(
+      'backgrounding during busy restore still caps an in-memory running draft',
       () async {
     final store = _Store();
     var now = DateTime.utc(2026, 11, 10, 8);
