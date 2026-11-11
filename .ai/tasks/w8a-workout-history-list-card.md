@@ -3,8 +3,9 @@
 **Tracker:** [TNYX-85](https://linear.app/tnyx/issue/TNYX-85/w8-workout-history-completed-session-timeline-and-detail)
 **Implementation owner:** Codex
 **Previous agent:** None
-**Last commit agent / SHA:** None yet
+**Last commit agent / SHA:** Codex / `39111163747387ddc1eda103906ba34b3abd4fc4` (implementation commit)
 **Branch:** `codex/tnyx-85-w8a-workout-history`
+**PR:** [#752](https://github.com/im-tnyx/tio-world/pull/752) — review/merge gate, no merge without PR-specific owner approval
 **Base:** `main@23310eeef6c1d42142f3af8f8563e759350d087c` (matched `origin/main` after fetch, 2026-11-11)
 **Status:** Implementation validated locally; PR review pending
 
@@ -34,7 +35,8 @@ Show saved duration and truthful performed previews. Omit volume until load/reps
 - [x] Feature-owned read model and existing W7 gateway/repository projection: five completed headers per page, stable keyset cursor, owner filter/RLS and bounded batched performed-set reads. Refresh and account-cycle guards drop stale data; the UI deduplicates page boundaries.
 - [x] Core route contract, Workout child route, root trailing History action, and read-only list/cards. No Detail route or tap action.
 - [x] Focused repository/gateway, widget, routing/top-bar and regression tests. `dart analyze apps/features/workout`, `apps/app`, `apps/core`: each exit 0. `flutter analyze --no-pub` in each package: each exit 0. Full Workout `flutter test --no-pub`: 1435/1435, exit 0. Focused app route/top-bar suite: 66/66 plus compact top-bar test 1/1, exit 0. Core route test: 8/8, exit 0. Final History widget test: 5/5, exit 0. `git diff --check`: exit 0. Existing `uses-material-design` pubspec warning did not fail tests.
-- [ ] Publish scoped PR, inspect exact-head CI/review, link TNYX-85, request independent review. Merge requires PR-specific owner approval.
+- [x] Publish scoped PR and link PR/task brief to TNYX-85; broader W8 remains In Progress.
+- [ ] Inspect exact-head CI/review and request independent review. Merge requires PR-specific owner approval.
 
 **Future protected-API compatibility:** Compatible + evidence for this read-only projection: canonical `WorkoutSessionId` and saved W7 session/set tables remain unchanged; the feature repository boundary can be implemented by a later approved adapter without re-keying the card model or rewriting UI. Owner Auth/RLS was inspected live, while future API authorization and mixed-version clients were not tested. W7 mutations, retries and Save E2E are outside W8A.
 
