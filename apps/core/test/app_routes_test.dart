@@ -91,6 +91,14 @@ void main() {
     expect(AppRoutes.workoutActive.chromePolicy.showsBottomNav, isFalse);
   });
 
+  test('History route nests under Workout without bottom nav', () {
+    expect(AppRoutes.workoutHistory.path, '/workout/history');
+    expect(AppRoutes.workoutHistory.path
+        .startsWith('${FeatureRoutes.workout.path}/'), isTrue);
+    expect(AppRoutes.workoutHistory.title, 'History');
+    expect(AppRoutes.workoutHistory.chromePolicy, ChromePolicy.noBottomBar);
+  });
+
   test('Exercise Detail route nests under Exercises without bottom nav', () {
     expect(
       AppRoutes.workoutExerciseDetail.path,

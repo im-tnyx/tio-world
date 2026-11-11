@@ -10,6 +10,7 @@ export 'routine_delete_repository.dart';
 export 'routine_move_repository.dart';
 export 'routine_notes_repository.dart';
 export 'workout_session_repository.dart';
+export 'workout_history_repository.dart';
 export 'gym_location_repository.dart';
 export 'active_workout_draft_store.dart';
 export 'workout_draft_save_repository.dart';

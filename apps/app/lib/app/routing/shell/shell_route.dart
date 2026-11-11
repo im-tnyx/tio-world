@@ -370,6 +370,22 @@ List<RouteBase> _shellBranchChildRoutes(
 
   return [
     GoRoute(
+      path: _childPath(branch, AppRoutes.workoutHistory),
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) {
+          final Object? sessionRepository =
+              ref.watch(workoutSessionRepositoryProvider);
+          return WorkoutHistoryPage(
+            repository: sessionRepository is WorkoutHistoryRepository
+                ? sessionRepository
+                : null,
+            catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
+          );
+        },
+      ),
+    ),
+    GoRoute(
       path: _childPath(branch, AppRoutes.workoutLibrary),
       parentNavigatorKey: rootNavigatorKey,
       // Library → Exercises pushes, so back from Exercises returns here.
@@ -2196,13 +2212,21 @@ StatefulShellRoute buildAppShellRoute({
                         ),
                       )
                     : null,
-            statusTopBarTrailingAction: mealDiaryDates == null
-                ? null
-                : MealDiaryMoreMenu(
-                    onMealDiarySettingsPressed: () => context.push(
-                      AppRoutes.mealDiarySettings.path,
-                    ),
-                  ),
+            statusTopBarTrailingAction: workoutDates != null
+                ? IconButton(
+                    key: const ValueKey('workout-history-action'),
+                    tooltip: 'Workout history',
+                    onPressed: () =>
+                        context.push(AppRoutes.workoutHistory.path),
+                    icon: const Icon(Icons.history_rounded),
+                  )
+                : mealDiaryDates == null
+                    ? null
+                    : MealDiaryMoreMenu(
+                        onMealDiarySettingsPressed: () => context.push(
+                          AppRoutes.mealDiarySettings.path,
+                        ),
+                      ),
             child: child!,
           );
         },

@@ -2,6 +2,22 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Narrow transport interface for Supabase workout session tables and RPCs.
 abstract interface class WorkoutSessionGateway {
+  /// Stable keyset page of owner-scoped completed headers (one extra row).
+  Future<List<Map<String, dynamic>>> readCompletedHistoryHeaders(
+    String userId, {
+    required int limit,
+    DateTime? beforeCompletedAtUtc,
+    String? beforeId,
+  });
+
+  /// Batched performed rows for a bounded page of session IDs.
+  Future<List<Map<String, dynamic>>> readHistoryPerformedSets(
+    String userId,
+    List<String> sessionIds, {
+    required int offset,
+    required int limit,
+  });
+
   /// Reads the single active or paused session header for the given [userId],
   /// or returns `null` if none exists.
   Future<Map<String, dynamic>?> readActiveSessionHeader(String userId);
@@ -69,6 +85,60 @@ final class SupabaseWorkoutSessionGateway implements WorkoutSessionGateway {
   const SupabaseWorkoutSessionGateway(this._client);
 
   final SupabaseClient _client;
+
+  @override
+  Future<List<Map<String, dynamic>>> readCompletedHistoryHeaders(
+    String userId, {
+    required int limit,
+    DateTime? beforeCompletedAtUtc,
+    String? beforeId,
+  }) async {
+    var query = _client
+        .from('user_workout_sessions')
+        .select('id,user_id,status,completed_at_utc,started_at_utc,'
+            'accumulated_paused_microseconds,workout_title,workout_at_utc,'
+            'workout_utc_offset_minutes,notes,gym_name,'
+            'workout_duration_seconds,routine_snapshot')
+        .eq('user_id', userId)
+        .eq('status', 'completed');
+    if (beforeCompletedAtUtc != null && beforeId != null) {
+      final instant = beforeCompletedAtUtc.toUtc().toIso8601String();
+      query = query.or('completed_at_utc.lt.$instant,'
+          'and(completed_at_utc.eq.$instant,id.lt.$beforeId)');
+    }
+    final response = await query
+        .order('completed_at_utc', ascending: false)
+        .order('id', ascending: false)
+        .limit(limit)
+        .retry(enabled: false);
+    return (response as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> readHistoryPerformedSets(
+    String userId,
+    List<String> sessionIds, {
+    required int offset,
+    required int limit,
+  }) async {
+    if (sessionIds.isEmpty) return const [];
+    final response = await _client
+        .from('user_workout_performed_sets')
+        .select('session_id,user_id,exercise_ref,session_exercise_index,'
+            'set_index,is_skipped,completed_at_utc')
+        .eq('user_id', userId)
+        .inFilter('session_id', sessionIds)
+        .order('session_id')
+        .order('session_exercise_index')
+        .order('set_index')
+        .range(offset, offset + limit - 1)
+        .retry(enabled: false);
+    return (response as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList(growable: false);
+  }
 
   @override
   Future<Map<String, dynamic>?> readActiveSessionHeader(String userId) async {

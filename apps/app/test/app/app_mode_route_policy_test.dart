@@ -141,6 +141,14 @@ void main() {
     test('keeps only workout guided routes after explicit completion', () {
       expect(
         appModeRedirect(
+          path: AppRoutes.workoutHistory.path,
+          selectedMode: AppMode.workout,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        isNull,
+      );
+      expect(
+        appModeRedirect(
           path: FeatureRoutes.workout.path,
           selectedMode: AppMode.workout,
           onboardingStatus: OnboardingStatus.completed,
@@ -158,6 +166,14 @@ void main() {
     });
 
     test('keeps only nutrition guided routes after explicit completion', () {
+      expect(
+        appModeRedirect(
+          path: AppRoutes.workoutHistory.path,
+          selectedMode: AppMode.nutrition,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        FeatureRoutes.home.path,
+      );
       expect(
         appModeRedirect(
           path: FeatureRoutes.nutrition.path,

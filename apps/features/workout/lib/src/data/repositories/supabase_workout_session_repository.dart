@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../domain/models/workout_session_record.dart';
+import '../../domain/models/workout_history_entry.dart';
+import '../../domain/repositories/workout_history_repository.dart';
 import '../../domain/repositories/workout_session_repository.dart';
 import '../../domain/repositories/workout_draft_save_repository.dart';
 import '../../domain/models/active_workout_draft.dart';
@@ -17,7 +19,10 @@ import 'supabase_workout_session_gateway.dart';
 /// Adheres to optimistic concurrency control (OCC), bracketed read consistency,
 /// and deterministic set slot ordering.
 final class SupabaseWorkoutSessionRepository
-    implements WorkoutSessionRepository, WorkoutDraftSaveRepository {
+    implements
+        WorkoutSessionRepository,
+        WorkoutDraftSaveRepository,
+        WorkoutHistoryRepository {
   SupabaseWorkoutSessionRepository({
     required WorkoutSessionGateway gateway,
     required String? Function() currentUserId,
@@ -59,6 +64,89 @@ final class SupabaseWorkoutSessionRepository
   final String? Function() _currentUserId;
   final Duration _requestTimeout;
   final int _readAttempts;
+
+  static const int historyPageSize = 5;
+  static const int _historySetBatchSize = 1000;
+
+  @override
+  Future<WorkoutHistoryPageResult> listCompletedHistory({
+    WorkoutHistoryCursor? after,
+  }) async {
+    final owner = _owner();
+    final headers = await _executeRead(
+      owner,
+      () => _gateway.readCompletedHistoryHeaders(
+        owner,
+        limit: historyPageSize + 1,
+        beforeCompletedAtUtc: after?.completedAtUtc,
+        beforeId: after?.sessionId.value,
+      ),
+    );
+    final pageHeaders = headers.take(historyPageSize).toList(growable: false);
+    final ids = pageHeaders.map((row) => row['id'] as String).toList();
+    final sets = <Map<String, dynamic>>[];
+    const maximumPageSets = historyPageSize * 500;
+    // W7 caps a session at 500 performed sets. Five sessions therefore need
+    // at most three bounded requests; the extra row detects corrupted overflow.
+    for (var offset = 0;
+        offset <= maximumPageSets;
+        offset += _historySetBatchSize) {
+      if (ids.isEmpty) break;
+      final remainingWithSentinel = maximumPageSets + 1 - offset;
+      final batchLimit = remainingWithSentinel < _historySetBatchSize
+          ? remainingWithSentinel
+          : _historySetBatchSize;
+      final batch = await _executeRead(
+        owner,
+        () => _gateway.readHistoryPerformedSets(
+          owner,
+          ids,
+          offset: offset,
+          limit: batchLimit,
+        ),
+      );
+      sets.addAll(batch);
+      if (batch.length < batchLimit) break;
+    }
+    if (sets.length > maximumPageSets) {
+      throw const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.invalidPayload,
+        message: 'History set count exceeds the W7 quota.',
+      );
+    }
+    _checkOwner(owner);
+    try {
+      final bySession = <String, List<Map<String, dynamic>>>{};
+      for (final row in sets) {
+        final id = row['session_id'] as String;
+        if (!ids.contains(id)) {
+          throw const FormatException('Unexpected set session');
+        }
+        (bySession[id] ??= []).add(row);
+      }
+      final entries = pageHeaders
+          .map((row) => WorkoutHistoryDto.fromRows(
+                row,
+                bySession[row['id']] ?? const [],
+                expectedOwnerId: owner,
+              ))
+          .toList(growable: false);
+      final last = entries.isEmpty ? null : entries.last;
+      return WorkoutHistoryPageResult(
+        entries: entries,
+        hasMore: headers.length > historyPageSize,
+        nextCursor: last == null
+            ? null
+            : WorkoutHistoryCursor(last.completedAtUtc, last.sessionId),
+      );
+    } catch (error) {
+      throw WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.invalidPayload,
+        message: 'Malformed completed workout history.',
+        cause: error,
+      );
+    }
+  }
 
   @override
   Future<SavedWorkoutDraftRecord> saveDraft(ActiveWorkoutDraft draft) async {

@@ -32,6 +32,59 @@ import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
+  testWidgets('Workout History action keeps streak and opens nested route',
+      (tester) async {
+    await _pumpSettingsRoute(tester, initialPath: FeatureRoutes.workout.path);
+    final action = find.byKey(const ValueKey('workout-history-action'));
+    final streak = find.byKey(const ValueKey('shell-workout-streak'));
+    final topBar = find.byType(TioShellStatusTopBar);
+    expect(
+      find.descendant(of: topBar, matching: find.text('Workout')),
+      findsOneWidget,
+    );
+    expect(action, findsOneWidget);
+    expect(streak, findsOneWidget);
+    expect(tester.getCenter(action).dx, greaterThan(tester.getCenter(streak).dx));
+    expect(tester.getSize(action).width, greaterThanOrEqualTo(48));
+    expect(
+      tester.getSize(topBar).height,
+      tester.widget<TioShellStatusTopBar>(topBar).preferredSize.height,
+    );
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    final history = find.byType(WorkoutHistoryPage);
+    expect(history, findsOneWidget);
+    expect(GoRouterState.of(tester.element(history)).uri.path,
+        AppRoutes.workoutHistory.path);
+    expect(find.text('History'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(action, findsNothing);
+  });
+
+  testWidgets('Workout History top bar fits compact large-text layout',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpSettingsRoute(
+      tester,
+      initialPath: FeatureRoutes.workout.path,
+      textScale: 1.6,
+    );
+    final month = find.byKey(const ValueKey('workout-visible-month'));
+    final streak = find.byKey(const ValueKey('shell-workout-streak'));
+    final action = find.byKey(const ValueKey('workout-history-action'));
+    expect(month, findsOneWidget);
+    expect(streak, findsOneWidget);
+    expect(action, findsOneWidget);
+    expect(tester.getRect(month).right,
+        lessThanOrEqualTo(tester.getRect(streak).left));
+    expect(tester.getRect(streak).right,
+        lessThanOrEqualTo(tester.getRect(action).right));
+    expect(tester.takeException(), isNull);
+  });
+
   for (final testCase in const [
     (
       name: 'light',
