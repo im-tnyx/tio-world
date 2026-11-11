@@ -2,7 +2,7 @@
 BEGIN;
 SET LOCAL TIME ZONE 'America/Los_Angeles';
 CREATE EXTENSION IF NOT EXISTS pgtap SCHEMA extensions;
-SELECT plan(41);
+SELECT plan(46);
 
 INSERT INTO auth.users (id,email) VALUES
   ('11111111-1111-1111-1111-111111111111','save_owner@tio.test'),
@@ -62,6 +62,41 @@ SELECT is(has_table_privilege('authenticated','public.user_workout_sessions','IN
   false, 'clients cannot insert a session outside Save RPC');
 SELECT is(has_table_privilege('authenticated','public.user_workout_performed_sets','INSERT'),
   false, 'clients cannot insert performed sets outside Save RPC');
+SELECT ok((
+  SELECT p.proconfig @> ARRAY['search_path=""']::text[]
+  FROM pg_proc p
+  WHERE p.oid='public.trg_fn_validate_workout_session_snapshot()'::regprocedure
+), 'snapshot trigger function pins an empty search_path');
+SELECT is((
+  SELECT p.prosecdef
+  FROM pg_proc p
+  WHERE p.oid='public.trg_fn_validate_workout_session_snapshot()'::regprocedure
+), false, 'snapshot trigger function remains SECURITY INVOKER');
+SELECT is((
+  SELECT r.rolname
+  FROM pg_proc p JOIN pg_roles r ON r.oid=p.proowner
+  WHERE p.oid='public.trg_fn_validate_workout_session_snapshot()'::regprocedure
+), 'postgres', 'snapshot trigger function owner is unchanged');
+SELECT ok(EXISTS (
+  SELECT 1
+  FROM pg_trigger tg
+  WHERE tg.tgrelid='public.user_workout_sessions'::regclass
+    AND tg.tgname='trg_user_workout_sessions_validate_snapshot'
+    AND tg.tgfoid='public.trg_fn_validate_workout_session_snapshot()'::regprocedure
+    AND tg.tgenabled <> 'D'
+    AND (tg.tgtype::integer & 1) = 1
+    AND (tg.tgtype::integer & 2) = 2
+    AND (tg.tgtype::integer & 4) = 4
+), 'snapshot validator remains enabled as a BEFORE INSERT row trigger');
+SET LOCAL ROLE anon;
+SELECT throws_ok($direct_trigger_call$
+  SELECT public.trg_fn_validate_workout_session_snapshot()
+$direct_trigger_call$,
+  '0A000',
+  'trigger functions can only be called as triggers',
+  'existing EXECUTE ACL does not make the trigger helper directly callable'
+);
+RESET ROLE;
 
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" = '11111111-1111-1111-1111-111111111111';
