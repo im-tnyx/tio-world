@@ -19,6 +19,7 @@ import '../library/exercises/exercises_page.dart';
 import '../library/exercises/exercises_providers.dart';
 import '../library/routines/routine_exercise_options_sheet.dart';
 import '../widgets/workout_exercise_card.dart';
+import '../widgets/workout_rpe_sheet.dart';
 import '../widgets/workout_set_input_row.dart';
 import '../widgets/workout_set_type_sheet.dart';
 import 'save_workout_page.dart';
@@ -329,9 +330,31 @@ class _EditWorkoutPageState extends ConsumerState<EditWorkoutPage> {
     );
   }
 
+  Future<void> _selectSetRpe(WorkoutHistoryEditController controller,
+      int exerciseIndex, int setIndex) async {
+    final current = controller.exercises[exerciseIndex].sets[setIndex];
+    final selected = await showWorkoutRpeSheet(
+      context: context,
+      setNumber: setIndex + 1,
+      loadKg: current.loadKg ?? current.prescription.loadKg,
+      reps: current.reps ?? current.prescription.reps,
+      initialRpe: current.rpe,
+    );
+    if (!mounted || selected == null || !identical(controller, _controller)) {
+      return;
+    }
+    if (exerciseIndex >= controller.exercises.length ||
+        setIndex >= controller.exercises[exerciseIndex].sets.length ||
+        controller.exercises[exerciseIndex].sets[setIndex].id != current.id) {
+      return;
+    }
+    controller.setRpe(exerciseIndex, setIndex, selected > 0 ? selected : null);
+  }
+
   Widget _exerciseSection(
       WorkoutHistoryEditController controller, ExerciseMediaGender? gender) {
     final exercises = controller.exercises;
+    final showRpe = MediaQuery.sizeOf(context).width >= 360;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
@@ -364,7 +387,7 @@ class _EditWorkoutPageState extends ConsumerState<EditWorkoutPage> {
           unit: WeightUnit.kg,
           enabled: true,
           notesEnabled: false,
-          showRpe: false,
+          showRpe: showRpe,
           keyPrefix: 'edit-workout-exercise',
           showOptions: () =>
               unawaited(_exerciseOptions(controller, exerciseIndex)),
@@ -379,12 +402,19 @@ class _EditWorkoutPageState extends ConsumerState<EditWorkoutPage> {
               unit: WeightUnit.kg,
               enabled: true,
               exerciseType: exercise.exerciseType,
+              showPrevious: true,
               isExecution: true,
               isLogged: current.loggedAtUtc != null && !current.isSkipped,
+              showRpe: showRpe,
               performedLoadKg: current.loadKg,
               performedReps: current.reps,
               performedDurationSeconds: current.durationSeconds,
               performedDistanceMeters: current.distanceMeters,
+              performedRpe: current.rpe,
+              rpeKey: ValueKey('edit-workout-rpe-${current.id}'),
+              onRpePressed: () =>
+                  unawaited(_selectSetRpe(controller, exerciseIndex, setIndex)),
+              toggleKey: ValueKey('edit-workout-set-toggle-${current.id}'),
               onChanged: (value) =>
                   controller.changePrescription(exerciseIndex, setIndex, value),
               onRemove: () => controller.removeSet(exerciseIndex, setIndex),

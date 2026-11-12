@@ -164,6 +164,11 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
         _exercises[exerciseIndex].sets[setIndex].copyWith(prescription: value));
   }
 
+  void setRpe(int exerciseIndex, int setIndex, double? value) {
+    _replaceSet(exerciseIndex, setIndex,
+        _exercises[exerciseIndex].sets[setIndex].copyWith(rpe: value));
+  }
+
   void toggleLogged(
     int exerciseIndex,
     int setIndex, {

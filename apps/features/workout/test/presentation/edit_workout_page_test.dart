@@ -172,6 +172,97 @@ void main() {
     expect(find.text('Shoulders & Triceps'), findsNothing);
   });
 
+  testWidgets('Edit set values align with Log Workout header columns',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pump(tester, _History(() async => _detail()), _Editor());
+    await tester.ensureVisible(find.text('Bench Press'));
+
+    const setId = '33333333-3333-4333-a333-333333333333';
+    final previousValue =
+        find.byKey(const ValueKey('routine-set-previous-$setId'));
+    final rpeValue = find.byKey(const ValueKey('edit-workout-rpe-$setId'));
+    final toggle = find.byKey(const ValueKey('edit-workout-set-toggle-$setId'));
+    expect(previousValue, findsOneWidget);
+    expect(find.text('RPE'), findsOneWidget);
+    expect(rpeValue, findsOneWidget);
+    expect(toggle, findsOneWidget);
+    expect(tester.widget<Text>(previousValue).data, '–');
+    expect(
+        (tester.getCenter(find.text('PREVIOUS')).dx -
+                tester.getCenter(previousValue).dx)
+            .abs(),
+        lessThan(1));
+    // The weight icon sits beside KG, so compare the header cell center.
+    final kgHeaderCell = find
+        .ancestor(of: find.text('KG'), matching: find.byType(LayoutBuilder))
+        .first;
+    expect(
+        (tester.getCenter(kgHeaderCell).dx -
+                tester.getCenter(find.text('40')).dx)
+            .abs(),
+        lessThan(1));
+    expect(
+        (tester.getCenter(find.text('REPS')).dx -
+                tester.getCenter(find.text('10')).dx)
+            .abs(),
+        lessThan(1));
+    expect(
+        (tester.getCenter(find.text('RPE')).dx - tester.getCenter(rpeValue).dx)
+            .abs(),
+        lessThan(1));
+    expect(
+        (tester.getCenter(find.text('✓')).dx - tester.getCenter(toggle).dx)
+            .abs(),
+        lessThan(1));
+
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    final loadField = find.byKey(const ValueKey('routine-set-weight-$setId'));
+    final repsField = find.byKey(const ValueKey('routine-set-reps-$setId'));
+    expect(loadField, findsOneWidget);
+    expect(repsField, findsOneWidget);
+    expect(
+        (tester.getCenter(kgHeaderCell).dx - tester.getCenter(loadField).dx)
+            .abs(),
+        lessThan(1));
+    expect(
+        (tester.getCenter(find.text('REPS')).dx -
+                tester.getCenter(repsField).dx)
+            .abs(),
+        lessThan(1));
+    await tester.enterText(repsField, '12');
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(find.text('12'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Edit set RPE uses Log sheet and reaches Update request',
+      (tester) async {
+    final editor = _Editor();
+    await _pump(tester, _History(() async => _detail()), editor);
+    const setId = '33333333-3333-4333-a333-333333333333';
+    final rpe = find.byKey(const ValueKey('edit-workout-rpe-$setId'));
+    await tester.ensureVisible(rpe);
+    await tester.tap(rpe);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('rpe-option-7.5')));
+    await tester.tap(find.byKey(const ValueKey('rpe-sheet-done-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('7.5'), findsOneWidget);
+    await tester.ensureVisible(
+        find.byKey(const ValueKey('edit-workout-update-button')));
+    await tester.tap(find.byKey(const ValueKey('edit-workout-update-button')));
+    await tester.pumpAndSettle();
+    expect(editor.submitted?.exercises.single.sets.single.rpe, 7.5);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('compact OLED layout retains Update and exercise controls',
       (tester) async {
     tester.view.physicalSize = const Size(320, 640);
@@ -183,6 +274,8 @@ void main() {
     expect(find.text('Edit Workout'), findsOneWidget);
     expect(find.text('Update'), findsOneWidget);
     await tester.ensureVisible(find.text('Bench Press'));
+    expect(find.text('PREVIOUS'), findsOneWidget);
+    expect(find.text('RPE'), findsNothing);
     final greenRow = find.byKey(const ValueKey(
         'edit-workout-row-33333333-3333-4333-a333-333333333333'));
     expect(tester.getTopLeft(greenRow).dx, 0);
