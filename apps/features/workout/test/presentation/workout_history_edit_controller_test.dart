@@ -7,10 +7,18 @@ final _completed = DateTime.utc(2026, 11, 11, 21);
 final _workoutAt = DateTime.utc(2026, 11, 11, 20, 30);
 final _id = WorkoutSessionId('22222222-2222-4222-a222-222222222222');
 
-WorkoutHistoryDetail _detail({bool skippedWithoutTime = false}) {
+WorkoutHistoryDetail _detail({
+  bool skippedWithoutTime = false,
+  bool legacySchemaVersion = false,
+}) {
   final raw = <String, dynamic>{
-    'schema_version': 2,
-    'origin': 'ad_hoc',
+    'schema_version': legacySchemaVersion ? 1 : 2,
+    if (legacySchemaVersion) ...{
+      'routine_id': 'aaaaaaaa-1111-0000-0000-000000000002',
+      'routine_name': 'Legacy Routine',
+      'program_id': 'aaaaaaaa-1111-0000-0000-000000000001',
+    } else
+      'origin': 'ad_hoc',
     'captured_at_utc': '2026-11-11T20:00:00Z',
     'exercises': [
       {
@@ -19,7 +27,10 @@ WorkoutHistoryDetail _detail({bool skippedWithoutTime = false}) {
         'exercise_type': 'weight_reps',
         'occurrence_index': 0,
         'prescribed_sets': [
-          {'set_type': 'normal', 'performed_rpe': 7.0},
+          {
+            'set_type': 'normal',
+            if (!legacySchemaVersion) 'performed_rpe': 7.0,
+          },
           if (skippedWithoutTime) {'set_type': 'normal'},
         ],
       },
@@ -107,6 +118,21 @@ void main() {
         (payload['routine_snapshot'] as Map)['exercises'][0]['prescribed_sets']
             [0]['performed_rpe'],
         7.0);
+  });
+
+  test('legacy v1 Update payload keeps schema and includes edited RPE', () {
+    final source = _detail(legacySchemaVersion: true);
+    final editor = WorkoutHistoryEditController(source);
+    addTearDown(editor.dispose);
+
+    editor.setRpe(0, 0, 8.5);
+    final payload = WorkoutHistoryEditDto.payload(_request(source, editor));
+    final snapshot = payload['routine_snapshot'] as Map;
+    final prescription =
+        (snapshot['exercises'] as List)[0]['prescribed_sets'][0] as Map;
+
+    expect(snapshot['schema_version'], 1);
+    expect(prescription['performed_rpe'], 8.5);
   });
 
   test('add, replace and remove exercises keep performed order and slot count',

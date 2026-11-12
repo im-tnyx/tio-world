@@ -47,6 +47,32 @@ INSERT INTO w8c_fixture (save_payload) VALUES ($payload$
 $payload$::jsonb);
 GRANT SELECT, UPDATE ON w8c_fixture TO authenticated;
 
+INSERT INTO public.user_workout_programs (id,user_id,name) VALUES
+  ('aaaaaaaa-1111-0000-0000-000000000001',
+   '11111111-1111-1111-1111-111111111111','Legacy Program')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.user_workout_routines (id,user_id,program_id,name) VALUES
+  ('aaaaaaaa-1111-0000-0000-000000000002',
+   '11111111-1111-1111-1111-111111111111',
+   'aaaaaaaa-1111-0000-0000-000000000001','Legacy Routine')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.user_workout_routine_exercises
+  (id,user_id,routine_id,position,catalog_exercise_id) VALUES
+  ('aaaaaaaa-1111-0000-0000-000000000003',
+   '11111111-1111-1111-1111-111111111111',
+   'aaaaaaaa-1111-0000-0000-000000000002',0,'ex_barbell_bench_press')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.user_workout_routine_sets
+  (id,user_id,routine_exercise_id,position,set_type,reps,load_kg) VALUES
+  ('aaaaaaaa-1111-0000-0000-000000000004',
+   '11111111-1111-1111-1111-111111111111',
+   'aaaaaaaa-1111-0000-0000-000000000003',0,'normal',10,100)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE TEMP TABLE w8c_legacy_fixture (session_id uuid, edit_payload jsonb);
+INSERT INTO w8c_legacy_fixture VALUES (null,null);
+GRANT SELECT, UPDATE ON w8c_legacy_fixture TO authenticated;
+
 SELECT is(has_function_privilege('authenticated',
   'public.rpc_update_completed_workout_v1(uuid,integer,jsonb)','EXECUTE'),
   true,'authenticated can invoke the scoped Update RPC');
@@ -152,6 +178,84 @@ $invalid$,'22023','invalid_edit_set','invalid performed values reject the whole 
 SELECT is((SELECT revision FROM public.user_workout_sessions
            WHERE id=(SELECT session_id FROM w8c_fixture)),
   3,'failed edit does not mutate the header');
+
+SELECT lives_ok($legacy_start$
+  SELECT public.rpc_start_workout_session(
+    '66666666-6666-4666-8666-666666666666',
+    'aaaaaaaa-1111-0000-0000-000000000001',
+    'aaaaaaaa-1111-0000-0000-000000000002',
+    '2026-11-11 20:00:00+00','2026-11-11',
+    '{"schema_version":1,"routine_id":"aaaaaaaa-1111-0000-0000-000000000002","program_id":"aaaaaaaa-1111-0000-0000-000000000001","routine_name":"Legacy Routine","captured_at_utc":"2026-11-11T20:00:00Z","exercises":[{"exercise_ref":"ex_barbell_bench_press","display_name":"Bench Press","exercise_type":"weight_reps","occurrence_index":0,"prescribed_sets":[{"set_type":"normal","reps":10,"load_kg":100.0}]}]}'::jsonb)
+$legacy_start$,'owner starts a legacy schema-v1 routine workout');
+SELECT lives_ok($legacy_log$
+  SELECT public.rpc_log_workout_performed_set(
+    '77777777-7777-4777-8777-777777777777',
+    '66666666-6666-4666-8666-666666666666',1,
+    'ex_barbell_bench_press',0,0,p_reps=>10,p_load_kg=>100,
+    p_completed_at_utc=>'2026-11-11 20:40:00+00')
+$legacy_log$,'legacy v1 workout records its performed set');
+SELECT lives_ok($legacy_complete$
+  SELECT public.rpc_complete_workout_session_v2(
+    '66666666-6666-4666-8666-666666666666',2,
+    '2026-11-11 21:00:00+00','Legacy description',
+    'Legacy Workout','2026-11-11 20:30:00+00',330)
+$legacy_complete$,'legacy v1 workout completes before Edit');
+UPDATE w8c_legacy_fixture f SET
+  session_id = s.id,
+  edit_payload = jsonb_build_object(
+    'workout_title','Updated Legacy Workout',
+    'description','Updated legacy description',
+    'workout_at_utc','2026-11-11T20:35:00Z',
+    'workout_utc_offset_minutes',330,
+    'selected_duration_seconds',2700,
+    'gym_name','Legacy Gym',
+    'activity_type','Weight Training',
+    'overall_rpe',8,
+    'routine_snapshot',jsonb_set(
+      s.routine_snapshot,
+      '{exercises,0,prescribed_sets,0,performed_rpe}',
+      '8.5'::jsonb,true),
+    'performed_sets',jsonb_build_array(jsonb_build_object(
+      'id',p.id,'exercise_ref',p.exercise_ref,
+      'exercise_index',0,'set_index',0,'reps',11,'load_kg',95,
+      'completed_at_utc','2026-11-11T20:40:00Z','is_skipped',false)))
+FROM public.user_workout_sessions s
+JOIN public.user_workout_performed_sets p ON p.session_id=s.id
+WHERE s.id='66666666-6666-4666-8666-666666666666';
+SELECT lives_ok($legacy_update$
+  SELECT public.rpc_update_completed_workout_v1(
+    (SELECT session_id FROM pg_temp.w8c_legacy_fixture),3,
+    (SELECT edit_payload FROM pg_temp.w8c_legacy_fixture))
+$legacy_update$,'authenticated Update accepts performed RPE on a completed v1 session');
+SELECT is((SELECT routine_snapshot->>'schema_version'
+           FROM public.user_workout_sessions
+           WHERE id=(SELECT session_id FROM w8c_legacy_fixture)),
+  '1','legacy Update preserves the v1 snapshot version');
+SELECT is((SELECT (routine_snapshot #>>
+             '{exercises,0,prescribed_sets,0,performed_rpe}')::numeric
+           FROM public.user_workout_sessions
+           WHERE id=(SELECT session_id FROM w8c_legacy_fixture)),
+  8.5::numeric,'legacy Update persists the edited set RPE');
+SELECT is((SELECT revision FROM public.user_workout_sessions
+           WHERE id=(SELECT session_id FROM w8c_legacy_fixture)),
+  4,'legacy Update advances the existing session revision once');
+SELECT lives_ok($legacy_replay$
+  SELECT public.rpc_update_completed_workout_v1(
+    (SELECT session_id FROM pg_temp.w8c_legacy_fixture),3,
+    (SELECT edit_payload FROM pg_temp.w8c_legacy_fixture))
+$legacy_replay$,'same v1 Update payload is safe to replay');
+SELECT throws_ok($legacy_rpe_range$
+  SELECT public.rpc_update_completed_workout_v1(
+    (SELECT session_id FROM pg_temp.w8c_legacy_fixture),4,
+    (SELECT jsonb_set(edit_payload,
+      '{routine_snapshot,exercises,0,prescribed_sets,0,performed_rpe}',
+      '10.1'::jsonb,true)
+     FROM pg_temp.w8c_legacy_fixture))
+$legacy_rpe_range$,'22023','invalid_edit_snapshot',
+  'legacy performed RPE outside 0-10 is rejected');
+SELECT is((SELECT revision FROM public.user_workout_sessions
+           WHERE id=(SELECT session_id FROM w8c_legacy_fixture)),
+  4,'rejected v1 RPE does not mutate the session');
 
 SET LOCAL "request.jwt.claim.sub" = '22222222-2222-2222-2222-222222222222';
 SELECT throws_ok($foreign$
