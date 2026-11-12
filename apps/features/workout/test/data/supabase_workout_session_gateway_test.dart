@@ -37,7 +37,56 @@ SupabaseClient _client(Future<http.Response> Function(http.Request) handler) {
 
 void main() {
   group('SupabaseWorkoutSessionGateway', () {
-    test('readActiveSessionHeader queries user_workout_sessions with owner and active/paused filters', () async {
+    test('History headers filter completed owner and use stable keyset order',
+        () async {
+      http.Request? captured;
+      final client = _client((request) async {
+        captured = request;
+        return _json([]);
+      });
+      final cursor = DateTime.utc(2026, 11, 11, 9);
+      await SupabaseWorkoutSessionGateway(client).readCompletedHistoryHeaders(
+        _owner,
+        limit: 6,
+        beforeCompletedAtUtc: cursor,
+        beforeId: _session,
+      );
+      final query = captured!.url.queryParameters;
+      expect(captured!.url.path, '/rest/v1/user_workout_sessions');
+      expect(query['user_id'], 'eq.$_owner');
+      expect(query['status'], 'eq.completed');
+      expect(query['select'], contains('revision'));
+      expect(
+          query['order'], 'completed_at_utc.desc.nullslast,id.desc.nullslast');
+      expect(query['limit'], '6');
+      expect(query['or'], contains('id.lt.$_session'));
+      expect(query['or'], contains('completed_at_utc.lt.'));
+    });
+
+    test('History performed rows use one bounded owner and session batch',
+        () async {
+      http.Request? captured;
+      final client = _client((request) async {
+        captured = request;
+        return _json([]);
+      });
+      await SupabaseWorkoutSessionGateway(client).readHistoryPerformedSets(
+        _owner,
+        [_session],
+        offset: 1000,
+        limit: 1000,
+      );
+      expect(captured!.url.path, '/rest/v1/user_workout_performed_sets');
+      expect(captured!.url.queryParameters['user_id'], 'eq.$_owner');
+      expect(captured!.url.queryParameters['session_id'], contains(_session));
+      expect(captured!.url.queryParameters['select'], contains('reps,load_kg'));
+      expect(captured!.url.queryParameters['offset'], '1000');
+      expect(captured!.url.queryParameters['limit'], '1000');
+    });
+
+    test(
+        'readActiveSessionHeader queries user_workout_sessions with owner and active/paused filters',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -63,7 +112,9 @@ void main() {
       );
     });
 
-    test('readSessionHeader queries user_workout_sessions with owner and session ID filters', () async {
+    test(
+        'readSessionHeader queries user_workout_sessions with owner and session ID filters',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -86,7 +137,26 @@ void main() {
       expect(captured!.url.queryParameters['id'], 'eq.$_session');
     });
 
-    test('readPerformedSets applies deterministic ordering and cursor pagination', () async {
+    test('Detail header filters completed status, owner and session ID',
+        () async {
+      http.Request? captured;
+      final client = _client((request) async {
+        captured = request;
+        return _json([]);
+      });
+      final gateway = SupabaseWorkoutSessionGateway(client);
+
+      expect(
+          await gateway.readCompletedHistoryHeader(_owner, _session), isNull);
+      expect(captured!.url.path, '/rest/v1/user_workout_sessions');
+      expect(captured!.url.queryParameters['user_id'], 'eq.$_owner');
+      expect(captured!.url.queryParameters['id'], 'eq.$_session');
+      expect(captured!.url.queryParameters['status'], 'eq.completed');
+    });
+
+    test(
+        'readPerformedSets applies deterministic ordering and cursor pagination',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -121,7 +191,8 @@ void main() {
       );
     });
 
-    test('rpcStartWorkoutSession posts parameters to rpc_start_workout_session', () async {
+    test('rpcStartWorkoutSession posts parameters to rpc_start_workout_session',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -142,7 +213,8 @@ void main() {
       expect(jsonDecode(captured!.body), params);
     });
 
-    test('rpcPauseWorkoutSession posts parameters to rpc_pause_workout_session', () async {
+    test('rpcPauseWorkoutSession posts parameters to rpc_pause_workout_session',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -164,7 +236,9 @@ void main() {
       expect(captured!.url.path, '/rest/v1/rpc/rpc_pause_workout_session');
     });
 
-    test('rpcResumeWorkoutSession posts parameters to rpc_resume_workout_session', () async {
+    test(
+        'rpcResumeWorkoutSession posts parameters to rpc_resume_workout_session',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -186,7 +260,8 @@ void main() {
       expect(captured!.url.path, '/rest/v1/rpc/rpc_resume_workout_session');
     });
 
-    test('rpcLogWorkoutPerformedSet posts parameters and returns child set row', () async {
+    test('rpcLogWorkoutPerformedSet posts parameters and returns child set row',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -208,7 +283,9 @@ void main() {
       expect(captured!.url.path, '/rest/v1/rpc/rpc_log_workout_performed_set');
     });
 
-    test('rpcRemoveWorkoutPerformedSet invokes rpc_remove_workout_performed_set', () async {
+    test(
+        'rpcRemoveWorkoutPerformedSet invokes rpc_remove_workout_performed_set',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -223,10 +300,12 @@ void main() {
       };
       await gateway.rpcRemoveWorkoutPerformedSet(params);
 
-      expect(captured!.url.path, '/rest/v1/rpc/rpc_remove_workout_performed_set');
+      expect(
+          captured!.url.path, '/rest/v1/rpc/rpc_remove_workout_performed_set');
     });
 
-    test('rpcCompleteWorkoutSession posts parameters and returns session row', () async {
+    test('rpcCompleteWorkoutSession posts parameters and returns session row',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -245,10 +324,12 @@ void main() {
       final result = await gateway.rpcCompleteWorkoutSession(params);
 
       expect(result['status'], 'completed');
-      expect(captured!.url.path, '/rest/v1/rpc/rpc_complete_workout_session_v2');
+      expect(
+          captured!.url.path, '/rest/v1/rpc/rpc_complete_workout_session_v2');
     });
 
-    test('rpcDiscardWorkoutSession posts parameters and returns session row', () async {
+    test('rpcDiscardWorkoutSession posts parameters and returns session row',
+        () async {
       http.Request? captured;
       final client = _client((request) async {
         captured = request;
@@ -271,7 +352,8 @@ void main() {
       expect(captured!.url.path, '/rest/v1/rpc/rpc_discard_workout_session');
     });
 
-    test('throws FormatException if RPC returns unexpected non-map value', () async {
+    test('throws FormatException if RPC returns unexpected non-map value',
+        () async {
       final client = _client((request) async => _json(['unexpected', 'list']));
       final gateway = SupabaseWorkoutSessionGateway(client);
 

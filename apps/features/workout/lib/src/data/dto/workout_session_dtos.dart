@@ -1,6 +1,7 @@
 import 'package:tio_shared/shared.dart';
 
 import '../../domain/models/workout_session_record.dart';
+import '../../domain/models/workout_history_entry.dart';
 import '../../domain/repositories/workout_session_repository.dart';
 
 /// DTO mapping for frozen routine snapshots stored in `user_workout_sessions.routine_snapshot`.
@@ -53,23 +54,21 @@ abstract final class WorkoutSessionSnapshotDto {
   static WorkoutSessionSnapshot fromJson(Map<String, dynamic> json) {
     try {
       final schemaVersion = json['schema_version'];
-      final isAdHoc = schemaVersion == adHocSchemaVersion &&
-          json['origin'] == 'ad_hoc';
+      final isAdHoc =
+          schemaVersion == adHocSchemaVersion && json['origin'] == 'ad_hoc';
       if (schemaVersion != currentSchemaVersion && !isAdHoc) {
         throw FormatException(
           'Unsupported snapshot schema_version: $schemaVersion',
         );
       }
 
-      final routineId = isAdHoc
-          ? adHocRoutineId
-          : RoutineId(json['routine_id'] as String);
+      final routineId =
+          isAdHoc ? adHocRoutineId : RoutineId(json['routine_id'] as String);
       final routineName = isAdHoc
           ? (json['routine_name'] as String? ?? 'Workout')
           : json['routine_name'] as String;
-      final programId = isAdHoc
-          ? adHocProgramId
-          : ProgramId(json['program_id'] as String);
+      final programId =
+          isAdHoc ? adHocProgramId : ProgramId(json['program_id'] as String);
       final capturedAtUtc =
           DateTime.parse(json['captured_at_utc'] as String).toUtc();
 
@@ -437,4 +436,145 @@ abstract final class WorkoutSessionCompletionDto {
         'p_workout_at_utc': workoutAtUtc.toUtc().toIso8601String(),
         'p_workout_utc_offset_minutes': workoutUtcOffsetMinutes,
       };
+}
+
+/// A history card is projected only from saved session and performed rows.
+abstract final class WorkoutHistoryDto {
+  static WorkoutHistoryDetail detailFromRows(
+    Map<String, dynamic> row,
+    List<Map<String, dynamic>> performedRows, {
+    required String expectedOwnerId,
+  }) {
+    final summary = fromRows(
+      row,
+      performedRows,
+      expectedOwnerId: expectedOwnerId,
+    );
+    final snapshot = WorkoutSessionSnapshotDto.fromJson(
+      Map<String, dynamic>.from(row['routine_snapshot'] as Map),
+    );
+    final byOccurrence = <int, List<PerformedSet>>{};
+    for (final raw in performedRows) {
+      if (raw['is_skipped'] == true || raw['completed_at_utc'] == null) {
+        continue;
+      }
+      final set = WorkoutPerformedSetRowDto.fromJson(raw).toDomain();
+      (byOccurrence[set.sessionExerciseIndex] ??= []).add(set);
+    }
+    return WorkoutHistoryDetail(
+      summary: summary,
+      revision: (row['revision'] as num).toInt(),
+      snapshot: snapshot,
+      rawSnapshot: Map<String, dynamic>.from(row['routine_snapshot'] as Map),
+      allPerformedSets: List.unmodifiable(performedRows.map(
+        (raw) => WorkoutPerformedSetRowDto.fromJson(raw).toDomain(),
+      )),
+      workoutAtUtc: row['workout_at_utc'] == null
+          ? null
+          : DateTime.parse(row['workout_at_utc'] as String).toUtc(),
+      utcOffsetMinutes: (row['workout_utc_offset_minutes'] as num?)?.toInt(),
+      activityType: row['workout_activity_type'] as String?,
+      overallRpe: (row['workout_rpe'] as num?)?.toDouble(),
+      exercises: List.unmodifiable([
+        for (final exercise in snapshot.exercises)
+          if (byOccurrence[exercise.occurrenceIndex]?.isNotEmpty ?? false)
+            WorkoutHistoryDetailExercise(
+              ref: exercise.exerciseRef,
+              name: exercise.displayName,
+              exerciseType: exercise.exerciseType,
+              sets: List.unmodifiable(
+                byOccurrence[exercise.occurrenceIndex]!
+                  ..sort((a, b) => a.setIndex.compareTo(b.setIndex)),
+              ),
+            ),
+      ]),
+    );
+  }
+
+  static WorkoutHistoryEntry fromRows(
+    Map<String, dynamic> row,
+    List<Map<String, dynamic>> performedRows, {
+    required String expectedOwnerId,
+  }) {
+    if (row['user_id'] != expectedOwnerId || row['status'] != 'completed') {
+      throw const FormatException('History row is not owned and completed.');
+    }
+    final sessionId = WorkoutSessionId(row['id'] as String);
+    final completedAt =
+        DateTime.parse(row['completed_at_utc'] as String).toUtc();
+    final startedAt = DateTime.parse(row['started_at_utc'] as String).toUtc();
+    final snapshot = WorkoutSessionSnapshotDto.fromJson(
+      Map<String, dynamic>.from(row['routine_snapshot'] as Map),
+    );
+    final counts = <int, int>{};
+    var volumeKg = 0.0;
+    var hasMeasuredVolume = false;
+    for (final set in performedRows) {
+      if (set['user_id'] != expectedOwnerId ||
+          set['session_id'] != sessionId.value) {
+        throw const FormatException('History set ownership mismatch.');
+      }
+      final index = (set['session_exercise_index'] as num).toInt();
+      if (index < 0 ||
+          index >= snapshot.exercises.length ||
+          set['exercise_ref'] != snapshot.exercises[index].exerciseRef.value) {
+        throw const FormatException('History set does not match snapshot.');
+      }
+      if (set['is_skipped'] == false && set['completed_at_utc'] != null) {
+        counts[index] = (counts[index] ?? 0) + 1;
+        final reps = set['reps'] as int?;
+        final loadKg = (set['load_kg'] as num?)?.toDouble();
+        if (reps != null && loadKg != null) {
+          if (reps < 0 || !loadKg.isFinite || loadKg < 0) {
+            throw const FormatException('Invalid performed volume values.');
+          }
+          volumeKg += reps * loadKg;
+          hasMeasuredVolume = true;
+        }
+      }
+    }
+    final savedAt = row['workout_at_utc'] == null
+        ? null
+        : DateTime.parse(row['workout_at_utc'] as String).toUtc();
+    final offset = (row['workout_utc_offset_minutes'] as num?)?.toInt();
+    final selectedDuration = (row['workout_duration_seconds'] as num?)?.toInt();
+    final elapsedMicroseconds =
+        completedAt.difference(startedAt).inMicroseconds -
+            (row['accumulated_paused_microseconds'] as num).toInt();
+    if (elapsedMicroseconds < 0 ||
+        selectedDuration != null && selectedDuration < 0) {
+      throw const FormatException('Invalid completed workout duration.');
+    }
+    final savedTitle = _nonBlank(row['workout_title'] as String?);
+    return WorkoutHistoryEntry(
+      sessionId: sessionId,
+      completedAtUtc: completedAt,
+      displayAt: savedAt == null
+          ? completedAt.toLocal()
+          : offset == null
+              ? savedAt.toLocal()
+              : savedAt.add(Duration(minutes: offset)),
+      title: savedTitle ?? snapshot.routineName,
+      duration: selectedDuration == null
+          ? Duration(microseconds: elapsedMicroseconds)
+          : Duration(seconds: selectedDuration),
+      volumeKg: hasMeasuredVolume && volumeKg.isFinite ? volumeKg : null,
+      description: _nonBlank(row['notes'] as String?),
+      gymName: _nonBlank(row['gym_name'] as String?),
+      exercises: List.unmodifiable([
+        for (final exercise in snapshot.exercises)
+          if ((counts[exercise.occurrenceIndex] ?? 0) > 0)
+            WorkoutHistoryExercise(
+              ref: exercise.exerciseRef,
+              name: exercise.displayName,
+              setCount: counts[exercise.occurrenceIndex]!,
+            ),
+      ]),
+    );
+  }
+
+  static String? _nonBlank(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
 }

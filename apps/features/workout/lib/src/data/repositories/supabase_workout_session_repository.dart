@@ -4,10 +4,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../domain/models/workout_session_record.dart';
+import '../../domain/models/workout_history_entry.dart';
+import '../../domain/repositories/workout_history_repository.dart';
+import '../../domain/repositories/workout_history_edit_repository.dart';
 import '../../domain/repositories/workout_session_repository.dart';
 import '../../domain/repositories/workout_draft_save_repository.dart';
 import '../../domain/models/active_workout_draft.dart';
 import '../dto/workout_draft_save_dto.dart';
+import '../dto/workout_history_edit_dto.dart';
 import '../dto/workout_session_dtos.dart';
 import 'supabase_workout_session_gateway.dart';
 
@@ -17,7 +21,11 @@ import 'supabase_workout_session_gateway.dart';
 /// Adheres to optimistic concurrency control (OCC), bracketed read consistency,
 /// and deterministic set slot ordering.
 final class SupabaseWorkoutSessionRepository
-    implements WorkoutSessionRepository, WorkoutDraftSaveRepository {
+    implements
+        WorkoutSessionRepository,
+        WorkoutDraftSaveRepository,
+        WorkoutHistoryRepository,
+        WorkoutHistoryEditRepository {
   SupabaseWorkoutSessionRepository({
     required WorkoutSessionGateway gateway,
     required String? Function() currentUserId,
@@ -59,6 +67,210 @@ final class SupabaseWorkoutSessionRepository
   final String? Function() _currentUserId;
   final Duration _requestTimeout;
   final int _readAttempts;
+
+  static const int historyPageSize = 5;
+  static const int _historySetBatchSize = 1000;
+
+  @override
+  Future<WorkoutHistoryDetail> updateCompletedWorkout(
+    WorkoutHistoryEditRequest request,
+  ) async {
+    final owner = _owner();
+    final source = request.source;
+    if (source.revision == null || source.summary.sessionId.value.isEmpty) {
+      throw const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.invalidPayload,
+      );
+    }
+    final payload = WorkoutHistoryEditDto.payload(request);
+    final gateway = _gateway;
+    if (gateway is! WorkoutHistoryEditGateway) {
+      throw StateError('Completed workout editing is unavailable.');
+    }
+    _checkOwner(owner);
+    try {
+      await (gateway as WorkoutHistoryEditGateway).rpcUpdateCompletedWorkout({
+        'p_session_id': source.summary.sessionId.value,
+        'p_expected_revision': source.revision,
+        'p_payload': payload,
+      }).timeout(_requestTimeout);
+      _checkOwner(owner);
+    } on WorkoutSessionPersistenceException {
+      rethrow;
+    } on TimeoutException catch (error) {
+      throw WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Update outcome is unknown; reload before retrying.',
+        cause: error,
+      );
+    } on PostgrestException catch (error) {
+      throw _mapPostgrestException(error);
+    } catch (error) {
+      throw WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Update outcome is unknown; reload before retrying.',
+        cause: error,
+      );
+    }
+    final saved = await getCompletedHistoryDetail(source.summary.sessionId);
+    if (saved == null ||
+        saved.revision == null ||
+        saved.revision! < source.revision! + 1 ||
+        !WorkoutHistoryEditDto.matches(saved, payload)) {
+      throw WorkoutSessionCommittedReadbackException(
+        sessionId: source.summary.sessionId,
+        operationName: 'updateCompletedWorkout',
+        message: 'Canonical Update readback did not match the edit.',
+      );
+    }
+    return saved;
+  }
+
+  @override
+  Future<WorkoutHistoryDetail?> getCompletedHistoryDetail(
+    WorkoutSessionId sessionId,
+  ) async {
+    final owner = _owner();
+    for (var attempt = 0; attempt < _readAttempts; attempt++) {
+      final before = await _executeRead(
+        owner,
+        () => _gateway.readCompletedHistoryHeader(owner, sessionId.value),
+      );
+      if (before == null) return null;
+      final sets = await _executeRead(
+        owner,
+        () => _gateway.readPerformedSets(owner, sessionId.value, limit: 501),
+      );
+      if (sets.length > 500) {
+        throw const WorkoutSessionPersistenceException(
+          WorkoutSessionPersistenceFailureKind.invalidPayload,
+          message: 'History detail exceeds the W7 performed-set quota.',
+        );
+      }
+      final after = await _executeRead(
+        owner,
+        () => _gateway.readCompletedHistoryHeader(owner, sessionId.value),
+      );
+      if (after == null) return null;
+      if (before['revision'] != after['revision']) continue;
+      _checkOwner(owner);
+      try {
+        if (after['id'] != sessionId.value) {
+          throw const FormatException('History detail session ID mismatch.');
+        }
+        return WorkoutHistoryDto.detailFromRows(
+          after,
+          sets,
+          expectedOwnerId: owner,
+        );
+      } catch (error) {
+        throw WorkoutSessionPersistenceException(
+          WorkoutSessionPersistenceFailureKind.invalidPayload,
+          message: 'Malformed completed workout detail.',
+          cause: error,
+        );
+      }
+    }
+    throw const WorkoutSessionPersistenceException(
+      WorkoutSessionPersistenceFailureKind.readConflict,
+    );
+  }
+
+  @override
+  Future<WorkoutHistoryPageResult> listCompletedHistory({
+    WorkoutHistoryCursor? after,
+  }) async {
+    final owner = _owner();
+    for (var attempt = 0; attempt < _readAttempts; attempt++) {
+      final headers = await _executeRead(
+        owner,
+        () => _gateway.readCompletedHistoryHeaders(
+          owner,
+          limit: historyPageSize + 1,
+          beforeCompletedAtUtc: after?.completedAtUtc,
+          beforeId: after?.sessionId.value,
+        ),
+      );
+      final pageHeaders =
+          headers.take(historyPageSize).toList(growable: false);
+      final ids = pageHeaders.map((row) => row['id'] as String).toList();
+      final sets = <Map<String, dynamic>>[];
+      const maximumPageSets = historyPageSize * 500;
+      // W7 caps a session at 500 performed sets. Five sessions therefore need
+      // at most three bounded requests; the extra row detects corrupted overflow.
+      for (var offset = 0;
+          offset <= maximumPageSets;
+          offset += _historySetBatchSize) {
+        if (ids.isEmpty) break;
+        final remainingWithSentinel = maximumPageSets + 1 - offset;
+        final batchLimit = remainingWithSentinel < _historySetBatchSize
+            ? remainingWithSentinel
+            : _historySetBatchSize;
+        final batch = await _executeRead(
+          owner,
+          () => _gateway.readHistoryPerformedSets(
+            owner,
+            ids,
+            offset: offset,
+            limit: batchLimit,
+          ),
+        );
+        sets.addAll(batch);
+        if (batch.length < batchLimit) break;
+      }
+      final verifiedHeaders = await _executeRead(
+        owner,
+        () => _gateway.readCompletedHistoryHeaders(
+          owner,
+          limit: historyPageSize + 1,
+          beforeCompletedAtUtc: after?.completedAtUtc,
+          beforeId: after?.sessionId.value,
+        ),
+      );
+      if (!_sameHistoryPageRevisions(headers, verifiedHeaders)) continue;
+      if (sets.length > maximumPageSets) {
+        throw const WorkoutSessionPersistenceException(
+          WorkoutSessionPersistenceFailureKind.invalidPayload,
+          message: 'History set count exceeds the W7 quota.',
+        );
+      }
+      _checkOwner(owner);
+      try {
+        final bySession = <String, List<Map<String, dynamic>>>{};
+        for (final row in sets) {
+          final id = row['session_id'] as String;
+          if (!ids.contains(id)) {
+            throw const FormatException('Unexpected set session');
+          }
+          (bySession[id] ??= []).add(row);
+        }
+        final entries = pageHeaders
+            .map((row) => WorkoutHistoryDto.fromRows(
+                  row,
+                  bySession[row['id']] ?? const [],
+                  expectedOwnerId: owner,
+                ))
+            .toList(growable: false);
+        final last = entries.isEmpty ? null : entries.last;
+        return WorkoutHistoryPageResult(
+          entries: entries,
+          hasMore: verifiedHeaders.length > historyPageSize,
+          nextCursor: last == null
+              ? null
+              : WorkoutHistoryCursor(last.completedAtUtc, last.sessionId),
+        );
+      } catch (error) {
+        throw WorkoutSessionPersistenceException(
+          WorkoutSessionPersistenceFailureKind.invalidPayload,
+          message: 'Malformed completed workout history.',
+          cause: error,
+        );
+      }
+    }
+    throw const WorkoutSessionPersistenceException(
+      WorkoutSessionPersistenceFailureKind.readConflict,
+    );
+  }
 
   @override
   Future<SavedWorkoutDraftRecord> saveDraft(ActiveWorkoutDraft draft) async {
@@ -578,6 +790,21 @@ final class SupabaseWorkoutSessionRepository
         message: 'Active authentication session changed during operation',
       );
     }
+  }
+
+  /// Detects page membership or revision changes across separate read requests.
+  static bool _sameHistoryPageRevisions(
+    List<Map<String, dynamic>> before,
+    List<Map<String, dynamic>> after,
+  ) {
+    if (before.length != after.length) return false;
+    for (var index = 0; index < before.length; index++) {
+      if (before[index]['id'] != after[index]['id'] ||
+          before[index]['revision'] != after[index]['revision']) {
+        return false;
+      }
+    }
+    return true;
   }
 
   static bool _isUuid(String value) => RegExp(

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show OverflowBoxFit;
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
@@ -138,6 +139,10 @@ class SaveWorkoutPage extends StatefulWidget {
     this.gymLocationRepository,
     this.notesOnly = false,
     this.sessionMetadataOnly = false,
+    this.editMode = false,
+    this.exerciseSection,
+    this.maximumWorkoutDateTime,
+    this.showVolume = true,
     super.key,
   });
 
@@ -160,6 +165,10 @@ class SaveWorkoutPage extends StatefulWidget {
 
   /// Enables title/date editing while keeping unsupported Save fields read-only.
   final bool sessionMetadataOnly;
+  final bool editMode;
+  final Widget? exerciseSection;
+  final DateTime? maximumWorkoutDateTime;
+  final bool showVolume;
 
   final FutureOr<bool> Function({
     required String title,
@@ -245,6 +254,17 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
 
   DateTime _currentNow() => (widget.clock?.call() ?? DateTime.now()).toLocal();
 
+  DateTime _wallDateTime(DateTime value) =>
+      DateTime(value.year, value.month, value.day, value.hour, value.minute);
+
+  DateTime _pickerNow() {
+    final now = _currentNow();
+    final savedOffset = widget.initialWorkoutUtcOffsetMinutes;
+    if (savedOffset == null) return now;
+    final savedWall = now.toUtc().add(Duration(minutes: savedOffset));
+    return _wallDateTime(savedWall);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -305,12 +325,25 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
     final picked = await showWorkoutDateTimePickerSheet(
       context: context,
       initialDateTime: _workoutDate,
-      clock: widget.clock,
+      clock: widget.maximumWorkoutDateTime == null &&
+              widget.initialWorkoutUtcOffsetMinutes == null
+          ? widget.clock
+          : () {
+              final now = _pickerNow();
+              final maximumDate = widget.maximumWorkoutDateTime;
+              if (maximumDate == null) return now;
+              final maximum = widget.initialWorkoutUtcOffsetMinutes == null
+                  ? maximumDate.toLocal()
+                  : _wallDateTime(maximumDate);
+              return maximum.isBefore(now) ? maximum : now;
+            },
     );
     if (picked != null && mounted) {
       setState(() {
         _workoutDate = picked;
-        _workoutUtcOffsetMinutes = picked.timeZoneOffset.inMinutes;
+        _workoutUtcOffsetMinutes =
+            widget.initialWorkoutUtcOffsetMinutes ??
+                picked.timeZoneOffset.inMinutes;
       });
     }
   }
@@ -467,24 +500,31 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
       appBar: TioAppBar(
         automaticallyImplyLeading: false,
         leading: PopScope(
-          canPop: widget.onLeaveDraft == null || _allowPop,
+          canPop: _allowPop || (!_isBusy && widget.onLeaveDraft == null),
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) unawaited(_leaveDraft());
+            if (!didPop && !_isBusy) unawaited(_leaveDraft());
           },
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: _leaveDraft,
-          ),
+          child: widget.editMode
+              ? IconButton(
+                  tooltip: 'Close Edit Workout',
+                  onPressed: _isBusy ? null : _leaveDraft,
+                  icon: const Icon(Icons.close_rounded))
+              : IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: _leaveDraft,
+                ),
         ),
-        title: const Text('Save Workout'),
+        title: Text(widget.editMode ? 'Edit Workout' : 'Save Workout'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: TioSpacing.md),
             child: SizedBox(
               height: TioSize.dp34,
               child: TioButton.primary(
-                key: const ValueKey('save-workout-submit-button'),
-                label: 'Save',
+                key: ValueKey(widget.editMode
+                    ? 'edit-workout-update-button'
+                    : 'save-workout-submit-button'),
+                label: widget.editMode ? 'Update' : 'Save',
                 enabled: !_isBusy,
                 onPressed: _handleSave,
                 loading: _isSaving,
@@ -584,12 +624,13 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                         : _pickDuration,
                   ),
                 ),
-                Expanded(
-                  child: _SaveStatItem(
-                    label: 'Volume',
-                    value: '${_formatNumber(widget.volumeKg)} kg',
+                if (widget.showVolume)
+                  Expanded(
+                    child: _SaveStatItem(
+                      label: 'Volume',
+                      value: '${_formatNumber(widget.volumeKg)} kg',
+                    ),
                   ),
-                ),
                 Expanded(
                   child: _SaveStatItem(
                     label: 'Sets',
@@ -624,11 +665,15 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                     color: colors.textPrimary,
                   ),
                   const SizedBox(width: TioSpacing.sm),
-                  Text(
-                    'Add a photo / video',
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: TioFontWeight.w600,
-                      color: colors.textPrimary,
+                  Flexible(
+                    child: Text(
+                      'Add a photo / video',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: TioFontWeight.w600,
+                        color: colors.textPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -749,38 +794,61 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
                   ? null
                   : _pickWorkoutRpe,
             ),
-            const _SaveOptionTile(
-              key: ValueKey('save-workout-routine-settings-tile'),
-              icon: Icons.assignment_outlined,
-              title: 'Routine Settings',
-              enabled: false,
-              onTap: null,
-            ),
-            const _SaveOptionTile(
-              key: ValueKey('save-workout-sync-tile'),
-              icon: Icons.sync_rounded,
-              title: 'Sync With',
-              value: 'Health Connect',
-              enabled: false,
-              onTap: null,
-            ),
+            if (!widget.editMode)
+              const _SaveOptionTile(
+                key: ValueKey('save-workout-routine-settings-tile'),
+                icon: Icons.assignment_outlined,
+                title: 'Routine Settings',
+                enabled: false,
+                onTap: null,
+              ),
+            if (!widget.editMode)
+              const _SaveOptionTile(
+                key: ValueKey('save-workout-sync-tile'),
+                icon: Icons.sync_rounded,
+                title: 'Sync With',
+                value: 'Health Connect',
+                enabled: false,
+                onTap: null,
+              ),
 
-            const SizedBox(height: TioSpacing.xl),
-
-            // Discard Workout
-            Center(
-              child: TextButton(
-                key: const ValueKey('save-workout-discard-button'),
-                onPressed: _isBusy ? null : _confirmDiscard,
-                child: Text(
-                  'Discard Workout',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: colors.danger,
-                    fontWeight: TioFontWeight.w600,
+            if (widget.exerciseSection != null) ...[
+              const SizedBox(height: TioSpacing.lg),
+              Divider(height: 1, color: colors.outlineStrong),
+              const SizedBox(height: TioSpacing.lg),
+              if (widget.editMode)
+                AbsorbPointer(
+                  absorbing: _isBusy,
+                  child: OverflowBox(
+                    alignment: Alignment.center,
+                    fit: OverflowBoxFit.deferToChild,
+                    minWidth: MediaQuery.sizeOf(context).width,
+                    maxWidth: MediaQuery.sizeOf(context).width,
+                    child: widget.exerciseSection!,
+                  ),
+                )
+              else
+                AbsorbPointer(
+                  absorbing: _isBusy,
+                  child: widget.exerciseSection!,
+                ),
+            ],
+            if (!widget.editMode) ...[
+              const SizedBox(height: TioSpacing.xl),
+              Center(
+                child: TextButton(
+                  key: const ValueKey('save-workout-discard-button'),
+                  onPressed: _isBusy ? null : _confirmDiscard,
+                  child: Text(
+                    'Discard Workout',
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: colors.danger,
+                      fontWeight: TioFontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: TioSpacing.xl),
           ],
         ),
@@ -887,15 +955,21 @@ class _SaveOptionTile extends StatelessWidget {
               color: enabled ? colors.textPrimary : colors.textSecondary,
             ),
             const SizedBox(width: TioSpacing.md),
-            Text(
-              title,
-              style: textTheme.bodyLarge?.copyWith(
-                fontWeight: TioFontWeight.w500,
-                color: enabled ? colors.textPrimary : colors.textSecondary,
+            Expanded(
+              flex: 2,
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodyLarge?.copyWith(
+                  fontWeight: TioFontWeight.w500,
+                  color: enabled ? colors.textPrimary : colors.textSecondary,
+                ),
               ),
             ),
             const SizedBox(width: TioSpacing.sm),
             Expanded(
+              flex: 3,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for the Workout screen product contract, ownership
 **Surface:** Phone primary tab for `workout` and `hybrid` modes
 **Current route:** `/workout`
 **Primary owner:** `apps/features/workout`
-**Status (main source verified 2026-11-11 at `3e5b70c6467c704d2a67fd7210b0babd55aa2215`; Routine Start implementation is pending review on `codex/w7-routine-start`):** `/workout` renders Workout-owned `WorkoutHomePage` with its date/calendar surface and Library entry. Nested Library, Programs and Exercises, owner-scoped Routine Detail/Edit and the Active Workout route are implemented. Home Play starts an empty account-bound local Save-only draft. The current branch adds a Routine Detail entry that seeds the same draft with the Routine title and ordered prescribed Sets. This is source status, not a distributed app release or phone QA. Scheduled TrainingPlan, Insights and broader Workout Settings remain gated.
+**Status (main source verified 2026-11-11 at `23310eeef6c1d42142f3af8f8563e759350d087c`):** `/workout` renders Workout-owned `WorkoutHomePage` with its date/calendar surface and Library entry. Nested Library, Programs and Exercises, owner-scoped Routine Detail/Edit and the Active Workout route are implemented. Home Play starts an empty account-bound local Save-only draft; Routine Detail, Program Detail and expanded Library Routine rows can seed that draft from a selected Routine (merged PR #748). W8A History action/list/card and W8B Detail/card selection are on PR #752, not yet on main. This is source status, not a distributed app release or phone QA. Scheduled TrainingPlan, Insights and broader Workout Settings remain gated.
 
 ## Purpose
 
@@ -19,6 +19,30 @@ Let the user choose a Routine or structured Program, run the selected session, r
 The root app bar shows a non-interactive Workout streak status on the right. It
 shows only the icon until real Workout history provides a positive count; it
 never fabricates a number or routes to Progress.
+
+The approved W8A slice adds a separate far-right History action beside this
+status. `/workout/history` is a nested Workout route, not a new bottom tab. It
+lists only owner-scoped completed `WorkoutSession` rows and previews actual
+performed sets from saved snapshots. The card shows saved workout time, title,
+optional description/gym, duration, measured external-load volume when saved
+performed reps and load exist, and up to five performed exercises; blank
+optional fields take no space. Volume sums completed, non-skipped performed
+`reps × load_kg` pairs, matching Active Workout; it is absent when no such pair
+exists. PR, average bpm and calories remain hidden until authoritative
+completed-session contracts support them. History
+Detail and card selection are the owner-approved W8B slice on the same PR
+branch. A selected card opens `/workout/history/:sessionId`; Detail reads one
+completed session and its actual performed sets under the current owner. Its
+summary shows saved title, optional description/gym, date/time, duration,
+measured volume when available, and completed set count. The Workout section
+shows frozen exercise names/order and only actual performed set measurements.
+The owner-approved W8C slice adds a right-aligned `Edit Workout` action on
+Detail. It opens `/workout/history/:sessionId/edit`, combining saved metadata
+with actual exercise and performed-set inputs. `Update` edits the same completed
+session through an owner-scoped, revision-checked transaction. It supports
+exercise add/remove/replace and set edits, while leaving Active Workout state
+untouched. This source change is on PR #752; merge, database deployment and
+device acceptance are separate gates.
 
 1. **Current plan** — selected Routine or TrainingPlan/PlannedWorkout context, its next scheduled workout when one exists, session status, and a clear rest-day state. Reusable Program itself does not own scheduled sessions. Workout Home Play remains the empty ad-hoc start entry; Routine Detail, Program Detail and expanded Library Routine rows can start the selected Routine.
 2. **Library** — one canonical Workout-owned route (`/workout/library`, W6A), reached from the Workout Home entry below the calendar. The approved target category order is **Programs → Exercises → Your Plan**: Programs is default, Exercises is second, and Your Plan is rendered only when a real followed/applicable canonical TrainingPlan exists; otherwise it is hidden completely. There is no standalone Routines category/collection, and saved Routines remain Program-owned. It is not a guided default tab or a Workout-local content tab; a future configurable navigation may promote the same route. See [Library](library.md).

@@ -118,7 +118,8 @@ void main() {
       );
     });
 
-    test('requires onboarding while in progress even if no confirmed mode exists',
+    test(
+        'requires onboarding while in progress even if no confirmed mode exists',
         () {
       expect(
         appModeRedirect(
@@ -141,6 +142,32 @@ void main() {
     test('keeps only workout guided routes after explicit completion', () {
       expect(
         appModeRedirect(
+          path: AppRoutes.workoutHistory.path,
+          selectedMode: AppMode.workout,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        isNull,
+      );
+      expect(
+        appModeRedirect(
+          path: AppRoutes.workoutHistoryDetail.path.replaceFirst(
+              ':sessionId', '22222222-2222-4222-a222-222222222222'),
+          selectedMode: AppMode.workout,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        isNull,
+      );
+      expect(
+        appModeRedirect(
+          path: AppRoutes.workoutHistoryEdit.path.replaceFirst(
+              ':sessionId', '22222222-2222-4222-a222-222222222222'),
+          selectedMode: AppMode.workout,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        isNull,
+      );
+      expect(
+        appModeRedirect(
           path: FeatureRoutes.workout.path,
           selectedMode: AppMode.workout,
           onboardingStatus: OnboardingStatus.completed,
@@ -158,6 +185,32 @@ void main() {
     });
 
     test('keeps only nutrition guided routes after explicit completion', () {
+      expect(
+        appModeRedirect(
+          path: AppRoutes.workoutHistory.path,
+          selectedMode: AppMode.nutrition,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        FeatureRoutes.home.path,
+      );
+      expect(
+        appModeRedirect(
+          path: AppRoutes.workoutHistoryDetail.path.replaceFirst(
+              ':sessionId', '22222222-2222-4222-a222-222222222222'),
+          selectedMode: AppMode.nutrition,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        FeatureRoutes.home.path,
+      );
+      expect(
+        appModeRedirect(
+          path: AppRoutes.workoutHistoryEdit.path.replaceFirst(
+              ':sessionId', '22222222-2222-4222-a222-222222222222'),
+          selectedMode: AppMode.nutrition,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        FeatureRoutes.home.path,
+      );
       expect(
         appModeRedirect(
           path: FeatureRoutes.nutrition.path,

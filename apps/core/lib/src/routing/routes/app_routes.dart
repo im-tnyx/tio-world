@@ -203,6 +203,30 @@ class AppRoutes {
     chromePolicy: ChromePolicy.noBottomBar,
   );
 
+  /// Completed WorkoutSession timeline, nested under the Workout branch.
+  static const workoutHistory = TioRouteContract(
+    path: '/workout/history',
+    title: 'History',
+    description: 'View your saved completed workouts.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
+  /// One saved completed WorkoutSession, inside Workout navigation.
+  static const workoutHistoryDetail = TioRouteContract(
+    path: '/workout/history/:sessionId',
+    title: 'Workout Detail',
+    description: 'View saved performed workout details.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
+  /// Edit one owner-owned completed workout inside the Workout branch.
+  static const workoutHistoryEdit = TioRouteContract(
+    path: '/workout/history/:sessionId/edit',
+    title: 'Edit Workout',
+    description: 'Update a saved completed workout.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
   /// Canonical Exercise Detail/About surface for catalog and Custom Exercises.
   ///
   /// The `exerciseId` path segment is an `ex_*` catalog identity or a

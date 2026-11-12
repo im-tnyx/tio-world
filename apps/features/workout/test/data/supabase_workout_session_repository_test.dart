@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_feature_workout/src/presentation/controllers/workout_history_edit_controller.dart';
 import 'package:tio_shared/shared.dart';
 
 const _owner = '11111111-1111-4111-a111-111111111111';
@@ -128,7 +129,48 @@ Map<String, dynamic> _mockSetRow({
       'updated_at': _startedAt.toIso8601String(),
     };
 
-final class _FakeGateway implements WorkoutSessionGateway {
+final class _FakeGateway
+    implements WorkoutSessionGateway, WorkoutHistoryEditGateway {
+  List<Map<String, dynamic>> historyHeaders = [];
+  List<Map<String, dynamic>> historySets = [];
+  String? lastHistoryOwner;
+  DateTime? lastHistoryBefore;
+  String? lastHistoryBeforeId;
+  List<String>? lastHistorySessionIds;
+  int historyHeaderReadCount = 0;
+  int historySetReadCount = 0;
+  void Function()? beforeHistorySetRead;
+  Future<List<Map<String, dynamic>>> Function()? onReadHistoryHeaders;
+
+  @override
+  Future<List<Map<String, dynamic>>> readCompletedHistoryHeaders(
+    String userId, {
+    required int limit,
+    DateTime? beforeCompletedAtUtc,
+    String? beforeId,
+  }) async {
+    historyHeaderReadCount++;
+    lastHistoryOwner = userId;
+    lastHistoryBefore = beforeCompletedAtUtc;
+    lastHistoryBeforeId = beforeId;
+    return onReadHistoryHeaders == null
+        ? historyHeaders.take(limit).toList()
+        : await onReadHistoryHeaders!();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> readHistoryPerformedSets(
+    String userId,
+    List<String> sessionIds, {
+    required int offset,
+    required int limit,
+  }) async {
+    historySetReadCount++;
+    beforeHistorySetRead?.call();
+    lastHistorySessionIds = sessionIds;
+    return historySets.skip(offset).take(limit).toList();
+  }
+
   Map<String, dynamic>? activeHeader;
   Map<String, dynamic>? sessionHeader;
   List<Map<String, dynamic>> performedSets = [];
@@ -151,6 +193,8 @@ final class _FakeGateway implements WorkoutSessionGateway {
   Future<void> Function(Map<String, dynamic>)? onRemoveSet;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onComplete;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onSaveDraft;
+  Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onEdit;
+  Map<String, dynamic>? lastEditParams;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onDiscard;
 
   @override
@@ -171,6 +215,20 @@ final class _FakeGateway implements WorkoutSessionGateway {
       if (seq.isNotEmpty) return seq.removeAt(0);
     }
     return sessionHeader;
+  }
+
+  String? lastDetailOwner;
+  String? lastDetailSessionId;
+
+  @override
+  Future<Map<String, dynamic>?> readCompletedHistoryHeader(
+    String userId,
+    String sessionId,
+  ) async {
+    lastDetailOwner = userId;
+    lastDetailSessionId = sessionId;
+    final row = await readSessionHeader(userId, sessionId);
+    return row?['status'] == 'completed' ? row : null;
   }
 
   @override
@@ -245,6 +303,15 @@ final class _FakeGateway implements WorkoutSessionGateway {
           : _mockSessionRow(revision: 2, status: 'completed');
 
   @override
+  Future<Map<String, dynamic>> rpcUpdateCompletedWorkout(
+      Map<String, dynamic> params) async {
+    lastEditParams = params;
+    return onEdit != null
+        ? await onEdit!(params)
+        : _mockSessionRow(revision: 3, status: 'completed');
+  }
+
+  @override
   Future<Map<String, dynamic>> rpcDiscardWorkoutSession(
     Map<String, dynamic> params,
   ) async {
@@ -267,6 +334,469 @@ void main() {
       repo = SupabaseWorkoutSessionRepository(
         gateway: gateway,
         currentUserId: () => currentUserId,
+      );
+    });
+
+    test('Detail reads one completed owner session and actual ordered sets',
+        () async {
+      final snapshot = WorkoutSessionSnapshotDto.toJson(_mockSnapshot());
+      final exercises =
+          List<Map<String, dynamic>>.from(snapshot['exercises'] as List);
+      exercises.add({
+        'exercise_ref': 'ex_spinning',
+        'display_name': 'Spinning',
+        'exercise_type': 'duration',
+        'occurrence_index': 1,
+        'prescribed_sets': [
+          {'set_type': 'normal', 'duration_seconds': 600}
+        ],
+      });
+      snapshot['exercises'] = exercises;
+      gateway.sessionHeader = {
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 44)),
+          workoutTitle: 'Shoulders & Triceps',
+          notes: '  Good day  ',
+        ),
+        'routine_snapshot': snapshot,
+        'gym_name': '  Main Gym  ',
+        'workout_duration_seconds': 2640,
+      };
+      gateway.performedSets = [
+        _mockSetRow(setIndex: 1, setId: '55555555-5555-4555-a555-555555555556'),
+        _mockSetRow(setIndex: 0),
+        {..._mockSetRow(setIndex: 2), 'is_skipped': true},
+        {
+          ..._mockSetRow(
+            exerciseIndex: 1,
+            setId: '55555555-5555-4555-a555-555555555557',
+            reps: null,
+            loadKg: null,
+          ),
+          'exercise_ref': 'ex_spinning',
+          'duration_seconds': 429,
+        },
+      ];
+
+      final detail = await repo.getCompletedHistoryDetail(_sessionId);
+
+      expect(gateway.lastDetailOwner, _owner);
+      expect(gateway.lastDetailSessionId, _sessionId.value);
+      expect(gateway.readHeaderCallCount, 2);
+      expect(detail!.summary.title, 'Shoulders & Triceps');
+      expect(detail.summary.duration, const Duration(minutes: 44));
+      expect(detail.summary.volumeKg, 1600);
+      expect(detail.summary.description, 'Good day');
+      expect(detail.summary.gymName, 'Main Gym');
+      expect(detail.performedSetCount, 3);
+      expect(detail.exercises.map((e) => e.name), ['Bench Press', 'Spinning']);
+      expect(detail.exercises.first.sets.map((e) => e.setIndex), [0, 1]);
+      expect(detail.exercises.last.sets.single.durationSeconds, 429);
+    });
+
+    test(
+        'completed Update sends owner revision and verifies canonical readback',
+        () async {
+      final completed = _startedAt.add(const Duration(minutes: 44));
+      gateway.sessionHeader = {
+        ..._mockSessionRow(
+          revision: 2,
+          status: 'completed',
+          completedAt: completed,
+          workoutTitle: 'Original',
+          workoutAtUtc: _startedAt,
+        ),
+        'workout_duration_seconds': 2640,
+      };
+      gateway.performedSets = [_mockSetRow()];
+      final source = (await repo.getCompletedHistoryDetail(_sessionId))!;
+      final controller = WorkoutHistoryEditController(source);
+      final request = WorkoutHistoryEditRequest(
+        source: source,
+        title: 'Updated',
+        description: 'Edited',
+        workoutAtUtc: _startedAt,
+        utcOffsetMinutes: 0,
+        durationSeconds: 2400,
+        gymName: 'Main Gym',
+        activityType: 'Weight Training',
+        overallRpe: 7,
+        exercises: controller.exercises,
+      );
+      gateway.onEdit = (params) async {
+        final payload = params['p_payload'] as Map<String, dynamic>;
+        gateway.sessionHeader = {
+          ...gateway.sessionHeader!,
+          'revision': 3,
+          'workout_title': payload['workout_title'],
+          'notes': payload['description'],
+          'workout_at_utc': payload['workout_at_utc'],
+          'workout_utc_offset_minutes': payload['workout_utc_offset_minutes'],
+          'workout_duration_seconds': payload['selected_duration_seconds'],
+          'gym_name': payload['gym_name'],
+          'workout_activity_type': payload['activity_type'],
+          'workout_rpe': payload['overall_rpe'],
+          'routine_snapshot': payload['routine_snapshot'],
+        };
+        final set = (payload['performed_sets'] as List).single as Map;
+        gateway.performedSets = [
+          {
+            ..._mockSetRow(),
+            'id': set['id'],
+            'reps': set['reps'],
+            'load_kg': set['load_kg'],
+            'completed_at_utc': set['completed_at_utc'],
+          }
+        ];
+        return gateway.sessionHeader!;
+      };
+      final saved = await repo.updateCompletedWorkout(request);
+      expect(gateway.lastEditParams?['p_session_id'], _sessionId.value);
+      expect(gateway.lastEditParams?['p_expected_revision'], 2);
+      expect(saved.revision, 3);
+      expect(saved.summary.title, 'Updated');
+      expect(saved.summary.duration, const Duration(minutes: 40));
+      expect(saved.summary.sessionId, _sessionId);
+      controller.dispose();
+    });
+
+    test('completed Update rejects an account switch before readback',
+        () async {
+      final completed = _startedAt.add(const Duration(minutes: 44));
+      gateway.sessionHeader = {
+        ..._mockSessionRow(
+          revision: 2,
+          status: 'completed',
+          completedAt: completed,
+          workoutTitle: 'Original',
+          workoutAtUtc: _startedAt,
+        ),
+        'workout_duration_seconds': 2640,
+      };
+      gateway.performedSets = [_mockSetRow()];
+      final source = (await repo.getCompletedHistoryDetail(_sessionId))!;
+      final controller = WorkoutHistoryEditController(source);
+      final pending = Completer<Map<String, dynamic>>();
+      gateway.onEdit = (_) => pending.future;
+      final result = repo.updateCompletedWorkout(WorkoutHistoryEditRequest(
+        source: source,
+        title: 'Updated',
+        description: null,
+        workoutAtUtc: _startedAt,
+        utcOffsetMinutes: 0,
+        durationSeconds: 2400,
+        gymName: null,
+        activityType: null,
+        overallRpe: null,
+        exercises: controller.exercises,
+      ));
+      await Future<void>.delayed(Duration.zero);
+      currentUserId = _otherOwner;
+      pending.complete(_mockSessionRow(revision: 3, status: 'completed'));
+      await expectLater(
+        result,
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (error) => error.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.unauthorized,
+        )),
+      );
+      controller.dispose();
+    });
+
+    test('Detail excludes active and foreign rows and stale account results',
+        () async {
+      gateway.sessionHeader = _mockSessionRow(status: 'active');
+      expect(await repo.getCompletedHistoryDetail(_sessionId), isNull);
+      gateway.sessionHeader = {
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 1)),
+        ),
+        'user_id': _otherOwner,
+      };
+      await expectLater(repo.getCompletedHistoryDetail(_sessionId),
+          throwsA(isA<WorkoutSessionPersistenceException>()));
+
+      final pending = Completer<Map<String, dynamic>?>();
+      gateway.onReadSessionHeader = (_, __) => pending.future;
+      final read = repo.getCompletedHistoryDetail(_sessionId);
+      currentUserId = _otherOwner;
+      pending.complete({
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 1)),
+        ),
+      });
+      await expectLater(
+          read, throwsA(isA<WorkoutSessionPersistenceException>()));
+    });
+
+    test('Detail retries a changed revision and rejects quota overflow',
+        () async {
+      final completed = {
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 44)),
+        ),
+        'gym_name': null,
+        'workout_duration_seconds': null,
+      };
+      final headers = <Map<String, dynamic>>[
+        completed,
+        {...completed, 'revision': 2},
+        {...completed, 'revision': 2},
+        {...completed, 'revision': 2},
+      ];
+      gateway.onReadHeaderSequence = () => headers;
+      gateway.performedSets = [_mockSetRow()];
+      expect(
+          (await repo.getCompletedHistoryDetail(_sessionId))!.performedSetCount,
+          1);
+      expect(gateway.readHeaderCallCount, 4);
+
+      gateway.onReadHeaderSequence = null;
+      gateway.sessionHeader = completed;
+      gateway.performedSets = List.filled(501, _mockSetRow());
+      await expectLater(repo.getCompletedHistoryDetail(_sessionId),
+          throwsA(isA<WorkoutSessionPersistenceException>()));
+    });
+
+    test('History maps saved title, time, gym and performed-only preview',
+        () async {
+      gateway.historyHeaders = [
+        {
+          ..._mockSessionRow(
+            status: 'completed',
+            completedAt: _startedAt.add(const Duration(minutes: 53)),
+            workoutTitle: 'Shoulders',
+            workoutAtUtc: _startedAt,
+            workoutUtcOffsetMinutes: 330,
+            notes: '  Strong session  ',
+          ),
+          'gym_name': '  Main Gym  ',
+          'workout_duration_seconds': 3180,
+        },
+      ];
+      gateway.historySets = [
+        _mockSetRow(),
+        {..._mockSetRow(setIndex: 1), 'is_skipped': true},
+        _mockSetRow(setIndex: 2),
+      ];
+
+      final page = await repo.listCompletedHistory();
+
+      expect(gateway.lastHistoryOwner, _owner);
+      expect(gateway.lastHistorySessionIds, [_sessionId.value]);
+      expect(page.hasMore, isFalse);
+      final entry = page.entries.single;
+      expect(entry.sessionId, _sessionId);
+      expect(entry.title, 'Shoulders');
+      expect(entry.displayAt.hour, 15);
+      expect(entry.displayAt.minute, 30);
+      expect(entry.duration, const Duration(minutes: 53));
+      expect(entry.volumeKg, 1600);
+      expect(entry.description, 'Strong session');
+      expect(entry.gymName, 'Main Gym');
+      expect(entry.exercises.single.name, 'Bench Press');
+      expect(entry.exercises.single.setCount, 2);
+    });
+
+    test('History retries when Update changes rows between header and set reads',
+        () async {
+      final beforeHeader = {
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 10)),
+          revision: 1,
+        ),
+        'gym_name': null,
+        'workout_duration_seconds': null,
+      };
+      final updatedSnapshot = WorkoutSessionSnapshot(
+        routineId: _routineId,
+        routineName: 'Upper Body Blast',
+        programId: _programId,
+        capturedAtUtc: _startedAt,
+        exercises: [
+          SessionExerciseSnapshot(
+            exerciseRef: CatalogExerciseRef('ex_squat'),
+            displayName: 'Squat',
+            occurrenceIndex: 0,
+            prescribedSets: [
+              SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 8,
+                loadKg: 80,
+              ),
+            ],
+          ),
+        ],
+      );
+      final updatedHeader = {
+        ...beforeHeader,
+        'revision': 2,
+        'workout_title': 'Updated title',
+        'routine_snapshot': WorkoutSessionSnapshotDto.toJson(updatedSnapshot),
+      };
+      gateway.historyHeaders = [beforeHeader];
+      gateway.historySets = [_mockSetRow()];
+      var didInterleaveUpdate = false;
+      gateway.beforeHistorySetRead = () {
+        if (didInterleaveUpdate) return;
+        didInterleaveUpdate = true;
+        gateway.historyHeaders = [updatedHeader];
+        gateway.historySets = [
+          {..._mockSetRow(), 'exercise_ref': 'ex_squat'},
+        ];
+      };
+
+      final page = await repo.listCompletedHistory();
+
+      expect(gateway.historyHeaderReadCount, 4);
+      expect(gateway.historySetReadCount, 2);
+      expect(page.entries.single.title, 'Updated title');
+      expect(page.entries.single.exercises.single.name, 'Squat');
+    });
+
+    test('History is bounded and forwards newest-first keyset cursor',
+        () async {
+      gateway.historyHeaders = [
+        for (var index = 0; index < 6; index++)
+          {
+            ..._mockSessionRow(
+              status: 'completed',
+              completedAt: _startedAt.add(Duration(minutes: 60 - index)),
+            ),
+            'id':
+                '22222222-2222-4222-a222-${(222222222220 + index).toString()}',
+            'gym_name': null,
+            'workout_duration_seconds': null,
+          },
+      ];
+      final page = await repo.listCompletedHistory();
+      expect(page.entries, hasLength(5));
+      expect(page.hasMore, isTrue);
+      expect(gateway.lastHistorySessionIds, hasLength(5));
+      expect(page.nextCursor!.sessionId.value, gateway.historyHeaders[4]['id']);
+      await repo.listCompletedHistory(after: page.nextCursor);
+      expect(gateway.lastHistoryBefore, page.nextCursor!.completedAtUtc);
+      expect(gateway.lastHistoryBeforeId, page.nextCursor!.sessionId.value);
+    });
+
+    test(
+        'History omits blank optional fields and uses performed exercise order',
+        () async {
+      final snapshot = WorkoutSessionSnapshotDto.toJson(_mockSnapshot());
+      final exercises =
+          List<Map<String, dynamic>>.from(snapshot['exercises'] as List);
+      exercises.add({
+        'exercise_ref': 'ex_row',
+        'display_name': 'Row',
+        'occurrence_index': 1,
+        'prescribed_sets': [
+          {'set_type': 'normal', 'reps': 8},
+        ],
+      });
+      snapshot['exercises'] = exercises;
+      gateway.historyHeaders = [
+        {
+          ..._mockSessionRow(
+            status: 'completed',
+            completedAt: _startedAt.add(const Duration(minutes: 10)),
+            notes: '   ',
+          ),
+          'routine_snapshot': snapshot,
+          'gym_name': '  ',
+          'workout_duration_seconds': null,
+        },
+      ];
+      gateway.historySets = [
+        {
+          ..._mockSetRow(exerciseIndex: 1),
+          'exercise_ref': 'ex_row',
+        },
+        _mockSetRow(),
+      ];
+      final entry = (await repo.listCompletedHistory()).entries.single;
+      expect(entry.description, isNull);
+      expect(entry.gymName, isNull);
+      expect(entry.title, 'Upper Body Blast');
+      expect(entry.duration, const Duration(minutes: 10));
+      expect(entry.exercises.map((exercise) => exercise.name),
+          ['Bench Press', 'Row']);
+      expect(entry.exercises.map((exercise) => exercise.setCount), [1, 1]);
+      expect(entry.volumeKg, 1600);
+    });
+
+    test('History volume uses only completed measured performed sets',
+        () async {
+      gateway.historyHeaders = [
+        {
+          ..._mockSessionRow(
+            status: 'completed',
+            completedAt: _startedAt.add(const Duration(minutes: 10)),
+          ),
+          'gym_name': null,
+          'workout_duration_seconds': null,
+        },
+      ];
+      gateway.historySets = [
+        _mockSetRow(reps: 8, loadKg: 50),
+        {
+          ..._mockSetRow(setIndex: 1, reps: null, loadKg: null),
+          'is_skipped': true
+        },
+        {
+          ..._mockSetRow(setIndex: 2, reps: 10, loadKg: 100),
+          'completed_at_utc': null
+        },
+        _mockSetRow(setIndex: 3, reps: 10, loadKg: null),
+      ];
+      final entry = (await repo.listCompletedHistory()).entries.single;
+      expect(entry.volumeKg, 400);
+      expect(entry.exercises.single.setCount, 2);
+
+      gateway.historySets = [
+        _mockSetRow(reps: 10, loadKg: null),
+      ];
+      expect(
+          (await repo.listCompletedHistory()).entries.single.volumeKg, isNull);
+    });
+
+    test('History rejects non-completed, foreign and stale account results',
+        () async {
+      final completed = {
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 1)),
+        ),
+        'gym_name': null,
+        'workout_duration_seconds': null,
+      };
+      gateway.historyHeaders = [
+        {...completed, 'status': 'active'}
+      ];
+      await expectLater(
+        repo.listCompletedHistory(),
+        throwsA(isA<WorkoutSessionPersistenceException>()),
+      );
+      gateway.historyHeaders = [
+        {...completed, 'user_id': _otherOwner}
+      ];
+      await expectLater(
+        repo.listCompletedHistory(),
+        throwsA(isA<WorkoutSessionPersistenceException>()),
+      );
+      final pending = Completer<List<Map<String, dynamic>>>();
+      gateway.onReadHistoryHeaders = () => pending.future;
+      final read = repo.listCompletedHistory();
+      currentUserId = _otherOwner;
+      pending.complete([completed]);
+      await expectLater(
+        read,
+        throwsA(isA<WorkoutSessionPersistenceException>()),
       );
     });
 
