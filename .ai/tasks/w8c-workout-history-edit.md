@@ -1,6 +1,6 @@
 # W8C Completed Workout Edit
 
-**Status:** Local implementation validated; exact-head CI and independent review pending
+**Status:** Source-head CI validated; independent review and merge approval pending
 **Primary owner:** Codex
 **Planning owner:** Codex
 **Implementation owner:** Codex
@@ -29,11 +29,13 @@
 - [x] Add bounded edit read/write model, RPC/gateway and SQL security matrix.
 - [x] Build edit UI with existing Save and Log primitives, route from Detail and refresh after Update. The owner's follow-up replaces `Cancel` with an X icon; the completed-set green row spans the screen width like Log Workout.
 - [x] Run local affected Flutter validation, owner/auth tests and diff hygiene.
-- [ ] Run the SQL matrix and exact-head CI; reconcile independent review and PR/Linear without merging.
+- [x] Run the SQL matrix and source-head CI; reconcile PR/Linear without merging.
+- [ ] Obtain independent review, resolve material findings and wait for PR-specific owner merge approval.
 
 ## Handoff
 
-**Current blocker:** No local Supabase CLI is available. Docker daemon and Supabase Postgres image are present, but the repository's disposable database replay requires CLI 2.116.0. The added pgTAP matrix is wired into `supabase-db-ci.yml`; its result awaits exact-head CI. Hosted migration/deployment and device acceptance are outside this authorization.
+**Current blocker:** No local Supabase CLI is available. Docker daemon and Supabase Postgres image are present, but the repository's disposable database replay requires CLI 2.116.0. The added pgTAP matrix passed in the source-head Supabase Database CI. Hosted migration/deployment and device acceptance are outside this authorization.
 **Review provenance:** PR #752 requests `i-the`; no independent W8C review or unresolved review threads were observed at the pre-push audit. Cursor Bugbot has repeatedly reported a usage-limit failure, not a completed code analysis.
 **Validation:** `flutter analyze --no-pub` for Workout, app and Core: exit 0 each. Full Workout `flutter test --no-pub`: 1456/1456, exit 0. Focused app route/policy: 48/48, exit 0; Core routes: 8/8, exit 0. The compact OLED widget test at 320px/1.6x checks X, Update and that the green completed row starts at x=0 and ends at x=320. Repository tests check same-ID/revision readback and in-flight account switch. `dart format` on affected edited Dart files and `git diff --check`: exit 0. No local pgTAP, hosted DB apply, physical-device QA or authenticated E2E was run.
+**Source-head CI:** At `97b6403344cae088630c861b5c6ecaecd0b44917`, [Flutter CI #43153688548](https://github.com/im-tnyx/tio-world/actions/runs/43153688548), [Android Native CI #43153688623](https://github.com/im-tnyx/tio-world/actions/runs/43153688623), [Supabase Database CI #43153688668](https://github.com/im-tnyx/tio-world/actions/runs/43153688668) and [Docs Hygiene CI #43153688547](https://github.com/im-tnyx/tio-world/actions/runs/43153688547) passed. The database regression job explicitly passed `Run W8C completed workout edit SQL matrix`, migration replay/ledger and W7 matrices. Current `main` required checks are `Commit attribution guard`, `Attribution guard runner` and `Check documentation diff hygiene`; each passed. This documentation handoff commit must be checked again as the PR head after push.
 **Security and compatibility:** Authenticated-only RPC calls `auth.uid()`, checks completed owner/session/revision and payload/owned custom exercise refs, then edits the canonical row plus performed sets atomically behind a transaction-local terminal-trigger gate. Authenticated clients retain SELECT-only table grants and owner RLS. Client owner checks, revision-bracketed readback and stale-result isolation remain. The existing W7 Save RPC and session IDs are unchanged; future protected-API callers would need to preserve the new revision/CAS, owner and idempotent replay semantics. Mixed old/new client E2E and hosted authorization are unverified.
