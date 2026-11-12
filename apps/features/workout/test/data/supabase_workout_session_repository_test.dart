@@ -137,6 +137,9 @@ final class _FakeGateway
   DateTime? lastHistoryBefore;
   String? lastHistoryBeforeId;
   List<String>? lastHistorySessionIds;
+  int historyHeaderReadCount = 0;
+  int historySetReadCount = 0;
+  void Function()? beforeHistorySetRead;
   Future<List<Map<String, dynamic>>> Function()? onReadHistoryHeaders;
 
   @override
@@ -146,6 +149,7 @@ final class _FakeGateway
     DateTime? beforeCompletedAtUtc,
     String? beforeId,
   }) async {
+    historyHeaderReadCount++;
     lastHistoryOwner = userId;
     lastHistoryBefore = beforeCompletedAtUtc;
     lastHistoryBeforeId = beforeId;
@@ -161,6 +165,8 @@ final class _FakeGateway
     required int offset,
     required int limit,
   }) async {
+    historySetReadCount++;
+    beforeHistorySetRead?.call();
     lastHistorySessionIds = sessionIds;
     return historySets.skip(offset).take(limit).toList();
   }
@@ -595,6 +601,63 @@ void main() {
       expect(entry.gymName, 'Main Gym');
       expect(entry.exercises.single.name, 'Bench Press');
       expect(entry.exercises.single.setCount, 2);
+    });
+
+    test('History retries when Update changes rows between header and set reads',
+        () async {
+      final beforeHeader = {
+        ..._mockSessionRow(
+          status: 'completed',
+          completedAt: _startedAt.add(const Duration(minutes: 10)),
+          revision: 1,
+        ),
+        'gym_name': null,
+        'workout_duration_seconds': null,
+      };
+      final updatedSnapshot = WorkoutSessionSnapshot(
+        routineId: _routineId,
+        routineName: 'Upper Body Blast',
+        programId: _programId,
+        capturedAtUtc: _startedAt,
+        exercises: [
+          SessionExerciseSnapshot(
+            exerciseRef: CatalogExerciseRef('ex_squat'),
+            displayName: 'Squat',
+            occurrenceIndex: 0,
+            prescribedSets: [
+              SetPrescription(
+                setType: RoutineSetType.normal,
+                reps: 8,
+                loadKg: 80,
+              ),
+            ],
+          ),
+        ],
+      );
+      final updatedHeader = {
+        ...beforeHeader,
+        'revision': 2,
+        'workout_title': 'Updated title',
+        'routine_snapshot': WorkoutSessionSnapshotDto.toJson(updatedSnapshot),
+      };
+      gateway.historyHeaders = [beforeHeader];
+      gateway.historySets = [_mockSetRow()];
+      var didInterleaveUpdate = false;
+      gateway.beforeHistorySetRead = () {
+        if (didInterleaveUpdate) return;
+        didInterleaveUpdate = true;
+        gateway.historyHeaders = [updatedHeader];
+        gateway.historySets = [
+          {..._mockSetRow(), 'exercise_ref': 'ex_squat'},
+        ];
+      };
+
+      final page = await repo.listCompletedHistory();
+
+      expect(gateway.historyHeaderReadCount, 4);
+      expect(gateway.historySetReadCount, 2);
+      expect(page.entries.single.title, 'Updated title');
+      expect(page.entries.single.exercises.single.name, 'Squat');
     });
 
     test('History is bounded and forwards newest-first keyset cursor',

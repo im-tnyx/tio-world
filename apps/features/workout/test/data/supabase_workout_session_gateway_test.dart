@@ -55,6 +55,7 @@ void main() {
       expect(captured!.url.path, '/rest/v1/user_workout_sessions');
       expect(query['user_id'], 'eq.$_owner');
       expect(query['status'], 'eq.completed');
+      expect(query['select'], contains('revision'));
       expect(
           query['order'], 'completed_at_utc.desc.nullslast,id.desc.nullslast');
       expect(query['limit'], '6');

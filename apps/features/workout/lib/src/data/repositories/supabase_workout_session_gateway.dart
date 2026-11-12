@@ -121,7 +121,7 @@ final class SupabaseWorkoutSessionGateway
         .select('id,user_id,status,completed_at_utc,started_at_utc,'
             'accumulated_paused_microseconds,workout_title,workout_at_utc,'
             'workout_utc_offset_minutes,notes,gym_name,'
-            'workout_duration_seconds,routine_snapshot')
+            'workout_duration_seconds,routine_snapshot,revision')
         .eq('user_id', userId)
         .eq('status', 'completed');
     if (beforeCompletedAtUtc != null && beforeId != null) {
