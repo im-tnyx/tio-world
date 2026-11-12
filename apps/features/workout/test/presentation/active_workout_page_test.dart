@@ -374,6 +374,13 @@ Future<void> _addPreviewBench(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
+  final wheel = find.byKey(const ValueKey('routine-rest-timer-wheel'));
+  final scrollable = tester.widget<ListWheelScrollView>(wheel);
+  (scrollable.controller! as FixedExtentScrollController).jumpToItem(index);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('Log Workout Add Exercise snapshots and keeps editable defaults',
       (tester) async {
