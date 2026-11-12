@@ -15,13 +15,13 @@
 ## Active Handoff
 
 **Planning owner:** Owner / TNYX-87
-**Implementation owner:** Codex
-**Previous agent:** Not applicable
+**Implementation owner:** ChatGPT — owner-directed P2 remediation on existing PR #753
+**Previous agent:** Codex (initial W10-A implementation)
 **Last commit agent:** Codex — W10-A implementation commit
 **Last commit SHA:** `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3` (`fix(flutter): inject workout settings storage`)
-**Review owner:** Pending PR review
-**Implementation ownership state:** Handoff pending
-**Ownership transition:** Not applicable
+**Review owner:** i-the — CHANGES_REQUESTED on PR #753 at `f9824d855e1a88ae9031a675d02c3ce081094f2d`; re-review pending
+**Implementation ownership state:** Owner-directed handoff to ChatGPT for reviewer P2 only; no parallel implementation owner
+**Ownership transition:** Codex → ChatGPT for exact existing-review fix requested 2026-11-12
 **Repository state last verified:** Git root G:/projects/Tio-World; code branch `tnyx/w10a-default-rest-timer` passed exact-head CI at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`. Its task-handoff follow-up at `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec` also passed all workflow checks; `origin/main` was an ancestor and the tree was clean at both checkpoints.
 **Branch:** tnyx/w10a-default-rest-timer
 **Latest fully validated PR checkpoint:** `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec` (seven commits ahead of `origin/main`; Flutter, Android and Docs Hygiene CI passed). This follow-up modifies only the task handoff record.
@@ -33,8 +33,8 @@
 **Validation completed at SHA:** `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec`: `git diff --check origin/main...HEAD` passed; Docs Hygiene CI run `43250182500`, Flutter CI run `43250182673`, and Android Native CI run `43250182890` all passed. Flutter CI passed `app-workout`, `nutrition-onboarding`, `core-wear`, and Analyze/Dart-test jobs; Android CI passed phone and Wear debug APK builds. The source implementation was already green at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`.
 **Validation remaining:** Independent PR review and device QA. Local Flutter/Dart commands are unavailable; `melos bootstrap` was attempted and failed because `melos` is not on PATH.
 **Current blocker:** Broad Linear W10 remains blocked by TNYX-78; this owner-approved W10-A child uses existing contracts and does not resolve that dependency. No source-level blocker found in the bounded audit.
-**Open review finding IDs:** None yet.
-**Next exact action:** Keep PR #753 open for independent review and device acceptance; do not merge without the owner's explicit direction.
+**Open review finding IDs:** `#discussion_r4552874935` / `4552874935` (P2 failed-read retry and Settings error UI; resolution pending independent re-review).
+**Next exact action:** Commit the bounded read-failure retry and UI/test remediation on the existing PR branch, then obtain exact-head CI and independent re-review. Do not merge.
 
 ## 1. Discovery
 
@@ -170,3 +170,13 @@ Broad W10 remains blocked by TNYX-78. Device behavior is not claimed unless phys
 ### Final Status
 
 REVIEW — implementation, tests and exact-head CI passed through `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec`; PR #753 remains open and unmerged pending independent review and device QA.
+
+## 2026-11-12 Reviewer P2 remediation (owner-directed)
+
+- **Prior PR head:** `f9824d855e1a88ae9031a675d02c3ce081094f2d`.
+- **Review evidence:** [P2 discussion](https://github.com/im-tnyx/tio-world/pull/753#discussion_r4552874935), independent `i-the` review `CHANGES_REQUESTED`.
+- **Root cause:** a failed device-local read left `_loadFuture` cached; subsequent `load()` calls could not retry, and the Settings screen rendered an indefinite spinner because `!isLoaded` was checked before error.
+- **Remediation:** clear completed load future on completion; preserve error state for truthful display; show an accessible Retry action with existing `TioButton.secondary`; add controller/widget failure-then-success tests.
+- **Regression boundary:** existing Create/Edit Routine and Log Workout Add Exercise behavior must remain unchanged except that another attempt after a transient storage read failure can now recover. Existing OFF/value tests and all three flow suites must pass on the new PR head.
+- **Current validation:** Source-only code/test edits prepared; no local Flutter/Dart toolchain available in this environment. Exact new-head CI is required and not yet claimed. Device QA and independent reviewer acceptance remain outstanding.
+- **No scope expansion:** no Supabase/schema, new branch/PR, unrelated Workout Settings option, UI redesign, release, or merge.

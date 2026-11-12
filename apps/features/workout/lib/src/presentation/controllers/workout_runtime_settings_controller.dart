@@ -53,6 +53,9 @@ final class WorkoutRuntimeSettingsController extends ChangeNotifier {
       _error = error;
     } finally {
       _isLoading = false;
+      // A failed read must not permanently pin a completed load future.
+      // A later Add Exercise attempt or Settings Retry can start a fresh read.
+      _loadFuture = null;
       notifyListeners();
     }
   }

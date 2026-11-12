@@ -5,12 +5,21 @@ import 'package:tio_feature_workout/workout.dart';
 
 final class _Repository implements WorkoutRuntimeSettingsRepository {
   int? seconds;
+  int readCount = 0;
+  bool failNextRead = false;
 
   @override
   Future<void> clearDefaultRestSeconds() async => seconds = null;
 
   @override
-  Future<int?> readDefaultRestSeconds() async => seconds;
+  Future<int?> readDefaultRestSeconds() async {
+    readCount++;
+    if (failNextRead) {
+      failNextRead = false;
+      throw StateError('Simulated local storage read failure');
+    }
+    return seconds;
+  }
 
   @override
   Future<void> writeDefaultRestSeconds(int seconds) async =>
@@ -52,6 +61,39 @@ void main() {
     }
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+  });
+
+  testWidgets('failed read shows Retry and recovers to the saved setting',
+      (tester) async {
+    final repository = _Repository()
+      ..seconds = 60
+      ..failNextRead = true;
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child!),
+      home: WorkoutSettingsPage(controller: controller),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not load Workout Settings.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-settings-retry')),
+        findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(repository.readCount, 1);
+
+    await tester.tap(find.byKey(const ValueKey('workout-settings-retry')));
+    await tester.pumpAndSettle();
+
+    expect(repository.readCount, 2);
+    expect(controller.isReady, isTrue);
+    expect(find.byKey(const ValueKey('workout-default-rest-timer')),
+        findsOneWidget);
+    expect(find.text('1min'), findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-settings-retry')),
+        findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Default Rest Timer saves duration, cancel, and explicit OFF',

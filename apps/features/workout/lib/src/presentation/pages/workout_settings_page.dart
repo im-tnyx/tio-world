@@ -80,16 +80,31 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
           animation: widget.controller,
           builder: (context, _) {
             final controller = widget.controller;
-            if (controller.isLoading || !controller.isLoaded) {
+            if (controller.isLoading) {
               return Center(
                 child: CircularProgressIndicator(color: colors.primary),
               );
             }
             if (!controller.isReady) {
               return Center(
-                child: Text(
-                  'Could not load Workout Settings.',
-                  style: TextStyle(color: colors.textSecondary),
+                child: Padding(
+                  padding: const EdgeInsets.all(TioSpacing.lg),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Could not load Workout Settings.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: colors.textSecondary),
+                      ),
+                      const SizedBox(height: TioSpacing.md),
+                      TioButton.secondary(
+                        key: const ValueKey('workout-settings-retry'),
+                        label: 'Retry',
+                        onPressed: () => unawaited(controller.load()),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
