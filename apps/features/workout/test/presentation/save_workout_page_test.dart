@@ -525,7 +525,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('workout-date-picker-done')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('save-workout-submit-button')));
+      await tester.tap(find.byKey(const ValueKey('edit-workout-update-button')));
       await tester.pumpAndSettle();
 
       expect(submittedDate, initialDate);
@@ -565,12 +565,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('save-workout-submit-button')));
+      await tester.tap(find.byKey(const ValueKey('edit-workout-update-button')));
       await tester.pump();
       expect(
         tester
             .widget<TioButton>(
-                find.byKey(const ValueKey('save-workout-submit-button')))
+                find.byKey(const ValueKey('edit-workout-update-button')))
             .loading,
         isTrue,
       );
@@ -582,6 +582,71 @@ void main() {
 
       saveResult.complete(false);
       await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('system Back cannot leave Edit while Update is pending',
+        (tester) async {
+      final updateResult = Completer<bool>();
+      bool? routeResult;
+      await tester.pumpWidget(
+        _buildWrapper(
+          Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  routeResult = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute<bool>(
+                      builder: (_) => SaveWorkoutPage(
+                        duration: const Duration(minutes: 30),
+                        volumeKg: 400,
+                        completedSets: 1,
+                        editMode: true,
+                        onSave: ({
+                          required String title,
+                          required String? description,
+                          required DateTime date,
+                          required int utcOffsetMinutes,
+                          required double? rpe,
+                          required String activityType,
+                          required String? gym,
+                          Duration? duration,
+                        }) =>
+                            updateResult.future,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Open editor'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open editor'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('edit-workout-update-button')),
+      );
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<TioButton>(
+              find.byKey(const ValueKey('edit-workout-update-button')),
+            )
+            .loading,
+        isTrue,
+      );
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.byType(SaveWorkoutPage), findsOneWidget);
+      expect(routeResult, isNull);
+
+      updateResult.complete(true);
+      await tester.pumpAndSettle();
+      expect(find.byType(SaveWorkoutPage), findsNothing);
+      expect(routeResult, isTrue);
       expect(tester.takeException(), isNull);
     });
 

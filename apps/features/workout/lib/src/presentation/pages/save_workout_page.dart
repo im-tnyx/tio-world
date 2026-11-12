@@ -500,9 +500,9 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
       appBar: TioAppBar(
         automaticallyImplyLeading: false,
         leading: PopScope(
-          canPop: widget.onLeaveDraft == null || _allowPop,
+          canPop: _allowPop || (!_isBusy && widget.onLeaveDraft == null),
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) unawaited(_leaveDraft());
+            if (!didPop && !_isBusy) unawaited(_leaveDraft());
           },
           child: widget.editMode
               ? IconButton(
