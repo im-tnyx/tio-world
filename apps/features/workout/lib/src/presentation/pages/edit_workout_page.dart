@@ -294,6 +294,14 @@ class _EditWorkoutPageState extends ConsumerState<EditWorkoutPage> {
             required activityType,
             required gym,
             duration}) async {
+          if (controller.hasPerformedSetLimitExceeded) {
+            _message(
+              'A workout can have at most '
+              '${WorkoutHistoryEditController.maxPerformedSetsPerWorkout} '
+              'performed sets. Remove sets before updating.',
+            );
+            return false;
+          }
           if (!controller.canUpdate) {
             _message('Log at least one set for every exercise.');
             return false;

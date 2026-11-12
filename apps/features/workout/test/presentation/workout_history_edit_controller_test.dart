@@ -183,11 +183,56 @@ void main() {
     final source = _detail(skippedWithoutTime: true);
     final editor = WorkoutHistoryEditController(source);
     addTearDown(editor.dispose);
+    expect(editor.updatePerformedSetCount, 2);
     final payload = WorkoutHistoryEditDto.payload(_request(source, editor));
     final rows = payload['performed_sets'] as List;
     expect(rows.length, 2);
     expect(rows.last['id'], '44444444-4444-4444-a444-444444444444');
     expect(rows.last['is_skipped'], isTrue);
     expect(rows.last['completed_at_utc'], isNull);
+  });
+
+  test('Update preflight enforces the 500 serialized performed-set limit', () {
+    final source = _detail();
+    final editor = WorkoutHistoryEditController(source);
+    addTearDown(editor.dispose);
+    editor.addExercises([
+      for (var index = 0; index < 63; index++)
+        Exercise(
+          ref: CatalogExerciseRef('ex_set_limit_$index'),
+          displayName: 'Set limit $index',
+          exerciseType: ExerciseType.duration,
+          status: ExerciseStatus.active,
+        ),
+    ]);
+
+    for (var exerciseIndex = 1; exerciseIndex <= 63; exerciseIndex++) {
+      final additionalSets = exerciseIndex == 63 ? 2 : 7;
+      for (var index = 0; index < additionalSets; index++) {
+        editor.addSet(exerciseIndex);
+      }
+      for (var setIndex = 0; setIndex <= additionalSets; setIndex++) {
+        editor.toggleLogged(exerciseIndex, setIndex, durationSeconds: 60);
+      }
+    }
+
+    expect(editor.updatePerformedSetCount, 500);
+    expect(editor.hasPerformedSetLimitExceeded, isFalse);
+    expect(editor.canUpdate, isTrue);
+    expect(
+      (WorkoutHistoryEditDto.payload(_request(source, editor))[
+          'performed_sets'] as List),
+      hasLength(500),
+    );
+
+    editor.addSet(63);
+    editor.toggleLogged(63, 3, durationSeconds: 60);
+    expect(editor.updatePerformedSetCount, 501);
+    expect(editor.hasPerformedSetLimitExceeded, isTrue);
+    expect(editor.canUpdate, isFalse);
+    expect(
+      () => WorkoutHistoryEditDto.payload(_request(source, editor)),
+      throwsArgumentError,
+    );
   });
 }

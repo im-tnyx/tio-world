@@ -8,6 +8,8 @@ import '../../domain/models/workout_history_entry.dart';
 
 /// Ephemeral completed-workout edit state. No Active Workout draft is created.
 final class WorkoutHistoryEditController extends ChangeNotifier {
+  static const maxPerformedSetsPerWorkout = 500;
+
   WorkoutHistoryEditController(this.source) {
     final snapshot = source.snapshot;
     if (snapshot == null ||
@@ -15,6 +17,10 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
         source.rawSnapshot == null) {
       throw StateError('Completed workout cannot be edited from this read.');
     }
+    _preservedSkippedSetIds = {
+      for (final set in source.allPerformedSets)
+        if (set.isSkipped && set.completedAtUtc == null) set.id,
+    };
     final performed = <(int, int), PerformedSet>{
       for (final set in source.allPerformedSets)
         (set.sessionExerciseIndex, set.setIndex): set,
@@ -57,9 +63,24 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
   }
 
   final WorkoutHistoryDetail source;
+  late final Set<String> _preservedSkippedSetIds;
   late List<ActiveWorkoutDraftExercise> _exercises;
   List<ActiveWorkoutDraftExercise> get exercises =>
       List.unmodifiable(_exercises);
+
+  /// Matches serialized Update rows, including old skipped sets without times.
+  int get updatePerformedSetCount => _exercises.fold(
+      0,
+      (count, exercise) =>
+          count +
+          exercise.sets
+              .where((set) =>
+                  set.loggedAtUtc != null ||
+                  _preservedSkippedSetIds.contains(set.id))
+              .length);
+
+  bool get hasPerformedSetLimitExceeded =>
+      updatePerformedSetCount > maxPerformedSetsPerWorkout;
 
   int get completedSetCount => _exercises.fold(
       0,
@@ -94,6 +115,7 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
   bool get canUpdate =>
       _exercises.isNotEmpty &&
       _exercises.length <= 100 &&
+      !hasPerformedSetLimitExceeded &&
       completedSetCount > 0 &&
       _exercises.every((exercise) =>
           exercise.sets.isNotEmpty &&
