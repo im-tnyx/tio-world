@@ -463,6 +463,18 @@ abstract final class WorkoutHistoryDto {
     }
     return WorkoutHistoryDetail(
       summary: summary,
+      revision: (row['revision'] as num).toInt(),
+      snapshot: snapshot,
+      rawSnapshot: Map<String, dynamic>.from(row['routine_snapshot'] as Map),
+      allPerformedSets: List.unmodifiable(performedRows.map(
+        (raw) => WorkoutPerformedSetRowDto.fromJson(raw).toDomain(),
+      )),
+      workoutAtUtc: row['workout_at_utc'] == null
+          ? null
+          : DateTime.parse(row['workout_at_utc'] as String).toUtc(),
+      utcOffsetMinutes: (row['workout_utc_offset_minutes'] as num?)?.toInt(),
+      activityType: row['workout_activity_type'] as String?,
+      overallRpe: (row['workout_rpe'] as num?)?.toDouble(),
       exercises: List.unmodifiable([
         for (final exercise in snapshot.exercises)
           if (byOccurrence[exercise.occurrenceIndex]?.isNotEmpty ?? false)

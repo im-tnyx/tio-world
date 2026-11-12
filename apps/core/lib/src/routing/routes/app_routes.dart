@@ -219,6 +219,14 @@ class AppRoutes {
     chromePolicy: ChromePolicy.noBottomBar,
   );
 
+  /// Edit one owner-owned completed workout inside the Workout branch.
+  static const workoutHistoryEdit = TioRouteContract(
+    path: '/workout/history/:sessionId/edit',
+    title: 'Edit Workout',
+    description: 'Update a saved completed workout.',
+    chromePolicy: ChromePolicy.noBottomBar,
+  );
+
   /// Canonical Exercise Detail/About surface for catalog and Custom Exercises.
   ///
   /// The `exerciseId` path segment is an `ex_*` catalog identity or a

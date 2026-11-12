@@ -411,6 +411,37 @@ List<RouteBase> _shellBranchChildRoutes(
                 ? sessionRepository
                 : null,
             catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
+            onEditSession: (id) => context.push<bool>(
+              AppRoutes.workoutHistoryEdit.path
+                  .replaceFirst(':sessionId', id.value),
+            ),
+          );
+        },
+      ),
+    ),
+    GoRoute(
+      path: _childPath(branch, AppRoutes.workoutHistoryEdit),
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) {
+          final rawId = state.pathParameters['sessionId'];
+          WorkoutSessionId? sessionId;
+          try {
+            if (rawId != null) sessionId = WorkoutSessionId(rawId);
+          } on ArgumentError {
+            // The editor renders not-found for malformed deep links.
+          }
+          final Object? repository =
+              ref.watch(workoutSessionRepositoryProvider);
+          return EditWorkoutPage(
+            sessionId: sessionId,
+            historyRepository:
+                repository is WorkoutHistoryRepository ? repository : null,
+            editRepository:
+                repository is WorkoutHistoryEditRepository ? repository : null,
+            catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
+            userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
+            gymLocationRepository: ref.watch(gymLocationRepositoryProvider),
           );
         },
       ),

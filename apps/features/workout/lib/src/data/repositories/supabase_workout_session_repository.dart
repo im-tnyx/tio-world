@@ -6,10 +6,12 @@ import 'package:tio_shared/shared.dart';
 import '../../domain/models/workout_session_record.dart';
 import '../../domain/models/workout_history_entry.dart';
 import '../../domain/repositories/workout_history_repository.dart';
+import '../../domain/repositories/workout_history_edit_repository.dart';
 import '../../domain/repositories/workout_session_repository.dart';
 import '../../domain/repositories/workout_draft_save_repository.dart';
 import '../../domain/models/active_workout_draft.dart';
 import '../dto/workout_draft_save_dto.dart';
+import '../dto/workout_history_edit_dto.dart';
 import '../dto/workout_session_dtos.dart';
 import 'supabase_workout_session_gateway.dart';
 
@@ -22,7 +24,8 @@ final class SupabaseWorkoutSessionRepository
     implements
         WorkoutSessionRepository,
         WorkoutDraftSaveRepository,
-        WorkoutHistoryRepository {
+        WorkoutHistoryRepository,
+        WorkoutHistoryEditRepository {
   SupabaseWorkoutSessionRepository({
     required WorkoutSessionGateway gateway,
     required String? Function() currentUserId,
@@ -67,6 +70,61 @@ final class SupabaseWorkoutSessionRepository
 
   static const int historyPageSize = 5;
   static const int _historySetBatchSize = 1000;
+
+  @override
+  Future<WorkoutHistoryDetail> updateCompletedWorkout(
+    WorkoutHistoryEditRequest request,
+  ) async {
+    final owner = _owner();
+    final source = request.source;
+    if (source.revision == null || source.summary.sessionId.value.isEmpty) {
+      throw const WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.invalidPayload,
+      );
+    }
+    final payload = WorkoutHistoryEditDto.payload(request);
+    final gateway = _gateway;
+    if (gateway is! WorkoutHistoryEditGateway) {
+      throw StateError('Completed workout editing is unavailable.');
+    }
+    _checkOwner(owner);
+    try {
+      await (gateway as WorkoutHistoryEditGateway).rpcUpdateCompletedWorkout({
+        'p_session_id': source.summary.sessionId.value,
+        'p_expected_revision': source.revision,
+        'p_payload': payload,
+      }).timeout(_requestTimeout);
+      _checkOwner(owner);
+    } on WorkoutSessionPersistenceException {
+      rethrow;
+    } on TimeoutException catch (error) {
+      throw WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Update outcome is unknown; reload before retrying.',
+        cause: error,
+      );
+    } on PostgrestException catch (error) {
+      throw _mapPostgrestException(error);
+    } catch (error) {
+      throw WorkoutSessionPersistenceException(
+        WorkoutSessionPersistenceFailureKind.networkUnavailable,
+        message: 'Update outcome is unknown; reload before retrying.',
+        cause: error,
+      );
+    }
+    final saved = await getCompletedHistoryDetail(source.summary.sessionId);
+    if (saved == null ||
+        saved.revision == null ||
+        saved.revision! < source.revision! + 1 ||
+        !WorkoutHistoryEditDto.matches(saved, payload)) {
+      throw WorkoutSessionCommittedReadbackException(
+        sessionId: source.summary.sessionId,
+        operationName: 'updateCompletedWorkout',
+        message: 'Canonical Update readback did not match the edit.',
+      );
+    }
+    return saved;
+  }
 
   @override
   Future<WorkoutHistoryDetail?> getCompletedHistoryDetail(

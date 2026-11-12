@@ -23,7 +23,7 @@ class WorkoutHistoryPage extends ConsumerStatefulWidget {
 
   final WorkoutHistoryRepository? repository;
   final ExerciseCatalogRepository catalogRepository;
-  final ValueChanged<WorkoutSessionId>? onOpenSession;
+  final FutureOr<void> Function(WorkoutSessionId)? onOpenSession;
 
   @override
   ConsumerState<WorkoutHistoryPage> createState() => _WorkoutHistoryPageState();
@@ -193,7 +193,10 @@ class _WorkoutHistoryPageState extends ConsumerState<WorkoutHistoryPage> {
               entry: _entries[index],
               onTap: widget.onOpenSession == null
                   ? null
-                  : () => widget.onOpenSession!(_entries[index].sessionId),
+                  : () async {
+                      await widget.onOpenSession!(_entries[index].sessionId);
+                      if (mounted) unawaited(_load(reset: true));
+                    },
               mediaFor: (ref) {
                 final exercise = _catalog?.byRef(ref);
                 return exercise == null

@@ -342,15 +342,21 @@ class WorkoutExerciseCard extends StatelessWidget {
                   child: Text('✓', textAlign: TextAlign.center),
                 ),
               ] else if (isLog) ...[
-                const Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.fitness_center_rounded, size: TioSize.dp14),
-                      SizedBox(width: TioSpacing.xxs),
-                      Text('KG', textAlign: TextAlign.center),
-                    ],
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) =>
+                        constraints.maxWidth < TioSize.dp64
+                            ? const Text('KG', textAlign: TextAlign.center)
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.fitness_center_rounded,
+                                      size: TioSize.dp14),
+                                  SizedBox(width: TioSpacing.xxs),
+                                  Text('KG', textAlign: TextAlign.center),
+                                ],
+                              ),
                   ),
                 ),
                 const SizedBox(width: TioSpacing.sm),

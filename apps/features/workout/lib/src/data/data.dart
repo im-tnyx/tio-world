@@ -2,6 +2,7 @@ export 'exercises/exercises.dart';
 export 'in_memory_workout_profile_repository.dart';
 export 'in_memory_workout_targets_repository.dart';
 export 'dto/workout_session_dtos.dart';
+export 'dto/workout_history_edit_dto.dart';
 export 'repositories/supabase_program_repository.dart';
 export 'repositories/supabase_program_delete_repository.dart';
 export 'repositories/supabase_workout_profile_repository.dart';

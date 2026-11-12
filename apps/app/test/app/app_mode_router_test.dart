@@ -101,6 +101,17 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
   });
 
+  testWidgets('Workout Edit stays under Workout and hides bottom nav',
+      (tester) async {
+    const id = '22222222-2222-4222-a222-222222222222';
+    final path = AppRoutes.workoutHistoryEdit.path.replaceFirst(':sessionId', id);
+    await _pumpSettingsRoute(tester, initialPath: path);
+    final edit = find.byType(EditWorkoutPage);
+    expect(edit, findsOneWidget);
+    expect(GoRouterState.of(tester.element(edit)).uri.path, path);
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
   testWidgets('History card opens the matching completed workout Detail route',
       (tester) async {
     final repository = _HistoryRouteRepository();

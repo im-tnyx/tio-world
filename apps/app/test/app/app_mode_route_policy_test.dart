@@ -159,6 +159,15 @@ void main() {
       );
       expect(
         appModeRedirect(
+          path: AppRoutes.workoutHistoryEdit.path.replaceFirst(
+              ':sessionId', '22222222-2222-4222-a222-222222222222'),
+          selectedMode: AppMode.workout,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        isNull,
+      );
+      expect(
+        appModeRedirect(
           path: FeatureRoutes.workout.path,
           selectedMode: AppMode.workout,
           onboardingStatus: OnboardingStatus.completed,
@@ -187,6 +196,15 @@ void main() {
       expect(
         appModeRedirect(
           path: AppRoutes.workoutHistoryDetail.path.replaceFirst(
+              ':sessionId', '22222222-2222-4222-a222-222222222222'),
+          selectedMode: AppMode.nutrition,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        FeatureRoutes.home.path,
+      );
+      expect(
+        appModeRedirect(
+          path: AppRoutes.workoutHistoryEdit.path.replaceFirst(
               ':sessionId', '22222222-2222-4222-a222-222222222222'),
           selectedMode: AppMode.nutrition,
           onboardingStatus: OnboardingStatus.completed,

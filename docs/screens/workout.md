@@ -36,7 +36,13 @@ completed session and its actual performed sets under the current owner. Its
 summary shows saved title, optional description/gym, date/time, duration,
 measured volume when available, and completed set count. The Workout section
 shows frozen exercise names/order and only actual performed set measurements.
-`Edit Workout` remains disabled until its behavior receives separate approval.
+The owner-approved W8C slice adds a right-aligned `Edit Workout` action on
+Detail. It opens `/workout/history/:sessionId/edit`, combining saved metadata
+with actual exercise and performed-set inputs. `Update` edits the same completed
+session through an owner-scoped, revision-checked transaction. It supports
+exercise add/remove/replace and set edits, while leaving Active Workout state
+untouched. This source change is on PR #752; merge, database deployment and
+device acceptance are separate gates.
 
 1. **Current plan** — selected Routine or TrainingPlan/PlannedWorkout context, its next scheduled workout when one exists, session status, and a clear rest-day state. Reusable Program itself does not own scheduled sessions. Workout Home Play remains the empty ad-hoc start entry; Routine Detail, Program Detail and expanded Library Routine rows can start the selected Routine.
 2. **Library** — one canonical Workout-owned route (`/workout/library`, W6A), reached from the Workout Home entry below the calendar. The approved target category order is **Programs → Exercises → Your Plan**: Programs is default, Exercises is second, and Your Plan is rendered only when a real followed/applicable canonical TrainingPlan exists; otherwise it is hidden completely. There is no standalone Routines category/collection, and saved Routines remain Program-owned. It is not a guided default tab or a Workout-local content tab; a future configurable navigation may promote the same route. See [Library](library.md).

@@ -107,6 +107,7 @@ Future<void> _pump(
   TioThemeMode theme = TioThemeMode.light,
   WorkoutSessionId? sessionId,
   double textScale = 1,
+  Future<bool?> Function(WorkoutSessionId)? onEdit,
 }) =>
     tester.pumpWidget(
       ProviderScope(
@@ -123,6 +124,7 @@ Future<void> _pump(
             sessionId: sessionId ?? _sessionId,
             repository: repository,
             catalogRepository: _Catalog(),
+            onEditSession: onEdit,
           ),
         ),
       ),
@@ -245,5 +247,32 @@ void main() {
       expect(find.text('400 kg'), findsOneWidget);
       expect(tester.takeException(), isNull);
     }
+  });
+
+  testWidgets('Edit action reaches the right edge and reloads after Update',
+      (tester) async {
+    var reads = 0;
+    WorkoutSessionId? selected;
+    await _pump(tester, _Repository((_) async {
+      reads++;
+      return _detail();
+    }), onEdit: (id) async {
+      selected = id;
+      return true;
+    });
+    await tester.pumpAndSettle();
+    final action = find.byKey(const ValueKey('workout-history-detail-edit'));
+    final right = tester.getTopRight(action).dx;
+    expect(
+        right,
+        closeTo(
+          tester.view.physicalSize.width / tester.view.devicePixelRatio -
+              TioSpacing.lg,
+          2,
+        ));
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(selected, _sessionId);
+    expect(reads, 2);
   });
 }

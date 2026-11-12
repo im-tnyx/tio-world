@@ -18,12 +18,14 @@ class WorkoutHistoryDetailPage extends ConsumerStatefulWidget {
     required this.sessionId,
     required this.repository,
     required this.catalogRepository,
+    this.onEditSession,
     super.key,
   });
 
   final WorkoutSessionId? sessionId;
   final WorkoutHistoryRepository? repository;
   final ExerciseCatalogRepository catalogRepository;
+  final Future<bool?> Function(WorkoutSessionId)? onEditSession;
 
   @override
   ConsumerState<WorkoutHistoryDetailPage> createState() =>
@@ -143,12 +145,20 @@ class _WorkoutHistoryDetailPageState
               child: Text('Workout',
                   style: Theme.of(context).textTheme.titleLarge),
             ),
-            // The owner will specify Edit Workout behavior in a later slice.
-            const Flexible(
-              child: TextButton(
-                key: ValueKey('workout-history-detail-edit'),
-                onPressed: null,
-                child: Text('Edit Workout', textAlign: TextAlign.end),
+            Flexible(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  key: const ValueKey('workout-history-detail-edit'),
+                  onPressed: widget.onEditSession == null
+                      ? null
+                      : () async {
+                          final updated = await widget
+                              .onEditSession!(detail.summary.sessionId);
+                          if (updated == true && mounted) unawaited(_load());
+                        },
+                  child: const Text('Edit Workout', textAlign: TextAlign.end),
+                ),
               ),
             ),
           ],

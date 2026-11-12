@@ -99,6 +99,10 @@ void main() {
     expect(AppRoutes.workoutHistoryDetail.path, '/workout/history/:sessionId');
     expect(
         AppRoutes.workoutHistoryDetail.chromePolicy, ChromePolicy.noBottomBar);
+    expect(AppRoutes.workoutHistoryEdit.path,
+        '/workout/history/:sessionId/edit');
+    expect(AppRoutes.workoutHistoryEdit.chromePolicy,
+        ChromePolicy.noBottomBar);
   });
 
   test('Exercise Detail route nests under Exercises without bottom nav', () {

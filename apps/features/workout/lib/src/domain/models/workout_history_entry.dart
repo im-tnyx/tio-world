@@ -67,10 +67,31 @@ final class WorkoutHistoryDetailExercise {
 
 /// Read-only detail of a canonical completed WorkoutSession.
 final class WorkoutHistoryDetail {
-  const WorkoutHistoryDetail({required this.summary, required this.exercises});
+  const WorkoutHistoryDetail({
+    required this.summary,
+    required this.exercises,
+    this.revision,
+    this.snapshot,
+    this.rawSnapshot,
+    this.allPerformedSets = const [],
+    this.workoutAtUtc,
+    this.utcOffsetMinutes,
+    this.activityType,
+    this.overallRpe,
+  });
 
   final WorkoutHistoryEntry summary;
   final List<WorkoutHistoryDetailExercise> exercises;
+
+  /// Edit inputs from the same bracketed, owner-scoped completed read.
+  final int? revision;
+  final WorkoutSessionSnapshot? snapshot;
+  final Map<String, dynamic>? rawSnapshot;
+  final List<PerformedSet> allPerformedSets;
+  final DateTime? workoutAtUtc;
+  final int? utcOffsetMinutes;
+  final String? activityType;
+  final double? overallRpe;
 
   int get performedSetCount =>
       exercises.fold(0, (count, exercise) => count + exercise.sets.length);

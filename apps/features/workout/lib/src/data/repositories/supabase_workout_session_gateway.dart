@@ -1,5 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+abstract interface class WorkoutHistoryEditGateway {
+  Future<Map<String, dynamic>> rpcUpdateCompletedWorkout(
+    Map<String, dynamic> params,
+  );
+}
+
 /// Narrow transport interface for Supabase workout session tables and RPCs.
 abstract interface class WorkoutSessionGateway {
   /// Stable keyset page of owner-scoped completed headers (one extra row).
@@ -87,10 +93,21 @@ abstract interface class WorkoutSessionGateway {
 }
 
 /// Production implementation of [WorkoutSessionGateway] backed by [SupabaseClient].
-final class SupabaseWorkoutSessionGateway implements WorkoutSessionGateway {
+final class SupabaseWorkoutSessionGateway
+    implements WorkoutSessionGateway, WorkoutHistoryEditGateway {
   const SupabaseWorkoutSessionGateway(this._client);
 
   final SupabaseClient _client;
+
+  @override
+  Future<Map<String, dynamic>> rpcUpdateCompletedWorkout(
+    Map<String, dynamic> params,
+  ) async {
+    final response = await _client
+        .rpc<Object?>('rpc_update_completed_workout_v1', params: params)
+        .retry(enabled: false);
+    return _toMap(response, 'rpc_update_completed_workout_v1');
+  }
 
   @override
   Future<List<Map<String, dynamic>>> readCompletedHistoryHeaders(

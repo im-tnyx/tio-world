@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_feature_workout/src/presentation/controllers/workout_history_edit_controller.dart';
 import 'package:tio_shared/shared.dart';
 
 const _owner = '11111111-1111-4111-a111-111111111111';
@@ -128,7 +129,8 @@ Map<String, dynamic> _mockSetRow({
       'updated_at': _startedAt.toIso8601String(),
     };
 
-final class _FakeGateway implements WorkoutSessionGateway {
+final class _FakeGateway
+    implements WorkoutSessionGateway, WorkoutHistoryEditGateway {
   List<Map<String, dynamic>> historyHeaders = [];
   List<Map<String, dynamic>> historySets = [];
   String? lastHistoryOwner;
@@ -185,6 +187,8 @@ final class _FakeGateway implements WorkoutSessionGateway {
   Future<void> Function(Map<String, dynamic>)? onRemoveSet;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onComplete;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onSaveDraft;
+  Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onEdit;
+  Map<String, dynamic>? lastEditParams;
   Future<Map<String, dynamic>> Function(Map<String, dynamic>)? onDiscard;
 
   @override
@@ -293,6 +297,15 @@ final class _FakeGateway implements WorkoutSessionGateway {
           : _mockSessionRow(revision: 2, status: 'completed');
 
   @override
+  Future<Map<String, dynamic>> rpcUpdateCompletedWorkout(
+      Map<String, dynamic> params) async {
+    lastEditParams = params;
+    return onEdit != null
+        ? await onEdit!(params)
+        : _mockSessionRow(revision: 3, status: 'completed');
+  }
+
+  @override
   Future<Map<String, dynamic>> rpcDiscardWorkoutSession(
     Map<String, dynamic> params,
   ) async {
@@ -376,6 +389,116 @@ void main() {
       expect(detail.exercises.last.sets.single.durationSeconds, 429);
     });
 
+    test(
+        'completed Update sends owner revision and verifies canonical readback',
+        () async {
+      final completed = _startedAt.add(const Duration(minutes: 44));
+      gateway.sessionHeader = {
+        ..._mockSessionRow(
+          revision: 2,
+          status: 'completed',
+          completedAt: completed,
+          workoutTitle: 'Original',
+          workoutAtUtc: _startedAt,
+        ),
+        'workout_duration_seconds': 2640,
+      };
+      gateway.performedSets = [_mockSetRow()];
+      final source = (await repo.getCompletedHistoryDetail(_sessionId))!;
+      final controller = WorkoutHistoryEditController(source);
+      final request = WorkoutHistoryEditRequest(
+        source: source,
+        title: 'Updated',
+        description: 'Edited',
+        workoutAtUtc: _startedAt,
+        utcOffsetMinutes: 0,
+        durationSeconds: 2400,
+        gymName: 'Main Gym',
+        activityType: 'Weight Training',
+        overallRpe: 7,
+        exercises: controller.exercises,
+      );
+      gateway.onEdit = (params) async {
+        final payload = params['p_payload'] as Map<String, dynamic>;
+        gateway.sessionHeader = {
+          ...gateway.sessionHeader!,
+          'revision': 3,
+          'workout_title': payload['workout_title'],
+          'notes': payload['description'],
+          'workout_at_utc': payload['workout_at_utc'],
+          'workout_utc_offset_minutes': payload['workout_utc_offset_minutes'],
+          'workout_duration_seconds': payload['selected_duration_seconds'],
+          'gym_name': payload['gym_name'],
+          'workout_activity_type': payload['activity_type'],
+          'workout_rpe': payload['overall_rpe'],
+          'routine_snapshot': payload['routine_snapshot'],
+        };
+        final set = (payload['performed_sets'] as List).single as Map;
+        gateway.performedSets = [
+          {
+            ..._mockSetRow(),
+            'id': set['id'],
+            'reps': set['reps'],
+            'load_kg': set['load_kg'],
+            'completed_at_utc': set['completed_at_utc'],
+          }
+        ];
+        return gateway.sessionHeader!;
+      };
+      final saved = await repo.updateCompletedWorkout(request);
+      expect(gateway.lastEditParams?['p_session_id'], _sessionId.value);
+      expect(gateway.lastEditParams?['p_expected_revision'], 2);
+      expect(saved.revision, 3);
+      expect(saved.summary.title, 'Updated');
+      expect(saved.summary.duration, const Duration(minutes: 40));
+      expect(saved.summary.sessionId, _sessionId);
+      controller.dispose();
+    });
+
+    test('completed Update rejects an account switch before readback',
+        () async {
+      final completed = _startedAt.add(const Duration(minutes: 44));
+      gateway.sessionHeader = {
+        ..._mockSessionRow(
+          revision: 2,
+          status: 'completed',
+          completedAt: completed,
+          workoutTitle: 'Original',
+          workoutAtUtc: _startedAt,
+        ),
+        'workout_duration_seconds': 2640,
+      };
+      gateway.performedSets = [_mockSetRow()];
+      final source = (await repo.getCompletedHistoryDetail(_sessionId))!;
+      final controller = WorkoutHistoryEditController(source);
+      final pending = Completer<Map<String, dynamic>>();
+      gateway.onEdit = (_) => pending.future;
+      final result = repo.updateCompletedWorkout(WorkoutHistoryEditRequest(
+        source: source,
+        title: 'Updated',
+        description: null,
+        workoutAtUtc: _startedAt,
+        utcOffsetMinutes: 0,
+        durationSeconds: 2400,
+        gymName: null,
+        activityType: null,
+        overallRpe: null,
+        exercises: controller.exercises,
+      ));
+      await Future<void>.delayed(Duration.zero);
+      currentUserId = _otherOwner;
+      pending.complete(_mockSessionRow(revision: 3, status: 'completed'));
+      await expectLater(
+        result,
+        throwsA(isA<WorkoutSessionPersistenceException>().having(
+          (error) => error.kind,
+          'kind',
+          WorkoutSessionPersistenceFailureKind.unauthorized,
+        )),
+      );
+      controller.dispose();
+    });
+
     test('Detail excludes active and foreign rows and stale account results',
         () async {
       gateway.sessionHeader = _mockSessionRow(status: 'active');
@@ -422,7 +545,8 @@ void main() {
       ];
       gateway.onReadHeaderSequence = () => headers;
       gateway.performedSets = [_mockSetRow()];
-      expect((await repo.getCompletedHistoryDetail(_sessionId))!.performedSetCount,
+      expect(
+          (await repo.getCompletedHistoryDetail(_sessionId))!.performedSetCount,
           1);
       expect(gateway.readHeaderCallCount, 4);
 
