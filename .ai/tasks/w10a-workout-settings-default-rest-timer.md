@@ -17,8 +17,8 @@
 **Planning owner:** Owner / TNYX-87
 **Implementation owner:** ChatGPT — owner-directed P2 remediation on existing PR #753
 **Previous agent:** Codex (initial W10-A implementation)
-**Last commit agent:** Codex — W10-A implementation commit
-**Last commit SHA:** `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3` (`fix(flutter): inject workout settings storage`)
+**Last commit agent:** ChatGPT — owner-directed PR #753 P2 remediation
+**Last commit SHA:** `3c01f348a7a172dca92506cfd0500070a28efa4f` (`fix(workout): recover default rest settings after transient read failure`); task-metadata follow-up is docs-only
 **Review owner:** i-the — CHANGES_REQUESTED on PR #753 at `f9824d855e1a88ae9031a675d02c3ce081094f2d`; re-review pending
 **Implementation ownership state:** Owner-directed handoff to ChatGPT for reviewer P2 only; no parallel implementation owner
 **Ownership transition:** Codex → ChatGPT for exact existing-review fix requested 2026-11-12
@@ -32,9 +32,9 @@
 **Relevant execution surface:** Settings root and /settings/workout; Routine Create/Edit Add Exercise; Active Workout Log Workout Save-only draft Add Exercise and recovery.
 **Validation completed at SHA:** `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec`: `git diff --check origin/main...HEAD` passed; Docs Hygiene CI run `43250182500`, Flutter CI run `43250182673`, and Android Native CI run `43250182890` all passed. Flutter CI passed `app-workout`, `nutrition-onboarding`, `core-wear`, and Analyze/Dart-test jobs; Android CI passed phone and Wear debug APK builds. The source implementation was already green at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`.
 **Validation remaining:** Independent PR review and device QA. Local Flutter/Dart commands are unavailable; `melos bootstrap` was attempted and failed because `melos` is not on PATH.
-**Current blocker:** Broad Linear W10 remains blocked by TNYX-78; this owner-approved W10-A child uses existing contracts and does not resolve that dependency. No source-level blocker found in the bounded audit.
+**Current blocker:** Broad Linear W10 remains blocked by TNYX-78. For this W10-A child, independent reviewer P2 `4552874935` has a proposed fix at `3c01f348a7a172dca92506cfd0500070a28efa4f`; reviewer re-acceptance, new-head CI, and physical-device QA remain pending.
 **Open review finding IDs:** `#discussion_r4552874935` / `4552874935` (P2 failed-read retry and Settings error UI; resolution pending independent re-review).
-**Next exact action:** Commit the bounded read-failure retry and UI/test remediation on the existing PR branch, then obtain exact-head CI and independent re-review. Do not merge.
+**Next exact action:** Verify full CI on the final PR HEAD and request the original independent reviewer `i-the` to re-review P2. Do not merge.
 
 ## 1. Discovery
 
@@ -178,5 +178,5 @@ REVIEW — implementation, tests and exact-head CI passed through `fd07da4d6c6f1
 - **Root cause:** a failed device-local read left `_loadFuture` cached; subsequent `load()` calls could not retry, and the Settings screen rendered an indefinite spinner because `!isLoaded` was checked before error.
 - **Remediation:** clear completed load future on completion; preserve error state for truthful display; show an accessible Retry action with existing `TioButton.secondary`; add controller/widget failure-then-success tests.
 - **Regression boundary:** existing Create/Edit Routine and Log Workout Add Exercise behavior must remain unchanged except that another attempt after a transient storage read failure can now recover. Existing OFF/value tests and all three flow suites must pass on the new PR head.
-- **Current validation:** Source-only code/test edits prepared; no local Flutter/Dart toolchain available in this environment. Exact new-head CI is required and not yet claimed. Device QA and independent reviewer acceptance remain outstanding.
+- **Current validation:** Reviewer P2 source/test fix pushed at `3c01f348a7a172dca92506cfd0500070a28efa4f`. At initial post-push check, Docs Hygiene and commit attribution guard were successful; Flutter and Android Native CI were in progress. No Flutter/Dart toolchain is available in this ChatGPT environment. Device QA and independent reviewer acceptance remain outstanding. The final PR HEAD requires a separate exact-head CI check.
 - **No scope expansion:** no Supabase/schema, new branch/PR, unrelated Workout Settings option, UI redesign, release, or merge.
