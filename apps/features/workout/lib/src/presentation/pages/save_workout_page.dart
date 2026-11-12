@@ -955,7 +955,7 @@ class _SaveOptionTile extends StatelessWidget {
               color: enabled ? colors.textPrimary : colors.textSecondary,
             ),
             const SizedBox(width: TioSpacing.md),
-            Flexible(
+            Expanded(
               flex: 2,
               child: Text(
                 title,
