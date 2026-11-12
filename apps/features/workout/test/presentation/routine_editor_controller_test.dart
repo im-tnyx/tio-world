@@ -1472,9 +1472,18 @@ void main() {
       await ctrl.load();
 
       expect(ctrl.getExerciseRestPreset(_e).isOff, isTrue);
+      final addedId = ctrl.addPickedExercise(
+        Exercise(
+          ref: ExerciseRef.catalog('ex_new_exercise'),
+          displayName: 'New Exercise',
+          status: ExerciseStatus.active,
+        ),
+        initialRestPreset: const RoutineRestTimerPreset(),
+      )!;
+      ctrl.addSet(addedId, SetPrescription(reps: 10));
       expect(await ctrl.update(), isTrue);
       expect(
-        comp.lastSave!.entries.single.sets
+        comp.lastSave!.entries.first.sets
             .map((set) => set.prescription.restSeconds)
             .toList(),
         [60, 90],

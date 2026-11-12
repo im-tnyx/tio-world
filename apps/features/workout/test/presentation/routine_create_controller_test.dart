@@ -15,12 +15,14 @@ RoutineCreateController _controller(
   String name = 'Routine 1',
   bool saveAfterOneExercise = false,
   bool retryAfterDefiniteFailure = false,
+  String? extraSetId,
 }) {
   // Create gives every picked Exercise its own Set ID before allocating
   // Routine/mutation IDs. Keep the test fixture's allocation order explicit.
   final ids = [
     _entry1, _set1,
     if (!saveAfterOneExercise) ...[_entry2, _set2],
+    if (extraSetId != null) extraSetId,
     _routineId, _mutation,
     if (retryAfterDefiniteFailure) ...[
       '88888888-8888-4888-8888-888888888888',
@@ -48,7 +50,11 @@ void main() {
   test('new Routine Exercises snapshot Default Rest Timer and explicit OFF',
       () async {
     final repository = _Creates();
-    final draft = _controller(repository, saveAfterOneExercise: false);
+    final draft = _controller(
+      repository,
+      saveAfterOneExercise: false,
+      extraSetId: '88888888-8888-4888-8888-000000000001',
+    );
     addTearDown(draft.dispose);
 
     final firstId = draft.addPickedExercise(
