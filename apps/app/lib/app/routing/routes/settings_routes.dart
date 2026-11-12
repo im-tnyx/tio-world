@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_settings/settings.dart';
+import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../app_mode/app_mode.dart';
@@ -25,8 +26,9 @@ List<RouteBase> buildSettingsRoutes({
         builder: (context, ref, _) {
           final selectedMode =
               ref.watch(appModeControllerProvider).selectedMode;
-          final showNutrition = selectedMode == AppMode.nutrition ||
-              selectedMode == AppMode.hybrid;
+          final destinations = selectedMode?.guidedDestinations ?? const [];
+          final showWorkout = destinations.contains(AppDestination.workout);
+          final showNutrition = destinations.contains(AppDestination.nutrition);
 
           return SettingsPage(
             onProfileSettingsPressed: () =>
@@ -35,6 +37,9 @@ List<RouteBase> buildSettingsRoutes({
                 context.push(AppRoutes.accountSettings.path),
             onHealthGoalsPressed: () =>
                 context.push(AppRoutes.healthGoalsSettings.path),
+            showWorkoutSection: showWorkout,
+            onWorkoutPressed: () =>
+                context.push(AppRoutes.workoutSettings.path),
             showNutritionSection: showNutrition,
             onNutritionPressed: () =>
                 context.push(AppRoutes.nutritionSettings.path),
@@ -45,6 +50,32 @@ List<RouteBase> buildSettingsRoutes({
               if (context.mounted) context.go(AppRoutes.auth.path);
             },
           );
+        },
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.workoutSettings.path,
+      parentNavigatorKey: rootNavigatorKey,
+      redirect: (context, state) {
+        final selectedMode = appModeController.selectedMode;
+        return selectedMode?.guidedDestinations
+                    .contains(AppDestination.workout) ==
+                true
+            ? null
+            : AppRoutes.settings.path;
+      },
+      builder: (context, state) => Consumer(
+        builder: (context, ref, _) {
+          final controller =
+              ref.watch(workoutRuntimeSettingsControllerProvider);
+          if (controller == null) {
+            return const Scaffold(
+              body: SafeArea(
+                child: Center(child: Text('Workout Settings are unavailable.')),
+              ),
+            );
+          }
+          return WorkoutSettingsPage(controller: controller);
         },
       ),
     ),

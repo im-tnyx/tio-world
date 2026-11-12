@@ -2943,6 +2943,9 @@ Future<(ProviderContainer, GoRouter)> _app(
       appThemeControllerProvider.overrideWith((ref) => themeController),
       calendarPreferencesControllerProvider
           .overrideWith((ref) => calendarController),
+      workoutRuntimeSettingsRepositoryProvider.overrideWithValue(
+        _MemoryWorkoutRuntimeSettingsRepository(),
+      ),
       appSessionBootstrapControllerProvider.overrideWith(
         (ref) => _ReadyAppSessionBootstrapController(
           onboardingStatusController: onboardingStatusController,
@@ -3009,6 +3012,24 @@ Future<(ProviderContainer, GoRouter)> _app(
   );
   await tester.pumpAndSettle();
   return (container, router);
+}
+
+final class _MemoryWorkoutRuntimeSettingsRepository
+    implements WorkoutRuntimeSettingsRepository {
+  int? defaultRestSeconds;
+
+  @override
+  Future<int?> readDefaultRestSeconds() async => defaultRestSeconds;
+
+  @override
+  Future<void> writeDefaultRestSeconds(int seconds) async {
+    defaultRestSeconds = seconds;
+  }
+
+  @override
+  Future<void> clearDefaultRestSeconds() async {
+    defaultRestSeconds = null;
+  }
 }
 
 /// A read-only test gateway; writes are counted and always rejected.

@@ -88,6 +88,101 @@ void main() {
     expect(comp.lastSave!.entries.single.sets.single.id, _newS);
   });
 
+  test('Edit Add Exercise snapshots default, saves OFF, and reopens OFF',
+      () async {
+    final compositions = _Compositions(_snapshot());
+    final ids = [
+      '30000000-0000-4000-8000-000000000010',
+      '40000000-0000-4000-8000-000000000010',
+      '30000000-0000-4000-8000-000000000011',
+      '40000000-0000-4000-8000-000000000011',
+      _m,
+    ];
+    final editor = _make(
+      _Routines([_routine()]),
+      compositions,
+      ids: ids,
+    );
+    addTearDown(editor.dispose);
+    await editor.load();
+
+    final firstId = editor.addPickedExercise(
+      Exercise(
+        ref: ExerciseRef.catalog(_ref),
+        displayName: 'Bench Press',
+        status: ExerciseStatus.active,
+      ),
+      initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
+    )!;
+    final firstSet = editor.addSet(
+      firstId,
+      SetPrescription(reps: 8, restSeconds: 120),
+    )!;
+    expect(
+      editor.state.entries.first.sets.single.prescription.restSeconds,
+      60,
+    );
+    expect(
+      editor.configureExerciseRestTimer(
+        firstId,
+        normalRestSeconds: 120,
+        warmUpRestSeconds: null,
+      ),
+      isTrue,
+    );
+    expect(
+      editor.state.entries.first.sets.single.prescription.restSeconds,
+      120,
+    );
+
+    expect(
+      editor.configureExerciseRestTimer(
+        firstId,
+        normalRestSeconds: null,
+        warmUpRestSeconds: null,
+      ),
+      isTrue,
+    );
+    expect(
+      editor.state.entries.first.sets.single.prescription.restSeconds,
+      isNull,
+    );
+    expect(await editor.update(), isTrue);
+    expect(
+      compositions.lastSave!.entries.first.sets.single.prescription.restSeconds,
+      isNull,
+    );
+
+    final reopened = _make(
+      _Routines([_routine()]),
+      _Compositions(_snapshot(
+        entries: compositions.lastSave!.entries,
+        revision: compositions.lastSave!.expectedRevision + 1,
+      )),
+      ids: [
+        '30000000-0000-4000-8000-000000000012',
+        '40000000-0000-4000-8000-000000000012',
+        _m,
+      ],
+    );
+    addTearDown(reopened.dispose);
+    await reopened.load();
+    expect(reopened.getExerciseRestPreset(firstId).isOff, isTrue);
+
+    final laterId = reopened.addPickedExercise(
+      Exercise(
+        ref: ExerciseRef.catalog(_ref),
+        displayName: 'Bench Press',
+        status: ExerciseStatus.active,
+      ),
+      initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 90),
+    )!;
+    reopened.addSet(laterId, SetPrescription(reps: 8));
+    expect(reopened.state.entries.first.sets.single.prescription.restSeconds, isNull);
+    expect(reopened.state.entries.last.sets.single.prescription.restSeconds, 90);
+    expect(reopened.state.entries.first.sets.single.id, firstSet);
+  });
+
   test('Steps/Duration Custom cannot enter Edit or replace saved Exercise',
       () async {
     final comp = _Compositions(_snapshot(entries: [_entry()]));
@@ -1215,7 +1310,7 @@ void main() {
       expect(sets.singleWhere((s) => s.id == newSetId).prescription.restSeconds, 90);
     });
 
-    test('editor addSet active preset overrides stale non-null restSeconds and preset OFF preserves incoming rest', () async {
+    test('editor Add Exercise OFF overrides incoming rest and active preset wins', () async {
       final comp = _Compositions(_snapshot(entries: [
         RoutineCompositionEntry(
           id: _e,
@@ -1240,7 +1335,7 @@ void main() {
       addTearDown(ctrl.dispose);
       await ctrl.load();
 
-      // Initially preset is OFF on load: incoming rest is preserved (including explicit 0 and non-null)
+      // A uniformly OFF Exercise remains OFF when adding another set.
       final offNormalId = ctrl.addSet(
         _e,
         SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
@@ -1255,8 +1350,8 @@ void main() {
       )!;
 
       var sets = ctrl.state.entries.single.sets;
-      expect(sets.singleWhere((s) => s.id == offNormalId).prescription.restSeconds, 45);
-      expect(sets.singleWhere((s) => s.id == offZeroId).prescription.restSeconds, 0);
+      expect(sets.singleWhere((s) => s.id == offNormalId).prescription.restSeconds, isNull);
+      expect(sets.singleWhere((s) => s.id == offZeroId).prescription.restSeconds, isNull);
       expect(sets.singleWhere((s) => s.id == offNullId).prescription.restSeconds, isNull);
 
       // Now configure active preset: Normal = 90s, Warm-up = 30s
@@ -1300,7 +1395,7 @@ void main() {
       expect(sets.singleWhere((s) => s.id == fallbackWarmUpId).prescription.restSeconds, 90);
     });
 
-    test('configureExerciseRestTimer preserves legacy per-set rest values when preset is OFF', () async {
+    test('configuring OFF clears legacy per-set rest values', () async {
       final comp = _Compositions(_snapshot(entries: [
         RoutineCompositionEntry(
           id: _e,
@@ -1349,9 +1444,50 @@ void main() {
       expect(ctrl.getExerciseRestPreset(_e).isOff, isTrue);
 
       final sets = ctrl.state.entries.single.sets;
-      expect(sets[0].prescription.restSeconds, 60);
-      expect(sets[1].prescription.restSeconds, 90);
-      expect(sets[2].prescription.restSeconds, 30);
+      expect(sets[0].prescription.restSeconds, isNull);
+      expect(sets[1].prescription.restSeconds, isNull);
+      expect(sets[2].prescription.restSeconds, isNull);
+    });
+
+    test('saving an untouched mixed legacy timer preserves each Set value',
+        () async {
+      final comp = _Compositions(_snapshot(entries: [
+        RoutineCompositionEntry(
+          id: _e,
+          exercise: ExerciseRef.catalog(_ref),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000011',
+              prescription: SetPrescription(reps: 10, restSeconds: 60),
+            ),
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000012',
+              prescription: SetPrescription(reps: 10, restSeconds: 90),
+            ),
+          ],
+        ),
+      ]));
+      final ctrl = _make(_Routines([_routine()]), comp);
+      addTearDown(ctrl.dispose);
+      await ctrl.load();
+
+      expect(ctrl.getExerciseRestPreset(_e).isOff, isTrue);
+      final addedId = ctrl.addPickedExercise(
+        Exercise(
+          ref: ExerciseRef.catalog('ex_new_exercise'),
+          displayName: 'New Exercise',
+          status: ExerciseStatus.active,
+        ),
+        initialRestPreset: const RoutineRestTimerPreset(),
+      )!;
+      ctrl.addSet(addedId, SetPrescription(reps: 10));
+      expect(await ctrl.update(), isTrue);
+      expect(
+        comp.lastSave!.entries.first.sets
+            .map((set) => set.prescription.restSeconds)
+            .toList(),
+        [60, 90],
+      );
     });
   });
 }

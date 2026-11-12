@@ -7,7 +7,9 @@ class SettingsPage extends StatelessWidget {
     this.onProfileSettingsPressed,
     this.onAccountSettingsPressed,
     this.onHealthGoalsPressed,
+    this.onWorkoutPressed,
     this.onNutritionPressed,
+    this.showWorkoutSection = false,
     this.showNutritionSection = false,
     this.onLogoutPressed,
     super.key,
@@ -17,7 +19,11 @@ class SettingsPage extends StatelessWidget {
   final VoidCallback? onProfileSettingsPressed;
   final VoidCallback? onAccountSettingsPressed;
   final VoidCallback? onHealthGoalsPressed;
+  final VoidCallback? onWorkoutPressed;
   final VoidCallback? onNutritionPressed;
+
+  /// App Mode capability gate supplied by app composition.
+  final bool showWorkoutSection;
 
   /// App Mode capability gate supplied by app composition.
   ///
@@ -110,6 +116,23 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
+            if (showWorkoutSection) ...[
+              const SizedBox(height: TioSpacing.lg),
+              const _SettingsSectionHeader(title: 'WORKOUT'),
+              TioGroupCard(
+                children: [
+                  TioSettingsNavigationRow(
+                    key: const ValueKey('settings-workout-entry'),
+                    leading: const TioSettingsLeadingIcon(
+                      icon: Icons.fitness_center_rounded,
+                    ),
+                    title: 'Workout Settings',
+                    supportingText: 'Set the default rest timer for new Exercises',
+                    onTap: onWorkoutPressed,
+                  ),
+                ],
+              ),
+            ],
             if (showNutritionSection) ...[
               const SizedBox(height: TioSpacing.lg),
               const _SettingsSectionHeader(title: 'NUTRITION'),

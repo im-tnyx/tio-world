@@ -496,6 +496,115 @@ void main() {
     reopened.dispose();
   });
 
+  test('new Exercise rest default snapshots, recovers, and drives countdown',
+      () async {
+    final store = _Store();
+    var nextId = 200;
+    var now = DateTime.utc(2026, 11, 12, 10);
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+
+    expect(
+      await controller.addExercises(
+        [_exercise('ex_first', 'First')],
+        initialRestPreset:
+            const RoutineRestTimerPreset(normalRestSeconds: 60),
+      ),
+      isTrue,
+    );
+    final first = controller.draft!.exercises.single;
+    expect(first.hasRestOverride, isTrue);
+    expect(first.restPreset.normalRestSeconds, 60);
+    expect(await controller.addSet(first.id), isTrue);
+    final secondSet = controller.draft!.exercises.single.sets.last;
+
+    expect(
+      await controller.addExercises(
+        [_exercise('ex_second', 'Second')],
+        initialRestPreset:
+            const RoutineRestTimerPreset(normalRestSeconds: 90),
+      ),
+      isTrue,
+    );
+    expect(controller.draft!.exercises.first.restPreset.normalRestSeconds, 60);
+    expect(controller.draft!.exercises.last.restPreset.normalRestSeconds, 90);
+    expect(
+      await controller.setRestPreset(
+        first.id,
+        const RoutineRestTimerPreset(normalRestSeconds: 120),
+      ),
+      isTrue,
+    );
+
+    expect(
+      await controller.toggleLogged(
+        first.id,
+        first.sets.first.id,
+        reps: 8,
+      ),
+      isTrue,
+    );
+    expect(controller.draft!.activeRest?.totalDurationSeconds, 120);
+    expect(
+      await controller.setRestPreset(
+        first.id,
+        const RoutineRestTimerPreset(),
+      ),
+      isTrue,
+    );
+    expect(await controller.skipRest(), isTrue);
+    expect(
+      await controller.toggleLogged(first.id, secondSet.id, reps: 8),
+      isTrue,
+    );
+    expect(controller.draft!.activeRest, isNull);
+    controller.dispose();
+
+    final recovered = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+    );
+    expect(await recovered.restoreExisting(), isTrue);
+    final recoveredFirst = recovered.draft!.exercises.first;
+    expect(recoveredFirst.hasRestOverride, isTrue);
+    expect(recoveredFirst.restPreset.isOff, isTrue);
+    expect(recovered.draft!.exercises.last.restPreset.normalRestSeconds, 90);
+    expect(recovered.draft!.activeRest, isNull);
+    recovered.dispose();
+
+    final offController = ActiveWorkoutDraftController(
+      store: _Store(),
+      ownerId: owner,
+      newUuid: () => _id(nextId++),
+    );
+    expect(await offController.restoreOrStart(), isTrue);
+    expect(
+      await offController.addExercises(
+        [_exercise('ex_off', 'OFF Exercise')],
+        initialRestPreset: const RoutineRestTimerPreset(),
+      ),
+      isTrue,
+    );
+    final offExercise = offController.draft!.exercises.single;
+    expect(offExercise.hasRestOverride, isTrue);
+    expect(offExercise.restPreset.isOff, isTrue);
+    expect(
+      await offController.toggleLogged(
+        offExercise.id,
+        offExercise.sets.single.id,
+        reps: 8,
+      ),
+      isTrue,
+    );
+    expect(offController.draft!.activeRest, isNull);
+    offController.dispose();
+  });
+
   test('failed mutation retains last durable draft and stable retry identity',
       () async {
     final store = _Store();

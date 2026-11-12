@@ -23,6 +23,7 @@ import 'routine_rest_timer_sheet.dart';
 import 'routine_notes_controller.dart';
 import '../../../domain/models/routine_rest_timer_preset.dart';
 import 'routine_notes_save_bridge.dart';
+import '../../controllers/workout_runtime_settings_controller.dart';
 
 /// Existing shared Routine composer in Edit mode; Name and Sets share Update.
 /// Returns true only after a confirmed save or read-verified mutation.
@@ -43,6 +44,7 @@ class EditRoutinePage extends StatefulWidget {
     this.onRoutineWriteResolved,
     this.canWrite,
     this.newUuid,
+    this.workoutRuntimeSettingsController,
     super.key,
   });
 
@@ -72,6 +74,7 @@ class EditRoutinePage extends StatefulWidget {
 
   /// Test seam only; production uses UUID v4.
   final String Function()? newUuid;
+  final WorkoutRuntimeSettingsController? workoutRuntimeSettingsController;
 
   @override
   State<EditRoutinePage> createState() => _EditRoutinePageState();
@@ -288,9 +291,26 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         _blankSetIds.add(fresh.sets.single.id);
       }
     } else {
+      final settings = widget.workoutRuntimeSettingsController;
+      if (settings != null) {
+        await settings.load();
+        if (!mounted || !settings.isReady) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not load Default Rest Timer.')),
+            );
+          }
+          return;
+        }
+      }
+      final initialRestPreset = settings?.defaultRestPreset ??
+          const RoutineRestTimerPreset();
       for (final exercise in chosen) {
         if (!_canEdit || exercise.status != ExerciseStatus.active) break;
-        final entryId = editor.addPickedExercise(exercise);
+        final entryId = editor.addPickedExercise(
+          exercise,
+          initialRestPreset: initialRestPreset,
+        );
         if (entryId != null) {
           final setId = editor.addSet(entryId, SetPrescription());
           if (setId != null) _blankSetIds.add(setId);

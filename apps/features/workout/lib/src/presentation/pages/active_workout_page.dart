@@ -16,6 +16,7 @@ import '../../domain/repositories/routine_composition_repository.dart';
 import '../../domain/exercises/exercise_catalog.dart';
 import '../controllers/active_workout_controller.dart';
 import '../controllers/active_workout_draft_controller.dart';
+import '../controllers/workout_runtime_settings_controller.dart';
 import '../controllers/active_workout_state.dart';
 import '../library/exercises/exercises_controller.dart';
 import '../library/exercises/exercises_page.dart';
@@ -57,6 +58,7 @@ class ActiveWorkoutPage extends StatelessWidget {
     this.gymLocationRepository,
     this.clock,
     this.draftController,
+    this.workoutRuntimeSettingsController,
   });
 
   final ActiveWorkoutController? controller;
@@ -79,6 +81,7 @@ class ActiveWorkoutPage extends StatelessWidget {
   /// Optional clock for deterministic time formatting and testing.
   final DateTime Function()? clock;
   final ActiveWorkoutDraftController? draftController;
+  final WorkoutRuntimeSettingsController? workoutRuntimeSettingsController;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +95,7 @@ class ActiveWorkoutPage extends StatelessWidget {
       gymLocationRepository: gymLocationRepository,
       clock: clock,
       draftController: draftController,
+      workoutRuntimeSettingsController: workoutRuntimeSettingsController,
     );
   }
 }
@@ -107,6 +111,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
     this.gymLocationRepository,
     this.clock,
     this.draftController,
+    this.workoutRuntimeSettingsController,
   });
 
   final ActiveWorkoutController? controller;
@@ -118,6 +123,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
   final GymLocationRepository? gymLocationRepository;
   final DateTime Function()? clock;
   final ActiveWorkoutDraftController? draftController;
+  final WorkoutRuntimeSettingsController? workoutRuntimeSettingsController;
 
   @override
   State<_ActiveWorkoutBody> createState() => _ActiveWorkoutBodyState();
@@ -508,6 +514,8 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
         gymLocationRepository: widget.gymLocationRepository,
         clock: widget.clock,
         draftController: widget.draftController,
+        workoutRuntimeSettingsController:
+            widget.workoutRuntimeSettingsController,
       );
 }
 
@@ -535,6 +543,7 @@ class _StartWorkoutPreview extends StatefulWidget {
     this.gymLocationRepository,
     this.clock,
     this.draftController,
+    this.workoutRuntimeSettingsController,
   });
 
   final VoidCallback onBack;
@@ -544,6 +553,7 @@ class _StartWorkoutPreview extends StatefulWidget {
   final GymLocationRepository? gymLocationRepository;
   final DateTime Function()? clock;
   final ActiveWorkoutDraftController? draftController;
+  final WorkoutRuntimeSettingsController? workoutRuntimeSettingsController;
 
   @override
   State<_StartWorkoutPreview> createState() => _StartWorkoutPreviewState();
@@ -816,7 +826,23 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
       ),
     );
     if (selected != null && selected.isNotEmpty && mounted) {
-      await widget.draftController?.addExercises(selected);
+      final settings = widget.workoutRuntimeSettingsController;
+      if (settings != null) {
+        await settings.load();
+        if (!mounted || !settings.isReady) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not load Default Rest Timer.')),
+            );
+          }
+          return;
+        }
+      }
+      await widget.draftController?.addExercises(
+        selected,
+        initialRestPreset: settings?.defaultRestPreset ??
+            const RoutineRestTimerPreset(),
+      );
     }
   }
 

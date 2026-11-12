@@ -309,6 +309,7 @@ Future<void> _pumpPage(
   VoidCallback? onBack,
   DateTime Function()? clock,
   ActiveWorkoutDraftController? draftController,
+  WorkoutRuntimeSettingsController? workoutRuntimeSettingsController,
 }) async {
   final localController = draftController ??
       (showStartPreview
@@ -335,11 +336,30 @@ Future<void> _pumpPage(
         createDraftIfMissing: createDraftIfMissing,
         onBack: onBack,
         clock: clock ?? () => tester.binding.clock.now(),
+        workoutRuntimeSettingsController:
+            workoutRuntimeSettingsController,
       ),
     ),
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
+}
+
+final class _RuntimeSettingsRepository
+    implements WorkoutRuntimeSettingsRepository {
+  _RuntimeSettingsRepository({this.seconds});
+
+  int? seconds;
+
+  @override
+  Future<void> clearDefaultRestSeconds() async => seconds = null;
+
+  @override
+  Future<int?> readDefaultRestSeconds() async => seconds;
+
+  @override
+  Future<void> writeDefaultRestSeconds(int seconds) async =>
+      this.seconds = seconds;
 }
 
 Future<void> _addPreviewBench(WidgetTester tester) async {
@@ -354,7 +374,87 @@ Future<void> _addPreviewBench(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
+  final wheel = find.byKey(const ValueKey('routine-rest-timer-wheel'));
+  final scrollable = tester.widget<ListWheelScrollView>(wheel);
+  (scrollable.controller! as FixedExtentScrollController).jumpToItem(index);
+  await tester.pumpAndSettle();
+}
+
 void main() {
+  testWidgets('Log Workout Add Exercise snapshots and keeps editable defaults',
+      (tester) async {
+    final store = _DraftStore();
+    final draft = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draft.dispose);
+    final settings = WorkoutRuntimeSettingsController(
+      repository: _RuntimeSettingsRepository(seconds: 60),
+    );
+    addTearDown(settings.dispose);
+    await settings.load();
+
+    await _pumpPage(
+      tester,
+      controller: ActiveWorkoutController(
+        repository: _FakeSessionRepository(),
+        currentUserId: () => _userId,
+      ),
+      draftController: draft,
+      workoutRuntimeSettingsController: settings,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+    final first = draft.draft!.exercises.single;
+    expect(first.hasRestOverride, isTrue);
+    expect(first.restPreset.normalRestSeconds, 60);
+    expect(find.text('Rest: 1min'), findsOneWidget);
+
+    final firstTimer = find.byKey(ValueKey(
+      'active-workout-preview-exercise-rest-timer-${first.id}',
+    ));
+    await tester.tap(firstTimer);
+    await tester.pumpAndSettle();
+    await _selectRestWheelItem(tester, 24);
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(draft.draft!.exercises.first.restPreset.normalRestSeconds, 120);
+    expect(find.text('Rest: 2min'), findsOneWidget);
+
+    await settings.setDefaultRestSeconds(90);
+    await _addPreviewBench(tester);
+    expect(draft.draft!.exercises.first.restPreset.normalRestSeconds, 120);
+    expect(draft.draft!.exercises.last.restPreset.normalRestSeconds, 90);
+
+    await tester.tap(firstTimer);
+    await tester.pumpAndSettle();
+    await _selectRestWheelItem(tester, 0);
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(draft.draft!.exercises.first.restPreset.isOff, isTrue);
+    expect(find.text('Rest: OFF'), findsOneWidget);
+
+    expect(
+      await draft.toggleLogged(
+        first.id,
+        first.sets.single.id,
+      ),
+      isTrue,
+    );
+    expect(draft.draft!.activeRest, isNull);
+    expect(store.saved!.exercises.first.hasRestOverride, isTrue);
+    expect(store.saved!.exercises.first.restPreset.isOff, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Log Workout lifecycle pauses an unattended local draft',
       (tester) async {
     final store = _DraftStore();

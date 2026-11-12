@@ -116,6 +116,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const workoutSettings = TioRouteContract(
+    path: '/settings/workout',
+    title: 'Workout Settings',
+    description: 'Manage device-local Workout preferences.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const nutritionProfileSettings = TioRouteContract(
     path: '/settings/nutrition/profile',
     title: 'Nutrition Profile',

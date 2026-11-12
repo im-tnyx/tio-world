@@ -1,25 +1,55 @@
 # Workout Settings Screen
 
-Document Status: Planned/Future Doc
-Last Verified: 2026-09-27
+Document Status: Canonical Live Doc
+Last Verified: 2026-11-12 (W10-A source branch; PR/CI handoff pending)
 Owner: `apps/features/workout`
-Truth Boundary: Authoritative for the planned Workout Settings screen product contract and ownership; not evidence the screen is implemented or scheduled.
+Truth Boundary: Authoritative for Workout Settings ownership and behavior; runtime source wins for actual implementation, and the W10-A PR/CI handoff remains pending.
 
 **Surface:** Nested Phone Workout configuration
-**Route:** No route exists yet
+**Route:** `/settings/workout`
 **Primary owner:** `apps/features/workout`
-**Status:** Planned only.
+**Status:** W10-A implements the bounded Default Rest Timer preference. Other Workout Settings remain planned and are not implied by this slice.
 
 ## Purpose
 
-Let the user manage Workout-specific preferences and plan defaults. It is reachable from Workout and from a Settings launch entry, but Settings does not own the form, calculation, or validation.
+Let the user manage Workout-specific preferences and plan defaults. Root Settings exposes the page only when Workout is an active guided destination. Workout owns the form, behavior and persistence; Settings owns only navigation.
+
+## Default Rest Timer — W10-A
+
+The page contains a **Default Rest Timer** row showing `OFF` or the current
+duration. It opens the existing `showRoutineRestTimerSheet` with
+`hasWarmUpSets: false`; Done writes the selection and Cancel discards it.
+Durations are OFF or 5-second steps up to 600 seconds.
+
+The preference is a device-local Workout setting stored in owner-scoped
+`SharedPreferencesAsync` under
+`workout_default_rest_timer_seconds_v1_<ownerId>`. Missing/unset remains
+distinct from a saved OFF value (`0`); unset resolves to OFF when initializing
+a new Exercise. This value is never synced to Supabase.
+
+Each newly added Exercise receives the current default once in:
+
+- Routine Create.
+- Routine Edit.
+- Log Workout's existing account-bound Save-only active draft.
+
+The Exercise's current Rest Timer wheel remains editable after initialization.
+Changing it updates the Exercise's existing effective rest; OFF suppresses the
+next eligible countdown. Later changes to the global default do not change
+previously added Exercises, saved Routines, or active draft Exercises. Routine
+values remain in canonical `SetPrescription.restSeconds`; explicit OFF is
+persisted as `null`. Active Workout preserves the choice in its existing
+`restPreset` and `hasRestOverride` draft/recovery fields. The existing
+countdown engine and controls are reused.
+
+No Supabase schema, migration, RLS, RPC or sync behavior is part of W10-A.
 
 ## Target Content
 
 - Training goal and preferred split.
 - Experience level, available equipment, training days, and session-duration preference.
-- Workout units and rest/default logging preferences when those behaviors are implemented.
-- A clear indication of profile-derived suggestion versus a user-confirmed Workout override.
+- Training goal, preferred split, experience level, equipment, training days, session duration and workout units remain future scope.
+- Profile-derived suggestions versus confirmed Workout overrides require their own approved scope.
 
 ## Data And Rules
 
@@ -30,9 +60,10 @@ Let the user manage Workout-specific preferences and plan defaults. It is reacha
 
 ## Acceptance Criteria
 
-- The form contains only Workout-owned choices.
-- Profile values and user overrides are visibly distinguishable.
-- Settings launches this screen instead of duplicating its controls.
+- The root Settings row appears in Workout and Hybrid modes and is hidden in Nutrition mode.
+- The initial Rest Time for new Exercises reflects the current device-local default and can be edited immediately.
+- Default changes affect new additions only; Routine persistence and active draft recovery retain each Exercise's chosen value, including OFF.
+- Remaining Workout preferences stay hidden until separately implemented.
 
 ## Related
 

@@ -138,6 +138,32 @@ void main() {
     expect(appSettingsTaps, 1);
   });
 
+  testWidgets('Workout Settings entry is capability-gated and navigates',
+      (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child!),
+      home: SettingsPage(
+        onAppSettingsPressed: () {},
+        showWorkoutSection: true,
+        onWorkoutPressed: () => taps++,
+      ),
+    ));
+
+    expect(find.text('WORKOUT'), findsOneWidget);
+    final entry = find.byKey(const ValueKey('settings-workout-entry'));
+    expect(entry, findsOneWidget);
+    await tester.tap(entry);
+    expect(taps, 1);
+
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child!),
+      home: SettingsPage(onAppSettingsPressed: () {}),
+    ));
+    expect(find.text('WORKOUT'), findsNothing);
+    expect(find.byKey(const ValueKey('settings-workout-entry')), findsNothing);
+  });
+
   testWidgets(
       'App Preferences exposes real App Mode, Theme, Units and Calendar '
       'actions', (tester) async {
