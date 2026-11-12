@@ -292,7 +292,7 @@ int _representedSetCount(int prescribedCount, int performedCount) {
 }
 
 double? _snapshotPerformedRpe(
-  List rawExercises,
+  List<dynamic> rawExercises,
   int exerciseIndex,
   int setIndex,
 ) {
