@@ -5,7 +5,7 @@
 **Planning owner:** Codex
 **Implementation owner:** Codex
 **Previous agent:** Not applicable
-**Last commit agent / SHA:** Codex / `55b0810ac880ff33dea12c8f6f373b3cc83ad1ac` (latest W8C implementation commit)
+**Last commit agent / SHA:** Codex / `f1837e149f617fa29e2df8a4c1187380cc4064d6` (schema-v1 RPE compatibility fix)
 **Branch:** `codex/tnyx-85-w8a-workout-history`
 **PR / tracker:** [#752](https://github.com/im-tnyx/tio-world/pull/752) / [TNYX-85](https://linear.app/tnyx/issue/TNYX-85/w8-workout-history-completed-session-timeline-and-detail)
 **Initial audit HEAD:** `4830909cb215bf3b9f5c348e69c61651f9419b1e`; clean worktree before this brief. `origin/main@23310eeef6c1d42142f3af8f8563e759350d087c` was PR base at audit and remained the base at the follow-up audit.
