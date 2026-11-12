@@ -22,15 +22,15 @@
 **Review owner:** Pending PR review
 **Implementation ownership state:** Handoff pending
 **Ownership transition:** Not applicable
-**Repository state last verified:** Git root G:/projects/Tio-World; W10-A branch `tnyx/w10a-default-rest-timer` at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; `origin/main` is an ancestor, 0 behind / 6 ahead, and working tree clean at validation.
+**Repository state last verified:** Git root G:/projects/Tio-World; code branch `tnyx/w10a-default-rest-timer` passed exact-head CI at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`. Its task-handoff follow-up at `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec` also passed all workflow checks; `origin/main` was an ancestor and the tree was clean at both checkpoints.
 **Branch:** tnyx/w10a-default-rest-timer
-**HEAD SHA:** `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3` (code and exact-head CI verified; task handoff update follows)
-**Observed working-tree state:** Code branch clean at verified SHA; this handoff edit is in progress.
-**Observed uncommitted/dirty files:** This task brief and `.ai/tasks/README.md` handoff index.
-**PR / tracker:** [PR #753](https://github.com/im-tnyx/tio-world/pull/753) is open and unmerged at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`. Linear TNYX-87 remains Backlog and blocked by TNYX-78 for broad W10; this is the owner-approved W10-A child slice. GitHub #48 remains open. Its 2026-10-29 note that Active Workout Add Exercise is unbuilt is superseded for this bounded slice by the 2026-11-12 owner clarification and existing Save-only draft contract from PR #740.
+**Latest fully validated PR checkpoint:** `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec` (seven commits ahead of `origin/main`; Flutter, Android and Docs Hygiene CI passed). This follow-up modifies only the task handoff record.
+**Observed working-tree state:** Clean on the verified checkpoint; this final task-file metadata correction is docs-only.
+**Observed uncommitted/dirty files:** This task brief only, while preparing the final handoff record.
+**PR / tracker:** [PR #753](https://github.com/im-tnyx/tio-world/pull/753) is open and unmerged; the most recent fully validated PR checkpoint is `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec`. Linear TNYX-87 remains Backlog and blocked by TNYX-78 for broad W10; this is the owner-approved W10-A child slice. GitHub #48 remains open. Its 2026-10-29 note that Active Workout Add Exercise is unbuilt is superseded for this bounded slice by the 2026-11-12 owner clarification and existing Save-only draft contract from PR #740.
 **Current implementation state:** Workout Settings and all three Add Exercise integrations are committed and exact-head CI passed. Routine OFF and Active Workout draft recovery contracts are wired. Independent review and device QA remain pending; PR is not merged.
 **Relevant execution surface:** Settings root and /settings/workout; Routine Create/Edit Add Exercise; Active Workout Log Workout Save-only draft Add Exercise and recovery.
-**Validation completed at SHA:** `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`: `git diff --check origin/main...HEAD` passed; Docs Hygiene CI run `43248535780`, Flutter CI run `43248535748`, and Android Native CI run `43248535717` all passed. Flutter CI passed `app-workout`, `nutrition-onboarding`, `core-wear`, and Analyze/Dart-test jobs; Android CI passed phone and Wear debug APK builds.
+**Validation completed at SHA:** `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec`: `git diff --check origin/main...HEAD` passed; Docs Hygiene CI run `43250182500`, Flutter CI run `43250182673`, and Android Native CI run `43250182890` all passed. Flutter CI passed `app-workout`, `nutrition-onboarding`, `core-wear`, and Analyze/Dart-test jobs; Android CI passed phone and Wear debug APK builds. The source implementation was already green at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`.
 **Validation remaining:** Independent PR review and device QA. Local Flutter/Dart commands are unavailable; `melos bootstrap` was attempted and failed because `melos` is not on PATH.
 **Current blocker:** Broad Linear W10 remains blocked by TNYX-78; this owner-approved W10-A child uses existing contracts and does not resolve that dependency. No source-level blocker found in the bounded audit.
 **Open review finding IDs:** None yet.
@@ -169,4 +169,4 @@ Broad W10 remains blocked by TNYX-78. Device behavior is not claimed unless phys
 
 ### Final Status
 
-REVIEW — implementation, tests and exact-head CI passed at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; PR #753 remains open and unmerged pending independent review and device QA.
+REVIEW — implementation, tests and exact-head CI passed through `fd07da4d6c6f17e885fdb2bb555720a2d59a7dec`; PR #753 remains open and unmerged pending independent review and device QA.
