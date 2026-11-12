@@ -17,24 +17,24 @@
 **Planning owner:** Owner / TNYX-87
 **Implementation owner:** Codex
 **Previous agent:** Not applicable
-**Last commit agent:** Not applicable — no W10-A commit yet
-**Last commit SHA:** Not applicable
+**Last commit agent:** Codex — W10-A implementation commit
+**Last commit SHA:** `ea4f44b4ac6826ad46407934326bbcdead99aab3` (`feat(flutter): add local default rest timer`)
 **Review owner:** Pending PR review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending
 **Ownership transition:** Not applicable
-**Repository state last verified:** Git root G:/projects/Tio-World; clean main at 080562208cf431bf34154478d4729d586d5ac679 before branch creation
+**Repository state last verified:** Git root G:/projects/Tio-World; W10-A implementation committed on `tnyx/w10a-default-rest-timer` at `ea4f44b4ac6826ad46407934326bbcdead99aab3`; main base was `080562208cf431bf34154478d4729d586d5ac679` before branch creation
 **Branch:** tnyx/w10a-default-rest-timer
-**HEAD SHA:** 080562208cf431bf34154478d4729d586d5ac679 (branch base)
-**Observed working-tree state:** Clean before this task brief
-**Observed uncommitted/dirty files:** None before this task brief
-**PR / tracker:** Linear TNYX-87 (Backlog, still blocked by TNYX-78 for broad W10); GitHub #48 (open, latest owner comment approves the first UI slice). No open PR existed at preflight. PR #740, which contains the current Save-only draft foundation, is merged.
-**Current implementation state:** The approved setting screen and all three Exercise-add integrations are implemented locally. Routine OFF and Active Workout draft recovery contracts are wired; source review is complete, while executable Flutter validation and PR CI remain pending.
+**HEAD SHA:** `ea4f44b4ac6826ad46407934326bbcdead99aab3` (implementation commit; task handoff update follows)
+**Observed working-tree state:** Implementation commit clean; handoff metadata update in progress
+**Observed uncommitted/dirty files:** This task brief only
+**PR / tracker:** Linear TNYX-87 (Backlog, still blocked by TNYX-78 for broad W10); GitHub #48 (open, latest owner comment approves the first UI slice). No open PR existed at preflight; PR creation is pending. PR #740, which contains the current Save-only draft foundation, is merged.
+**Current implementation state:** The approved setting screen and all three Exercise-add integrations are committed in `ea4f44b4ac6826ad46407934326bbcdead99aab3`. Routine OFF and Active Workout draft recovery contracts are wired; source review is complete, while executable Flutter validation and PR CI remain pending.
 **Relevant execution surface:** Settings root and /settings/workout; Routine Create/Edit Add Exercise; Active Workout Log Workout Save-only draft Add Exercise and recovery.
 **Validation completed at SHA:** `git diff --cached --check` passed on the reviewed staged diff. `melos bootstrap` was attempted and could not start because `melos` is not installed/on PATH.
 **Validation remaining:** Flutter analyze/tests (Flutter/Dart toolchain unavailable locally); exact-head PR CI. Theme and compact-width widget coverage was added but cannot be executed locally.
 **Current blocker:** Broad Linear W10 remains blocked by TNYX-78; this owner-approved W10-A child uses existing contracts and does not resolve that dependency. No source-level blocker found in the bounded audit.
 **Open review finding IDs:** None yet.
-**Next exact action:** Run final source/diff checks, update this handoff with commit/PR evidence, then push the dedicated branch and create the authorized PR without merging.
+**Next exact action:** Refresh `origin/main`, audit the exact branch delta, push the dedicated branch and create the authorized PR without merging.
 
 ## 1. Discovery
 
@@ -137,7 +137,7 @@ Show loading/error/save failure truthfully. A local preference read failure must
 
 **Review source / link:** Local source/diff review; GitHub PR pending
 **Reviewer / relation to implementer:** Codex implementer; self-review
-**Diff or commit SHA actually reviewed:** Current uncommitted branch diff (final SHA pending)
+**Diff or commit SHA actually reviewed:** `ea4f44b4ac6826ad46407934326bbcdead99aab3`
 **Review result and finding IDs/dispositions:** Found and corrected Edit Routine handling that could overwrite untouched mixed legacy `restSeconds` on Save; added a regression test. No other source review findings identified.
 **Independent review?** Unknown / unavailable
 **Limitations and unmet required gates:** Flutter/Dart toolchain unavailable locally; exact-head CI and PR review pending; no device testing claimed.
