@@ -61,16 +61,27 @@ final activeWorkoutDraftControllerProvider =
 /// Device-local Workout settings, isolated by the authenticated owner. The
 /// login-cycle identity also recreates the controller on account re-entry so
 /// stale settings state cannot leak across sessions.
+final workoutRuntimeSettingsRepositoryProvider =
+    Provider.autoDispose<WorkoutRuntimeSettingsRepository?>((ref) {
+  final identity = ref.watch(
+    authSessionStateProvider.select(_selectWorkoutAuthIdentity),
+  );
+  if (identity == null) return null;
+  return SharedPreferencesWorkoutRuntimeSettingsRepository(
+    ownerId: identity.ownerId,
+  );
+});
+
 final workoutRuntimeSettingsControllerProvider =
     Provider.autoDispose<WorkoutRuntimeSettingsController?>((ref) {
   final identity = ref.watch(
     authSessionStateProvider.select(_selectWorkoutAuthIdentity),
   );
   if (identity == null) return null;
+  final repository = ref.watch(workoutRuntimeSettingsRepositoryProvider);
+  if (repository == null) return null;
   final controller = WorkoutRuntimeSettingsController(
-    repository: SharedPreferencesWorkoutRuntimeSettingsRepository(
-      ownerId: identity.ownerId,
-    ),
+    repository: repository,
   );
   ref.onDispose(controller.dispose);
   return controller;

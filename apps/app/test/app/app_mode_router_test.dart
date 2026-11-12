@@ -863,6 +863,12 @@ void main() {
   testWidgets('Settings Units preserves mixed hydration, back and save retry',
       (tester) async {
     final fixture = await _pumpSettingsRoute(tester);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-app-settings-entry')),
+      200.0,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('settings-app-settings-entry')));
     await tester.pumpAndSettle();
     final unitsEntry = find.byKey(const ValueKey('app-settings-units-entry'));

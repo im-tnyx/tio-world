@@ -9,7 +9,7 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
     required String ownerId,
     SharedPreferencesAsync? preferences,
   })  : _ownerId = ownerId.trim(),
-        _preferences = preferences ?? SharedPreferencesAsync() {
+        _preferences = preferences {
     if (_ownerId.isEmpty) {
       throw ArgumentError.value(ownerId, 'ownerId', 'Must not be empty.');
     }
@@ -20,22 +20,25 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
   static String storageKeyFor(String ownerId) => '$_keyPrefix${ownerId.trim()}';
 
   final String _ownerId;
-  final SharedPreferencesAsync _preferences;
+  SharedPreferencesAsync? _preferences;
 
   String get _storageKey => storageKeyFor(_ownerId);
+
+  SharedPreferencesAsync get _store =>
+      _preferences ??= SharedPreferencesAsync();
 
   @override
   Future<int?> readDefaultRestSeconds() async {
     int? seconds;
     try {
-      seconds = await _preferences.getInt(_storageKey);
+      seconds = await _store.getInt(_storageKey);
     } on TypeError {
-      await _preferences.remove(_storageKey);
+      await _store.remove(_storageKey);
       return null;
     }
     if (seconds == null) return null;
     if (!_isSupported(seconds)) {
-      await _preferences.remove(_storageKey);
+      await _store.remove(_storageKey);
       return null;
     }
     return seconds;
@@ -46,11 +49,11 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
     if (!_isSupported(seconds)) {
       throw ArgumentError.value(seconds, 'seconds', 'Unsupported rest duration.');
     }
-    await _preferences.setInt(_storageKey, seconds);
+    await _store.setInt(_storageKey, seconds);
   }
 
   @override
-  Future<void> clearDefaultRestSeconds() => _preferences.remove(_storageKey);
+  Future<void> clearDefaultRestSeconds() => _store.remove(_storageKey);
 
   static bool _isSupported(int seconds) =>
       seconds == 0 ||
