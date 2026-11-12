@@ -479,6 +479,112 @@ void main() {
       expect(find.text('Workout could not be saved.'), findsNothing);
     });
 
+    testWidgets('edit date picker keeps saved wall time and UTC offset',
+        (tester) async {
+      final clock = DateTime(2026, 11, 12, 10);
+      final deviceOffset = clock.timeZoneOffset.inMinutes;
+      final savedOffset = deviceOffset + 120 <= 840
+          ? deviceOffset + 120
+          : deviceOffset - 120;
+      final initialDate = clock.add(Duration(
+        minutes: savedOffset > deviceOffset ? 60 : -180,
+      ));
+      DateTime? submittedDate;
+      int? submittedOffset;
+
+      await tester.pumpWidget(
+        _buildWrapper(
+          SaveWorkoutPage(
+            duration: const Duration(minutes: 30),
+            volumeKg: 400,
+            completedSets: 1,
+            editMode: true,
+            initialWorkoutDateTime: initialDate,
+            initialWorkoutUtcOffsetMinutes: savedOffset,
+            clock: () => clock,
+            onSave: ({
+              required String title,
+              required String? description,
+              required DateTime date,
+              required int utcOffsetMinutes,
+              required double? rpe,
+              required String activityType,
+              required String? gym,
+              Duration? duration,
+            }) async {
+              submittedDate = date;
+              submittedOffset = utcOffsetMinutes;
+              return false;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('save-workout-date-tile')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('workout-date-picker-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-workout-submit-button')));
+      await tester.pumpAndSettle();
+
+      expect(submittedDate, initialDate);
+      expect(submittedOffset, savedOffset);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('exercise section ignores input while Update is pending',
+        (tester) async {
+      final saveResult = Completer<bool>();
+      var exerciseActions = 0;
+      await tester.pumpWidget(
+        _buildWrapper(
+          SaveWorkoutPage(
+            duration: const Duration(minutes: 30),
+            volumeKg: 400,
+            completedSets: 1,
+            editMode: true,
+            exerciseSection: TextButton(
+              key: const ValueKey('pending-exercise-action'),
+              onPressed: () => exerciseActions++,
+              child: const Text('Change set'),
+            ),
+            onSave: ({
+              required String title,
+              required String? description,
+              required DateTime date,
+              required int utcOffsetMinutes,
+              required double? rpe,
+              required String activityType,
+              required String? gym,
+              Duration? duration,
+            }) =>
+                saveResult.future,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('save-workout-submit-button')));
+      await tester.pump();
+      expect(
+        tester
+            .widget<TioButton>(
+                find.byKey(const ValueKey('save-workout-submit-button')))
+            .loading,
+        isTrue,
+      );
+      await tester.ensureVisible(
+          find.byKey(const ValueKey('pending-exercise-action')));
+      await tester.tap(find.byKey(const ValueKey('pending-exercise-action')));
+      await tester.pump();
+      expect(exerciseActions, 0);
+
+      saveResult.complete(false);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
         'tapping Gym opens GymSelectionPage, searches and selects gym, then clears it',
         (tester) async {

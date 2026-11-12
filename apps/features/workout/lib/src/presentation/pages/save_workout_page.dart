@@ -254,6 +254,17 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
 
   DateTime _currentNow() => (widget.clock?.call() ?? DateTime.now()).toLocal();
 
+  DateTime _wallDateTime(DateTime value) =>
+      DateTime(value.year, value.month, value.day, value.hour, value.minute);
+
+  DateTime _pickerNow() {
+    final now = _currentNow();
+    final savedOffset = widget.initialWorkoutUtcOffsetMinutes;
+    if (savedOffset == null) return now;
+    final savedWall = now.toUtc().add(Duration(minutes: savedOffset));
+    return _wallDateTime(savedWall);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -314,18 +325,25 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
     final picked = await showWorkoutDateTimePickerSheet(
       context: context,
       initialDateTime: _workoutDate,
-      clock: widget.maximumWorkoutDateTime == null
+      clock: widget.maximumWorkoutDateTime == null &&
+              widget.initialWorkoutUtcOffsetMinutes == null
           ? widget.clock
           : () {
-              final now = _currentNow();
-              final maximum = widget.maximumWorkoutDateTime!.toLocal();
+              final now = _pickerNow();
+              final maximumDate = widget.maximumWorkoutDateTime;
+              if (maximumDate == null) return now;
+              final maximum = widget.initialWorkoutUtcOffsetMinutes == null
+                  ? maximumDate.toLocal()
+                  : _wallDateTime(maximumDate);
               return maximum.isBefore(now) ? maximum : now;
             },
     );
     if (picked != null && mounted) {
       setState(() {
         _workoutDate = picked;
-        _workoutUtcOffsetMinutes = picked.timeZoneOffset.inMinutes;
+        _workoutUtcOffsetMinutes =
+            widget.initialWorkoutUtcOffsetMinutes ??
+                picked.timeZoneOffset.inMinutes;
       });
     }
   }
@@ -799,15 +817,21 @@ class _SaveWorkoutPageState extends State<SaveWorkoutPage> {
               Divider(height: 1, color: colors.outlineStrong),
               const SizedBox(height: TioSpacing.lg),
               if (widget.editMode)
-                OverflowBox(
-                  alignment: Alignment.center,
-                  fit: OverflowBoxFit.deferToChild,
-                  minWidth: MediaQuery.sizeOf(context).width,
-                  maxWidth: MediaQuery.sizeOf(context).width,
-                  child: widget.exerciseSection!,
+                AbsorbPointer(
+                  absorbing: _isBusy,
+                  child: OverflowBox(
+                    alignment: Alignment.center,
+                    fit: OverflowBoxFit.deferToChild,
+                    minWidth: MediaQuery.sizeOf(context).width,
+                    maxWidth: MediaQuery.sizeOf(context).width,
+                    child: widget.exerciseSection!,
+                  ),
                 )
               else
-                widget.exerciseSection!,
+                AbsorbPointer(
+                  absorbing: _isBusy,
+                  child: widget.exerciseSection!,
+                ),
             ],
             if (!widget.editMode) ...[
               const SizedBox(height: TioSpacing.xl),

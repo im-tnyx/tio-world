@@ -21,10 +21,26 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
       for (final set in source.allPerformedSets)
         if (set.isSkipped && set.completedAtUtc == null) set.id,
     };
+    final performedSetCounts = <int, int>{};
     final performed = <(int, int), PerformedSet>{
       for (final set in source.allPerformedSets)
         (set.sessionExerciseIndex, set.setIndex): set,
     };
+    for (final set in source.allPerformedSets) {
+      final setCount = set.setIndex + 1;
+      if (setCount > (performedSetCounts[set.sessionExerciseIndex] ?? 0)) {
+        performedSetCounts[set.sessionExerciseIndex] = setCount;
+      }
+    }
+    hasUnsupportedPerformedSets = snapshot.exercises.any(
+          (exercise) =>
+              exercise.prescribedSets.length >
+              RoutineCompositionLimits.maxSetsPerExercise,
+        ) ||
+        source.allPerformedSets.any(
+          (set) => set.setIndex >= RoutineCompositionLimits.maxSetsPerExercise,
+        );
+    final rawExercises = source.rawSnapshot!['exercises'] as List;
     _exercises = [
       for (final exercise in snapshot.exercises)
         ActiveWorkoutDraftExercise(
@@ -33,11 +49,17 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
           displayName: exercise.displayName,
           exerciseType: exercise.exerciseType,
           sets: [
-            for (final (index, prescription) in exercise.prescribedSets.indexed)
+            for (var index = 0;
+                index < _representedSetCount(
+                    exercise.prescribedSets.length,
+                    performedSetCounts[exercise.occurrenceIndex] ?? 0);
+                index++)
               ActiveWorkoutDraftSet(
                 id: performed[(exercise.occurrenceIndex, index)]?.id ??
                     const Uuid().v4(),
-                prescription: prescription,
+                prescription: index < exercise.prescribedSets.length
+                    ? exercise.prescribedSets[index]
+                    : SetPrescription(),
                 reps: performed[(exercise.occurrenceIndex, index)]?.reps,
                 loadKg: performed[(exercise.occurrenceIndex, index)]?.loadKg,
                 durationSeconds: performed[(exercise.occurrenceIndex, index)]
@@ -51,11 +73,11 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
                         null &&
                     (performed[(exercise.occurrenceIndex, index)]?.isSkipped ??
                         false),
-                rpe: (((source.rawSnapshot!['exercises']
-                                as List)[exercise.occurrenceIndex]
-                            ['prescribed_sets'] as List)[index]['performed_rpe']
-                        as num?)
-                    ?.toDouble(),
+                rpe: _snapshotPerformedRpe(
+                  rawExercises,
+                  exercise.occurrenceIndex,
+                  index,
+                ),
               ),
           ],
         ),
@@ -64,6 +86,7 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
 
   final WorkoutHistoryDetail source;
   late final Set<String> _preservedSkippedSetIds;
+  late final bool hasUnsupportedPerformedSets;
   late List<ActiveWorkoutDraftExercise> _exercises;
   List<ActiveWorkoutDraftExercise> get exercises =>
       List.unmodifiable(_exercises);
@@ -116,6 +139,7 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
       _exercises.isNotEmpty &&
       _exercises.length <= 100 &&
       !hasPerformedSetLimitExceeded &&
+      !hasUnsupportedPerformedSets &&
       completedSetCount > 0 &&
       _exercises.every((exercise) =>
           exercise.sets.isNotEmpty &&
@@ -256,4 +280,25 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
           )
         ],
       );
+}
+
+int _representedSetCount(int prescribedCount, int performedCount) {
+  final total = prescribedCount > performedCount
+      ? prescribedCount
+      : performedCount;
+  return total > RoutineCompositionLimits.maxSetsPerExercise
+      ? RoutineCompositionLimits.maxSetsPerExercise
+      : total;
+}
+
+double? _snapshotPerformedRpe(
+  List rawExercises,
+  int exerciseIndex,
+  int setIndex,
+) {
+  final rawExercise = rawExercises[exerciseIndex] as Map;
+  final rawPrescriptions = rawExercise['prescribed_sets'] as List;
+  if (setIndex >= rawPrescriptions.length) return null;
+  final rawRpe = (rawPrescriptions[setIndex] as Map)['performed_rpe'];
+  return (rawRpe as num?)?.toDouble();
 }

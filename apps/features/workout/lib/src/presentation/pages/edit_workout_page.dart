@@ -302,6 +302,13 @@ class _EditWorkoutPageState extends ConsumerState<EditWorkoutPage> {
             );
             return false;
           }
+          if (controller.hasUnsupportedPerformedSets) {
+            _message(
+              'This workout exceeds the eight-set editor limit. '
+              'Update is blocked to protect its saved data.',
+            );
+            return false;
+          }
           if (!controller.canUpdate) {
             _message('Log at least one set for every exercise.');
             return false;

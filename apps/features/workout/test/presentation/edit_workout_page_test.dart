@@ -10,7 +10,7 @@ import 'package:tio_shared/shared.dart';
 final _id = WorkoutSessionId('22222222-2222-4222-a222-222222222222');
 final _completed = DateTime.utc(2026, 11, 11, 21);
 
-WorkoutHistoryDetail _detail() {
+WorkoutHistoryDetail _detail({int performedSetCount = 1}) {
   final raw = <String, dynamic>{
     'schema_version': 2,
     'origin': 'ad_hoc',
@@ -27,15 +27,20 @@ WorkoutHistoryDetail _detail() {
       }
     ],
   };
-  final set = PerformedSet(
-    id: '33333333-3333-4333-a333-333333333333',
-    exerciseRef: CatalogExerciseRef('ex_bench_press'),
-    sessionExerciseIndex: 0,
-    setIndex: 0,
-    reps: 10,
-    loadKg: 40,
-    completedAtUtc: DateTime.utc(2026, 11, 11, 20, 40),
-  );
+  final sets = [
+    for (var index = 0; index < performedSetCount; index++)
+      PerformedSet(
+        id: index == 0
+            ? '33333333-3333-4333-a333-333333333333'
+            : 'aaaaaaaa-aaaa-4aaa-8aaa-${index.toString().padLeft(12, '0')}',
+        exerciseRef: CatalogExerciseRef('ex_bench_press'),
+        sessionExerciseIndex: 0,
+        setIndex: index,
+        reps: 10,
+        loadKg: 40,
+        completedAtUtc: DateTime.utc(2026, 11, 11, 20, 40 + index),
+      ),
+  ];
   return WorkoutHistoryDetail(
     summary: WorkoutHistoryEntry(
       sessionId: _id,
@@ -52,13 +57,13 @@ WorkoutHistoryDetail _detail() {
         ref: CatalogExerciseRef('ex_bench_press'),
         name: 'Bench Press',
         exerciseType: ExerciseType.weightReps,
-        sets: [set],
+        sets: sets,
       ),
     ],
     revision: 2,
     rawSnapshot: raw,
     snapshot: WorkoutSessionSnapshotDto.fromJson(raw),
-    allPerformedSets: [set],
+    allPerformedSets: sets,
     workoutAtUtc: DateTime.utc(2026, 11, 11, 20, 30),
     utcOffsetMinutes: 330,
     activityType: 'Weight Training',
@@ -154,6 +159,31 @@ void main() {
     expect(editor.submitted?.source.summary.sessionId, _id);
     expect(editor.submitted?.exercises.single.sets.single.reps, 10);
     expect(find.text('Open editor'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('legacy set overflow blocks Update without losing saved rows',
+      (tester) async {
+    final editor = _Editor();
+    await _pump(
+      tester,
+      _History(() async => _detail(performedSetCount: 9)),
+      editor,
+    );
+
+    await tester.ensureVisible(
+        find.byKey(const ValueKey('edit-workout-update-button')));
+    await tester.tap(find.byKey(const ValueKey('edit-workout-update-button')));
+    await tester.pumpAndSettle();
+
+    expect(editor.submitted, isNull);
+    expect(
+      find.text(
+        'This workout exceeds the eight-set editor limit. '
+        'Update is blocked to protect its saved data.',
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 

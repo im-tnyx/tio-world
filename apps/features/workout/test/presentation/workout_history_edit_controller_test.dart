@@ -10,6 +10,7 @@ final _id = WorkoutSessionId('22222222-2222-4222-a222-222222222222');
 WorkoutHistoryDetail _detail({
   bool skippedWithoutTime = false,
   bool legacySchemaVersion = false,
+  int performedSetCount = 1,
 }) {
   final raw = <String, dynamic>{
     'schema_version': legacySchemaVersion ? 1 : 2,
@@ -37,15 +38,18 @@ WorkoutHistoryDetail _detail({
     ],
   };
   final sets = [
-    PerformedSet(
-      id: '33333333-3333-4333-a333-333333333333',
-      exerciseRef: CatalogExerciseRef('ex_bench_press'),
-      sessionExerciseIndex: 0,
-      setIndex: 0,
-      reps: 8,
-      loadKg: 50,
-      completedAtUtc: DateTime.utc(2026, 11, 11, 20, 40),
-    ),
+    for (var index = 0; index < performedSetCount; index++)
+      PerformedSet(
+        id: index == 0
+            ? '33333333-3333-4333-a333-333333333333'
+            : 'aaaaaaaa-aaaa-4aaa-8aaa-${index.toString().padLeft(12, '0')}',
+        exerciseRef: CatalogExerciseRef('ex_bench_press'),
+        sessionExerciseIndex: 0,
+        setIndex: index,
+        reps: 8,
+        loadKg: 50,
+        completedAtUtc: DateTime.utc(2026, 11, 11, 20, 40 + index),
+      ),
     if (skippedWithoutTime)
       PerformedSet(
         id: '44444444-4444-4444-a444-444444444444',
@@ -190,6 +194,35 @@ void main() {
     expect(rows.last['id'], '44444444-4444-4444-a444-444444444444');
     expect(rows.last['is_skipped'], isTrue);
     expect(rows.last['completed_at_utc'], isNull);
+  });
+
+  test('performed sets beyond prescriptions are preserved in Update payload',
+      () {
+    final source = _detail(performedSetCount: 2);
+    final editor = WorkoutHistoryEditController(source);
+    addTearDown(editor.dispose);
+
+    expect(editor.exercises.single.sets, hasLength(2));
+    expect(editor.canUpdate, isTrue);
+    final rows = WorkoutHistoryEditDto.payload(_request(source, editor))[
+        'performed_sets'] as List;
+    expect(rows, hasLength(2));
+    expect(rows[1]['id'], source.allPerformedSets[1].id);
+    expect(rows[1]['set_index'], 1);
+  });
+
+  test('legacy exercises beyond the editor limit fail Update closed', () {
+    final source = _detail(performedSetCount: 9);
+    final editor = WorkoutHistoryEditController(source);
+    addTearDown(editor.dispose);
+
+    expect(editor.hasUnsupportedPerformedSets, isTrue);
+    expect(editor.exercises.single.sets, hasLength(8));
+    expect(editor.canUpdate, isFalse);
+    expect(
+      () => WorkoutHistoryEditDto.payload(_request(source, editor)),
+      throwsArgumentError,
+    );
   });
 
   test('Update preflight enforces the 500 serialized performed-set limit', () {

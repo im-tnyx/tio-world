@@ -1,5 +1,6 @@
-import '../../domain/models/workout_save_metadata_limits.dart';
+import '../../domain/models/routine_composition_limits.dart';
 import '../../domain/models/workout_history_entry.dart';
+import '../../domain/models/workout_save_metadata_limits.dart';
 import '../../domain/repositories/workout_history_edit_repository.dart';
 
 abstract final class WorkoutHistoryEditDto {
@@ -61,6 +62,17 @@ abstract final class WorkoutHistoryEditDto {
   static Map<String, dynamic> payload(WorkoutHistoryEditRequest request) {
     final source = request.source;
     final original = source.rawSnapshot;
+    final hasUnsupportedExistingSetCount =
+        source.snapshot?.exercises.any((exercise) =>
+                exercise.prescribedSets.length >
+                RoutineCompositionLimits.maxSetsPerExercise) ==
+            true ||
+        source.allPerformedSets.any((set) =>
+            set.setIndex >= RoutineCompositionLimits.maxSetsPerExercise);
+    if (hasUnsupportedExistingSetCount) {
+      throw ArgumentError(
+          'The existing workout exceeds the supported eight-set editor limit.');
+    }
     if (source.revision == null ||
         original == null ||
         !WorkoutSaveMetadataLimits.isValidTitle(request.title) ||
@@ -112,7 +124,8 @@ abstract final class WorkoutHistoryEditDto {
         },
     ];
     for (final (exerciseIndex, exercise) in request.exercises.indexed) {
-      if (exercise.sets.isEmpty || exercise.sets.length > 8) {
+      if (exercise.sets.isEmpty ||
+          exercise.sets.length > RoutineCompositionLimits.maxSetsPerExercise) {
         throw ArgumentError('Each exercise needs 1–8 sets.');
       }
       for (final (setIndex, set) in exercise.sets.indexed) {
