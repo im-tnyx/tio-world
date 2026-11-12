@@ -1,6 +1,6 @@
 # W10-A — Workout Settings Default Rest Timer
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** Workout feature
 **Affected platforms:** Android and iOS phone
 
@@ -18,23 +18,23 @@
 **Implementation owner:** Codex
 **Previous agent:** Not applicable
 **Last commit agent:** Codex — W10-A implementation commit
-**Last commit SHA:** `ea4f44b4ac6826ad46407934326bbcdead99aab3` (`feat(flutter): add local default rest timer`)
+**Last commit SHA:** `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3` (`fix(flutter): inject workout settings storage`)
 **Review owner:** Pending PR review
 **Implementation ownership state:** Handoff pending
 **Ownership transition:** Not applicable
-**Repository state last verified:** Git root G:/projects/Tio-World; W10-A implementation committed on `tnyx/w10a-default-rest-timer` at `ea4f44b4ac6826ad46407934326bbcdead99aab3`; main base was `080562208cf431bf34154478d4729d586d5ac679` before branch creation
+**Repository state last verified:** Git root G:/projects/Tio-World; W10-A branch `tnyx/w10a-default-rest-timer` at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; `origin/main` is an ancestor, 0 behind / 6 ahead, and working tree clean at validation.
 **Branch:** tnyx/w10a-default-rest-timer
-**HEAD SHA:** `ea4f44b4ac6826ad46407934326bbcdead99aab3` (implementation commit; task handoff update follows)
-**Observed working-tree state:** Implementation commit clean; handoff metadata update in progress
-**Observed uncommitted/dirty files:** This task brief only
-**PR / tracker:** Linear TNYX-87 (Backlog, still blocked by TNYX-78 for broad W10); GitHub #48 (open, latest owner comment approves the first UI slice). No open PR existed at preflight; PR creation is pending. PR #740, which contains the current Save-only draft foundation, is merged.
-**Current implementation state:** The approved setting screen and all three Exercise-add integrations are committed in `ea4f44b4ac6826ad46407934326bbcdead99aab3`. Routine OFF and Active Workout draft recovery contracts are wired; source review is complete, while executable Flutter validation and PR CI remain pending.
+**HEAD SHA:** `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3` (code and exact-head CI verified; task handoff update follows)
+**Observed working-tree state:** Code branch clean at verified SHA; this handoff edit is in progress.
+**Observed uncommitted/dirty files:** This task brief and `.ai/tasks/README.md` handoff index.
+**PR / tracker:** [PR #753](https://github.com/im-tnyx/tio-world/pull/753) is open and unmerged at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`. Linear TNYX-87 remains Backlog and blocked by TNYX-78 for broad W10; this is the owner-approved W10-A child slice. GitHub #48 remains open. Its 2026-10-29 note that Active Workout Add Exercise is unbuilt is superseded for this bounded slice by the 2026-11-12 owner clarification and existing Save-only draft contract from PR #740.
+**Current implementation state:** Workout Settings and all three Add Exercise integrations are committed and exact-head CI passed. Routine OFF and Active Workout draft recovery contracts are wired. Independent review and device QA remain pending; PR is not merged.
 **Relevant execution surface:** Settings root and /settings/workout; Routine Create/Edit Add Exercise; Active Workout Log Workout Save-only draft Add Exercise and recovery.
-**Validation completed at SHA:** `git diff --cached --check` passed on the reviewed staged diff. `melos bootstrap` was attempted and could not start because `melos` is not installed/on PATH.
-**Validation remaining:** Flutter analyze/tests (Flutter/Dart toolchain unavailable locally); exact-head PR CI. Theme and compact-width widget coverage was added but cannot be executed locally.
+**Validation completed at SHA:** `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`: `git diff --check origin/main...HEAD` passed; Docs Hygiene CI run `43248535780`, Flutter CI run `43248535748`, and Android Native CI run `43248535717` all passed. Flutter CI passed `app-workout`, `nutrition-onboarding`, `core-wear`, and Analyze/Dart-test jobs; Android CI passed phone and Wear debug APK builds.
+**Validation remaining:** Independent PR review and device QA. Local Flutter/Dart commands are unavailable; `melos bootstrap` was attempted and failed because `melos` is not on PATH.
 **Current blocker:** Broad Linear W10 remains blocked by TNYX-78; this owner-approved W10-A child uses existing contracts and does not resolve that dependency. No source-level blocker found in the bounded audit.
 **Open review finding IDs:** None yet.
-**Next exact action:** Refresh `origin/main`, audit the exact branch delta, push the dedicated branch and create the authorized PR without merging.
+**Next exact action:** Keep PR #753 open for independent review and device acceptance; do not merge without the owner's explicit direction.
 
 ## 1. Discovery
 
@@ -119,28 +119,33 @@ Show loading/error/save failure truthfully. A local preference read failure must
 
 ### Validation Run
 
-`git diff --cached --check` passed. `melos bootstrap` was attempted and failed before execution because `melos` is unavailable on PATH. Flutter/Dart analysis and tests could not run for the same missing toolchain. No device or visual QA is claimed.
+- `git diff --check origin/main...HEAD` — PASS at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`.
+- Docs Hygiene CI run `43248535780` — PASS.
+- Flutter CI run `43248535748` — PASS: `app-workout`, `nutrition-onboarding`, `core-wear`, Flutter/Dart analysis and Dart tests.
+- Android Native CI run `43248535717` — PASS: phone and Wear debug APK builds.
+- Local `melos bootstrap` — not run successfully; `melos` is unavailable on PATH, and Flutter/Dart are unavailable locally.
+- Device QA — not run; no physical-device behavior is claimed.
 
 ### Acceptance Evidence (substantive scope)
 
 | Criterion | Changed behavior / file | Test or manual evidence + actual result | Observed SHA / environment | Remaining risk |
 |---|---|---|---|---|
-| App Mode visibility and Nutrition route protection | `settings_routes.dart`, `settings_page.dart` | New route and capability-gate widget tests added; not executed locally | Current branch head | Exact-head CI pending |
-| Local-only persistence, unset/OFF and account isolation | Workout settings repository/controller | Owner-scoped SharedPreferences repository/controller tests added; not executed locally | Current branch head | Exact-head CI pending |
-| Wheel reuse, cancel, OFF, duration, increments and maximum | Workout Settings page | Reuses existing wheel; save/cancel/OFF and compact/light/dark tests added; not executed locally | Current branch head | Exact-head CI pending |
-| Routine Create/Edit Add Exercise and Save/reopen | Routine pages/controllers | Create and Edit snapshot/override/OFF tests added; Edit save/reopen covered; not executed locally | Current branch head | Exact-head CI pending |
-| Active Workout Add Exercise, manual override, recovery and countdown | Active Workout page/draft controller | UI and draft recovery/countdown tests added; not executed locally | Current branch head | Exact-head CI pending |
-| Existing Exercises and untouched mixed Routine values remain unchanged | Routine controllers and draft controller | Snapshot/update tests added; not executed locally | Current branch head | Exact-head CI pending |
-| Theme, narrow layout and accessibility | Workout Settings page | Light/dark, compact width and text-scale test added; not executed locally | Current branch head | Device QA not run |
+| App Mode visibility and Nutrition route protection | `settings_routes.dart`, `settings_page.dart` | Route and capability-gate widget tests passed in Flutter CI | `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; hosted CI | Physical-device check not run |
+| Local-only persistence, unset/OFF and account isolation | Workout settings repository/controller | Owner-scoped SharedPreferences repository/controller tests passed in Flutter CI | `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; hosted CI | Local toolchain unavailable |
+| Wheel reuse, cancel, OFF, duration, increments and maximum | Workout Settings page | Reuses existing wheel; save/cancel/OFF and compact/light/dark tests passed in Flutter CI | `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; hosted CI | Device QA not run |
+| Routine Create/Edit Add Exercise and Save/reopen | Routine pages/controllers | Create and Edit snapshot/override/OFF tests and Save/reopen passed in Flutter CI | `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; hosted CI | None identified in tested scope |
+| Active Workout Add Exercise, manual override, recovery and countdown | Active Workout page/draft controller | UI and draft recovery/countdown tests passed in Flutter CI | `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; hosted CI | Physical-device countdown not checked |
+| Existing Exercises and untouched mixed Routine values remain unchanged | Routine controllers and draft controller | Snapshot/update and mixed legacy-value regression tests passed in Flutter CI | `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; hosted CI | None identified in tested scope |
+| Theme, narrow layout and accessibility | Workout Settings page | Light/dark, compact width and text-scale tests passed in Flutter CI | `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; hosted CI | Device QA not run |
 
 ### Review Provenance
 
 **Review source / link:** Local source/diff review; GitHub PR pending
 **Reviewer / relation to implementer:** Codex implementer; self-review
-**Diff or commit SHA actually reviewed:** `ea4f44b4ac6826ad46407934326bbcdead99aab3`
+**Diff or commit SHA actually reviewed:** `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`
 **Review result and finding IDs/dispositions:** Found and corrected Edit Routine handling that could overwrite untouched mixed legacy `restSeconds` on Save; added a regression test. No other source review findings identified.
 **Independent review?** Unknown / unavailable
-**Limitations and unmet required gates:** Flutter/Dart toolchain unavailable locally; exact-head CI and PR review pending; no device testing claimed.
+**Limitations and unmet required gates:** Independent PR review and device QA remain pending. CI passed for the verified source head; no device behavior is claimed.
 
 ### Review Findings and Resolution
 
@@ -164,4 +169,4 @@ Broad W10 remains blocked by TNYX-78. Device behavior is not claimed unless phys
 
 ### Final Status
 
-REVIEW — implementation and tests are present; local Flutter validation and exact-head PR CI remain outstanding.
+REVIEW — implementation, tests and exact-head CI passed at `cffd120fe2f88ab945c8c332f29b5f1a86dfc8f3`; PR #753 remains open and unmerged pending independent review and device QA.
