@@ -14,6 +14,7 @@ import '../../../domain/repositories/program_repository.dart';
 import '../../../domain/repositories/routine_create_repository.dart';
 import '../../../domain/repositories/routine_notes_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
+import '../../../domain/models/routine_rest_timer_preset.dart';
 import 'routine_create_controller.dart';
 import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_page.dart';
@@ -25,6 +26,7 @@ import 'routine_composer_screen.dart';
 import 'routine_rest_timer_sheet.dart';
 import 'routine_notes_controller.dart';
 import 'routine_notes_save_bridge.dart';
+import '../../controllers/workout_runtime_settings_controller.dart';
 
 /// Full-screen canonical Create draft. Existing-Program and dormant programless
 /// modes share the same composition/editor UI and distinct atomic repositories.
@@ -51,6 +53,7 @@ class CreateRoutinePage extends StatefulWidget {
     this.onDefiniteFailure,
     this.canWrite,
     this.newUuid,
+    this.workoutRuntimeSettingsController,
     super.key,
   })  : myProgramRepository = null,
         programRepository = null,
@@ -83,6 +86,7 @@ class CreateRoutinePage extends StatefulWidget {
     this.returnToLibrary = true,
     required this.canWrite,
     this.newUuid,
+    this.workoutRuntimeSettingsController,
     super.key,
   })  : program = null,
         createRepository = null,
@@ -134,6 +138,7 @@ class CreateRoutinePage extends StatefulWidget {
   final WeightUnit weightUnit;
   final bool Function()? canWrite;
   final String Function()? newUuid;
+  final WorkoutRuntimeSettingsController? workoutRuntimeSettingsController;
 
   @override
   State<CreateRoutinePage> createState() => _CreateRoutinePageState();
@@ -346,9 +351,26 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       _untouchedRepSetIds.add(fresh.sets.single.id);
       return;
     }
+    final settings = widget.workoutRuntimeSettingsController;
+    if (settings != null) {
+      await settings.load();
+      if (!mounted || !settings.isReady) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not load Default Rest Timer.')),
+          );
+        }
+        return;
+      }
+    }
+    final initialRestPreset = settings?.defaultRestPreset ??
+        const RoutineRestTimerPreset();
     for (final exercise in chosen) {
       if (!_enabled || exercise.status != ExerciseStatus.active) break;
-      final id = _draft.addPickedExercise(exercise);
+      final id = _draft.addPickedExercise(
+        exercise,
+        initialRestPreset: initialRestPreset,
+      );
       if (id != null) {
         _entryExercises[id] = exercise;
         final entry = _draft.state.entries.last;

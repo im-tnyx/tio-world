@@ -56,7 +56,7 @@ RoutineCompositionSnapshot _snapshot({
     );
 
 class _Fixtures {
-  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true, this.canWrite, this.onExerciseInfoPressed, this.onRoutineWriteResolved})
+  _Fixtures({this.unit = WeightUnit.kg, this.routine, this.repositoryAvailable = true, this.canWrite, this.onExerciseInfoPressed, this.onRoutineWriteResolved, this.workoutRuntimeSettingsController})
       : compositions = _Compositions(_snapshot()),
         catalog = _Catalog(),
         users = _Users();
@@ -67,6 +67,7 @@ class _Fixtures {
   final bool Function()? canWrite;
   final ValueChanged<Exercise>? onExerciseInfoPressed;
   final VoidCallback? onRoutineWriteResolved;
+  final WorkoutRuntimeSettingsController? workoutRuntimeSettingsController;
   final _Compositions compositions;
   final _Catalog catalog;
   final _Users users;
@@ -104,6 +105,8 @@ class _Fixtures {
                     canWrite: canWrite,
                     onRoutineWriteResolved: onRoutineWriteResolved,
                     weightUnit: unit,
+                    workoutRuntimeSettingsController:
+                        workoutRuntimeSettingsController,
                     newUuid: newId,
                   ),
                 ),
@@ -465,6 +468,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(f.editorResult, isFalse);
     expect(f.compositions.saveCount, 0);
+  });
+
+  testWidgets('Edit Add Exercise snapshots default and saves an OFF override',
+      (tester) async {
+    final settings = WorkoutRuntimeSettingsController(
+      repository: _RuntimeSettingsRepository(initialSeconds: 90),
+    );
+    addTearDown(settings.dispose);
+    await settings.load();
+    final f = _Fixtures(workoutRuntimeSettingsController: settings);
+    f.compositions.snapshot = _snapshot(entries: const []);
+    await f.open(tester);
+
+    await tester.tap(find.byKey(const ValueKey('edit-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bench Press'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rest: 1min 30s'), findsOneWidget);
+    const entryId = '90000000-0000-4000-8000-000000000001';
+    await tester.tap(
+      find.byKey(const ValueKey('edit-routine-rest-timer-$entryId')),
+    );
+    await tester.pumpAndSettle();
+    await _selectRestWheelItem(tester, 0);
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Rest: OFF'), findsOneWidget);
+
+    await _fillNewSet(tester);
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+    expect(f.compositions.saveCount, 1);
+    expect(
+      f.compositions.lastSave!.entries.single.sets.single.prescription.restSeconds,
+      isNull,
+    );
+    expect(f.editorResult, isTrue);
   });
 
   testWidgets('picker returns freshly created Custom even when editor source is stale',
@@ -1208,6 +1253,30 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(f.compositions.saveCount, 0);
   });
+}
+
+Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
+  final wheel = find.byKey(const ValueKey('routine-rest-timer-wheel'));
+  final scrollable = tester.widget<ListWheelScrollView>(wheel);
+  (scrollable.controller! as FixedExtentScrollController).jumpToItem(index);
+  await tester.pumpAndSettle();
+}
+
+final class _RuntimeSettingsRepository
+    implements WorkoutRuntimeSettingsRepository {
+  _RuntimeSettingsRepository({this.initialSeconds});
+
+  int? initialSeconds;
+
+  @override
+  Future<void> clearDefaultRestSeconds() async => initialSeconds = null;
+
+  @override
+  Future<int?> readDefaultRestSeconds() async => initialSeconds;
+
+  @override
+  Future<void> writeDefaultRestSeconds(int seconds) async =>
+      initialSeconds = seconds;
 }
 
 final class _Catalog implements ExerciseCatalogRepository {

@@ -1128,6 +1128,33 @@ void main() {
     expect(find.byType(SettingsPage), findsOneWidget);
   });
 
+  testWidgets('Workout Settings is visible in Hybrid and protected in Nutrition',
+      (tester) async {
+    final fixture = await _pumpSettingsRoute(tester);
+    final entry = find.byKey(const ValueKey('settings-workout-entry'));
+    expect(entry, findsOneWidget);
+
+    await tester.scrollUntilVisible(entry, 120.0);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    final unavailable = find.text('Workout Settings are unavailable.');
+    expect(unavailable, findsOneWidget);
+    expect(
+      GoRouterState.of(tester.element(unavailable))
+          .uri
+          .path,
+      AppRoutes.workoutSettings.path,
+    );
+
+    await fixture.mode.select(AppMode.nutrition);
+    fixture.router.go(AppRoutes.workoutSettings.path);
+    await tester.pumpAndSettle();
+    expect(find.byType(WorkoutSettingsPage), findsNothing);
+    expect(fixture.router.routeInformationProvider.value.uri.path,
+        AppRoutes.settings.path);
+    expect(find.byKey(const ValueKey('settings-workout-entry')), findsNothing);
+  });
+
   for (final layout in const [
     (width: 390.0, height: 844.0, textScale: 1.0, name: '390px'),
     (width: 320.0, height: 640.0, textScale: 1.0, name: '320px'),
@@ -1383,7 +1410,8 @@ Future<
       _SettingsHydrationRepository hydration,
       _SettingsAuthRepository auth,
       AppThemeController theme,
-      CalendarPreferencesController calendar
+      CalendarPreferencesController calendar,
+      AppModeController mode,
     })> _pumpSettingsRoute(
   WidgetTester tester, {
   String initialPath = '/settings',
@@ -1488,6 +1516,7 @@ Future<
     auth: auth,
     theme: theme,
     calendar: calendar,
+    mode: mode,
   );
 }
 

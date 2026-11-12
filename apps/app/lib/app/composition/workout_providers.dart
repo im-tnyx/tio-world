@@ -58,6 +58,24 @@ final activeWorkoutDraftControllerProvider =
   return controller;
 });
 
+/// Device-local Workout settings, isolated by the authenticated owner. The
+/// login-cycle identity also recreates the controller on account re-entry so
+/// stale settings state cannot leak across sessions.
+final workoutRuntimeSettingsControllerProvider =
+    Provider.autoDispose<WorkoutRuntimeSettingsController?>((ref) {
+  final identity = ref.watch(
+    authSessionStateProvider.select(_selectWorkoutAuthIdentity),
+  );
+  if (identity == null) return null;
+  final controller = WorkoutRuntimeSettingsController(
+    repository: SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: identity.ownerId,
+    ),
+  );
+  ref.onDispose(controller.dispose);
+  return controller;
+});
+
 /// The only Auth fields that define Workout mutation authority and lifecycle.
 ///
 /// Profile/verification metadata can legitimately change during the same

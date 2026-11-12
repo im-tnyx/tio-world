@@ -156,7 +156,10 @@ final class RoutineCreateController extends ChangeNotifier {
     _publish();
   }
 
-  String? addPickedExercise(Exercise exercise) {
+  String? addPickedExercise(
+    Exercise exercise, {
+    RoutineRestTimerPreset initialRestPreset = const RoutineRestTimerPreset(),
+  }) {
     if (!_editable ||
         exercise.status != ExerciseStatus.active ||
         !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
@@ -164,6 +167,7 @@ final class RoutineCreateController extends ChangeNotifier {
     }
     final entryId = _newUuid();
     final setId = _newUuid();
+    _restPresets[entryId] = initialRestPreset;
     if (exercise.ref is UserCreatedExerciseRef) {
       _pickedCustomTypes[entryId] = exercise.exerciseType;
     }
@@ -175,7 +179,10 @@ final class RoutineCreateController extends ChangeNotifier {
         sets: [
           RoutineCompositionSet(
             id: setId,
-            prescription: SetPrescription(),
+            prescription: SetPrescription(
+              restSeconds: initialRestPreset
+                  .effectiveRestFor(RoutineSetType.normal),
+            ),
           ),
         ],
       ),
@@ -272,9 +279,7 @@ final class RoutineCreateController extends ChangeNotifier {
             loadKg: s.prescription.loadKg,
             distanceMeters: s.prescription.distanceMeters,
             durationSeconds: s.prescription.durationSeconds,
-            restSeconds: preset.isOff
-                ? s.prescription.restSeconds
-                : preset.effectiveRestFor(s.prescription.setType),
+            restSeconds: preset.effectiveRestFor(s.prescription.setType),
           ),
         ),
     ];
@@ -305,9 +310,10 @@ final class RoutineCreateController extends ChangeNotifier {
     final inRange =
         entry.sets.isNotEmpty && entry.sets.first.prescription.isRepRange;
     final preset = getExerciseRestPreset(entry.id);
-    final effectiveRest = preset.isOff
-        ? prescription.restSeconds
-        : preset.effectiveRestFor(prescription.setType);
+    final effectiveRest =
+        _restPresets.containsKey(entry.id) || !preset.isOff
+            ? preset.effectiveRestFor(prescription.setType)
+            : prescription.restSeconds;
     final initial = SetPrescription(
       reps: prescription.reps,
       repsMax: inRange ? (prescription.repsMax ?? prescription.reps) : null,
@@ -393,7 +399,7 @@ final class RoutineCreateController extends ChangeNotifier {
 
     final preset = getExerciseRestPreset(entryId);
     final int? newRestSeconds;
-    if (!preset.isOff) {
+    if (_restPresets.containsKey(entryId) || !preset.isOff) {
       newRestSeconds = preset.effectiveRestFor(type);
     } else {
       newRestSeconds = p.restSeconds;

@@ -17,12 +17,14 @@ dependencies:
   video_player: ^2.10.0
   uuid: ^4.3.3
   geolocator: ^14.1.2
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   http: 1.6.0
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
+  shared_preferences_platform_interface: ^2.4.2
 
 flutter:
   assets:

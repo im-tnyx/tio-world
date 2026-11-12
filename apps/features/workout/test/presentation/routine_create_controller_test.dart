@@ -45,6 +45,66 @@ Exercise get _exercise => Exercise(
 );
 
 void main() {
+  test('new Routine Exercises snapshot Default Rest Timer and explicit OFF',
+      () async {
+    final repository = _Creates();
+    final draft = _controller(repository, saveAfterOneExercise: false);
+    addTearDown(draft.dispose);
+
+    final firstId = draft.addPickedExercise(
+      _exercise,
+      initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
+    )!;
+    final first = draft.state.entries.single;
+    expect(first.sets.single.prescription.restSeconds, 60);
+    expect(draft.getExerciseRestPreset(firstId).normalRestSeconds, 60);
+
+    final secondId = draft.addPickedExercise(
+      _exercise,
+      initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 90),
+    )!;
+    expect(draft.state.entries.first.sets.single.prescription.restSeconds, 60);
+    expect(draft.state.entries.last.sets.single.prescription.restSeconds, 90);
+
+    expect(
+      draft.configureExerciseRestTimer(
+        firstId,
+        normalRestSeconds: 120,
+        warmUpRestSeconds: null,
+      ),
+      isTrue,
+    );
+    expect(draft.state.entries.first.sets.single.prescription.restSeconds, 120);
+    expect(
+      draft.configureExerciseRestTimer(
+        firstId,
+        normalRestSeconds: null,
+        warmUpRestSeconds: null,
+      ),
+      isTrue,
+    );
+    expect(draft.state.entries.first.sets.single.prescription.restSeconds, isNull);
+    expect(draft.state.entries.last.sets.single.prescription.restSeconds, 90);
+    expect(
+      draft.addSet(firstId, SetPrescription(reps: 10, restSeconds: 90)),
+      isNotNull,
+    );
+    expect(draft.state.entries.first.sets.last.prescription.restSeconds, isNull);
+
+    expect(await draft.save(), isTrue);
+    expect(
+      repository.command!.entries.first.sets.every(
+        (set) => set.prescription.restSeconds == null,
+      ),
+      isTrue,
+    );
+    expect(
+      repository.command!.entries.last.sets.single.prescription.restSeconds,
+      90,
+    );
+    expect(draft.getExerciseRestPreset(secondId).normalRestSeconds, 90);
+  });
+
   test('Replace keeps order, never carries old targets, and ignores same selection',
       () {
     var next = 0;
@@ -505,7 +565,11 @@ void main() {
         newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
       );
       addTearDown(c.dispose);
-      c.addPickedExercise(_exercise);
+      c.addPickedExercise(
+        _exercise,
+        initialRestPreset:
+            const RoutineRestTimerPreset(normalRestSeconds: 90),
+      );
       final entryId = c.state.entries.single.id;
       final s1Id = c.state.entries.single.sets[0].id;
       final w1Id = c.addSet(
@@ -832,7 +896,7 @@ void main() {
       );
     });
 
-    test('addSet active preset overrides stale non-null restSeconds and preset OFF preserves incoming rest', () {
+    test('new Exercise OFF overrides incoming rest and active preset wins', () {
       var next = 0;
       final c = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'Program 1'),
@@ -845,7 +909,8 @@ void main() {
       c.addPickedExercise(_exercise);
       final entryId = c.state.entries.single.id;
 
-      // When preset is OFF: incoming rest is preserved (including explicit 0 and non-null)
+      // New Exercises use OFF as their initial preset, so stale input cannot
+      // silently turn their countdown on.
       final offNormalId = c.addSet(
         entryId,
         SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
@@ -860,8 +925,8 @@ void main() {
       )!;
 
       var sets = c.state.entries.single.sets;
-      expect(sets.singleWhere((s) => s.id == offNormalId).prescription.restSeconds, 45);
-      expect(sets.singleWhere((s) => s.id == offZeroId).prescription.restSeconds, 0);
+      expect(sets.singleWhere((s) => s.id == offNormalId).prescription.restSeconds, isNull);
+      expect(sets.singleWhere((s) => s.id == offZeroId).prescription.restSeconds, isNull);
       expect(sets.singleWhere((s) => s.id == offNullId).prescription.restSeconds, isNull);
 
       // Now configure active preset: Normal = 90s, Warm-up = 30s
@@ -905,7 +970,7 @@ void main() {
       expect(sets.singleWhere((s) => s.id == fallbackWarmUpId).prescription.restSeconds, 90);
     });
 
-    test('configureExerciseRestTimer preserves legacy per-set rest values when preset is OFF', () {
+    test('configuring OFF clears legacy per-set rest values', () {
       var next = 0;
       final c = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'Program 1'),
@@ -931,6 +996,22 @@ void main() {
         SetPrescription(setType: RoutineSetType.warmUp, reps: 15, restSeconds: 20),
       )!;
 
+      c.editSet(
+        entryId,
+        set1Id,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
+      );
+      c.editSet(
+        entryId,
+        set2Id,
+        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 60),
+      );
+      c.editSet(
+        entryId,
+        set3Id,
+        SetPrescription(setType: RoutineSetType.warmUp, reps: 15, restSeconds: 20),
+      );
+
       expect(c.getExerciseRestPreset(entryId).isOff, isTrue);
 
       final ok = c.configureExerciseRestTimer(
@@ -942,9 +1023,9 @@ void main() {
       expect(c.getExerciseRestPreset(entryId).isOff, isTrue);
 
       final sets = c.state.entries.single.sets;
-      expect(sets.singleWhere((s) => s.id == set1Id).prescription.restSeconds, 45);
-      expect(sets.singleWhere((s) => s.id == set2Id).prescription.restSeconds, 60);
-      expect(sets.singleWhere((s) => s.id == set3Id).prescription.restSeconds, 20);
+      expect(sets.singleWhere((s) => s.id == set1Id).prescription.restSeconds, isNull);
+      expect(sets.singleWhere((s) => s.id == set2Id).prescription.restSeconds, isNull);
+      expect(sets.singleWhere((s) => s.id == set3Id).prescription.restSeconds, isNull);
     });
   });
 }

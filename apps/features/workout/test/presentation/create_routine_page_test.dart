@@ -14,6 +14,11 @@ void main() {
   testWidgets('picker creates an identified Set; blank targets may Save',
       (tester) async {
     final create = _Create();
+    final runtimeSettings = WorkoutRuntimeSettingsController(
+      repository: _RuntimeSettingsRepository(initialSeconds: 60),
+    );
+    addTearDown(runtimeSettings.dispose);
+    await runtimeSettings.load();
     var infoCalls = 0;
     var index = 0;
     final uuids = [
@@ -37,6 +42,7 @@ void main() {
         catalogRepository: _Catalog(),
         onExerciseInfoPressed: (_) => infoCalls++,
         weightUnit: WeightUnit.kg,
+        workoutRuntimeSettingsController: runtimeSettings,
         newUuid: () => uuids[index++],
       ),
     ));
@@ -63,6 +69,26 @@ void main() {
     final createSet = find.byKey(const ValueKey(
         'create-routine-set-55555555-5555-4555-8555-555555555555'));
     expect(createSet, findsOneWidget);
+    expect(find.text('Rest: 1min'), findsOneWidget);
+    final restTimer = find.byKey(const ValueKey(
+      'create-routine-rest-timer-44444444-4444-4444-8444-444444444444',
+    ));
+    await tester.tap(restTimer);
+    await tester.pumpAndSettle();
+    await _selectRestWheelItem(tester, 24); // User override to 120 seconds.
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Rest: 2min'), findsOneWidget);
+    await tester.tap(restTimer);
+    await tester.pumpAndSettle();
+    await _selectRestWheelItem(tester, 0); // User can turn the timer OFF.
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Rest: OFF'), findsOneWidget);
     expect(find.text('PREVIOUS'), findsOneWidget);
     // No performed-session repository exists yet. This visible dash is not
     // an invented history value and must not populate the editable Set.
@@ -87,6 +113,10 @@ void main() {
     expect(create.command!.entries.single.sets.single.prescription.reps, isNull);
     expect(create.command!.entries.single.sets.single.prescription.loadKg,
         isNull);
+    expect(
+      create.command!.entries.single.sets.single.prescription.restSeconds,
+      isNull,
+    );
   });
 
 
@@ -1439,6 +1469,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(create.calls, 0);
   });
+}
+
+Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
+  final wheel = find.byKey(const ValueKey('routine-rest-timer-wheel'));
+  final scrollable = tester.widget<ListWheelScrollView>(wheel);
+  (scrollable.controller! as FixedExtentScrollController).jumpToItem(index);
+  await tester.pumpAndSettle();
+}
+
+final class _RuntimeSettingsRepository
+    implements WorkoutRuntimeSettingsRepository {
+  _RuntimeSettingsRepository({this.initialSeconds});
+
+  int? initialSeconds;
+
+  @override
+  Future<void> clearDefaultRestSeconds() async => initialSeconds = null;
+
+  @override
+  Future<int?> readDefaultRestSeconds() async => initialSeconds;
+
+  @override
+  Future<void> writeDefaultRestSeconds(int seconds) async =>
+      initialSeconds = seconds;
 }
 
 class _Catalog implements ExerciseCatalogRepository {

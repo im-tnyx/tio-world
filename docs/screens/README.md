@@ -102,7 +102,7 @@ Repository-implemented status is not proof of a distributed app release. The 202
 | Phone | [Programs](programs.md) | Persisted Program collection/create/rename, Program Detail and scoped Routine Create are source-implemented; Library dotted Add Routine and Program 3-dot Add New Routine merged in #566. Program Delete, TrainingPlan scheduling/following and direct Library-root default-Program quick-create remain gated. |
 | Phone | [Active Workout](active-workout.md) | Future selected Routine or scheduled PlannedWorkout execution flow. |
 | Phone | [Workout Insights](workout-insights.md) | Future muscle heatmap, radar map, and calendar flow. |
-| Phone | [Workout Settings](workout-settings.md) | Future Workout-owned configuration flow. |
+| Phone | [Workout Settings](workout-settings.md) | W10-A Default Rest Timer slice; remaining Workout configuration stays future scope. |
 | Phone | [Nutrition](nutrition.md) | `/nutrition` now renders the Nutrition-owned Meal Diary date-navigation surface; later Nutrition sections remain target work. |
 | Phone | [Meal Diary](meal-diary.md) | Meal Diary date navigation, manual create/read foundations, selected-day cards, Quick Edit, daily summary and primary calorie-progress ring are implemented; later mutation/editor slices remain. |
 | Phone | [Nutrition Targets](nutrition-targets.md) | Settings-launched Nutrition-owned targets configuration is implemented with repository-backed load/save, Macronutrients and Additional Nutrition child flows. Recommendation and override UX may evolve separately. |
@@ -113,7 +113,7 @@ Repository-implemented status is not proof of a distributed app release. The 202
 | Phone | [Onboarding](onboarding.md) | Implemented/frozen Product Onboarding flow with mode-specific Profile, Body/Wellness, Nutrition, Workout, Targets, optional Health Connections, Review, and durable completion. |
 | Phone | [Profile](profile.md) | Profile shows canonical profile/account/body information with persisted Profile Settings editing, Settings access and Profile-owned avatar management. Additional cross-feature content stays with its owner. |
 | Phone | [Profile Photo](profile-avatar.md) | 1:1 preview and Profile-owned Supabase avatar upload/delete are implemented through the existing user-owned media path; Download remains unavailable. |
-| Phone | [Settings](settings.md) | Settings hub includes App Mode, Theme, Measurement Units and Calendar Preferences, plus Health & Goals / Daily Wellness and device-local Glass Size. Broader Settings readiness and Daily Wellness device/layout acceptance remain separately gated. |
+| Phone | [Settings](settings.md) | Settings hub includes App Mode, Theme, Measurement Units and Calendar Preferences, plus Health & Goals / Daily Wellness, device-local Glass Size and the W10-A Workout Default Rest Timer entry. Broader Settings readiness and Daily Wellness device/layout acceptance remain separately gated. |
 | Wear OS | [Wear Home](wear-home.md) | Static action list; actions are placeholders. |
 
 ## Shared Screen Quality Rules

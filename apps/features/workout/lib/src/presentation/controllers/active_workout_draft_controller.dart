@@ -345,7 +345,11 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   Future<bool> resume() =>
       _change((draft) => draft.copyWith(time: draft.time.resume(_nowUtc())));
 
-  Future<bool> addExercises(List<Exercise> selected) => _change((draft) {
+  Future<bool> addExercises(
+    List<Exercise> selected, {
+    RoutineRestTimerPreset initialRestPreset = const RoutineRestTimerPreset(),
+  }) =>
+      _change((draft) {
         if (selected.isEmpty) throw ArgumentError('No exercises selected.');
         final next = [...draft.exercises];
         for (final exercise in selected) {
@@ -359,6 +363,8 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             displayName: exercise.displayName,
             exerciseType: exercise.exerciseType,
             thumbnailUrl: ExercisesController.thumbnailUrlFor(exercise),
+            restPreset: initialRestPreset,
+            hasRestOverride: true,
             sets: [
               ActiveWorkoutDraftSet(
                 id: _newUuid(),

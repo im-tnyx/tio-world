@@ -684,6 +684,8 @@ List<RouteBase> _shellBranchChildRoutes(
                         expectedLoginCycleId: startingCycleId,
                       ),
                       weightUnit: unit,
+                      workoutRuntimeSettingsController:
+                          ref.watch(workoutRuntimeSettingsControllerProvider),
                       onRoutineWriteResolved: () {
                         parentWriteResolved = true;
                       },
@@ -1417,6 +1419,8 @@ List<RouteBase> _shellBranchChildRoutes(
                           ? ref.watch(exerciseViewerMediaGenderProvider)
                           : null,
                       weightUnit: unit,
+                      workoutRuntimeSettingsController:
+                          ref.watch(workoutRuntimeSettingsControllerProvider),
                       canWrite: () {
                         try {
                           final current = ref
@@ -2081,6 +2085,8 @@ List<RouteBase> _shellBranchChildRoutes(
         builder: (context, ref, _) => ActiveWorkoutPage(
           controller: ref.watch(activeWorkoutControllerProvider),
           draftController: ref.watch(activeWorkoutDraftControllerProvider),
+          workoutRuntimeSettingsController:
+              ref.watch(workoutRuntimeSettingsControllerProvider),
           catalogRepository: ref.watch(exerciseCatalogRepositoryProvider),
           userExerciseRepository: ref.watch(userExerciseRepositoryProvider),
           gymLocationRepository: ref.watch(gymLocationRepositoryProvider),

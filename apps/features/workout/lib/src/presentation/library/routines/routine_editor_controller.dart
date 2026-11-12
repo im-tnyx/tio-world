@@ -173,8 +173,14 @@ final class RoutineEditorController extends ChangeNotifier {
       _pickedCustomTypes.clear();
       _restPresets.clear();
       for (final entry in current.entries) {
-        final preset = RoutineRestTimerPreset.fromPrescriptions(entry.sets.map((s) => s.prescription));
-        if (!preset.isOff) {
+        final prescriptions = entry.sets.map((s) => s.prescription).toList();
+        final preset = RoutineRestTimerPreset.fromPrescriptions(prescriptions);
+        final allRestOff = prescriptions.every(
+          (prescription) =>
+              prescription.restSeconds == null ||
+              prescription.restSeconds! <= 0,
+        );
+        if (!preset.isOff || allRestOff) {
           _restPresets[entry.id] = preset;
         }
       }
@@ -198,12 +204,16 @@ final class RoutineEditorController extends ChangeNotifier {
 
   /// Adds an Exercise selected from the verified catalog/owner picker.
   /// Repeated canonical refs are distinct persisted entry identities.
-  String? addPickedExercise(Exercise exercise) {
+  String? addPickedExercise(
+    Exercise exercise, {
+    RoutineRestTimerPreset initialRestPreset = const RoutineRestTimerPreset(),
+  }) {
     if (!_state.canEdit || exercise.status != ExerciseStatus.active ||
         !RoutineCompositionLimits.supportsExerciseType(exercise.exerciseType)) {
       return null;
     }
     final id = _newUuid();
+    _restPresets[id] = initialRestPreset;
     if (exercise.ref is UserCreatedExerciseRef) {
       _pickedCustomTypes[id] = exercise.exerciseType;
     }
@@ -296,9 +306,9 @@ final class RoutineEditorController extends ChangeNotifier {
             loadKg: s.prescription.loadKg,
             distanceMeters: s.prescription.distanceMeters,
             durationSeconds: s.prescription.durationSeconds,
-            restSeconds: preset.isOff
-                ? s.prescription.restSeconds
-                : preset.effectiveRestFor(s.prescription.setType),
+            restSeconds: _restPresets.containsKey(entry.id)
+                ? preset.effectiveRestFor(s.prescription.setType)
+                : s.prescription.restSeconds,
           ),
         ),
     ];
@@ -328,9 +338,10 @@ final class RoutineEditorController extends ChangeNotifier {
     // Existing-Routine Edit must not introduce a fixed Set into an Exercise
     // containing ranged Sets, which the canonical RPC correctly rejects.
     final preset = getExerciseRestPreset(current.id);
-    final effectiveRest = preset.isOff
-        ? prescription.restSeconds
-        : preset.effectiveRestFor(prescription.setType);
+    final effectiveRest =
+        _restPresets.containsKey(entryId) || !preset.isOff
+            ? preset.effectiveRestFor(prescription.setType)
+            : prescription.restSeconds;
     final initial = SetPrescription(
       reps: prescription.reps,
       repsMax: range ? (prescription.repsMax ?? prescription.reps) : null,
@@ -458,7 +469,7 @@ final class RoutineEditorController extends ChangeNotifier {
 
     final preset = getExerciseRestPreset(entryId);
     final int? newRestSeconds;
-    if (!preset.isOff) {
+    if (_restPresets.containsKey(entryId) || !preset.isOff) {
       newRestSeconds = preset.effectiveRestFor(type);
     } else {
       newRestSeconds = p.restSeconds;

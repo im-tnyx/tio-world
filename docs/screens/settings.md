@@ -1,14 +1,14 @@
 # Settings Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-27
+Last Verified: 2026-11-12 (W10-A source branch; PR/CI handoff pending)
 Owner: `apps/features/settings`
 Truth Boundary: Authoritative for the Settings screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Phone full-screen preferences and account controls
 **Current route:** `/settings`
 **Primary owner:** `apps/features/settings`
-**Status:** S0-A and accepted S0-B1 provide the Settings hub and Daily Wellness editing. S0-B2 provides a device-local Default Glass Size convenience preference; TNYX-72 adds the device-local app-global Calendar Preferences first-day-of-week choice. No Supabase storage or migration is part of either local preference. The Daily Wellness page-layout correction is in progress; updated exact-head CI and physical-device acceptance remain pending. This does not complete the broader Settings readiness gate.
+**Status:** S0-A and accepted S0-B1 provide the Settings hub and Daily Wellness editing. S0-B2 provides a device-local Default Glass Size convenience preference; TNYX-72 adds the device-local app-global Calendar Preferences first-day-of-week choice. W10-A adds a Workout-owned, device-local Default Rest Timer entry for Workout/Hybrid modes; implementation and exact-head CI handoff are pending PR review. No Supabase storage or migration is part of these local preferences. The Daily Wellness page-layout correction and physical-device acceptance remain pending; this does not complete the broader Settings readiness gate.
 
 ## Purpose
 
@@ -17,11 +17,11 @@ Manage app-level preferences and route the user to module-owned configuration. S
 ## Current Implemented Boundary
 
 - Profile exposes the Settings action; Home's app bar keeps only the Profile avatar account entry.
-- Root Settings exposes Profile Settings, Account Settings, Health & Goals, App Preferences and Log Out. Profile and Account continue routing to their existing owner-backed screens; this slice does not expand their business behavior.
+- Root Settings exposes Profile Settings, Account Settings, Health & Goals, conditionally Workout Settings and Nutrition & Diet, App Preferences and Log Out. Profile and Account continue routing to their existing owner-backed screens; this slice does not expand their business behavior.
 - App Preferences contains App Mode, Theme, Units and Calendar. Its root subtitle is `App Mode, theme, units & calendar` and its page heading is `App Preferences`.
 - App Mode editing previews guided tabs, persists through the same controller used by Onboarding, and returns to Home after success.
 - Theme uses the existing Appearance bottom sheet. Units uses the existing shared editor and persistence.
-- Nutrition & Diet is conditionally exposed when the active App Mode is `nutrition` or `hybrid`, and routes to `/settings/nutrition`. Manage Subscription, Reset Password, Workout Settings, Wear OS / Watch Settings and About Tio are not exposed unless their approved capability exists; empty placeholder sections remain absent.
+- Workout Settings is conditionally exposed when `AppMode.guidedDestinations` includes `AppDestination.workout` (`workout` or `hybrid`) and routes to `/settings/workout`. Nutrition & Diet uses the same destination contract and is visible for `nutrition` or `hybrid`. Manage Subscription, Reset Password, Wear OS / Watch Settings and About Tio are not exposed unless their approved capability exists; empty placeholder sections remain absent.
 - Navigation & Tabs personalization and additional global preferences remain deferred. Existing account entry wiring is not evidence that all account/security acceptance gates are complete.
 
 ## Current Information Architecture
@@ -35,6 +35,9 @@ Settings (/settings)
 │  └─ Health & Goals -> /settings/health-goals
 │     ├─ Body & Weight -> /settings/health-goals/body-weight
 │     └─ Daily Wellness -> /settings/health-goals/daily-wellness
+├─ WORKOUT (only when Workout is a guided destination)
+│  └─ Workout Settings -> /settings/workout
+│     └─ Default Rest Timer -> existing Routine Rest Timer wheel
 ├─ NUTRITION (only in `nutrition` / `hybrid` App Mode)
 │  └─ Nutrition & Diet -> /settings/nutrition
 ├─ PREFERENCES
@@ -133,6 +136,33 @@ it does not transfer other feature data to Settings. See
 - Future +1 glass must consume or explicitly supersede this preference without
   mutating historical events or creating a second owner.
 
+## Default Rest Timer — W10-A
+
+Workout owns the Default Rest Timer behavior and persistence. Settings only
+shows a launch row in Workout and Hybrid modes; Nutrition mode hides the row,
+and direct `/settings/workout` navigation redirects to root Settings when the
+Workout destination is unavailable. The Workout page reuses
+`TioSettingsValueRow` and the existing `showRoutineRestTimerSheet` interaction.
+
+The preference is device-local and owner-scoped under
+`workout_default_rest_timer_seconds_v1_<ownerId>` in `SharedPreferencesAsync`.
+An absent key is the unset state and resolves to OFF for newly added Exercises;
+stored `0` is explicit OFF. Positive values are supported in 5-second steps
+through 600 seconds. Cancel leaves storage unchanged; Done writes the selected
+value. No Supabase table, migration, RLS policy, profile field, remote sync or
+backend API is involved.
+
+The selected value is a one-time initial Rest Time for each newly added
+Exercise in Routine Create, Routine Edit and the account-bound Save-only Log
+Workout draft. The Exercise's existing Rest Timer control remains editable;
+changing it to another duration or OFF affects that Exercise's later Set
+transitions. A later global-default change does not rewrite existing Routine
+entries, active draft entries or saved Routines. Routine values continue using
+the canonical `SetPrescription.restSeconds` composition contract, with
+`null` representing OFF. Active Workout uses its existing serialized
+`restPreset`/`hasRestOverride` draft fields and countdown controller. There is
+no second countdown engine or new database shape.
+
 ## Calendar Preferences — TNYX-72
 
 Calendar Preferences is owned by `apps/features/settings` and is composed by
@@ -230,7 +260,8 @@ redesign either interaction or change their existing failure behavior.
 - **Navigation & Tabs** — final-stage preference for choosing and reordering three to six eligible destinations with Home fixed first. Hide this setting until the adaptive-navigation slice is implemented.
 - Additional language, Font Style, notifications and accessibility preferences require their own approved capability/ownership contracts. Calendar first-day-of-week is described above.
 - **Nutrition Targets** launch entry; target calculations remain in Nutrition.
-- **Workout Settings** launch entry; training defaults remain in Workout.
+- Remaining Workout settings such as training goal, preferred split and
+  availability remain deferred to separate approved slices.
 - Existing Profile/Account entries retain their owners. Future data/export controls stay hidden until their contracts and implementation are ready.
 
 ## App Mode Change Flow
@@ -267,6 +298,7 @@ Navigation preference changes where sections/actions appear. It does not change 
 - Root has the implemented Profile Settings, Account Settings, Health & Goals, App Preferences and Log Out entries, with no empty unavailable sections.
 - App Preferences exposes App Mode, Theme, Units and Calendar with truthful copy.
 - Calendar exposes Monday (default) through Sunday, applies immediately, and preserves one Settings owner across all calendar consumers.
+- Workout Settings appears only for Workout/Hybrid guided destinations and its Default Rest Timer initializes newly added Exercises without rewriting existing ones.
 - Units Save/back returns to its caller, and existing direct Units/Theme routes remain compatible.
 - The #112 shared editor, independent unit values and save/failure behavior remain unchanged.
 - Changing App Mode uses exactly the same state contract as Onboarding.
@@ -283,5 +315,6 @@ Navigation preference changes where sections/actions appear. It does not change 
 - [Onboarding](onboarding.md)
 - [Nutrition](nutrition.md)
 - [Workout](workout.md)
+- [Workout Settings](workout-settings.md)
 - [App Mode foundation](../../.ai/tasks/app-mode-foundation.md)
 - [Adaptive navigation and action entry](../../.ai/tasks/adaptive-navigation-and-actions.md)
