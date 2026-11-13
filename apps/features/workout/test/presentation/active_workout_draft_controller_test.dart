@@ -878,6 +878,40 @@ void main() {
     reopened.dispose();
   });
 
+  test('removing an unrelated ungrouped exercise preserves active rest',
+      () async {
+    final now = DateTime.utc(2026, 11, 13, 10);
+    final store = _Store();
+    var nextId = 200;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(controller.dispose);
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(
+        await controller.addExercises([
+          _exercise('ex_first', 'First'),
+          _exercise('ex_second', 'Second'),
+        ],
+            initialRestPreset:
+                const RoutineRestTimerPreset(normalRestSeconds: 60)),
+        isTrue);
+    final first = controller.draft!.exercises.first;
+    final second = controller.draft!.exercises.last;
+    expect(
+        await controller.toggleLogged(first.id, first.sets.single.id, reps: 8),
+        isTrue);
+    final rest = controller.draft!.activeRest;
+    expect(rest, isNotNull);
+    expect(await controller.removeExercise(second.id), isTrue);
+    expect(controller.draft!.activeRest!.setId, rest!.setId);
+    expect(await controller.removeExercise(first.id), isTrue);
+    expect(controller.draft!.activeRest, isNull);
+  });
+
   test('Superset round timer waits for all available members and restores',
       () async {
     var now = DateTime.utc(2026, 11, 12, 8);

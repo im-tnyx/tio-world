@@ -286,6 +286,17 @@ void main() {
     expect(c.state.entries.map((entry) => entry.id),
         [first, second, third, fourth]);
 
+    expect(c.removeFromSuperset(second), isTrue);
+    expect(c.state.entries.map((entry) => entry.id),
+        [first, third, second, fourth]);
+    expect(c.state.entries.take(2).every((entry) => entry.supersetId == groupId),
+        isTrue);
+    expect(c.state.entries[2].supersetId, isNull);
+    expect(c.removeFromSuperset(second), isFalse);
+    expect(c.addSupersetMember(groupId, second), isTrue);
+    expect(c.removeFromSuperset(third), isTrue);
+    expect(c.addSupersetMember(groupId, third), isTrue);
+
     // Move a member to another position; the complete contiguous block moves.
     expect(c.moveExercise(0, 3), isTrue);
     expect(c.state.entries.map((entry) => entry.id),

@@ -525,7 +525,8 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
           exercises: next,
           supersets: supersets,
           activeRest: draft.activeRest?.exerciseId == exerciseId ||
-                  draft.activeRest?.supersetId == removed.supersetId
+                  (removed.supersetId != null &&
+                      draft.activeRest?.supersetId == removed.supersetId)
               ? null
               : draft.activeRest,
         );

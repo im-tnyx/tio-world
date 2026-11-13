@@ -380,7 +380,11 @@ final class RoutineCreateController extends ChangeNotifier {
       ];
       _supersets = _supersets.where((group) => group.id != groupId).toList();
     } else {
-      _entries = [..._entries]..[index] = _withSuperset(_entries[index], null);
+      final next = [..._entries]..removeAt(index);
+      final lastMember =
+          next.lastIndexWhere((entry) => entry.supersetId == groupId);
+      next.insert(lastMember + 1, _withSuperset(_entries[index], null));
+      _entries = next;
     }
     _publish();
     return true;

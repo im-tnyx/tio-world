@@ -167,7 +167,16 @@ final class RoutineCompositionSnapshot {
   bool hasSameContent(RoutineCompositionSave command) =>
       routineId == command.routineId &&
       _equal(entries, command.entries) &&
-      _equal(supersets, command.supersets);
+      _sameSupersetGroups(supersets, command.supersets);
+}
+
+bool _sameSupersetGroups(
+  List<RoutineSupersetGroup> actual,
+  List<RoutineSupersetGroup> expected,
+) {
+  if (actual.length != expected.length) return false;
+  final byId = {for (final group in actual) group.id: group};
+  return expected.every((group) => byId[group.id] == group);
 }
 
 /// Freeze once per logical mutation. Retry this exact object after uncertainty.
@@ -245,7 +254,7 @@ final class RoutineAggregateUpdate {
       snapshot.name == savedName &&
       (entries == null ||
           (_equal(entries!, snapshot.entries) &&
-              _equal(supersets!, snapshot.supersets)));
+              _sameSupersetGroups(supersets!, snapshot.supersets)));
 }
 
 /// Name-aware mutation is an optional verified capability; older composition

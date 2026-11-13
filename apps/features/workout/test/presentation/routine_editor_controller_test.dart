@@ -105,6 +105,17 @@ void main() {
     expect(editor.state.supersets.single.restPreset.normalRestSeconds, 30);
     expect(editor.state.entries[0].sets.single.prescription.restSeconds, 30);
     expect(editor.state.entries[1].sets.single.prescription.restSeconds, 45);
+    expect(editor.addSupersetMember(groupId, thirdId), isTrue);
+    expect(editor.removeFromSuperset(secondId), isTrue);
+    expect(editor.state.entries.map((entry) => entry.id),
+        [_e, thirdId, secondId]);
+    expect(editor.state.entries.take(2).every((entry) => entry.supersetId == groupId),
+        isTrue);
+    expect(editor.removeFromSuperset(secondId), isFalse);
+    expect(editor.addSupersetMember(groupId, secondId), isTrue);
+    expect(editor.removeFromSuperset(thirdId), isTrue);
+    expect(editor.state.entries.map((entry) => entry.id),
+        [_e, secondId, thirdId]);
     expect(editor.moveExercise(0, 2), isTrue);
     expect(editor.state.entries.map((entry) => entry.id),
         [thirdId, _e, secondId]);

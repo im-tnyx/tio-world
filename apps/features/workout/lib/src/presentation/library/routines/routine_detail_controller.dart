@@ -23,30 +23,36 @@ final class RoutineDetailState {
       : status = RoutineDetailStatus.loading,
         routine = null,
         entries = const [],
+        supersets = const [],
         revision = null;
 
   const RoutineDetailState.notFound()
       : status = RoutineDetailStatus.notFound,
         routine = null,
         entries = const [],
+        supersets = const [],
         revision = null;
 
   const RoutineDetailState.failed()
       : status = RoutineDetailStatus.failed,
         routine = null,
         entries = const [],
+        supersets = const [],
         revision = null;
 
   RoutineDetailState.ready({
     required this.routine,
     required List<RoutineDetailEntry> entries,
+    required List<RoutineSupersetGroup> supersets,
     required this.revision,
   })  : status = RoutineDetailStatus.ready,
-        entries = List.unmodifiable(entries);
+        entries = List.unmodifiable(entries),
+        supersets = List.unmodifiable(supersets);
 
   final RoutineDetailStatus status;
   final Routine? routine;
   final List<RoutineDetailEntry> entries;
+  final List<RoutineSupersetGroup> supersets;
   final int? revision;
 
   int get exerciseCount => entries.length;
@@ -100,6 +106,7 @@ final class RoutineDetailController extends ChangeNotifier {
           revision: revision,
           name: ownedRoutine.name,
           entries: readyState.entries.map((item) => item.entry).toList(),
+          supersets: readyState.supersets,
         ),
         exercises: exercises,
       );
@@ -173,6 +180,7 @@ final class RoutineDetailController extends ChangeNotifier {
       _emit(RoutineDetailState.ready(
         routine: owned,
         revision: snapshot.revision,
+        supersets: snapshot.supersets,
         entries: [
           for (final entry in snapshot.entries)
             RoutineDetailEntry(

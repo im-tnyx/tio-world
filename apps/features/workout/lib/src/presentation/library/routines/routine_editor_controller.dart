@@ -421,8 +421,11 @@ final class RoutineEditorController extends ChangeNotifier {
           _draftSupersets.where((group) => group.id != groupId).toList();
       _publish(_ready());
     } else {
-      final next = [..._draft]..[index] =
-          _editorEntryWithSuperset(_draft[index], null);
+      final next = [..._draft]..removeAt(index);
+      final lastMember =
+          next.lastIndexWhere((entry) => entry.supersetId == groupId);
+      next.insert(
+          lastMember + 1, _editorEntryWithSuperset(_draft[index], null));
       _setDraft(next);
     }
     return true;

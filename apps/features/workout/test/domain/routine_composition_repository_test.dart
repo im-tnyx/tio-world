@@ -8,6 +8,61 @@ const _mutation = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 final _routine = RoutineId('11111111-1111-1111-1111-111111111111');
 
 void main() {
+  test('save reconciliation compares group IDs while preserving entry order',
+      () {
+    const a = '10000000-0000-4000-8000-000000000001';
+    const b = '20000000-0000-4000-8000-000000000002';
+    RoutineCompositionEntry member(String id, String groupId) =>
+        RoutineCompositionEntry(
+            id: id,
+            exercise: ExerciseRef.catalog('ex_squat'),
+            supersetId: groupId);
+    final entries = [
+      member('30000000-0000-4000-8000-000000000001', b),
+      member('30000000-0000-4000-8000-000000000002', b),
+      member('30000000-0000-4000-8000-000000000003', a),
+      member('30000000-0000-4000-8000-000000000004', a)
+    ];
+    final groupA = RoutineSupersetGroup(
+        id: a, restPreset: const RoutineRestTimerPreset(normalRestSeconds: 60));
+    final groupB = RoutineSupersetGroup(
+        id: b, restPreset: const RoutineRestTimerPreset(normalRestSeconds: 90));
+    final snapshot = RoutineCompositionSnapshot(
+        routineId: _routine,
+        revision: 1,
+        entries: entries,
+        supersets: [groupA, groupB]);
+    RoutineCompositionSave save(List<RoutineCompositionEntry> values,
+            List<RoutineSupersetGroup> groups) =>
+        RoutineCompositionSave(
+            routineId: _routine,
+            expectedRevision: 0,
+            mutationId: _mutation,
+            entries: values,
+            supersets: groups);
+    expect(snapshot.hasSameContent(save(entries, [groupB, groupA])), isTrue);
+    final aggregate = RoutineAggregateUpdate(routineId: _routine,
+        programId: ProgramId('40000000-0000-4000-8000-000000000001'),
+        expectedRevision: 0, expectedName: 'Day', mutationId: _mutation,
+        name: 'Day', entries: entries, supersets: [groupB, groupA]);
+    final namedSnapshot = RoutineCompositionSnapshot(routineId: _routine,
+        revision: 1, name: 'Day', entries: entries,
+        supersets: [groupA, groupB]);
+    expect(aggregate.matches(namedSnapshot), isTrue);
+    expect(
+        snapshot
+            .hasSameContent(save(entries.reversed.toList(), [groupB, groupA])),
+        isFalse);
+    expect(
+        snapshot.hasSameContent(save(entries, [
+          groupB,
+          RoutineSupersetGroup(
+              id: a,
+              restPreset: const RoutineRestTimerPreset(normalRestSeconds: 120))
+        ])),
+        isFalse);
+  });
+
   test(
       'identified envelopes project canonical values without losing repeated refs',
       () {
@@ -125,12 +180,12 @@ void main() {
             ),
           ],
         );
-    final first = member('10000000-0000-4000-8000-000000000001',
-        groupRef: groupId);
-    final second = member('10000000-0000-4000-8000-000000000002',
-        groupRef: groupId);
-    final third = member('10000000-0000-4000-8000-000000000003',
-        groupRef: groupId);
+    final first =
+        member('10000000-0000-4000-8000-000000000001', groupRef: groupId);
+    final second =
+        member('10000000-0000-4000-8000-000000000002', groupRef: groupId);
+    final third =
+        member('10000000-0000-4000-8000-000000000003', groupRef: groupId);
 
     expect(
       RoutineCompositionSnapshot(
@@ -152,8 +207,12 @@ void main() {
     );
     for (final invalidEntries in [
       [first],
-      [first, second, third, member(
-        '10000000-0000-4000-8000-000000000004', groupRef: groupId)],
+      [
+        first,
+        second,
+        third,
+        member('10000000-0000-4000-8000-000000000004', groupRef: groupId)
+      ],
       [first, member('10000000-0000-4000-8000-000000000005'), second],
     ]) {
       expect(
