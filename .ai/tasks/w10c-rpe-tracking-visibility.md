@@ -1,6 +1,6 @@
 # W10-C — RPE Tracking Visibility in Save-only Log Workout
 
-**Status:** In progress
+**Status:** In review — PR #755; exact source-head CI green; independent final approval pending
 **Primary owner:** `apps/features/workout`
 **Affected platforms:** Flutter Android and iOS phone
 
@@ -18,23 +18,23 @@
 **Implementation owner:** ChatGPT (sole source writer on focused branch; no second implementation agent)
 **Previous agent:** Not applicable — new W10-C child slice.
 **Last commit agent:** ChatGPT
-**Last commit SHA:** `ff3ff87e5b7cb6477a79cc9867f9b9ea414aea7b` (source/test checkpoint, docs follow-up pending).
-**Review owner:** Independent GitHub reviewer `i-the` requested after PR; review not yet performed.
+**Last commit SHA:** `7d0cb61100de864277a6bbe965d8f539c87a8821` (latest source/test checkpoint before this handoff-only update).
+**Review owner:** Independent GitHub reviewer `i-the`; COMMENTED review on earlier head `44243773`, no APPROVED review on current source head. Re-review requested for exact-head findings.
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable.
 **Repository state last verified:** Remote GitHub main@5ac411c3f9f636192afc2faa0db70bc1813c4101 on 2026-11-13; remote connector only, local Windows checkout `G:\\projects\\Tio-World` not accessible.
 **Branch:** `tnyx/w10c-rpe-tracking`
-**HEAD SHA:** `ff3ff87e5b7cb6477a79cc9867f9b9ea414aea7b` (latest source/test head before docs-only follow-up).
+**HEAD SHA:** `7d0cb61100de864277a6bbe965d8f539c87a8821` (verified source/test HEAD before this documentation commit; recheck branch HEAD and CI after update).
 **Observed working-tree state:** Local working tree unavailable; no claim of clean checkout.
 **Observed uncommitted/dirty files:** Unavailable.
-**PR / tracker:** No W10-C PR yet; [GitHub #48](https://github.com/im-tnyx/tio-world/issues/48), [Linear TNYX-87](https://linear.app/tnyx/issue/TNYX-87) Backlog/blocked by TNYX-78 for broad W10. This approved child does not change epic status.
-**Current implementation state:** Source and focused tests authored in branch; PR review and CI still pending.
+**PR / tracker:** [PR #755](https://github.com/im-tnyx/tio-world/pull/755) OPEN, unmerged; [GitHub #48](https://github.com/im-tnyx/tio-world/issues/48) OPEN; [Linear TNYX-87](https://linear.app/tnyx/issue/TNYX-87) Backlog for broad W10. This approved child does not complete the epic.
+**Current implementation state:** Source and focused tests committed; review-gated PR open. Exact source-head CI green; final independent review pending.
 **Relevant execution surface:** `WorkoutRuntimeSettingsRepository`, `SharedPreferencesWorkoutRuntimeSettingsRepository`, `WorkoutRuntimeSettingsController`, `WorkoutSettingsPage`, Save-only draft preview in `ActiveWorkoutPage`, existing `WorkoutExerciseCard`, `WorkoutSetInputRow`, `showWorkoutRpeSheet`.
-**Validation completed at SHA:** Source/planning metadata audit only. No local Flutter/Dart command run; toolchain unavailable in ChatGPT environment.
-**Validation remaining:** Focused controller/repository/widget/routing regressions, current-head Flutter/analyzer/Android/Docs CI, independent PR review, physical phone acceptance.
+**Validation completed at SHA:** GitHub Actions at source HEAD `7d0cb61100de864277a6bbe965d8f539c87a8821`: Flutter CI #4561 SUCCESS, Android Native CI #626 SUCCESS, Docs Hygiene CI #689 SUCCESS. No local Flutter/Dart commands run by this agent; physical device QA not independently verified. Owner reports emulator UI looks correct.
+**Validation remaining:** Recheck CI on documentation-update HEAD; independent final review and disposition of two P2 threads; physical phone QA remains unverified.
 **Current blocker:** None for approved child implementation; final release/device QA and independent review remain gates.
-**Open review finding IDs:** None yet (PR not created).
-**Next exact action:** Implement existing-controller-backed boolean and Save-only draft column visibility, then focused tests, reviewed PR, no merge.
+**Open review finding IDs:** `PRRT_kwDOTOXwB863AzaA` (320dp width, corrected, unresolved); `PRRT_kwDOTOXwB863BZ3g` (fresh-empty Settings build lifecycle, corrected, outdated/unresolved). Do not resolve without independent disposition.
+**Next exact action:** Obtain independent exact-head review, verify post-documentation CI, disposition P2 threads after reviewer verification; no merge.
 
 ## Discovery — verified evidence
 
@@ -55,15 +55,15 @@
 - [x] Add repository/controller local RPE boolean, independent load/retry and safe save; update existing repository fakes.
 - [x] Add RPE Tracking switch with separate read failure/Retry UI on existing Workout Settings page.
 - [x] Connect only Save-only Log Workout preview to live preference, remove width-based visibility veto, reuse existing RPE controls; preserve legacy session behavior.
-- [ ] Add focused tests: OFF/ON, persistence/restart/account isolation, malformed/failure/retry, live toggle, existing draft RPE retains/reappears, 320dp/390dp accessibility and no overflow.
+- [x] Add focused tests for preference, retry, visibility, responsive layout, route navigation and picker theme; source-head Flutter CI passed. Physical viewport acceptance remains owner/device QA.
 - [x] Reconcile `docs/screens/workout-settings.md` and `docs/screens/active-workout.md`.
-- [ ] Exact-head CI, independent GitHub review-gated PR; no merge.
+- [x] Source-head Flutter, Android Native and Docs Hygiene CI green on `7d0cb611`; PR #755 opened. Independent final review and post-handoff HEAD CI remain pending; no merge.
 
 ## Quality Review and Final Handoff
 
-**Validation run:** Not yet. Exact-head CI and reviewer findings must be recorded after actual results.
-**Review source:** Pending independent GitHub PR; no approval claimed.
-**Final status:** REVIEW — pending implementation/tests and independent review.
+**Validation run:** Source HEAD `7d0cb611`: Flutter CI, Android Native CI, Docs Hygiene CI completed successfully via GitHub Actions. No local/device run claimed. Documentation commit triggers a new HEAD requiring check refresh.
+**Review source:** PR #755 Codex P2 threads and `i-the` COMMENTED review at `44243773`; no current-head APPROVED review claimed.
+**Final status:** IN REVIEW — implementation/test changes present and source-head CI green; final independent approval and thread disposition pending.
 
 ## P2 review remediation — 320dp RPE readability
 
@@ -90,3 +90,11 @@
 - Automated reviewer requested a **fresh empty Log Workout** regression with **Default Rest still unloaded** before opening Settings, distinct from the Routine-seeded navigation test. The underlying build-phase `setState` fix is at `07be6ce3adc1c5a787cca9a164df0a9d6b9b4879`.
 - Added app-router widget regression: `/workout/active?preview=1` starts an empty owner-bound local draft; assert runtime default-rest preference `isReady=false`; tap Settings; assert canonical Workout Settings route, successful default load and no framework exception; Back returns to the exact same empty draft ID with no extra save. No Supabase, no merge.
 - Exact-head CI and independent reviewer verification still required.
+
+## Live review reconciliation — 2026-11-13
+
+- Remote PR #755 was verified OPEN and unmerged on source HEAD `7d0cb61100de864277a6bbe965d8f539c87a8821`; 20 changed files before this handoff-only commit. GitHub reports mergeable=true, which does not constitute owner merge authorization.
+- Exact source-head GitHub Actions: Flutter CI run `43399859212` SUCCESS; Android Native CI run `43399859115` SUCCESS; Docs Hygiene CI run `43399859117` SUCCESS. Recheck checks on any newer commit before claiming exact-current-head green.
+- Two Codex P2 review threads remain unresolved: 320dp input widths (not outdated) and fresh-empty Settings `setState` during build (outdated after fix). Existing source fixes and focused regressions are documented above. Independent reviewer `i-the` commented on earlier head and has not approved the latest source head. Do not self-approve or resolve reviewer threads without verification.
+- Product owner reports emulator UI appears correct. This is user-reported emulator acceptance, not independent physical-device validation.
+- This update is documentation/handoff reconciliation only; no production UI, Flutter source, Supabase, or merge changes. No local Windows checkout inspected. Follow the one-owner rule for any later source correction.
