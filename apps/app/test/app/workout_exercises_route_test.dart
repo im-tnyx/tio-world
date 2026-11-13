@@ -93,6 +93,58 @@ void main() {
     });
   }
 
+
+  testWidgets('Log Workout Settings pushes canonical route and keeps draft',
+      (tester) async {
+    final store = _MemoryActiveWorkoutDraftStore();
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineStartForTest: true,
+      activeDraftStore: store,
+    );
+    router.go(_libraryPath);
+    await tester.pumpAndSettle();
+    const routineId = '30000000-0000-4000-8000-000000000001';
+    await tester.tap(
+      find.byKey(const ValueKey('routine-start-button-$routineId')),
+    );
+    await tester.pumpAndSettle();
+    final draftController = container.read(activeWorkoutDraftControllerProvider);
+    expect(draftController?.draft?.exercises.single.displayName,
+        'Synthetic Route Curl');
+    final originalDraft = draftController!.draft!;
+    final savesBeforeSettings = store.saveCount;
+
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-settings')),
+    );
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path,
+        AppRoutes.workoutSettings.path);
+    expect(find.byType(WorkoutSettingsPage), findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-rpe-tracking-switch')),
+        findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('workout-rpe-tracking-switch')),
+    );
+    await tester.pumpAndSettle();
+
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(ActiveWorkoutPage), findsOneWidget);
+    expect(find.text('Synthetic Route Curl'), findsOneWidget);
+    expect(draftController.draft?.id, originalDraft.id);
+    expect(draftController.draft?.exercises.length, 1);
+    expect(store.saveCount, savesBeforeSettings,
+        reason: 'Opening Settings must not recreate or save the workout');
+    expect(find.text('RPE'), findsOneWidget,
+        reason: 'Returning to Log Workout reflects the selected preference');
+    expect(tester.takeException(), isNull);
+  });
+
   test('Library hides the bottom navigation and root top bar', () {
     final policy = shellChromePolicyForPath(_libraryPath);
 

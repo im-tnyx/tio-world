@@ -66,6 +66,13 @@ Draft recovery, Workout pause rules or Routine composition persistence.
 
 ## RPE Tracking — W10-C (review-gated)
 
+The in-Workout **Settings** action on the Log Workout screen is wired to
+this same canonical Workout Settings route, using app-owned push navigation.
+Back returns to the original active draft/session; opening Settings never
+creates or discards a Workout.
+
+
+
 **RPE Tracking** is a device-local, authenticated-owner-scoped Workout
 Settings switch, default **OFF**. It uses the existing SharedPreferencesAsync
 Workout adapter and key `workout_rpe_tracking_enabled_v1_<ownerId>`.

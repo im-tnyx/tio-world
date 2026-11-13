@@ -70,3 +70,11 @@
 - Original 320dp RPE-on preview left numeric input fields only about 31dp because PREVIOUS is a 64dp dash placeholder; this was a valid independent P2.
 - At phone width <360dp, **only when RPE is ON in Save-only Log Workout**, hide that unavailable PREVIOUS placeholder in both the header and Set rows. This frees width for readable numeric KG/REPS/TIME fields and leaves RPE interactive. At >=360dp and with RPE OFF, preserve existing layout. Routine builders, legacy online Workout and History Edit remain untouched.
 - Regression verifies RPE visible, PREVIOUS not rendered, KG and REPS numeric inputs >=60dp at 320dp, and no Flutter exception. New exact-head CI and reviewer disposition pending; no merge.
+
+## Owner-approved W10-C follow-up — Log Workout Settings navigation & RPE option contrast
+
+- **Owner request:** On Log Workout, tapping existing Settings should open Workout Settings; the selected text in the existing RPE bottom sheet must remain readable in the currently selected highlight.
+- The feature-owned `ActiveWorkoutPage` accepts an optional `onSettingsPressed` callback, forwarded to both Save-only and legacy Settings buttons. App-owned `shell_route.dart` pushes the existing `AppRoutes.workoutSettings` route; no new page, no nested router, no auth or storage changes. Back returns to the same Workout/draft; changing RPE Tracking updates the current preview through the existing controller listener.
+- The RPE slider's selected number now uses semantic `colors.onPrimary` over its semantic `colors.primary` circular fill rather than hard-coded white; unselected numbers keep `colors.textPrimary`. No RPE scale/picker-selection behavior or layout redesign.
+- Added feature widget tests for both Settings callback paths, app route navigation/back preserving the Routine-seeded draft and reflecting RPE toggle, and per-theme selected/unselected text foreground checks for Light, Dark and Tio Dark. All tests are **authored, not PASS until exact-head CI runs**.
+- No Supabase changes, no merge, no PR duplication. All changes remain on PR #755 review-gated branch.

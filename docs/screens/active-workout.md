@@ -27,6 +27,7 @@ Routine Start does not create a W7B server session. Saved history continues to u
 - Per-exercise set input for values such as weight, performed reps and completion state. A planned reps range such as `8 - 12` appears in the single `REPS` field as a hint/reference; the actual field remains blank until the user enters reps, and the hint is never logged as performed data.
 - Rest timer that is tied to an action only when the configured workout behavior supports it.
 - Newly added Exercises receive the current device-local Default Rest Timer once. Their existing Rest Timer control stays editable; explicit OFF persists in the draft and skips subsequent countdowns for that Exercise.
+- The Log Workout **Settings** button opens the existing Workout Settings route via app-owned push navigation, from both Save-only draft and legacy active session. Back returns to the same Workout and does not recreate a draft or reset logged Sets. RPE Tracking changes take effect on return.
 - RPE Tracking ON shows the existing Save-only Log Workout RPE header and per-Set picker even at 320dp; OFF hides this UI without erasing entered Set RPE or changing draft persistence. The legacy online session path has no per-Set RPE write contract and remains outside W10-C.
 - Exercise information from the selected catalog entry; changing the plan uses an explicit edit flow, not unscoped search.
 - Finish review with incomplete-set handling before the session is saved to history.

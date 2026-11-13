@@ -308,6 +308,7 @@ Future<void> _pumpPage(
   bool createDraftIfMissing = true,
   TioThemeMode themeMode = TioThemeMode.light,
   VoidCallback? onBack,
+  VoidCallback? onSettingsPressed,
   DateTime Function()? clock,
   ActiveWorkoutDraftController? draftController,
   WorkoutRuntimeSettingsController? workoutRuntimeSettingsController,
@@ -336,6 +337,7 @@ Future<void> _pumpPage(
         showStartPreview: showStartPreview,
         createDraftIfMissing: createDraftIfMissing,
         onBack: onBack,
+        onSettingsPressed: onSettingsPressed,
         clock: clock ?? () => tester.binding.clock.now(),
         workoutRuntimeSettingsController:
             workoutRuntimeSettingsController,
@@ -981,6 +983,69 @@ void main() {
     expect(draft.draft!.activeRest, isNull);
     expect(store.saved!.exercises.first.hasRestOverride, isTrue);
     expect(store.saved!.exercises.first.restPreset.isOff, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+
+  testWidgets('Save-only Log Workout Settings delegates without discarding draft',
+      (tester) async {
+    final store = _DraftStore();
+    final draft = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draft.dispose);
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(controller.dispose);
+    var settingsCalls = 0;
+    await _pumpPage(
+      tester,
+      controller: controller,
+      draftController: draft,
+      showStartPreview: true,
+      onSettingsPressed: () => settingsCalls++,
+    );
+    expect(draft.draft, isNotNull);
+    final originalId = draft.draft!.id;
+    final savedBefore = store.saveCount;
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-settings')),
+    );
+    await tester.pump();
+    expect(settingsCalls, 1);
+    expect(draft.draft!.id, originalId);
+    expect(store.saveCount, savedBefore);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('legacy active Workout Settings delegates to app router',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(),
+        revision: 1,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    addTearDown(controller.dispose);
+    var settingsCalls = 0;
+    await _pumpPage(
+      tester,
+      controller: controller,
+      onSettingsPressed: () => settingsCalls++,
+    );
+    expect(find.byKey(const ValueKey('active-workout-settings')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('active-workout-settings')));
+    await tester.pump();
+    expect(settingsCalls, 1);
+    expect(controller.state.status, ActiveWorkoutStatus.active);
     expect(tester.takeException(), isNull);
   });
 
