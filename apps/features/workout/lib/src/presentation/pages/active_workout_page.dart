@@ -314,7 +314,11 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
   void _syncTicker(ActiveWorkoutState state) {
     final controller = _controller;
     if (controller == null) return;
-    if (state.status == ActiveWorkoutStatus.active) {
+    if (state.status == ActiveWorkoutStatus.active ||
+        (state.status == ActiveWorkoutStatus.paused &&
+            state.activeRestTimer != null)) {
+      // Workout duration may be paused, but a current Rest countdown keeps
+      // its UTC deadline until naturally complete or explicitly cancelled.
       controller.startDurationTicker();
     } else {
       controller.stopDurationTicker();
