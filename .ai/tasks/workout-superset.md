@@ -24,8 +24,8 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean at `b2c3f5d0` before this brief; `git status` rechecked with `core.fsmonitor=false`.
 **Branch:** `tnyx/workout-superset`, created after the owner explicitly requested branch commit/push.
-**HEAD SHA:** `09772a91` for the Superset implementation commit; a handoff-record update is being prepared.
-**Observed working-tree state:** Superset implementation is committed; this task brief is being updated with the commit and final validation/push evidence. No PR was requested or created.
+**HEAD SHA:** `c2c1d4b6` before push; this is the handoff documentation commit on top of implementation commit `09772a91`.
+**Observed working-tree state:** Superset implementation and validation handoff are committed on `tnyx/workout-superset`; branch push is pending. No PR was requested or created.
 **Observed uncommitted/dirty files:** This new task brief only at creation.
 **PR / tracker:** No Superset child issue or PR verified. Linear TNYX-87 is Backlog and blocked by TNYX-78. Linear TNYX-81 is Backlog and blocked by TNYX-78/TNYX-80. GitHub #48 remains open and its description says planning-only; its W10-C comments still describe pre-merge review status. The current PR #755 is closed/merged at `b2c3f5d0c280d4c213bbcc2b5ec782dfc633e901`, matching this checkout's `main` HEAD. The owner's explicit chat approval authorizes this Superset implementation; tracker records were not changed.
 **Current implementation state:** Routine grouping, versioned RPC persistence, Save-only draft and shared round timer, snapshot/History Edit metadata preservation, local default-OFF Smart Scrolling, tests, additive migrations, and documentation reconciliation are present in the working tree. `git diff --check` passed. Flutter/Dart/pgTAP/CI validation is still outstanding; the local migration replay stopped at a pre-existing migration before reaching this slice, and nothing was applied to hosted Supabase.
@@ -34,7 +34,7 @@
 **Validation remaining:** Focused Flutter/Dart checks, local migration replay and pgTAP, full repository CI, compact-width/theme/accessibility review, and independent source review. The local replay failure prevents meaningful Superset migration validation on this checkout.
 **Current blocker:** Flutter/Dart/Melos validation is unavailable in this shell; local Supabase replay is blocked by the pre-existing migration failure above. Hosted schema state is not verified. Owner authorized branch commit/push; no hosted changes or PR have been made.
 **Open review finding IDs:** None recorded; independent source review remains outstanding.
-**Next exact action:** Commit this handoff update, fetch `origin`, audit `main` ancestry and parent-to-head paths, and push `tnyx/workout-superset`. Flutter/Dart and pgTAP checks remain unverified; exact-head CI and independent review are still required before any merge.
+**Next exact action:** Push `tnyx/workout-superset` after the refreshed `origin/main` ancestry and parent-to-head diff audit. Flutter/Dart and pgTAP checks remain unverified; exact-head CI and independent review are still required before any merge.
 
 ## 1. Discovery
 
