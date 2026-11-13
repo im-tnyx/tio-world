@@ -1164,6 +1164,64 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('shared rest edit keeps another member warm-up duration',
+      (tester) async {
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: false,
+    );
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    final first = harness.draft.draft!.exercises.first;
+    final second = harness.draft.draft!.exercises.last;
+    final groupId = first.supersetId!;
+    expect(
+      await harness.draft.setType(
+        second.id,
+        second.sets.single.id,
+        RoutineSetType.warmUp,
+      ),
+      isTrue,
+    );
+    expect(
+      await harness.draft.configureSupersetRestTimer(
+        groupId,
+        normalRestSeconds: 60,
+        warmUpRestSeconds: 25,
+      ),
+      isTrue,
+    );
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
+
+    final firstTimer = find.byKey(ValueKey(
+      'active-workout-preview-exercise-rest-timer-${first.id}',
+    ));
+    await tester.ensureVisible(firstTimer);
+    await tester.tap(firstTimer);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(harness.draft.draft!.supersets.single.restPreset.normalRestSeconds,
+        60);
+    expect(harness.draft.draft!.supersets.single.restPreset.warmUpRestSeconds,
+        25);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Smart Superset Scrolling advances to the next member when ON',
       (tester) async {
     tester.view.physicalSize = const Size(360, 360);

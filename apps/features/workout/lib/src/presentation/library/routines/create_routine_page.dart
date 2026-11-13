@@ -968,8 +968,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   Future<void> _configureRestTimer(RoutineCompositionEntry entry) async {
     final current = _draft.getExerciseRestPreset(entry.id);
-    final hasWarmUpSets =
-        entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final members = entry.supersetId == null
+        ? [entry]
+        : _draft.state.entries
+            .where((member) => member.supersetId == entry.supersetId);
+    final hasWarmUpSets = members.any((member) => member.sets
+        .any((set) => set.prescription.setType == RoutineSetType.warmUp));
     final result = await showRoutineRestTimerSheet(
       context: context,
       initialNormalRestSeconds: current.normalRestSeconds,

@@ -928,8 +928,12 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         break;
       }
     }
-    final hasWarmUpSets =
-        entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final members = entry.supersetId == null
+        ? [entry]
+        : (_editor?.state.entries ?? const <RoutineCompositionEntry>[])
+            .where((member) => member.supersetId == entry.supersetId);
+    final hasWarmUpSets = members.any((member) => member.sets
+        .any((set) => set.prescription.setType == RoutineSetType.warmUp));
     final result = await showRoutineRestTimerSheet(
       context: context,
       initialNormalRestSeconds: current.normalRestSeconds,

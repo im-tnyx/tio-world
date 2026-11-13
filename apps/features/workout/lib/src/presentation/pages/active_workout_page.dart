@@ -1724,8 +1724,12 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     bool showRpe,
   ) {
     final sets = _setsForExercise(exerciseIndex);
-    final hasWarmUpSets =
-        sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final members = exercise.supersetId == null
+        ? [exercise]
+        : _previewExercises
+            .where((member) => member.supersetId == exercise.supersetId);
+    final hasWarmUpSets = members.any((member) => member.sets
+        .any((set) => set.prescription.setType == RoutineSetType.warmUp));
     final compactRpe = showRpe && MediaQuery.sizeOf(context).width < 360;
     final group = exercise.supersetId == null
         ? null
