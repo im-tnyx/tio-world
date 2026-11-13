@@ -129,11 +129,15 @@ select pg_temp.assert_true(
       {"id":"d7ca0000-0000-4000-8000-000000000063","exercise_ref":"ex_squat","superset_id":"d7ca0000-0000-4000-8000-000000000072","sets":[{"id":"d7ca0000-0000-4000-8000-000000000064","reps":8}]},
       {"id":"d7ca0000-0000-4000-8000-000000000065","exercise_ref":"ex_squat","superset_id":"d7ca0000-0000-4000-8000-000000000072","sets":[{"id":"d7ca0000-0000-4000-8000-000000000066","reps":6}]}
     ],"supersets":[{"id":"d7ca0000-0000-4000-8000-000000000072","normal_rest_seconds":45,"warm_up_rest_seconds":15}]}'::jsonb
-  ) = 1
-  and (select count(*) = 3 from public.user_workout_routine_exercises
-       where routine_id = 'd7ca0000-0000-4000-8000-000000000023'
-         and superset_id = 'd7ca0000-0000-4000-8000-000000000072'),
-  'versioned save accepts the maximum three-member Superset'
+  ) = 1,
+  'versioned save increments revision for a three-member Superset'
+);
+
+select pg_temp.assert_true(
+  (select count(*) = 3 from public.user_workout_routine_exercises
+   where routine_id = 'd7ca0000-0000-4000-8000-000000000023'
+     and superset_id = 'd7ca0000-0000-4000-8000-000000000072'),
+  'versioned save persists all three Superset members'
 );
 
 select pg_temp.assert_raises(
