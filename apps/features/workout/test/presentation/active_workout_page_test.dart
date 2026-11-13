@@ -1086,6 +1086,105 @@ void main() {
     expect(find.text('SUPERSET A1'), findsOneWidget);
   });
 
+  testWidgets('grouping nonadjacent exercises keeps Note with its exercise',
+      (tester) async {
+    final draft = ActiveWorkoutDraftController(
+      store: _DraftStore(),
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draft.dispose);
+    expect(await draft.restoreOrStart(), isTrue);
+    expect(
+        await draft.addExercises([
+          Exercise(
+            ref: ExerciseRef.catalog('ex_barbell_bench_press'),
+            displayName: 'Bench Press',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+          Exercise(
+            ref: ExerciseRef.catalog('ex_barbell_back_squat'),
+            displayName: 'Back Squat',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+          Exercise(
+            ref: ExerciseRef.catalog('ex_lat_pulldown'),
+            displayName: 'Lat Pulldown',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+        ]),
+        isTrue);
+    final before = draft.draft!.exercises;
+    final benchId = before[0].id;
+    final squatId = before[1].id;
+    final pulldownId = before[2].id;
+    final settings = WorkoutRuntimeSettingsController(
+      repository: _RuntimeSettingsRepository(),
+    );
+    addTearDown(settings.dispose);
+    await settings.loadSmartSupersetScrolling();
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: draft,
+      workoutRuntimeSettingsController: settings,
+      showStartPreview: true,
+    );
+
+    final squatNoteAction = find.byKey(
+      const ValueKey('exercise-note-action-ex_barbell_back_squat'),
+    );
+    await tester.ensureVisible(squatNoteAction);
+    await tester.tap(squatNoteAction);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercise-note-type-workout')));
+    await tester.pumpAndSettle();
+    final squatNoteInput = find.byKey(
+      const ValueKey('exercise-note-input-ex_barbell_back_squat'),
+    );
+    await tester.enterText(squatNoteInput, 'Squat specific draft');
+    await tester.pumpAndSettle();
+
+    final benchCard =
+        find.byKey(const ValueKey('active-workout-preview-exercise-0'));
+    await tester.ensureVisible(benchCard);
+    await tester.tap(find.descendant(
+      of: benchCard,
+      matching: find.byTooltip('Exercise options'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-exercise-option-add-superset')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(ValueKey('routine-superset-candidate-$pulldownId')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(draft.draft!.exercises.map((e) => e.id),
+        [benchId, pulldownId, squatId]);
+    final restoredSquatNote = find.byKey(
+      const ValueKey('exercise-note-input-ex_barbell_back_squat'),
+    );
+    expect(restoredSquatNote, findsOneWidget);
+    expect(tester.widget<TextField>(restoredSquatNote).controller!.text,
+        'Squat specific draft');
+    expect(
+      find.byKey(const ValueKey('exercise-note-input-ex_lat_pulldown')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Superset picker excludes an exercise with skipped progress',
       (tester) async {
     final harness = await _createSupersetPreview(
@@ -1215,10 +1314,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(harness.draft.draft!.supersets.single.restPreset.normalRestSeconds,
-        60);
-    expect(harness.draft.draft!.supersets.single.restPreset.warmUpRestSeconds,
-        25);
+    expect(
+        harness.draft.draft!.supersets.single.restPreset.normalRestSeconds, 60);
+    expect(
+        harness.draft.draft!.supersets.single.restPreset.warmUpRestSeconds, 25);
     expect(tester.takeException(), isNull);
   });
 

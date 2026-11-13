@@ -692,7 +692,7 @@ class _StartWorkoutPreview extends StatefulWidget {
 
 class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     with WidgetsBindingObserver {
-  final Map<int, List<ExerciseNoteDraftSnapshot>> _exerciseNotes = {};
+  final Map<String, List<ExerciseNoteDraftSnapshot>> _exerciseNotes = {};
   final ScrollController _scrollController = ScrollController();
   final Map<String, GlobalKey> _setRowKeys = {};
   final Set<String> _handledSmartRestIds = {};
@@ -1117,13 +1117,11 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     if (chosen is RoutineSetType) {
       await controller.setType(exerciseId, set.id, chosen);
     } else if (chosen == 'remove') {
-      final beforeCount = controller.draft?.exercises.length ?? 0;
       final removed = await controller.removeSet(exerciseId, set.id);
       if (!mounted || !removed) return;
-      final afterCount = controller.draft?.exercises.length ?? 0;
-      // Last-set removal drops the exercise; keep note drafts aligned by index.
-      if (afterCount < beforeCount) {
-        setState(() => _reindexMapAfterRemoval(_exerciseNotes, exerciseIndex));
+      if (!(controller.draft?.exercises.any((e) => e.id == exerciseId) ??
+          false)) {
+        setState(() => _exerciseNotes.remove(exerciseId));
       }
     }
   }
@@ -1216,7 +1214,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         if (!mounted || confirmed != true) return;
       }
       if (await controller.removeExercise(exerciseId)) {
-        setState(() => _reindexMapAfterRemoval(_exerciseNotes, exerciseIndex));
+        setState(() => _exerciseNotes.remove(exerciseId));
       }
     } else if (action == RoutineExerciseOption.addToSuperset) {
       final current = controller.draft;
@@ -1294,7 +1292,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       );
       if (selected != null && selected.isNotEmpty && mounted) {
         if (await controller.replaceExercise(exerciseId, selected.first)) {
-          setState(() => _exerciseNotes.remove(exerciseIndex));
+          setState(() => _exerciseNotes.remove(exerciseId));
         }
       }
     }
@@ -1395,18 +1393,6 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     if (before?.supersetId != null) {
       _scrollAfterSupersetRest(before!.supersetId!, before.roundIndex!);
     }
-  }
-
-  void _reindexMapAfterRemoval<T>(Map<int, T> values, int removedIndex) {
-    final shifted = <int, T>{};
-    for (final entry in values.entries) {
-      if (entry.key == removedIndex) continue;
-      shifted[entry.key > removedIndex ? entry.key - 1 : entry.key] =
-          entry.value;
-    }
-    values
-      ..clear()
-      ..addAll(shifted);
   }
 
   Future<void> _discard() async {
@@ -1791,10 +1777,10 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         current: restPreset,
         supersetId: exercise.supersetId,
       ),
-      initialNoteDrafts: _exerciseNotes[exerciseIndex] ?? const [],
+      initialNoteDrafts: _exerciseNotes[exercise.id] ?? const [],
       onNoteDraftsChanged: (drafts) {
         setState(() {
-          _exerciseNotes[exerciseIndex] = drafts;
+          _exerciseNotes[exercise.id] = drafts;
         });
       },
       buildSetRow: (set, setIndex) {
