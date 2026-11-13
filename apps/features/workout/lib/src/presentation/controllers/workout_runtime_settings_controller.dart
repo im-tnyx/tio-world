@@ -18,11 +18,66 @@ final class WorkoutRuntimeSettingsController extends ChangeNotifier {
   bool _isSaving = false;
   Object? _error;
 
+  // Optional haptic preference must never block Default Rest or Add Exercise.
+  Future<void>? _vibrationLoadFuture;
+  bool _isVibrationLoaded = false;
+  bool _isVibrationLoading = false;
+  bool _isVibrationSaving = false;
+  bool _restTimerVibrationEnabled = false;
+  Object? _vibrationError;
+
   bool get isLoaded => _isLoaded;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   bool get isReady => _isLoaded && _error == null;
   Object? get error => _error;
+
+  bool get isVibrationLoading => _isVibrationLoading;
+  bool get isVibrationSaving => _isVibrationSaving;
+  bool get isVibrationReady => _isVibrationLoaded && _vibrationError == null;
+  bool get restTimerVibrationEnabled =>
+      isVibrationReady && _restTimerVibrationEnabled;
+  Object? get vibrationError => _vibrationError;
+
+  Future<void> loadRestTimerVibration() {
+    if (_isVibrationLoaded) return Future<void>.value();
+    return _vibrationLoadFuture ??= _loadRestTimerVibration();
+  }
+
+  Future<void> _loadRestTimerVibration() async {
+    _isVibrationLoading = true;
+    _vibrationError = null;
+    notifyListeners();
+    try {
+      _restTimerVibrationEnabled =
+          await _repository.readRestTimerVibrationEnabled();
+      _isVibrationLoaded = true;
+    } catch (error) {
+      // Optional feedback fails closed; never block Workout or default rest.
+      _vibrationError = error;
+      _restTimerVibrationEnabled = false;
+    } finally {
+      _isVibrationLoading = false;
+      _vibrationLoadFuture = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> setRestTimerVibrationEnabled(bool enabled) async {
+    await loadRestTimerVibration();
+    if (!isVibrationReady) {
+      throw StateError('Rest Timer Vibration preference is unavailable.');
+    }
+    _isVibrationSaving = true;
+    notifyListeners();
+    try {
+      await _repository.writeRestTimerVibrationEnabled(enabled);
+      _restTimerVibrationEnabled = enabled;
+    } finally {
+      _isVibrationSaving = false;
+      notifyListeners();
+    }
+  }
 
   /// Null is the unset state; zero is an explicit OFF selection.
   int? get savedDefaultRestSeconds => _savedDefaultRestSeconds;

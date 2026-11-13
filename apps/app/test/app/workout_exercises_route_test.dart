@@ -3016,6 +3016,23 @@ Future<(ProviderContainer, GoRouter)> _app(
 
 final class _MemoryWorkoutRuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
+  bool vibrationEnabled = false;
+  bool failNextVibrationRead = false;
+
+  @override
+  Future<bool> readRestTimerVibrationEnabled() async {
+    if (failNextVibrationRead) {
+      failNextVibrationRead = false;
+      throw StateError('Simulated vibration storage read failure');
+    }
+    return vibrationEnabled;
+  }
+
+  @override
+  Future<void> writeRestTimerVibrationEnabled(bool enabled) async {
+    vibrationEnabled = enabled;
+  }
+
   int? defaultRestSeconds;
 
   @override

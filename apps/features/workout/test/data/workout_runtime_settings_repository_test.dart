@@ -55,6 +55,39 @@ void main() {
     expect(await preferences.getString(key), isNull);
   });
 
+  test('vibration defaults OFF, remains device-local and owner-isolated',
+      () async {
+    final a = SharedPreferencesWorkoutRuntimeSettingsRepository(ownerId: 'a');
+    final b = SharedPreferencesWorkoutRuntimeSettingsRepository(ownerId: 'b');
+    expect(await a.readRestTimerVibrationEnabled(), isFalse);
+    expect(await b.readRestTimerVibrationEnabled(), isFalse);
+
+    await a.writeRestTimerVibrationEnabled(true);
+    expect(await a.readRestTimerVibrationEnabled(), isTrue);
+    expect(await b.readRestTimerVibrationEnabled(), isFalse);
+    expect(
+      await SharedPreferencesWorkoutRuntimeSettingsRepository(ownerId: 'a')
+          .readRestTimerVibrationEnabled(),
+      isTrue,
+    );
+    await a.writeRestTimerVibrationEnabled(false);
+    expect(await a.readRestTimerVibrationEnabled(), isFalse);
+  });
+
+  test('malformed vibration preference fails safely OFF', () async {
+    final prefs = SharedPreferencesAsync();
+    final key =
+        SharedPreferencesWorkoutRuntimeSettingsRepository.vibrationStorageKeyFor(
+      'owner-a',
+    );
+    await prefs.setString(key, 'true');
+    final repo = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-a', preferences: prefs,
+    );
+    expect(await repo.readRestTimerVibrationEnabled(), isFalse);
+    expect(await prefs.getString(key), isNull);
+  });
+
   test('supported 5-second values round-trip and clear restores unset',
       () async {
     final repository = SharedPreferencesWorkoutRuntimeSettingsRepository(
