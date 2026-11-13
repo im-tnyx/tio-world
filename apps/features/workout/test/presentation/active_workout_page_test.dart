@@ -2616,6 +2616,12 @@ void main() {
         find.byKey(const ValueKey('active-workout-preview-rpe-0-0'));
     expect(find.text('RPE'), findsOneWidget);
     expect(rpeButton, findsOneWidget);
+    expect(find.text('PREVIOUS'), findsNothing,
+        reason: '320dp RPE mode prioritizes readable Set fields');
+    final load = find.byKey(const ValueKey('active-workout-preview-load-0-0'));
+    final reps = find.byKey(const ValueKey('active-workout-preview-reps-0-0'));
+    expect(tester.getSize(load).width, greaterThanOrEqualTo(60));
+    expect(tester.getSize(reps).width, greaterThanOrEqualTo(60));
     expect(tester.takeException(), isNull);
 
     final exercise = draft.draft!.exercises.single;

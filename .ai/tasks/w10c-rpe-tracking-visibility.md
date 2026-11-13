@@ -64,3 +64,9 @@
 **Validation run:** Not yet. Exact-head CI and reviewer findings must be recorded after actual results.
 **Review source:** Pending independent GitHub PR; no approval claimed.
 **Final status:** REVIEW — pending implementation/tests and independent review.
+
+## P2 review remediation — 320dp RPE readability
+
+- Original 320dp RPE-on preview left numeric input fields only about 31dp because PREVIOUS is a 64dp dash placeholder; this was a valid independent P2.
+- At phone width <360dp, **only when RPE is ON in Save-only Log Workout**, hide that unavailable PREVIOUS placeholder in both the header and Set rows. This frees width for readable numeric KG/REPS/TIME fields and leaves RPE interactive. At >=360dp and with RPE OFF, preserve existing layout. Routine builders, legacy online Workout and History Edit remain untouched.
+- Regression verifies RPE visible, PREVIOUS not rendered, KG and REPS numeric inputs >=60dp at 320dp, and no Flutter exception. New exact-head CI and reviewer disposition pending; no merge.

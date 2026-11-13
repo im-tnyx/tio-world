@@ -1387,6 +1387,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     final sets = _setsForExercise(exerciseIndex);
     final hasWarmUpSets =
         sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final compactRpe = showRpe && MediaQuery.sizeOf(context).width < 360;
     final restPreset = exercise.hasRestOverride
         ? exercise.restPreset
         : RoutineRestTimerPreset.fromPrescriptions(
@@ -1443,7 +1444,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
           unit: WeightUnit.kg,
           enabled: !(widget.draftController?.isBusy ?? false),
           exerciseType: _previewExercises[exerciseIndex].exerciseType,
-          showPrevious: true,
+          showPrevious: !compactRpe,
           isExecution: true,
           isLogged: isLogged,
           showRpe: showRpe,
