@@ -350,9 +350,11 @@ final class _RuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
   bool failNextVibrationRead = false;
+  Completer<bool>? pendingVibrationRead;
 
   @override
   Future<bool> readRestTimerVibrationEnabled() async {
+    if (pendingVibrationRead != null) return pendingVibrationRead!.future;
     if (failNextVibrationRead) {
       failNextVibrationRead = false;
       throw StateError('Simulated vibration storage read failure');
@@ -400,6 +402,64 @@ Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
 }
 
 void main() {
+
+  testWidgets('late initial vibration read still enables an active rest',
+      (tester) async {
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          calls.add(call.arguments as String? ?? '');
+        }
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+
+    final local = ActiveWorkoutDraftController(
+      store: _DraftStore(),
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(local.dispose);
+    final pendingRead = Completer<bool>();
+    final repo = _RuntimeSettingsRepository(seconds: 5)
+      ..pendingVibrationRead = pendingRead;
+    final settings = WorkoutRuntimeSettingsController(repository: repo);
+    addTearDown(settings.dispose);
+    await settings.load();
+    final online = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(online.dispose);
+
+    await _pumpPage(
+      tester,
+      controller: online,
+      draftController: local,
+      workoutRuntimeSettingsController: settings,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+    );
+    await _addPreviewBench(tester);
+    final exercise = local.draft!.exercises.single;
+    expect(await local.toggleLogged(
+      exercise.id, exercise.sets.single.id, reps: 10,
+    ), isTrue);
+    await tester.pump();
+    expect(settings.isVibrationReady, isFalse);
+    pendingRead.complete(true);
+    await tester.pump();
+    expect(settings.isVibrationReady, isTrue);
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 5));
+    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'),
+        hasLength(1));
+  });
 
   testWidgets('draft natural expiry vibrates once; Skip and OFF stay silent',
       (tester) async {

@@ -68,6 +68,44 @@ void main() {
         isFalse);
   });
 
+  test('pending preference read resolves ON before natural expiry', () {
+    final gate = RestTimerCompletionGate();
+    gate.observeRest(
+      restId: 'restored',
+      remainingPositive: true,
+      vibrationEnabled: false,
+      preferenceReady: false,
+    );
+    gate.observeRest(
+      restId: 'restored',
+      remainingPositive: true,
+      vibrationEnabled: true,
+      preferenceReady: true,
+    );
+    expect(gate.complete('restored', vibrationEnabled: true), isTrue);
+    expect(gate.complete('restored', vibrationEnabled: true), isFalse);
+  });
+
+  test('preference resolved after expiration never emits late feedback', () {
+    final gate = RestTimerCompletionGate();
+    gate.observeRest(
+      restId: 'expired-while-loading',
+      remainingPositive: true,
+      vibrationEnabled: false,
+      preferenceReady: false,
+    );
+    expect(gate.complete('expired-while-loading', vibrationEnabled: false),
+        isFalse);
+    gate.observeRest(
+      restId: 'expired-while-loading',
+      remainingPositive: false,
+      vibrationEnabled: true,
+      preferenceReady: true,
+    );
+    expect(gate.complete('expired-while-loading', vibrationEnabled: true),
+        isFalse);
+  });
+
   test('resuming before deadline can rearm an eligible ongoing rest', () {
     final gate = RestTimerCompletionGate();
     gate.observeRest(

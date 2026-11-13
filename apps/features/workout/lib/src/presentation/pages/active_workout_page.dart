@@ -273,6 +273,8 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
             (widget.clock?.call() ?? DateTime.now()).toUtc(),
           ) > Duration.zero,
       vibrationEnabled: enabled,
+      preferenceReady:
+          widget.workoutRuntimeSettingsController?.isVibrationReady ?? false,
     );
   }
 
@@ -652,6 +654,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       restId: id,
       remainingPositive: remaining > Duration.zero,
       vibrationEnabled: enabled,
+      preferenceReady:
+          widget.workoutRuntimeSettingsController?.isVibrationReady ?? false,
     );
     if (id != null &&
         remaining <= Duration.zero &&
