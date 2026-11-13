@@ -4,7 +4,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 
 ## Current Tasks
 
-[Workout Superset Composition, Execution, and Scrolling](workout-superset.md) is the active owner-approved implementation slice. It covers Routine composition/RPC, Save-only shared round timing, snapshot and History Edit preservation, and default-OFF local Smart Superset Scrolling. Source changes and tests are uncommitted on `main`; hosted migration, external tracker writes, CI, device acceptance, and branch/PR operations are not claimed.
+[Workout Superset Composition, Execution, and Scrolling](workout-superset.md) is the active owner-approved implementation slice. It covers Routine composition/RPC, Save-only shared round timing, snapshot and History Edit preservation, and default-OFF local Smart Superset Scrolling. Source commit `03286872` fixes the Superset picker and reported compile/reorder/scroll issues; local Workout/Core tests and Android debug build pass. The fix and this handoff update are being pushed to the existing `tnyx/workout-superset` branch and draft PR #756. Exact-head CI, local feature-migration/pgTAP validation, independent review, device acceptance, and hosted schema verification remain outstanding.
 
 [W8C Completed Workout Edit](../archive/2026-11-w8c-workout-history-edit.md) is **validated / merged** through PR #752 per the 2026-11-13 main audit. Its former review-gated handoff is historical; hosted migration and device acceptance are not claimed here. [W8A list and card](w8a-workout-history-list-card.md) and [W8B Detail](w8b-workout-history-detail.md) are preceding source slices. W7/TNYX-84 remains In Progress.
 

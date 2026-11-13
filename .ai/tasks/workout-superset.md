@@ -1,6 +1,6 @@
 # Workout Superset Composition, Execution, and Scrolling
 
-**Status:** Review — source implementation is complete; required validation is incomplete
+**Status:** Review — source implementation and local Flutter validation are complete; exact-head CI, database validation, and device review remain pending
 **Primary owner:** `apps/features/workout` with `supabase/` for Routine persistence
 **Affected platforms:** Flutter phone app; Supabase Postgres source/tests
 
@@ -10,7 +10,7 @@
 **Approval status:** Approved
 **Approval evidence:** Owner response `PLEASE IMPLEMENT THIS PLAN` to the complete Superset architecture and implementation plan. Earlier owner choices accept unequal ordinal rounds, shared Normal/Warm-up pair with Warm-up winning mixed rounds, group-block Routine reorder, and freezing active membership after the first completed/skipped set.
 **Approved product/UI/data-shape boundaries:** Superset group identity with 2–3 Routine exercise members; one group-owned rest pair; nullable Routine exercise membership; Create/Edit grouping and block reorder; Save-only workout round timer; snapshot/history preservation; default-OFF owner-scoped Smart Superset Scrolling. The approved relational design uses a Routine Superset parent record and a nullable `superset_id` on Routine exercises. Rest wheel limits reuse the existing OFF or 5-second increments through 600-second behavior.
-**Explicit non-changes:** No hosted migration apply, deployment, Linear/GitHub updates, merge, new protected backend, legacy online-session execution changes, Wear OS/watchOS implementation, separate countdown engine, individual rest-value rewrite, or broad redesign. Owner subsequently authorized committing and pushing this task branch; no PR was requested.
+**Explicit non-changes:** No hosted migration apply, deployment, Linear/GitHub issue-status updates, merge, new protected backend, legacy online-session execution changes, Wear OS/watchOS implementation, separate countdown engine, individual rest-value rewrite, or broad redesign. Owner explicitly authorized committing/pushing this branch and opening PR #756, which remains a draft.
 
 ## Active Handoff
 
@@ -18,23 +18,22 @@
 **Implementation owner:** Codex
 **Previous agent:** Not applicable
 **Last commit agent:** Codex
-**Last commit SHA:** `09772a91` (Superset implementation slice)
+**Last implementation commit SHA:** `03286872` (Superset UI, compile, scrolling, and reorder fixes)
 **Review owner:** Not assigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** Git root `G:/projects/Tio-World`; clean at `b2c3f5d0` before this brief; `git status` rechecked with `core.fsmonitor=false`.
-**Branch:** `tnyx/workout-superset`, pushed and tracking `origin/tnyx/workout-superset` after the owner explicitly requested branch commit/push.
-**HEAD SHA:** `54f75e67` when draft PR #756 was opened; this task-state reconciliation is a subsequent documentation-only update.
-**Observed working-tree state:** Superset implementation and handoff commits are pushed; draft PR #756 is open. This task brief records the PR state in a documentation-only follow-up.
-**Observed uncommitted/dirty files:** This new task brief only at creation.
-**PR / tracker:** Draft PR [#756](https://github.com/im-tnyx/tio-world/pull/756) is open from `tnyx/workout-superset` to `main`. No Linear or GitHub issue status was changed. Linear TNYX-87 is Backlog and blocked by TNYX-78. Linear TNYX-81 is Backlog and blocked by TNYX-78/TNYX-80. GitHub #48 remains open and its description says planning-only; its W10-C comments still describe pre-merge review status. The current PR #755 is closed/merged at `b2c3f5d0c280d4c213bbcc2b5ec782dfc633e901`, matching this checkout's `main` HEAD.
-**Current implementation state:** Routine grouping, versioned RPC persistence, Save-only draft and shared round timer, snapshot/History Edit metadata preservation, local default-OFF Smart Scrolling, tests, additive migrations, and documentation reconciliation are committed and pushed. Flutter/Dart/pgTAP/CI validation is still outstanding; the local migration replay stopped at a pre-existing migration before reaching this slice, and nothing was applied to hosted Supabase.
+**Repository state last verified:** Git root `G:/projects/Tio-World`; branch `tnyx/workout-superset`; `HEAD` is `03286872fce921939e567a3ac4474a6402af4415`; status was clean and one commit ahead of the old remote tip before this handoff update.
+**Branch:** `tnyx/workout-superset`; latest source fix is committed locally and awaits push with this task-state reconciliation.
+**HEAD / PR state:** PR [#756](https://github.com/im-tnyx/tio-world/pull/756) is open and draft. Its observed head is still `457f50b1cdf1d7e71909d5b05a546546d62a96fc`; this local branch contains follow-up fix commit `03286872` that is not yet on the PR.
+**Observed working-tree state:** Clean before this handoff update; the docs changes in this update are the only expected pending files.
+**PR / tracker:** The open PR targets `main`; no Linear or GitHub issue status was changed. At the last tracker snapshot, Linear TNYX-87 was Backlog and blocked by TNYX-78, Linear TNYX-81 was Backlog and blocked by TNYX-78/TNYX-80, and GitHub #48 remained open. Current CI on the old PR head had Flutter CI and Android Phone APK fail; Android Wear APK, Supabase Database CI, and Docs Hygiene CI passed. The failed Flutter compile diagnostics and source fixes are recorded in the PR update after push. PR #755 is merged at `b2c3f5d0c280d4c213bbcc2b5ec782dfc633e901`, the current `main` base observed for this branch.
+**Current implementation state:** Routine grouping/RPC persistence, Save-only shared round timer and recovery, snapshot/History Edit preservation, default-OFF Smart Scrolling, and the requested selector UI are implemented. The selector title stays pinned while its exercise list scrolls; group markers use the group color, selection uses a check, separators use the 0.5-width stroke, and the sheet omits the “already in Superset” subtitle. A single exercise cannot form a group. Log Workout shows a larger colored round dot before the Superset label without a vertical line before the exercise title. Local Flutter validation passes; the latest PR head still awaits push and CI rerun. Local database replay failed before this feature's migration, and no hosted migration was applied.
 **Relevant execution surface:** `apps/features/workout` Routine composition, encrypted Active Workout draft, Save-only session DTOs, settings and History Edit; `supabase/migrations` and `supabase/tests/database` for owner-secured persistence/validators.
-**Validation completed at SHA:** On `tnyx/workout-superset`, `git diff --check` and `git diff --cached --check` passed; implementation commit is `09772a91`. Immediately before push, `origin/main` at `b2c3f5d0c280d4c213bbcc2b5ec782dfc633e901` was an ancestor, parent-to-head diff was task-scoped, and `git diff --check origin/main...HEAD` passed. Remote branch was verified at `e06758ffdd77c748e0823fd71f912aef3bc103c2`. `flutter`, `dart`, and `melos` are not resolvable in the current shell. `supabase db reset --local --no-seed` was attempted with `G:\dev\supabase-cli\v2.121.0\supabase.exe`; replay stopped at the existing `20260824070233_cleanup_legacy_canonical_mirrors.sql` migration with `LOCK TABLE can only be used in transaction blocks`, before either Superset migration. No pgTAP result is claimed.
-**Validation remaining:** Focused Flutter/Dart checks, local migration replay and pgTAP, full repository CI, compact-width/theme/accessibility review, and independent source review. The local replay failure prevents meaningful Superset migration validation on this checkout.
-**Current blocker:** Flutter/Dart/Melos validation is unavailable in this shell; local Supabase replay is blocked by the pre-existing migration failure above. Hosted schema state is not verified. No hosted migration or PR has been made.
+**Validation completed at SHA:** At source commit `03286872fce921939e567a3ac4474a6402af4415`, `flutter analyze` and all `1542` Workout tests passed; `apps/core` `flutter analyze` and all `370` Core tests passed; `apps/app` `flutter build apk --debug` passed. Focused pinned-header, Smart Scrolling, and Create/Edit reorder tests also passed in the full Workout suite. `git diff --check` and staged diff check passed before the source commit. SDK: `G:\dev\flutter-sdk` Flutter `3.44.6` / Dart `3.12.2`; CI pins Flutter `3.47.9`. `supabase db reset --local --no-seed`, using `G:\dev\supabase-cli\v2.121.0\supabase.exe`, stopped at pre-existing `20260824070233_cleanup_legacy_canonical_mirrors.sql` (`LOCK TABLE can only be used in transaction blocks`) before either Superset migration; pgTAP was not reached. No hosted migration was run.
+**Validation remaining:** Push the fix and updated PR description, rerun exact-head GitHub CI, then resolve any remaining CI failures. Compact-width/light-dark/accessibility device review and independent source review remain outstanding.
+**Current blocker:** Exact-head CI has not yet rerun. The local Supabase replay remains blocked by the pre-existing migration failure above; hosted schema state is not verified.
 **Open review finding IDs:** None recorded; independent source review remains outstanding.
-**Next exact action:** Run the remaining Flutter/Dart and pgTAP checks when their tools are available, then request independent review and verify exact-head CI before any merge.
+**Next exact action:** Commit the handoff reconciliation, push `tnyx/workout-superset`, update the open draft PR with actual validation and the CI fixes, and inspect its new required checks. Do not merge or apply hosted migrations.
 
 ## 1. Discovery
 
@@ -114,8 +113,8 @@ Storing the shared Normal/Warm-up pair on every exercise duplicates canonical gr
 ## 5. Implementation Plan
 
 - [x] Routine group/domain model, versioned payload envelope, additive migration, RLS, RPC validation/idempotency, safe legacy writer guard — source implemented; SQL checks pending.
-- [x] Routine Create/Edit menu, eligible selector, empty/capacity state, ungroup/remove/replace semantics and whole-block reorder — source and focused tests added; tests pending.
-- [x] Draft serialization/recovery, group transfer and active shared round timer; visible controls and scroll orchestration — source and focused tests added; tests pending.
+- [x] Routine Create/Edit menu, eligible selector, empty/capacity state, ungroup/remove/replace semantics and whole-block reorder — source and focused tests passed in the Workout suite.
+- [x] Draft serialization/recovery, group transfer and active shared round timer; visible controls and scroll orchestration — source and focused tests passed in the Workout suite.
 - [x] Save snapshot-v2 and SQL validator updates; History Edit preserves/dissolves valid groups with no performed-set column — source and focused tests added; DB/Dart checks pending.
 - [x] Smart Scrolling preference and progression after member completion and rest finish/skip — source and focused tests added; tests and device review pending.
 - [x] Reconcile `docs/screens/workout.md`, `docs/screens/workout-settings.md`, and `.ai/tasks/README.md`; archive merged W8C/W10-B/W10-C handoffs without treating pre-merge states as current.
@@ -125,42 +124,42 @@ Storing the shared Normal/Warm-up pair on every exercise duplicates canonical gr
 ### Validation Run
 
 ```text
-`git diff --check` — PASS. `G:\dev\supabase-cli\v2.121.0\supabase.exe db reset --local --no-seed` — FAIL before the Superset migrations at pre-existing `20260824070233_cleanup_legacy_canonical_mirrors.sql` (`LOCK TABLE can only be used in transaction blocks`). The local reset did not complete and pgTAP was not run. Flutter/Dart/`melos` were not resolvable in the current shell. No hosted migration was run.
+`G:\dev\flutter-sdk\bin\flutter.bat analyze` in `apps/features/workout` and `apps/core` — PASS. `flutter test` in `apps/features/workout` — PASS (1542 tests); in `apps/core` — PASS (370 tests). `flutter build apk --debug` in `apps/app` — PASS. SDK used: Flutter 3.44.6 / Dart 3.12.2; CI uses Flutter 3.47.9. `git diff --check` — PASS. Local Supabase reset — BLOCKED before the feature migration by pre-existing `20260824070233_cleanup_legacy_canonical_mirrors.sql` (`LOCK TABLE can only be used in transaction blocks`); pgTAP was not reached. No hosted migration was run.
 ```
 
 ### Acceptance Evidence
 
 | Criterion | Changed behavior / file | Test or manual evidence + actual result | Observed SHA / environment | Remaining risk |
 |---|---|---|---|---|
-| Routine groups | Composition model, RPC, Create/Edit | Focused Dart and pgTAP cases added for membership, 2/3 capacity, legacy overwrite guard, RLS and group reload mapping; not run | Not run | Owner/tenant behavior until DB CI passes |
-| Shared round timer | Active draft/controller/card | Focused controller/page cases added for unequal rounds, mixed types, skip/unlog, active timer recovery/edit and final-rest suppression; not run | Not run | Real background/device behavior until manual QA |
-| Snapshot/history compatibility | DTOs, SQL validators, History Edit | Added grouped Save DTO and History Edit regression cases plus validator pgTAP cases; not run | Not run | Hosted validator/schema not verified |
-| Smart scrolling | Settings controller/repository and Active Workout | Added preference isolation/retry/toggle and page observer coverage; not run | Not run | Device accessibility review |
-| Visual/accessibility | Routine cards and Active Workout cards | Not run; 320dp, light/dark, labels/touch targets and manual-scroll review remain outstanding | Not run | Physical-device QA not claimed |
+| Routine groups and selector | Composition model, RPC, Create/Edit, `routine_superset_member_sheet.dart` | Full Workout suite passed (1542); empty state, capacity, selection, group color/check affordance, pinned title and independently scrolling list are covered | `03286872`, Flutter 3.44.6 | DB migration/RLS replay blocked before feature migration; no device review |
+| Shared round timer | Active draft/controller/card | Full Workout suite passed, including unequal rounds, mixed types, skip/unlog, recovery, timer edits, and final-rest suppression | `03286872`, Flutter 3.44.6 | Real background/device behavior until manual QA |
+| Snapshot/history compatibility | DTOs, SQL validators, History Edit | Full Workout suite passed; pgTAP not reached because local reset stopped before feature migration | `03286872`, Flutter 3.44.6 | Hosted validator/schema not verified |
+| Smart scrolling | Settings controller/repository and Active Workout | Full Workout suite passed; focused ON/retry behavior included | `03286872`, Flutter 3.44.6 | Device accessibility review |
+| Visual/accessibility | Superset sheet and Workout cards | Pinned-header/list-scroll widget coverage passed; 320dp, light/dark, physical labels/touch targets and device review remain outstanding | `03286872`, Flutter 3.44.6 | Physical-device QA not claimed |
 
 ### Review Provenance
 
-**Review source / link:** Manual working-tree inspection only; no PR exists for this slice.
+**Review source / link:** Local implementation review at `03286872`; draft PR [#756](https://github.com/im-tnyx/tio-world/pull/756) exists and is awaiting the pushed fix commit.
 **Reviewer / relation to implementer:** Codex implementation owner
-**Diff or commit SHA actually reviewed:** Current uncommitted diff based on `b2c3f5d0`; no commit SHA exists.
-**Review result and finding IDs/dispositions:** Two implementation review issues were corrected: independent Settings retry remains visible if Default Rest loading fails, and pending Smart Scroll no longer waits indefinitely for the Workout route to become current. Versioned routine payload validation now requires a numeric schema version.
+**Diff or commit SHA actually reviewed:** `03286872fce921939e567a3ac4474a6402af4415`.
+**Review result and finding IDs/dispositions:** Fixed previous CI compile errors (`RoutineCompositionGateway.readSupersets` adapter and Edit Routine entry lookup), corrected Smart Scrolling to defer only for actual editable-text focus, and fixed Create/Edit reorder indices already adjusted by `SliverReorderableList`. Added the requested pinned picker header, group-color markers, compact row spacing, check selection affordance, and single-member prevention. Existing findings about independent Settings retry, pending Smart Scroll route readiness, and numeric payload schema version remain addressed in source and locally tested.
 **Independent review?** No
-**Limitations and unmet required gates:** Feature tests/analyze, successful local migration replay/pgTAP, exact-head CI, independent review, and physical-device QA remain pending. Hosted Supabase migration/security advisor not run. The attempted local reset stopped at the pre-existing migration noted above.
+**Limitations and unmet required gates:** Exact-head CI, successful local migration replay/pgTAP, independent review, and physical-device QA remain pending. Hosted Supabase migration/security advisor not run. The attempted local reset stopped at the pre-existing migration noted above.
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Workout domain/controllers/repositories, routine and active-workout UI, Save/History DTOs, and focused tests under `apps/features/workout/`; app route fakes under `apps/app/test/`; additive migrations and pgTAP under `supabase/`; task brief/index and screen docs under `.ai/` and `docs/screens/`. Exact working-tree list is available from `git status`.
+The source fix commit changes 20 files across `apps/core/` and `apps/features/workout/`, including the pinned-header sheet, Superset member selector, Routine controllers, Active Workout UI, tests, and `pubspec.lock`. The broader feature PR also includes `apps/app/test/`, `supabase/migrations/`, `supabase/tests/database/`, `.ai/`, and `docs/screens/`.
 
 ### Actual Behavior
 
-Routine Create/Edit supports 2–3 member Supersets with group-block reorder and shared Normal/Warm-up rest settings. Save-only Log Workout copies group metadata into its encrypted draft, advances a shared round timer by logged/skipped set completion, and preserves group metadata through v2 Save snapshots and History Edit. Smart Superset Scrolling is device-local, owner-scoped, default OFF, and defers around focused fields and workout modals. These are source-level implementation claims only; runtime validation remains pending.
+Routine Create/Edit supports 2–3 member Supersets with group-block reorder and shared Normal/Warm-up rest settings. The selector keeps its title pinned while the exercise list scrolls, uses distinct group colors and a check affordance, and prevents single-member groups. Save-only Log Workout copies group metadata into its encrypted draft, advances a shared round timer by logged/skipped set completion, and preserves metadata through v2 Save snapshots and History Edit. Smart Superset Scrolling is device-local, owner-scoped, default OFF, and defers around editable focus and workout modals. Flutter analysis/tests and the Android debug build passed locally at `03286872`; GitHub CI for the pushed fix and device acceptance remain pending.
 
 ### Known Limitations
 
-No external tracker updates or hosted changes. Branch creation was blocked because `.git` is sandbox read-only; source work remains uncommitted on `main`.
+No Linear/GitHub issue-status updates or hosted database changes. The branch and draft PR already exist. This task handoff and source fix must be pushed before exact-head CI can run; hosted Supabase truth remains unverified.
 
 ### Final Status
 
-`REVIEW` — source implementation is present, but Flutter/Dart and Supabase validation could not be run in this environment; no migration is hosted-applied.
+`REVIEW` — local Flutter analysis/tests and Android debug build pass; exact-head CI, local Supabase feature migration/pgTAP validation, independent review, and device acceptance remain outstanding. No migration is hosted-applied.
