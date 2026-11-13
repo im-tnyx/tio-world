@@ -2083,6 +2083,8 @@ List<RouteBase> _shellBranchChildRoutes(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => Consumer(
         builder: (context, ref, _) => ActiveWorkoutPage(
+          onSettingsPressed: () =>
+              context.push(AppRoutes.workoutSettings.path),
           controller: ref.watch(activeWorkoutControllerProvider),
           draftController: ref.watch(activeWorkoutDraftControllerProvider),
           workoutRuntimeSettingsController:

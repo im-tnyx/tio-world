@@ -1481,6 +1481,28 @@ Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
 final class _RuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
+  bool rpeEnabled = false;
+  bool failNextRpeRead = false;
+  bool failNextRpeWrite = false;
+
+  @override
+  Future<bool> readRpeTrackingEnabled() async {
+    if (failNextRpeRead) {
+      failNextRpeRead = false;
+      throw StateError('Simulated RPE preference read failure');
+    }
+    return rpeEnabled;
+  }
+
+  @override
+  Future<void> writeRpeTrackingEnabled(bool enabled) async {
+    if (failNextRpeWrite) {
+      failNextRpeWrite = false;
+      throw StateError('Simulated RPE preference save failure');
+    }
+    rpeEnabled = enabled;
+  }
+
   bool failNextVibrationRead = false;
 
   @override

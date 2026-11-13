@@ -10,10 +10,11 @@ void main() {
     int? reps,
     double? initialRpe,
     ValueChanged<double?>? onDone,
+    TioThemeMode mode = TioThemeMode.dark,
   }) {
     return MaterialApp(
       builder: (context, child) => TioTheme(
-        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        config: TioThemeConfig(mode: mode),
         child: child ?? const SizedBox.shrink(),
       ),
       home: Scaffold(
@@ -26,6 +27,42 @@ void main() {
         ),
       ),
     );
+  }
+
+
+  for (final mode in [
+    TioThemeMode.light,
+    TioThemeMode.dark,
+    TioThemeMode.tioDark,
+  ]) {
+    testWidgets('selected RPE option uses onPrimary contrast in ${mode.name}',
+        (tester) async {
+      await tester.pumpWidget(buildSheet(
+        setNumber: 1,
+        mode: mode,
+      ));
+      await tester.pumpAndSettle();
+      final option = find.byKey(const ValueKey('rpe-option-7.5'));
+      final optionText = find.descendant(
+        of: option,
+        matching: find.text('7.5'),
+      );
+      final colors = tester.element(option).tioColors;
+      expect(tester.widget<Text>(optionText).style?.color,
+          colors.textPrimary);
+      await tester.tap(option);
+      await tester.pumpAndSettle();
+      // The selected circular background is primary. Fixed white can become
+      // invisible against light/accent primary themes; onPrimary is the
+      // theme-owned contrasting foreground.
+      expect(tester.widget<Text>(optionText).style?.color, colors.onPrimary);
+      expect(colors.onPrimary, isNot(colors.primary));
+      await tester.tap(option);
+      await tester.pumpAndSettle();
+      expect(tester.widget<Text>(optionText).style?.color,
+          colors.textPrimary);
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets('renders initial unselected state with 0 and Select RPE',

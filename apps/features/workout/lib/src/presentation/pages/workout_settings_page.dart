@@ -25,6 +25,7 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
     super.initState();
     unawaited(widget.controller.load());
     unawaited(widget.controller.loadRestTimerVibration());
+    unawaited(widget.controller.loadRpeTracking());
   }
 
   Future<void> _editDefaultRestTimer() async {
@@ -58,6 +59,14 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
       if (mounted) {
         _showMessage('Could not save Rest Timer Vibration. Try again.');
       }
+    }
+  }
+
+  Future<void> _setRpeTracking(bool enabled) async {
+    try {
+      await widget.controller.setRpeTrackingEnabled(enabled);
+    } catch (_) {
+      if (mounted) _showMessage('Could not save RPE Tracking. Try again.');
     }
   }
 
@@ -179,6 +188,36 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
                                   onPressed: () => unawaited(
                                     controller.loadRestTimerVibration(),
                                   ),
+                                ),
+                    ),
+                    TioSettingsValueRow(
+                      key: const ValueKey('workout-rpe-tracking'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.speed_rounded,
+                      ),
+                      label: 'RPE Tracking',
+                      onTap: null,
+                      showEditAffordance: false,
+                      value: controller.isRpeLoading
+                          ? const CircularProgressIndicator()
+                          : controller.isRpeReady
+                              ? Switch.adaptive(
+                                  key: const ValueKey(
+                                    'workout-rpe-tracking-switch',
+                                  ),
+                                  value: controller.rpeTrackingEnabled,
+                                  onChanged: controller.isRpeSaving
+                                      ? null
+                                      : (enabled) =>
+                                          unawaited(_setRpeTracking(enabled)),
+                                )
+                              : TioButton.secondary(
+                                  key: const ValueKey(
+                                    'workout-rpe-tracking-retry',
+                                  ),
+                                  label: 'Retry',
+                                  onPressed: () =>
+                                      unawaited(controller.loadRpeTracking()),
                                 ),
                     ),
                   ],

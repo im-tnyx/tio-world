@@ -26,6 +26,59 @@ final class WorkoutRuntimeSettingsController extends ChangeNotifier {
   bool _restTimerVibrationEnabled = false;
   Object? _vibrationError;
 
+  // RPE UI preference is independent of Rest Timer and draft Save.
+  Future<void>? _rpeLoadFuture;
+  bool _isRpeLoaded = false;
+  bool _isRpeLoading = false;
+  bool _isRpeSaving = false;
+  bool _rpeTrackingEnabled = false;
+  Object? _rpeError;
+
+  bool get isRpeLoading => _isRpeLoading;
+  bool get isRpeSaving => _isRpeSaving;
+  bool get isRpeReady => _isRpeLoaded && _rpeError == null;
+  bool get rpeTrackingEnabled => isRpeReady && _rpeTrackingEnabled;
+  Object? get rpeError => _rpeError;
+
+  Future<void> loadRpeTracking() {
+    if (_isRpeLoaded) return Future<void>.value();
+    return _rpeLoadFuture ??= _loadRpeTracking();
+  }
+
+  Future<void> _loadRpeTracking() async {
+    _isRpeLoading = true;
+    _rpeError = null;
+    notifyListeners();
+    try {
+      _rpeTrackingEnabled = await _repository.readRpeTrackingEnabled();
+      _isRpeLoaded = true;
+    } catch (error) {
+      // Fail closed; never block Default Rest, Add Exercise or Save.
+      _rpeError = error;
+      _rpeTrackingEnabled = false;
+    } finally {
+      _isRpeLoading = false;
+      _rpeLoadFuture = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> setRpeTrackingEnabled(bool enabled) async {
+    await loadRpeTracking();
+    if (!isRpeReady) {
+      throw StateError('RPE Tracking preference is unavailable.');
+    }
+    _isRpeSaving = true;
+    notifyListeners();
+    try {
+      await _repository.writeRpeTrackingEnabled(enabled);
+      _rpeTrackingEnabled = enabled;
+    } finally {
+      _isRpeSaving = false;
+      notifyListeners();
+    }
+  }
+
   bool get isLoaded => _isLoaded;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;

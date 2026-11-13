@@ -1,14 +1,14 @@
 # Active Workout Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-11-12 (W10-A source branch; PR/CI handoff pending)
+Last Verified: 2026-11-13 (W10-A/B merged; W10-C local RPE visibility review-gated)
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for Active Workout ownership and intended behavior; source/merge state and device acceptance are recorded separately.
 
 **Surface:** Nested Phone Workout execution flow
 **Route:** `/workout/active`
 **Primary owner:** `apps/features/workout`
-**Status:** The Active Workout route and account-bound local Save-only draft are merged source. Home Play opens an empty ad-hoc draft. Routine Detail `Start Routine` and direct Routine-row Play from Program Detail/expanded Library seed this draft through one guarded flow. W10-A initializes newly added Exercises in the Save-only Log Workout draft from the device-local Default Rest Timer; PR/CI handoff is pending. No distributed release or device acceptance is claimed.
+**Status:** The Active Workout route and account-bound local Save-only draft are merged source. Home Play opens an empty ad-hoc draft. Routine Detail `Start Routine` and direct Routine-row Play from Program Detail/expanded Library seed this draft through one guarded flow. W10-A initializes newly added Exercises in the Save-only Log Workout draft from the device-local Default Rest Timer. W10-B adds optional foreground Rest Timer vibration. W10-C introduces a separately reviewed device-local RPE column visibility setting. No distributed release or device acceptance is claimed.
 
 ## Purpose
 
@@ -27,6 +27,8 @@ Routine Start does not create a W7B server session. Saved history continues to u
 - Per-exercise set input for values such as weight, performed reps and completion state. A planned reps range such as `8 - 12` appears in the single `REPS` field as a hint/reference; the actual field remains blank until the user enters reps, and the hint is never logged as performed data.
 - Rest timer that is tied to an action only when the configured workout behavior supports it.
 - Newly added Exercises receive the current device-local Default Rest Timer once. Their existing Rest Timer control stays editable; explicit OFF persists in the draft and skips subsequent countdowns for that Exercise.
+- The Log Workout **Settings** button opens the existing Workout Settings route via app-owned push navigation, from both Save-only draft and legacy active session. Back returns to the same Workout and does not recreate a draft or reset logged Sets. RPE Tracking changes take effect on return.
+- RPE Tracking ON shows the existing Save-only Log Workout RPE header and per-Set picker even at 320dp; OFF hides this UI without erasing entered Set RPE or changing draft persistence. The legacy online session path has no per-Set RPE write contract and remains outside W10-C.
 - Exercise information from the selected catalog entry; changing the plan uses an explicit edit flow, not unscoped search.
 - Finish review with incomplete-set handling before the session is saved to history.
 
@@ -39,6 +41,7 @@ Routine Start does not create a W7B server session. Saved history continues to u
 - Active-session state is independent from the selected navigation layout. If Workout or Library is hidden/reordered, a persistent shell/Home Resume entry must still reach this canonical session.
 - A mode/layout change during a live session preserves recorded input and cannot start a duplicate session. Any destructive discard remains an explicit Workout-owned confirmation.
 - Default Rest Timer changes apply only to newly added Exercises. Existing active draft values are not rewritten, and the selected per-Exercise value is recovered through existing `restPreset`/`hasRestOverride` fields.
+- RPE Tracking is an owner-scoped device-local display preference, separate from Set RPE. The existing Save-only draft DTO stores Set RPE in `routine_snapshot.exercises[].prescribed_sets[].performed_rpe`; hiding or restoring the column never rewrites those values.
 
 ## Acceptance Criteria
 

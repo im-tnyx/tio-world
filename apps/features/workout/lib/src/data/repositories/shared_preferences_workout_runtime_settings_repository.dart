@@ -17,17 +17,22 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
 
   static const _keyPrefix = 'workout_default_rest_timer_seconds_v1_';
   static const _vibrationKeyPrefix = 'workout_rest_timer_vibration_enabled_v1_';
+  static const _rpeKeyPrefix = 'workout_rpe_tracking_enabled_v1_';
 
   static String vibrationStorageKeyFor(String ownerId) =>
       '$_vibrationKeyPrefix${ownerId.trim()}';
 
   static String storageKeyFor(String ownerId) => '$_keyPrefix${ownerId.trim()}';
 
+  static String rpeStorageKeyFor(String ownerId) =>
+      '$_rpeKeyPrefix${ownerId.trim()}';
+
   final String _ownerId;
   SharedPreferencesAsync? _preferences;
 
   String get _storageKey => storageKeyFor(_ownerId);
   String get _vibrationStorageKey => vibrationStorageKeyFor(_ownerId);
+  String get _rpeStorageKey => rpeStorageKeyFor(_ownerId);
 
   SharedPreferencesAsync get _store =>
       _preferences ??= SharedPreferencesAsync();
@@ -73,6 +78,20 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
   @override
   Future<void> writeRestTimerVibrationEnabled(bool enabled) =>
       _store.setBool(_vibrationStorageKey, enabled);
+
+  @override
+  Future<bool> readRpeTrackingEnabled() async {
+    try {
+      return await _store.getBool(_rpeStorageKey) ?? false;
+    } on TypeError {
+      await _store.remove(_rpeStorageKey);
+      return false;
+    }
+  }
+
+  @override
+  Future<void> writeRpeTrackingEnabled(bool enabled) =>
+      _store.setBool(_rpeStorageKey, enabled);
 
   static bool _isSupported(int seconds) =>
       seconds == 0 ||

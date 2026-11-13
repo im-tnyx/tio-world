@@ -1,14 +1,14 @@
 # Workout Settings Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-11-13 (W10-A merged on main; W10-B approved implementation in separate PR)
+Last Verified: 2026-11-13 (W10-A/B merged; W10-C in separate review-gated branch)
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for Workout Settings ownership and behavior; runtime source wins for actual implementation, and current PR/CI status is tracked independently.
 
 **Surface:** Nested Phone Workout configuration
 **Route:** `/settings/workout`
 **Primary owner:** `apps/features/workout`
-**Status:** W10-A Default Rest Timer is merged via PR #753; W10-B Rest Timer Vibration is a separately approved, review-gated slice. Other Workout Settings remain planned.
+**Status:** W10-A and W10-B merged via PRs #753/#754; W10-C RPE Tracking is a separate approved, review-gated slice. Other Workout Settings remain planned.
 
 ## Purpose
 
@@ -44,7 +44,7 @@ countdown engine and controls are reused.
 
 No Supabase schema, migration, RLS, RPC or sync behavior is part of W10-A.
 
-## Rest Timer Vibration — W10-B (review-gated)
+## Rest Timer Vibration — W10-B (merged)
 
 Workout Settings adds a separate device-local **Rest Timer Vibration**
 switch, default OFF. Its boolean preference uses an owner-scoped
@@ -63,6 +63,36 @@ workout data or countdown state.
 
 W10-B does not change the existing per-Exercise Rest Timer, UTC deadlines,
 Draft recovery, Workout pause rules or Routine composition persistence.
+
+## RPE Tracking — W10-C (review-gated)
+
+The in-Workout **Settings** action on the Log Workout screen is wired to
+this same canonical Workout Settings route, using app-owned push navigation.
+Back returns to the original active draft/session; opening Settings never
+creates or discards a Workout.
+
+
+
+**RPE Tracking** is a device-local, authenticated-owner-scoped Workout
+Settings switch, default **OFF**. It uses the existing SharedPreferencesAsync
+Workout adapter and key `workout_rpe_tracking_enabled_v1_<ownerId>`.
+It is not a cross-device or Supabase preference.
+
+- **ON:** Show the existing RPE header and editable per-Set RPE picker in the
+  Save-only Log Workout draft, including 320dp phones.
+- **OFF:** Hide both RPE header and picker and return width to the existing Set
+  fields. Previously entered draft, recovered or completed Set RPE values
+  are not cleared; turning ON shows those values again.
+- Missing, malformed or unreadable preference defaults to OFF; the Workout
+  Settings row provides an independent Retry on read failure. Failure does not
+  block Add Exercise, Rest Timer or Workout Save.
+- Save-only Log Workout listens for live preference changes without creating
+  another session or rewriting stored Set data.
+
+The existing RPE picker and draft-to-completed-snapshot Save flow are reused.
+Legacy online Active Workout has no per-Set RPE write implementation; W10-C
+does not extend that path, History Edit or overall Workout RPE. No new RPE
+scale, Supabase schema, migration, RLS or RPC is part of this slice.
 
 ## Target Content
 

@@ -16,6 +16,7 @@ final _exerciseRef = ExerciseRef.catalog('ex_barbell_bench_press');
 
 final class _DraftStore implements ActiveWorkoutDraftStore {
   ActiveWorkoutDraft? saved;
+  int saveCount = 0;
   bool failLoad = false;
 
   @override
@@ -25,7 +26,10 @@ final class _DraftStore implements ActiveWorkoutDraftStore {
   }
 
   @override
-  Future<void> save(ActiveWorkoutDraft draft) async => saved = draft;
+  Future<void> save(ActiveWorkoutDraft draft) async {
+    saved = draft;
+    saveCount++;
+  }
 
   @override
   Future<void> delete() async => saved = null;
@@ -308,6 +312,7 @@ Future<void> _pumpPage(
   bool createDraftIfMissing = true,
   TioThemeMode themeMode = TioThemeMode.light,
   VoidCallback? onBack,
+  VoidCallback? onSettingsPressed,
   DateTime Function()? clock,
   ActiveWorkoutDraftController? draftController,
   WorkoutRuntimeSettingsController? workoutRuntimeSettingsController,
@@ -336,6 +341,7 @@ Future<void> _pumpPage(
         showStartPreview: showStartPreview,
         createDraftIfMissing: createDraftIfMissing,
         onBack: onBack,
+        onSettingsPressed: onSettingsPressed,
         clock: clock ?? () => tester.binding.clock.now(),
         workoutRuntimeSettingsController:
             workoutRuntimeSettingsController,
@@ -349,6 +355,28 @@ Future<void> _pumpPage(
 final class _RuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
+  bool rpeEnabled = false;
+  bool failNextRpeRead = false;
+  bool failNextRpeWrite = false;
+
+  @override
+  Future<bool> readRpeTrackingEnabled() async {
+    if (failNextRpeRead) {
+      failNextRpeRead = false;
+      throw StateError('Simulated RPE preference read failure');
+    }
+    return rpeEnabled;
+  }
+
+  @override
+  Future<void> writeRpeTrackingEnabled(bool enabled) async {
+    if (failNextRpeWrite) {
+      failNextRpeWrite = false;
+      throw StateError('Simulated RPE preference save failure');
+    }
+    rpeEnabled = enabled;
+  }
+
   bool failNextVibrationRead = false;
   Completer<bool>? pendingVibrationRead;
 
@@ -962,6 +990,73 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+
+  testWidgets('Save-only Log Workout Settings delegates without discarding draft',
+      (tester) async {
+    final store = _DraftStore();
+    final draft = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draft.dispose);
+    final controller = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(controller.dispose);
+    var settingsCalls = 0;
+    await _pumpPage(
+      tester,
+      controller: controller,
+      draftController: draft,
+      showStartPreview: true,
+      onSettingsPressed: () => settingsCalls++,
+    );
+    expect(draft.draft, isNotNull);
+    final originalId = draft.draft!.id;
+    final savedBefore = store.saveCount;
+    final settingsAction = find.byKey(const ValueKey('active-workout-preview-settings'));
+    await tester.ensureVisible(settingsAction);
+    await tester.pumpAndSettle();
+    await tester.tap(settingsAction);
+    await tester.pump();
+    expect(settingsCalls, 1);
+    expect(draft.draft!.id, originalId);
+    expect(store.saveCount, savedBefore);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('legacy active Workout Settings delegates to app router',
+      (tester) async {
+    final repository = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(
+        session: _session(),
+        revision: 1,
+      );
+    final controller = ActiveWorkoutController(
+      repository: repository,
+      currentUserId: () => _userId,
+    );
+    addTearDown(controller.dispose);
+    var settingsCalls = 0;
+    await _pumpPage(
+      tester,
+      controller: controller,
+      onSettingsPressed: () => settingsCalls++,
+    );
+    expect(find.byKey(const ValueKey('active-workout-settings')),
+        findsOneWidget);
+    final settingsAction = find.byKey(const ValueKey('active-workout-settings'));
+    await tester.ensureVisible(settingsAction);
+    await tester.pumpAndSettle();
+    await tester.tap(settingsAction);
+    await tester.pump();
+    expect(settingsCalls, 1);
+    expect(controller.state.status, ActiveWorkoutStatus.active);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Log Workout lifecycle pauses an unattended local draft',
       (tester) async {
     final store = _DraftStore();
@@ -1532,7 +1627,7 @@ void main() {
     expect(find.text('PREVIOUS'), findsOneWidget);
     expect(find.text('KG'), findsOneWidget);
     expect(find.text('REPS'), findsOneWidget);
-    expect(find.text('RPE'), findsOneWidget);
+    expect(find.text('RPE'), findsNothing);
 
     final exerciseCard = find.byKey(
       const ValueKey('active-workout-preview-exercise-0'),
@@ -2499,6 +2594,10 @@ void main() {
 
   testWidgets('tapping RPE button opens Log Set RPE sheet and updates value',
       (tester) async {
+    final runtime = _RuntimeSettingsRepository()..rpeEnabled = true;
+    final settings = WorkoutRuntimeSettingsController(repository: runtime);
+    addTearDown(settings.dispose);
+    await settings.loadRpeTracking();
     final controller = ActiveWorkoutController(
       repository: _FakeSessionRepository(),
       currentUserId: () => _userId,
@@ -2508,6 +2607,7 @@ void main() {
       controller: controller,
       catalogRepository: _PreviewCatalogRepository(),
       showStartPreview: true,
+      workoutRuntimeSettingsController: settings,
     );
 
     // Add an exercise
@@ -2551,6 +2651,120 @@ void main() {
     expect(find.text('Log Set RPE'), findsNothing);
     // Value 7.5 is displayed in the set row
     expect(find.text('7.5'), findsOneWidget);
+  });
+
+  testWidgets('RPE OFF hides but preserves draft value; ON restores at 320dp',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final store = _DraftStore();
+    final draft = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draft.dispose);
+    final runtime = _RuntimeSettingsRepository()..rpeEnabled = true;
+    final settings = WorkoutRuntimeSettingsController(repository: runtime);
+    addTearDown(settings.dispose);
+    await settings.loadRpeTracking();
+
+    final online = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(online.dispose);
+    await _pumpPage(
+      tester,
+      controller: online,
+      draftController: draft,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+      workoutRuntimeSettingsController: settings,
+    );
+    await _addPreviewBench(tester);
+    final rpeButton =
+        find.byKey(const ValueKey('active-workout-preview-rpe-0-0'));
+    expect(find.text('RPE'), findsOneWidget);
+    expect(rpeButton, findsOneWidget);
+    expect(find.text('PREVIOUS'), findsNothing,
+        reason: '320dp RPE mode prioritizes readable Set fields');
+    final load = find.byKey(const ValueKey('active-workout-preview-load-0-0'));
+    final reps = find.byKey(const ValueKey('active-workout-preview-reps-0-0'));
+    expect(tester.getSize(load).width, greaterThanOrEqualTo(60));
+    expect(tester.getSize(reps).width, greaterThanOrEqualTo(60));
+    expect(tester.takeException(), isNull);
+
+    final exercise = draft.draft!.exercises.single;
+    final set = exercise.sets.single;
+    expect(await draft.setRpe(exercise.id, set.id, 7.5), isTrue);
+    await tester.pumpAndSettle();
+    expect(find.text('7.5'), findsOneWidget);
+
+    await settings.setRpeTrackingEnabled(false);
+    await tester.pumpAndSettle();
+    expect(find.text('RPE'), findsNothing);
+    expect(rpeButton, findsNothing);
+    expect(draft.draft!.exercises.single.sets.single.rpe, 7.5);
+    expect(store.saved!.exercises.single.sets.single.rpe, 7.5);
+
+    final recovered = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(recovered.dispose);
+    expect(await recovered.restoreExisting(), isTrue);
+    expect(recovered.draft!.exercises.single.sets.single.rpe, 7.5);
+
+    await settings.setRpeTrackingEnabled(true);
+    await tester.pumpAndSettle();
+    expect(find.text('RPE'), findsOneWidget);
+    expect(rpeButton, findsOneWidget);
+    expect(find.text('7.5'), findsOneWidget);
+    final rpeRect = tester.getRect(rpeButton);
+    expect(rpeRect.left, greaterThanOrEqualTo(0));
+    expect(rpeRect.right, lessThanOrEqualTo(320));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('RPE read failure stays OFF without blocking Log Workout',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final runtime = _RuntimeSettingsRepository()
+      ..rpeEnabled = true
+      ..failNextRpeRead = true;
+    final settings = WorkoutRuntimeSettingsController(repository: runtime);
+    addTearDown(settings.dispose);
+    final online = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(online.dispose);
+    await _pumpPage(
+      tester,
+      controller: online,
+      catalogRepository: _PreviewCatalogRepository(),
+      showStartPreview: true,
+      workoutRuntimeSettingsController: settings,
+    );
+    await _addPreviewBench(tester);
+    expect(settings.rpeError, isA<StateError>());
+    expect(settings.rpeTrackingEnabled, isFalse);
+    expect(find.text('RPE'), findsNothing);
+    expect(find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        findsOneWidget);
+    await settings.loadRpeTracking();
+    await tester.pumpAndSettle();
+    expect(find.text('RPE'), findsOneWidget);
+    expect(find.byKey(const ValueKey('active-workout-preview-rpe-0-0')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('discards a real active workout after confirmation',

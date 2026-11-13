@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
@@ -79,6 +80,7 @@ class ActiveWorkoutPage extends StatelessWidget {
     required this.controller,
     super.key,
     this.onBack,
+    this.onSettingsPressed,
     this.showStartPreview = false,
     this.createDraftIfMissing = true,
     this.catalogRepository,
@@ -91,6 +93,9 @@ class ActiveWorkoutPage extends StatelessWidget {
 
   final ActiveWorkoutController? controller;
   final VoidCallback? onBack;
+
+  /// App-owned navigation callback; the Workout feature does not import routes.
+  final VoidCallback? onSettingsPressed;
 
   /// Entry-only UI: never creates a session, exercise, or fake identity.
   final bool showStartPreview;
@@ -116,6 +121,7 @@ class ActiveWorkoutPage extends StatelessWidget {
     return _ActiveWorkoutBody(
       controller: controller,
       onBack: onBack ?? () => Navigator.of(context).maybePop(),
+      onSettingsPressed: onSettingsPressed,
       showStartPreview: showStartPreview,
       createDraftIfMissing: createDraftIfMissing,
       catalogRepository: catalogRepository,
@@ -132,6 +138,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
   const _ActiveWorkoutBody({
     required this.controller,
     required this.onBack,
+    this.onSettingsPressed,
     required this.showStartPreview,
     required this.createDraftIfMissing,
     this.catalogRepository,
@@ -144,6 +151,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
 
   final ActiveWorkoutController? controller;
   final VoidCallback onBack;
+  final VoidCallback? onSettingsPressed;
   final bool showStartPreview;
   final bool createDraftIfMissing;
   final ExerciseCatalogRepository? catalogRepository;
@@ -613,6 +621,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
               ? null
               : () => _discard(state),
           onBack: widget.onBack,
+          onSettingsPressed: widget.onSettingsPressed,
           catalogRepository: widget.catalogRepository,
           userExerciseRepository: widget.userExerciseRepository,
         );
@@ -621,6 +630,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
 
   Widget _buildDraftPreview() => _StartWorkoutPreview(
         onBack: widget.onBack,
+        onSettingsPressed: widget.onSettingsPressed,
         createDraftIfMissing: widget.createDraftIfMissing,
         workoutModalCounter: _workoutModalCounter,
         catalogRepository: widget.catalogRepository,
@@ -651,6 +661,7 @@ class _LoadingState extends StatelessWidget {
 class _StartWorkoutPreview extends StatefulWidget {
   const _StartWorkoutPreview({
     required this.onBack,
+    this.onSettingsPressed,
     required this.createDraftIfMissing,
     required this.workoutModalCounter,
     this.catalogRepository,
@@ -662,6 +673,7 @@ class _StartWorkoutPreview extends StatefulWidget {
   });
 
   final VoidCallback onBack;
+  final VoidCallback? onSettingsPressed;
   final bool createDraftIfMissing;
   final _WorkoutModalCounter workoutModalCounter;
   final ExerciseCatalogRepository? catalogRepository;
@@ -681,6 +693,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   Timer? _ticker;
   final RestTimerCompletionGate _draftRestGate = RestTimerCompletionGate();
   bool _vibrationForeground = true;
+  bool _rpeVisible = false;
+  bool _rpeRebuildScheduled = false;
 
   void _observeDraftRest() {
     final rest = _draft?.activeRest;
@@ -826,10 +840,38 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     _draftRestGate.setForeground(_vibrationForeground);
     final settings = widget.workoutRuntimeSettingsController;
-    if (settings != null) unawaited(settings.loadRestTimerVibration());
+    _rpeVisible = settings?.rpeTrackingEnabled ?? false;
+    if (settings != null) {
+      unawaited(settings.loadRestTimerVibration());
+      unawaited(settings.loadRpeTracking());
+      settings.addListener(_onRpeSettingsChanged);
+    }
     widget.draftController?.addListener(_onDraftChanged);
     _observeDraftRest();
     _ensureDraftOrTicker();
+  }
+
+  void _onRpeSettingsChanged() {
+    if (!mounted) return;
+    // The shared controller also emits Rest/default-load notifications.
+    // Only changes to the RPE visibility contract should rebuild this draft.
+    final visible =
+        widget.workoutRuntimeSettingsController?.rpeTrackingEnabled ?? false;
+    if (_rpeVisible == visible) return;
+    _rpeVisible = visible;
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      // The Settings page may load while this route remains mounted beneath
+      // it. Never mark a different subtree dirty during its build phase.
+      if (_rpeRebuildScheduled) return;
+      _rpeRebuildScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _rpeRebuildScheduled = false;
+        if (mounted) setState(() {});
+      });
+    } else {
+      setState(() {});
+    }
   }
 
   void _onDraftChanged() {
@@ -872,14 +914,23 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     }
     if (!identical(oldWidget.workoutRuntimeSettingsController,
         widget.workoutRuntimeSettingsController)) {
+      oldWidget.workoutRuntimeSettingsController
+          ?.removeListener(_onRpeSettingsChanged);
       final settings = widget.workoutRuntimeSettingsController;
-      if (settings != null) unawaited(settings.loadRestTimerVibration());
+      _rpeVisible = settings?.rpeTrackingEnabled ?? false;
+      if (settings != null) {
+        unawaited(settings.loadRestTimerVibration());
+        unawaited(settings.loadRpeTracking());
+        settings.addListener(_onRpeSettingsChanged);
+      }
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.workoutRuntimeSettingsController
+        ?.removeListener(_onRpeSettingsChanged);
     widget.draftController?.removeListener(_onDraftChanged);
     _ticker?.cancel();
     _ticker = null;
@@ -1197,7 +1248,10 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       // would block test settle; parent already navigates Back on discard.
       return const SizedBox.shrink();
     }
-    final showRpe = MediaQuery.sizeOf(context).width >= 360;
+    // The setting controls the Save-only picker, never a width heuristic.
+    // Hiding it is presentation-only and preserves draft RPE values.
+    final showRpe =
+        widget.workoutRuntimeSettingsController?.rpeTrackingEnabled ?? false;
     final canFinish = _loggedSets.isNotEmpty;
     final isComplete = _isWorkoutComplete;
     final rest = _draft?.activeRest;
@@ -1325,8 +1379,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
                             key: const ValueKey(
                                 'active-workout-preview-settings'),
                             label: 'Settings',
-                            onPressed: () =>
-                                _showDeferredAction(context, 'Settings'),
+                            onPressed: widget.onSettingsPressed,
                           ),
                         ),
                         const SizedBox(width: TioSpacing.md),
@@ -1368,6 +1421,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     final sets = _setsForExercise(exerciseIndex);
     final hasWarmUpSets =
         sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final compactRpe = showRpe && MediaQuery.sizeOf(context).width < 360;
     final restPreset = exercise.hasRestOverride
         ? exercise.restPreset
         : RoutineRestTimerPreset.fromPrescriptions(
@@ -1424,7 +1478,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
           unit: WeightUnit.kg,
           enabled: !(widget.draftController?.isBusy ?? false),
           exerciseType: _previewExercises[exerciseIndex].exerciseType,
-          showPrevious: true,
+          showPrevious: !compactRpe,
           isExecution: true,
           isLogged: isLogged,
           showRpe: showRpe,
@@ -1652,6 +1706,7 @@ class _SessionState extends StatefulWidget {
     required this.onComplete,
     required this.onDiscard,
     required this.onBack,
+    this.onSettingsPressed,
     this.catalogRepository,
     this.userExerciseRepository,
   });
@@ -1665,6 +1720,7 @@ class _SessionState extends StatefulWidget {
   final VoidCallback? onComplete;
   final VoidCallback? onDiscard;
   final VoidCallback onBack;
+  final VoidCallback? onSettingsPressed;
   final ExerciseCatalogRepository? catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
 
@@ -1989,8 +2045,7 @@ class _SessionStateState extends State<_SessionState> {
                             child: TioButton.secondary(
                               key: const ValueKey('active-workout-settings'),
                               label: 'Settings',
-                              onPressed: () =>
-                                  _showDeferredAction(context, 'Settings'),
+                              onPressed: widget.onSettingsPressed,
                             ),
                           ),
                           const SizedBox(width: TioSpacing.md),

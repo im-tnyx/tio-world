@@ -92,6 +92,11 @@ class WorkoutExerciseCard extends StatelessWidget {
     final colors = context.tioColors;
     final isEdit = mode == WorkoutExerciseCardMode.edit;
     final isLog = mode == WorkoutExerciseCardMode.log;
+    // PREVIOUS is only a placeholder today. At compact RPE-on widths,
+    // leave more width for the primary numeric inputs.
+    final compactRpe = isLog &&
+        showRpe &&
+        MediaQuery.sizeOf(context).width < 360;
     final prefix = isLog
         ? (keyPrefix ?? 'active-workout-exercise')
         : isEdit
@@ -295,16 +300,18 @@ class WorkoutExerciseCard extends StatelessWidget {
                   child: Text('SET', textAlign: TextAlign.center),
                 ),
               const SizedBox(width: TioSpacing.sm),
-              // Reserve the same history column in Create and Edit. Until
-              // performed-workout history exists, Set rows show only a dash.
-              const SizedBox(
-                width: TioSize.dp64,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text('PREVIOUS'),
+              // Keep header and Set row aligned if the compact RPE-on
+              // layout omits the currently unavailable PREVIOUS placeholder.
+              if (!compactRpe) ...[
+                const SizedBox(
+                  width: TioSize.dp64,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('PREVIOUS'),
+                  ),
                 ),
-              ),
-              const SizedBox(width: TioSpacing.sm),
+                const SizedBox(width: TioSpacing.sm),
+              ],
               if (isLog && exerciseType == ExerciseType.distanceDuration) ...[
                 const Expanded(
                   child: Text('KM', textAlign: TextAlign.center),
