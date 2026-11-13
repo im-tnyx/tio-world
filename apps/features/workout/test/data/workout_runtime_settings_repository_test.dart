@@ -88,6 +88,42 @@ void main() {
     expect(await prefs.getString(key), isNull);
   });
 
+  test('RPE preference defaults OFF, survives adapter recreation, isolates owners',
+      () async {
+    final first = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-a',
+    );
+    final other = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-b',
+    );
+    expect(await first.readRpeTrackingEnabled(), isFalse);
+    expect(await other.readRpeTrackingEnabled(), isFalse);
+    await first.writeRpeTrackingEnabled(true);
+    expect(await first.readRpeTrackingEnabled(), isTrue);
+    expect(await other.readRpeTrackingEnabled(), isFalse);
+    final reloaded = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-a',
+    );
+    expect(await reloaded.readRpeTrackingEnabled(), isTrue);
+    await reloaded.writeRpeTrackingEnabled(false);
+    expect(await first.readRpeTrackingEnabled(), isFalse);
+  });
+
+  test('malformed RPE local preference recovers to OFF', () async {
+    final prefs = SharedPreferencesAsync();
+    final key =
+        SharedPreferencesWorkoutRuntimeSettingsRepository.rpeStorageKeyFor(
+      'owner-a',
+    );
+    await prefs.setString(key, 'enabled');
+    final repo = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-a',
+      preferences: prefs,
+    );
+    expect(await repo.readRpeTrackingEnabled(), isFalse);
+    expect(await prefs.getString(key), isNull);
+  });
+
   test('supported 5-second values round-trip and clear restores unset',
       () async {
     final repository = SharedPreferencesWorkoutRuntimeSettingsRepository(

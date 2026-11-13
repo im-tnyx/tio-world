@@ -5,6 +5,28 @@ import 'package:tio_feature_workout/workout.dart';
 
 final class _Repository implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
+  bool rpeEnabled = false;
+  bool failNextRpeRead = false;
+  bool failNextRpeWrite = false;
+
+  @override
+  Future<bool> readRpeTrackingEnabled() async {
+    if (failNextRpeRead) {
+      failNextRpeRead = false;
+      throw StateError('Simulated RPE preference read failure');
+    }
+    return rpeEnabled;
+  }
+
+  @override
+  Future<void> writeRpeTrackingEnabled(bool enabled) async {
+    if (failNextRpeWrite) {
+      failNextRpeWrite = false;
+      throw StateError('Simulated RPE preference save failure');
+    }
+    rpeEnabled = enabled;
+  }
+
   bool failNextVibrationRead = false;
 
   @override
@@ -157,6 +179,59 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('workout-rest-timer-vibration-switch')),
         findsOneWidget);
+  });
+
+  testWidgets('RPE Tracking switch is OFF by default and saves independently',
+      (tester) async {
+    final repository = _Repository();
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child!),
+      home: WorkoutSettingsPage(controller: controller),
+    ));
+    await tester.pumpAndSettle();
+
+    final toggle = find.byKey(const ValueKey('workout-rpe-tracking-switch'));
+    expect(toggle, findsOneWidget);
+    expect(tester.widget<Switch>(toggle).value, isFalse);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(repository.rpeEnabled, isTrue);
+    expect(tester.widget<Switch>(toggle).value, isTrue);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(repository.rpeEnabled, isFalse);
+    expect(find.text('Default Rest Timer'), findsOneWidget);
+    expect(find.text('Rest Timer Vibration'), findsOneWidget);
+  });
+
+  testWidgets('RPE read fails closed with independent Retry then succeeds',
+      (tester) async {
+    final repository = _Repository()
+      ..rpeEnabled = true
+      ..failNextRpeRead = true;
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child!),
+      home: WorkoutSettingsPage(controller: controller),
+    ));
+    await tester.pumpAndSettle();
+
+    final retry = find.byKey(const ValueKey('workout-rpe-tracking-retry'));
+    expect(retry, findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-default-rest-timer')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-rest-timer-vibration-switch')),
+        findsOneWidget);
+    await tester.tap(retry);
+    await tester.pumpAndSettle();
+    final toggle = find.byKey(const ValueKey('workout-rpe-tracking-switch'));
+    expect(toggle, findsOneWidget);
+    expect(tester.widget<Switch>(toggle).value, isTrue);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Default Rest Timer saves duration, cancel, and explicit OFF',

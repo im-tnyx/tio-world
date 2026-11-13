@@ -3,6 +3,28 @@ import 'package:tio_feature_workout/workout.dart';
 
 final class _Repository implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
+  bool rpeEnabled = false;
+  bool failNextRpeRead = false;
+  bool failNextRpeWrite = false;
+
+  @override
+  Future<bool> readRpeTrackingEnabled() async {
+    if (failNextRpeRead) {
+      failNextRpeRead = false;
+      throw StateError('Simulated RPE preference read failure');
+    }
+    return rpeEnabled;
+  }
+
+  @override
+  Future<void> writeRpeTrackingEnabled(bool enabled) async {
+    if (failNextRpeWrite) {
+      failNextRpeWrite = false;
+      throw StateError('Simulated RPE preference save failure');
+    }
+    rpeEnabled = enabled;
+  }
+
   bool failNextVibrationRead = false;
 
   @override
@@ -122,6 +144,47 @@ void main() {
     expect(controller.isVibrationReady, isTrue);
     expect(controller.vibrationError, isNull);
     expect(controller.restTimerVibrationEnabled, isFalse);
+  });
+
+  test('RPE defaults OFF, persists ON, and does not affect Rest preferences',
+      () async {
+    final repo = _Repository()..seconds = 40;
+    final ctrl = WorkoutRuntimeSettingsController(repository: repo);
+    addTearDown(ctrl.dispose);
+    await ctrl.loadRpeTracking();
+    expect(ctrl.isRpeReady, isTrue);
+    expect(ctrl.rpeTrackingEnabled, isFalse);
+    await ctrl.setRpeTrackingEnabled(true);
+    expect(repo.rpeEnabled, isTrue);
+    expect(ctrl.rpeTrackingEnabled, isTrue);
+    await ctrl.load();
+    expect(ctrl.effectiveDefaultRestSeconds, 40);
+    await ctrl.loadRestTimerVibration();
+    expect(ctrl.restTimerVibrationEnabled, isFalse);
+    await ctrl.setRpeTrackingEnabled(false);
+    expect(ctrl.rpeTrackingEnabled, isFalse);
+  });
+
+  test('failed RPE read retries, failed save keeps previous persisted choice',
+      () async {
+    final repo = _Repository()
+      ..rpeEnabled = true
+      ..failNextRpeRead = true;
+    final ctrl = WorkoutRuntimeSettingsController(repository: repo);
+    addTearDown(ctrl.dispose);
+    await ctrl.loadRpeTracking();
+    expect(ctrl.isRpeReady, isFalse);
+    expect(ctrl.rpeTrackingEnabled, isFalse);
+    expect(ctrl.rpeError, isA<StateError>());
+    await ctrl.load();
+    expect(ctrl.isReady, isTrue);
+    await ctrl.loadRpeTracking();
+    expect(ctrl.isRpeReady, isTrue);
+    expect(ctrl.rpeTrackingEnabled, isTrue);
+    repo.failNextRpeWrite = true;
+    await expectLater(ctrl.setRpeTrackingEnabled(false), throwsStateError);
+    expect(ctrl.rpeTrackingEnabled, isTrue);
+    expect(repo.rpeEnabled, isTrue);
   });
 
   test('rejects values outside the existing wheel contract', () async {
