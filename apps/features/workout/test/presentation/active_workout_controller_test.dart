@@ -693,8 +693,12 @@ void main() {
         90,
       );
 
+      final sameRest = controller.restStartRevision;
       controller.addRestTimerSeconds(30);
       expect(controller.state.activeRestTimer?.totalDurationSeconds, 120);
+      expect(controller.restStartRevision, sameRest);
+      controller.startRestTimer(durationSeconds: 40);
+      expect(controller.restStartRevision, sameRest + 1);
 
       controller.cancelRestTimer();
       expect(controller.state.activeRestTimer, isNull);

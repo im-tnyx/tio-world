@@ -283,8 +283,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
     final rest = controller.state.activeRestTimer;
     final restId = rest == null
         ? null
-        : '${rest.targetInstantUtc.microsecondsSinceEpoch}:'
-            '${rest.sessionExerciseIndex}:${rest.setIndex}';
+        : 'legacy:${controller.restStartRevision}';
     _observedLegacyRestId = restId;
     _legacyRestGate.observeRest(
       restId: restId,
@@ -669,10 +668,10 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     final enabled = widget.workoutRuntimeSettingsController
             ?.restTimerVibrationEnabled ??
         false;
-    final id = rest == null
-        ? null
-        : '${rest.exerciseId}:${rest.setId}:'
-            '${rest.targetAtUtc.microsecondsSinceEpoch}';
+    // The same Set rest retains its identity when the user adjusts +/-15s.
+    // A new logged rest is observed after the intermediate null/clear state.
+    final id =
+        rest == null ? null : '${rest.exerciseId}:${rest.setId}';
     final remaining = rest?.remaining(_nowUtc()) ?? Duration.zero;
     _draftRestGate.observeRest(
       restId: id,

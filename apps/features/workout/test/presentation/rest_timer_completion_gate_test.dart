@@ -47,6 +47,34 @@ void main() {
         isFalse);
   });
 
+  test('deadline adjustments retain rest identity and OFF disables permanently',
+      () {
+    final gate = RestTimerCompletionGate();
+    gate.observeRest(
+      restId: 'same-set-rest',
+      remainingPositive: true,
+      vibrationEnabled: true,
+    );
+    gate.observeRest(
+      restId: 'same-set-rest',
+      remainingPositive: true,
+      vibrationEnabled: false,
+    );
+    gate.observeRest(
+      restId: 'same-set-rest',
+      remainingPositive: true,
+      vibrationEnabled: true,
+    );
+    expect(gate.complete('same-set-rest', vibrationEnabled: true), isFalse);
+
+    gate.observeRest(
+      restId: 'new-rest',
+      remainingPositive: true,
+      vibrationEnabled: true,
+    );
+    expect(gate.complete('new-rest', vibrationEnabled: true), isTrue);
+  });
+
   test('background expiry and already-expired restored rest are silent', () {
     final gate = RestTimerCompletionGate();
     gate.observeRest(

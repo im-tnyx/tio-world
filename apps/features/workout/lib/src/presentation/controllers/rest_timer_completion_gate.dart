@@ -40,6 +40,15 @@ final class RestTimerCompletionGate {
       _initialPreferenceResolved = true;
       _enabledAtStart = vibrationEnabled;
     }
+    // Disabling during a rest permanently disarms that rest, even if the
+    // user later re-enables feedback before its deadline.
+    if (restId != null &&
+        preferenceReady &&
+        _initialPreferenceResolved &&
+        !vibrationEnabled) {
+      _enabledAtStart = false;
+      _armed = false;
+    }
     if (restId != null &&
         remainingPositive &&
         _foreground &&
