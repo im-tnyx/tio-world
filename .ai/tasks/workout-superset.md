@@ -17,24 +17,24 @@
 **Planning owner:** Codex
 **Implementation owner:** Codex
 **Previous agent:** Not applicable
-**Last commit agent:** Codex — commit pending
-**Last commit SHA:** Pending
+**Last commit agent:** Codex
+**Last commit SHA:** `09772a91` (Superset implementation slice)
 **Review owner:** Not assigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
 **Repository state last verified:** Git root `G:/projects/Tio-World`; clean at `b2c3f5d0` before this brief; `git status` rechecked with `core.fsmonitor=false`.
 **Branch:** `tnyx/workout-superset`, created after the owner explicitly requested branch commit/push.
-**HEAD SHA:** `b2c3f5d0` before the task commit; feature commit pending.
-**Observed working-tree state:** Superset source, tests, two additive migrations, database test, task lifecycle reconciliation, and screen docs are modified or new; commit and push are in progress. No PR was requested or created.
+**HEAD SHA:** `09772a91` for the Superset implementation commit; a handoff-record update is being prepared.
+**Observed working-tree state:** Superset implementation is committed; this task brief is being updated with the commit and final validation/push evidence. No PR was requested or created.
 **Observed uncommitted/dirty files:** This new task brief only at creation.
 **PR / tracker:** No Superset child issue or PR verified. Linear TNYX-87 is Backlog and blocked by TNYX-78. Linear TNYX-81 is Backlog and blocked by TNYX-78/TNYX-80. GitHub #48 remains open and its description says planning-only; its W10-C comments still describe pre-merge review status. The current PR #755 is closed/merged at `b2c3f5d0c280d4c213bbcc2b5ec782dfc633e901`, matching this checkout's `main` HEAD. The owner's explicit chat approval authorizes this Superset implementation; tracker records were not changed.
 **Current implementation state:** Routine grouping, versioned RPC persistence, Save-only draft and shared round timer, snapshot/History Edit metadata preservation, local default-OFF Smart Scrolling, tests, additive migrations, and documentation reconciliation are present in the working tree. `git diff --check` passed. Flutter/Dart/pgTAP/CI validation is still outstanding; the local migration replay stopped at a pre-existing migration before reaching this slice, and nothing was applied to hosted Supabase.
 **Relevant execution surface:** `apps/features/workout` Routine composition, encrypted Active Workout draft, Save-only session DTOs, settings and History Edit; `supabase/migrations` and `supabase/tests/database` for owner-secured persistence/validators.
-**Validation completed at SHA:** Working changes are on `tnyx/workout-superset` based on `b2c3f5d0`; `git diff --check` passed before this handoff update. `supabase db reset --local --no-seed` was attempted with `G:\dev\supabase-cli\v2.121.0\supabase.exe`; replay stopped at the existing `20260824070233_cleanup_legacy_canonical_mirrors.sql` migration with `LOCK TABLE can only be used in transaction blocks`, before either Superset migration. No pgTAP result is claimed.
-**Validation remaining:** Run focused Flutter/Dart checks, local migration replay and pgTAP, full repository CI, and compact-width/theme/accessibility review if the configured tools become available. The local replay failure prevents meaningful Superset migration validation on this checkout.
-**Current blocker:** `flutter`, `dart`, and `melos` were not resolvable in the current shell, and the `G:\dev\supabase-cli\v2.121.0\supabase.exe` local replay is blocked by the pre-existing migration failure above. Hosted schema state is not verified. Git metadata writes require the elevated operation path; owner authorized branch commit/push and that handoff is in progress.
+**Validation completed at SHA:** On `tnyx/workout-superset`, `git diff --check` passed before staging and `git diff --cached --check` passed on the complete 55-file staged diff; implementation commit is `09772a91`. `flutter`, `dart`, and `melos` are not resolvable in the current shell. `supabase db reset --local --no-seed` was attempted with `G:\dev\supabase-cli\v2.121.0\supabase.exe`; replay stopped at the existing `20260824070233_cleanup_legacy_canonical_mirrors.sql` migration with `LOCK TABLE can only be used in transaction blocks`, before either Superset migration. No pgTAP result is claimed.
+**Validation remaining:** Focused Flutter/Dart checks, local migration replay and pgTAP, full repository CI, compact-width/theme/accessibility review, and independent source review. The local replay failure prevents meaningful Superset migration validation on this checkout.
+**Current blocker:** Flutter/Dart/Melos validation is unavailable in this shell; local Supabase replay is blocked by the pre-existing migration failure above. Hosted schema state is not verified. Owner authorized branch commit/push; no hosted changes or PR have been made.
 **Open review finding IDs:** None recorded; independent source review remains outstanding.
-**Next exact action:** Complete the scoped diff/secret audit, commit and push only this slice on `tnyx/workout-superset`, then record the resulting commit SHA and exact push/validation outcome. Flutter/Dart and pgTAP checks remain unverified; exact-head CI and independent review are still required before any merge.
+**Next exact action:** Commit this handoff update, fetch `origin`, audit `main` ancestry and parent-to-head paths, and push `tnyx/workout-superset`. Flutter/Dart and pgTAP checks remain unverified; exact-head CI and independent review are still required before any merge.
 
 ## 1. Discovery
 
