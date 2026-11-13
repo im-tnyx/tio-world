@@ -33,7 +33,8 @@ final class SupabaseRoutineCompositionRepository
   factory SupabaseRoutineCompositionRepository.fromClient(
     SupabaseClient client, {
     required RoutineMoveDeleteAttemptGate crossOperationGate,
-  }) => SupabaseRoutineCompositionRepository(
+  }) =>
+      SupabaseRoutineCompositionRepository(
         gateway: SupabaseRoutineCompositionGateway(client),
         currentUserId: () => client.auth.currentUser?.id,
         crossOperationGate: crossOperationGate,
@@ -84,10 +85,10 @@ final class SupabaseRoutineCompositionRepository
       // never commit, even though the original response was lost. Do not
       // retain a permanently blocked reservation in this superseded case.
       // Same-revision, absent and auth-revoked observations are NOT proof.
-      final superseded = outcome.reason ==
-              RoutineCompositionSaveUncertainty.superseded &&
-          outcome.observedRevision != null &&
-          outcome.observedRevision! > expectedRevision;
+      final superseded =
+          outcome.reason == RoutineCompositionSaveUncertainty.superseded &&
+              outcome.observedRevision != null &&
+              outcome.observedRevision! > expectedRevision;
       if (!superseded) {
         // A late RPC can still commit after this route or adapter is rebuilt.
         gate.markUncertain(owner, routineId, expectedRevision);
@@ -126,9 +127,10 @@ final class SupabaseRoutineCompositionRepository
                 afterId: cursor));
         final gateway = _gateway;
         if (gateway is RoutineSupersetReadGateway) {
+          final supersetGateway = gateway as RoutineSupersetReadGateway;
           supersets = await _pages(
               owner,
-              (cursor) => gateway.readSupersets(
+              (cursor) => supersetGateway.readSupersets(
                   userId: owner,
                   routineId: routineId.value,
                   limit: _pageSize,
@@ -145,8 +147,8 @@ final class SupabaseRoutineCompositionRepository
       if (before != after) continue;
       if (provisionalFailure != null) throw provisionalFailure;
       // Decode only after the bracket: intermediate pages may mix revisions.
-      final snapshot = _snapshot(
-          routineId, owner, after, entries, sets, supersets);
+      final snapshot =
+          _snapshot(routineId, owner, after, entries, sets, supersets);
       _checkOwner(owner);
       return snapshot;
     }
@@ -176,7 +178,8 @@ final class SupabaseRoutineCompositionRepository
 
   @override
   Future<int> save(RoutineCompositionSave command) => _reserveForEdit(
-        command.routineId, command.expectedRevision,
+        command.routineId,
+        command.expectedRevision,
         () => _save(command),
       );
 
@@ -213,7 +216,8 @@ final class SupabaseRoutineCompositionRepository
   @override
   Future<int> updateAggregate(RoutineAggregateUpdate command) =>
       _reserveForEdit(
-        command.routineId, command.expectedRevision,
+        command.routineId,
+        command.expectedRevision,
         () => _updateAggregate(command),
       );
 
@@ -237,15 +241,17 @@ final class SupabaseRoutineCompositionRepository
               supersets: command.supersets ?? const [],
               expectedCustomTypes: command.expectedCustomTypes,
             ));
-      result = await (gateway as RoutineAggregateUpdateGateway).updateAggregate(
-        routineId: command.routineId.value,
-        programId: command.programId.value,
-        expectedRevision: command.expectedRevision,
-        expectedName: command.expectedName,
-        mutationId: command.mutationId,
-        name: command.name,
-        exercises: exercises,
-      ).timeout(_requestTimeout);
+      result = await (gateway as RoutineAggregateUpdateGateway)
+          .updateAggregate(
+            routineId: command.routineId.value,
+            programId: command.programId.value,
+            expectedRevision: command.expectedRevision,
+            expectedName: command.expectedName,
+            mutationId: command.mutationId,
+            name: command.name,
+            exercises: exercises,
+          )
+          .timeout(_requestTimeout);
     } on PostgrestException catch (error) {
       if (!_sameOwner(owner) || _ambiguous(error)) {
         return _reconcileAggregate(command, owner);
@@ -472,9 +478,8 @@ final class SupabaseRoutineCompositionRepository
               _integer(a['position']).compareTo(_integer(b['position'])));
           return RoutineCompositionEntry(
             id: _uuid(row['id']),
-            supersetId: row['superset_id'] == null
-                ? null
-                : _uuid(row['superset_id']),
+            supersetId:
+                row['superset_id'] == null ? null : _uuid(row['superset_id']),
             exercise: reference,
             sets: [for (var i = 0; i < rows.length; i++) _set(rows[i], i)],
           );
@@ -509,8 +514,7 @@ final class SupabaseRoutineCompositionRepository
     if (type is! String ||
         !RoutineSetType.values.any((value) => value.wireValue == type) ||
         (max != null &&
-            (reps == null ||
-             max is! int || max < reps || max > 2147483647))) {
+            (reps == null || max is! int || max < reps || max > 2147483647))) {
       throw _malformed;
     }
     if (load != null &&
@@ -523,7 +527,8 @@ final class SupabaseRoutineCompositionRepository
     }
     if (durationValue != null &&
         (durationValue is! int ||
-         durationValue < 0 || durationValue > 2147483647)) {
+            durationValue < 0 ||
+            durationValue > 2147483647)) {
       throw _malformed;
     }
     try {
@@ -566,32 +571,31 @@ final class SupabaseRoutineCompositionRepository
     return value.toLowerCase();
   }
 
-  static Map<String, dynamic> payload(RoutineCompositionSave command) =>
-      {
+  static Map<String, dynamic> payload(RoutineCompositionSave command) => {
         'schema_version': 2,
         'entries': [
-        for (final entry in command.entries)
-          {
-            'id': entry.id,
-            'exercise_ref': entry.exercise.value,
-            if (entry.supersetId != null) 'superset_id': entry.supersetId,
-            if (command.expectedCustomTypes.containsKey(entry.id))
-              'expected_exercise_type':
-                  command.expectedCustomTypes[entry.id]?.storageValue,
-            'sets': [
-              for (final set in entry.sets)
-                {
-                  'id': set.id,
-                  'reps': set.prescription.reps,
-                  'reps_max': set.prescription.repsMax,
-                  'set_type': set.prescription.setType.wireValue,
-                  'load_kg': set.prescription.loadKg,
-                  'distance_meters': set.prescription.distanceMeters,
-                  'duration_seconds': set.prescription.durationSeconds,
-                  'rest_seconds': set.prescription.restSeconds,
-                }
-            ],
-          },
+          for (final entry in command.entries)
+            {
+              'id': entry.id,
+              'exercise_ref': entry.exercise.value,
+              if (entry.supersetId != null) 'superset_id': entry.supersetId,
+              if (command.expectedCustomTypes.containsKey(entry.id))
+                'expected_exercise_type':
+                    command.expectedCustomTypes[entry.id]?.storageValue,
+              'sets': [
+                for (final set in entry.sets)
+                  {
+                    'id': set.id,
+                    'reps': set.prescription.reps,
+                    'reps_max': set.prescription.repsMax,
+                    'set_type': set.prescription.setType.wireValue,
+                    'load_kg': set.prescription.loadKg,
+                    'distance_meters': set.prescription.distanceMeters,
+                    'duration_seconds': set.prescription.durationSeconds,
+                    'rest_seconds': set.prescription.restSeconds,
+                  }
+              ],
+            },
         ],
         'supersets': [
           for (final group in command.supersets)
@@ -640,7 +644,8 @@ final class SupabaseRoutineCompositionRepository
         RoutineCompositionFailureKind.mutationConflict,
       // #534: a race against Custom archive is a DEFINITE no-write rejection.
       // Reuse the existing sanitized category; do not leak raw SQL details.
-      '22023' when error.message ==
+      '22023'
+          when error.message ==
               'routine_composition_archived_exercise_modified' =>
         RoutineCompositionFailureKind.exerciseUnavailable,
       '22023' ||

@@ -253,8 +253,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
       vibrationEnabled: false,
     );
     _observedLegacyRestId = null;
-    _observedLegacyCompletionRevision =
-        next?.restCompletionRevision ?? 0;
+    _observedLegacyCompletionRevision = next?.restCompletionRevision ?? 0;
     next?.addListener(_onControllerChanged);
     _sessionActive.value = next != null;
     if (next != null) _observeLegacyRest(next);
@@ -274,9 +273,9 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
   }
 
   void _observeLegacyRest(ActiveWorkoutController controller) {
-    final enabled = widget.workoutRuntimeSettingsController
-            ?.restTimerVibrationEnabled ??
-        false;
+    final enabled =
+        widget.workoutRuntimeSettingsController?.restTimerVibrationEnabled ??
+            false;
     final revision = controller.restCompletionRevision;
     if (revision != _observedLegacyCompletionRevision) {
       _observedLegacyCompletionRevision = revision;
@@ -287,24 +286,23 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
           mounted &&
           // Local Save-only draft preview takes precedence over a restored
           // online session. Never buzz for the hidden legacy timer.
-          !(widget.showStartPreview &&
-              widget.draftController?.draft != null) &&
+          !(widget.showStartPreview && widget.draftController?.draft != null) &&
           ((ModalRoute.of(context)?.isCurrent ?? true) ||
               _workoutModalCounter.depth > 0)) {
         unawaited(_vibrateAtRestCompletion());
       }
     }
     final rest = controller.state.activeRestTimer;
-    final restId = rest == null
-        ? null
-        : 'legacy:${controller.restStartRevision}';
+    final restId =
+        rest == null ? null : 'legacy:${controller.restStartRevision}';
     _observedLegacyRestId = restId;
     _legacyRestGate.observeRest(
       restId: restId,
       remainingPositive: rest != null &&
           rest.remainingDuration(
-            (widget.clock?.call() ?? DateTime.now()).toUtc(),
-          ) > Duration.zero,
+                (widget.clock?.call() ?? DateTime.now()).toUtc(),
+              ) >
+              Duration.zero,
       vibrationEnabled: enabled,
       preferenceReady:
           widget.workoutRuntimeSettingsController?.isVibrationReady ?? false,
@@ -358,19 +356,21 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
     final session = state.session;
     if (controller == null || session == null || state.isTerminal) return;
 
-    final shouldToggle = await _withWorkoutModal(_workoutModalCounter, () => showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => WorkoutDurationBottomSheet(
-        startedAtUtc: session.time.startedAtUtc,
-        initialDuration: state.activeElapsedDuration,
-        isPaused: state.status == ActiveWorkoutStatus.paused,
-        isActionPending: state.isActionPending,
-        onAction: () => Navigator.of(sheetContext).pop(true),
-        clock: widget.clock,
-      ),
-    ));
+    final shouldToggle = await _withWorkoutModal(
+        _workoutModalCounter,
+        () => showModalBottomSheet<bool>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              builder: (sheetContext) => WorkoutDurationBottomSheet(
+                startedAtUtc: session.time.startedAtUtc,
+                initialDuration: state.activeElapsedDuration,
+                isPaused: state.status == ActiveWorkoutStatus.paused,
+                isActionPending: state.isActionPending,
+                onAction: () => Navigator.of(sheetContext).pop(true),
+                clock: widget.clock,
+              ),
+            ));
 
     if (!mounted ||
         shouldToggle != true ||
@@ -487,15 +487,17 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
     final controller = _controller;
     if (controller == null || state.isActionPending || state.isTerminal) return;
 
-    final confirmed = await _withWorkoutModal(_workoutModalCounter, () => showTioConfirmationBottomSheet(
-      context: context,
-      title: 'Discard workout?',
-      message: 'This session and any logged sets will be discarded.',
-      confirmLabel: 'Discard workout',
-      cancelLabel: 'Keep working out',
-      intent: TioConfirmationIntent.destructive,
-      activeWhileOpen: _sessionActive,
-    ));
+    final confirmed = await _withWorkoutModal(
+        _workoutModalCounter,
+        () => showTioConfirmationBottomSheet(
+              context: context,
+              title: 'Discard workout?',
+              message: 'This session and any logged sets will be discarded.',
+              confirmLabel: 'Discard workout',
+              cancelLabel: 'Keep working out',
+              intent: TioConfirmationIntent.destructive,
+              activeWhileOpen: _sessionActive,
+            ));
     if (!mounted ||
         confirmed != true ||
         !identical(controller, _controller) ||
@@ -706,13 +708,12 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
 
   void _observeDraftRest() {
     final rest = _draft?.activeRest;
-    final enabled = widget.workoutRuntimeSettingsController
-            ?.restTimerVibrationEnabled ??
-        false;
+    final enabled =
+        widget.workoutRuntimeSettingsController?.restTimerVibrationEnabled ??
+            false;
     // The same Set rest retains its identity when the user adjusts +/-15s.
     // A new logged rest is observed after the intermediate null/clear state.
-    final id =
-        rest == null ? null : '${rest.exerciseId}:${rest.setId}';
+    final id = rest == null ? null : '${rest.exerciseId}:${rest.setId}';
     final remaining = rest?.remaining(_nowUtc()) ?? Duration.zero;
     _draftRestGate.observeRest(
       restId: id,
@@ -829,18 +830,20 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   }
 
   Future<void> _showPauseDetails() async {
-    final shouldToggle = await _withWorkoutModal(widget.workoutModalCounter, () => showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => WorkoutDurationBottomSheet(
-        startedAtUtc: _startedAtUtc,
-        initialDuration: _elapsed,
-        isPaused: _isPaused,
-        onAction: () => Navigator.of(sheetContext).pop(true),
-        clock: widget.clock,
-      ),
-    ));
+    final shouldToggle = await _withWorkoutModal(
+        widget.workoutModalCounter,
+        () => showModalBottomSheet<bool>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              builder: (sheetContext) => WorkoutDurationBottomSheet(
+                startedAtUtc: _startedAtUtc,
+                initialDuration: _elapsed,
+                isPaused: _isPaused,
+                onAction: () => Navigator.of(sheetContext).pop(true),
+                clock: widget.clock,
+              ),
+            ));
 
     if (!mounted || shouldToggle != true) return;
     await _togglePause();
@@ -962,8 +965,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     FocusManager.instance.removeListener(_onFocusChanged);
-    widget.workoutRuntimeSettingsController
-        ?.removeListener(_onSettingsChanged);
+    widget.workoutRuntimeSettingsController?.removeListener(_onSettingsChanged);
     widget.draftController?.removeListener(_onDraftChanged);
     _ticker?.cancel();
     _ticker = null;
@@ -974,12 +976,19 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   void _onFocusChanged() => _drainPendingSmartScroll();
 
   bool get _smartSupersetScrollingEnabled =>
-      widget.workoutRuntimeSettingsController
-          ?.smartSupersetScrollingEnabled ??
+      widget.workoutRuntimeSettingsController?.smartSupersetScrollingEnabled ??
       false;
 
+  bool get _hasFocusedEditableField {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    return focusContext != null &&
+        (focusContext.widget is EditableText ||
+            focusContext.findAncestorWidgetOfExactType<EditableText>() != null);
+  }
+
   void _requestSmartScroll(String? setId) {
-    if (!_smartSupersetScrollingEnabled || setId == null ||
+    if (!_smartSupersetScrollingEnabled ||
+        setId == null ||
         setId == _lastSmartScrollTarget ||
         setId == _pendingSmartScrollTarget) {
       return;
@@ -990,17 +999,20 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
 
   void _drainPendingSmartScroll() {
     final targetId = _pendingSmartScrollTarget;
-    if (!mounted || targetId == null || !_smartSupersetScrollingEnabled ||
+    if (!mounted ||
+        targetId == null ||
+        !_smartSupersetScrollingEnabled ||
         _smartScrollScheduled ||
-        FocusManager.instance.primaryFocus?.hasFocus == true ||
+        _hasFocusedEditableField ||
         widget.workoutModalCounter.depth > 0) {
       return;
     }
     _smartScrollScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _smartScrollScheduled = false;
-      if (!mounted || _pendingSmartScrollTarget != targetId ||
-          FocusManager.instance.primaryFocus?.hasFocus == true ||
+      if (!mounted ||
+          _pendingSmartScrollTarget != targetId ||
+          _hasFocusedEditableField ||
           widget.workoutModalCounter.depth > 0) {
         return;
       }
@@ -1013,7 +1025,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         await Scrollable.ensureVisible(
           targetContext,
           alignment: 0.25,
-          duration: const Duration(milliseconds: 250),
+          duration: context.tioMotion.normal,
           curve: Curves.easeOutCubic,
         );
         _lastSmartScrollTarget = targetId;
@@ -1041,12 +1053,12 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     final members = draft.exercises
         .where((member) => member.supersetId == groupId)
         .toList();
-    final roundMembers = members
-        .where((member) => roundIndex < member.sets.length)
-        .toList();
-    final roundComplete = roundMembers.isNotEmpty && roundMembers.every(
-      (member) => member.sets[roundIndex].loggedAtUtc != null,
-    );
+    final roundMembers =
+        members.where((member) => roundIndex < member.sets.length).toList();
+    final roundComplete = roundMembers.isNotEmpty &&
+        roundMembers.every(
+          (member) => member.sets[roundIndex].loggedAtUtc != null,
+        );
     if (!roundComplete) {
       final next = roundMembers.firstWhere(
         (member) => member.sets[roundIndex].loggedAtUtc == null,
@@ -1091,11 +1103,13 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     RoutineCompositionSet set,
   ) async {
     final sets = _setsForExercise(exerciseIndex);
-    final chosen = await _withWorkoutModal(widget.workoutModalCounter, () => showWorkoutSetTypeSheet(
-      context: context,
-      sets: sets,
-      targetSet: set,
-    ));
+    final chosen = await _withWorkoutModal(
+        widget.workoutModalCounter,
+        () => showWorkoutSetTypeSheet(
+              context: context,
+              sets: sets,
+              targetSet: set,
+            ));
     if (!mounted || chosen == null) return;
     final controller = widget.draftController;
     if (controller == null || exerciseIndex >= _previewExercises.length) return;
@@ -1125,13 +1139,15 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     final loadKg = logged?.loadKg ?? set.prescription.loadKg;
     final reps = logged?.reps ?? set.prescription.reps;
 
-    final selected = await _withWorkoutModal(widget.workoutModalCounter, () => showWorkoutRpeSheet(
-      context: context,
-      setNumber: setIndex + 1,
-      loadKg: loadKg,
-      reps: reps,
-      initialRpe: currentRpe,
-    ));
+    final selected = await _withWorkoutModal(
+        widget.workoutModalCounter,
+        () => showWorkoutRpeSheet(
+              context: context,
+              setNumber: setIndex + 1,
+              loadKg: loadKg,
+              reps: reps,
+              initialRpe: currentRpe,
+            ));
 
     if (!mounted || selected == null) return;
     if (exerciseIndex >= _previewExercises.length) return;
@@ -1148,9 +1164,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     final groupId = exercise.supersetId;
     final draft = _draft;
     final groupHasProgress = groupId != null &&
-        (draft?.exercises
-                .where((member) => member.supersetId == groupId)
-                .any((member) =>
+        (draft?.exercises.where((member) => member.supersetId == groupId).any(
+                (member) =>
                     member.sets.any((set) => set.loggedAtUtc != null)) ??
             false);
     final groupMemberCount = groupId == null
@@ -1164,8 +1179,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       () => showRoutineExerciseOptionsSheet(
         context,
         isGrouped: groupId != null,
-        canAddSupersetMember: !groupHasProgress &&
-            (groupId == null || groupMemberCount < 3),
+        canAddSupersetMember:
+            !groupHasProgress && (groupId == null || groupMemberCount < 3),
         canRemoveFromSuperset: !groupHasProgress,
         canReplaceExercise: !groupHasProgress,
         canRemoveExercise: !groupHasProgress,
@@ -1202,22 +1217,33 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       }
     } else if (action == RoutineExerciseOption.addToSuperset) {
       final current = controller.draft;
-      if (current == null || exerciseIndex >= current.exercises.length ||
+      if (current == null ||
+          exerciseIndex >= current.exercises.length ||
           current.exercises[exerciseIndex].id != exerciseId) {
         return;
       }
-      final candidates = current.exercises
-          .where((candidate) => candidate.id != exerciseId &&
-              candidate.supersetId == null)
-          .map((candidate) => RoutineSupersetMemberCandidate(
-                entryId: candidate.id,
-                title: candidate.displayName,
-              ))
-          .toList();
+      final groupIds = current.exercises
+          .map((candidate) => candidate.supersetId)
+          .toList(growable: false);
+      final candidates = [
+        for (var candidateIndex = 0;
+            candidateIndex < current.exercises.length;
+            candidateIndex++)
+          if (current.exercises[candidateIndex].id != exerciseId)
+            RoutineSupersetMemberCandidate(
+              entryId: current.exercises[candidateIndex].id,
+              title: current.exercises[candidateIndex].displayName,
+              supersetLabel: supersetMemberLabelForGroups(
+                groupIds,
+                candidateIndex,
+              ),
+            ),
+      ];
       final selectedId = await _withWorkoutModal(
         widget.workoutModalCounter,
         () => showRoutineSupersetMemberSheet(
           context,
+          initiatingExerciseTitle: exercise.displayName,
           candidates: candidates,
         ),
       );
@@ -1299,7 +1325,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         if (!mounted || !settings.isReady) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Could not load Default Rest Timer.')),
+              const SnackBar(
+                  content: Text('Could not load Default Rest Timer.')),
             );
           }
           return;
@@ -1307,8 +1334,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       }
       await widget.draftController?.addExercises(
         selected,
-        initialRestPreset: settings?.defaultRestPreset ??
-            const RoutineRestTimerPreset(),
+        initialRestPreset:
+            settings?.defaultRestPreset ?? const RoutineRestTimerPreset(),
       );
     }
   }
@@ -1322,13 +1349,15 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   }) async {
     if (index >= _previewExercises.length) return;
     final activePreset = current ?? _previewExercises[index].restPreset;
-    final result = await _withWorkoutModal(widget.workoutModalCounter, () => showRoutineRestTimerSheet(
-      context: context,
-      initialNormalRestSeconds: activePreset.normalRestSeconds,
-      initialWarmUpRestSeconds: activePreset.warmUpRestSeconds,
-      exerciseName: exerciseName,
-      hasWarmUpSets: hasWarmUpSets,
-    ));
+    final result = await _withWorkoutModal(
+        widget.workoutModalCounter,
+        () => showRoutineRestTimerSheet(
+              context: context,
+              initialNormalRestSeconds: activePreset.normalRestSeconds,
+              initialWarmUpRestSeconds: activePreset.warmUpRestSeconds,
+              exerciseName: exerciseName,
+              hasWarmUpSets: hasWarmUpSets,
+            ));
     _drainPendingSmartScroll();
     if (result != null && mounted && index < _previewExercises.length) {
       if (supersetId == null) {
@@ -1375,14 +1404,16 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   }
 
   Future<void> _discard() async {
-    final confirmed = await _withWorkoutModal(widget.workoutModalCounter, () => showTioConfirmationBottomSheet(
-      context: context,
-      title: 'Discard workout?',
-      message: 'This session and any logged sets will be discarded.',
-      confirmLabel: 'Discard workout',
-      cancelLabel: 'Keep working out',
-      intent: TioConfirmationIntent.destructive,
-    ));
+    final confirmed = await _withWorkoutModal(
+        widget.workoutModalCounter,
+        () => showTioConfirmationBottomSheet(
+              context: context,
+              title: 'Discard workout?',
+              message: 'This session and any logged sets will be discarded.',
+              confirmLabel: 'Discard workout',
+              cancelLabel: 'Keep working out',
+              intent: TioConfirmationIntent.destructive,
+            ));
     if (!mounted || confirmed != true) return;
     if (await widget.draftController?.discard() == true) {
       _ticker?.cancel();
@@ -1736,8 +1767,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       unit: WeightUnit.kg,
       enabled: !(widget.draftController?.isBusy ?? false),
       showRpe: showRpe,
-      supersetLabel:
-          routineSupersetMemberLabel(allEntries, exercise.id),
+      supersetLabel: routineSupersetMemberLabel(allEntries, exercise.id),
       keyPrefix: 'active-workout-preview-exercise',
       moveUp: () {},
       moveDown: () {},
@@ -1816,8 +1846,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
             if (changed == true && !isLogged) {
               _scrollAfterGroupSet(exercise.id, setId);
             } else if (changed == true && eventGroupId != null) {
-              _handledSmartRestIds
-                  .remove('$eventGroupId:$eventRoundIndex');
+              _handledSmartRestIds.remove('$eventGroupId:$eventRoundIndex');
               _lastSmartScrollTarget = null;
             }
           },
@@ -2145,13 +2174,15 @@ class _SessionStateState extends State<_SessionState> {
   }) async {
     final activePreset =
         current ?? _restPresets[index] ?? const RoutineRestTimerPreset();
-    final result = await _withWorkoutModal(widget.workoutModalCounter, () => showRoutineRestTimerSheet(
-      context: context,
-      initialNormalRestSeconds: activePreset.normalRestSeconds,
-      initialWarmUpRestSeconds: activePreset.warmUpRestSeconds,
-      exerciseName: exerciseName,
-      hasWarmUpSets: hasWarmUpSets,
-    ));
+    final result = await _withWorkoutModal(
+        widget.workoutModalCounter,
+        () => showRoutineRestTimerSheet(
+              context: context,
+              initialNormalRestSeconds: activePreset.normalRestSeconds,
+              initialWarmUpRestSeconds: activePreset.warmUpRestSeconds,
+              exerciseName: exerciseName,
+              hasWarmUpSets: hasWarmUpSets,
+            ));
     if (result != null && mounted) {
       setState(() {
         _restPresets[index] = result;

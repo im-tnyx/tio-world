@@ -196,8 +196,8 @@ final class RoutineCreateController extends ChangeNotifier {
           RoutineCompositionSet(
             id: setId,
             prescription: SetPrescription(
-              restSeconds: initialRestPreset
-                  .effectiveRestFor(RoutineSetType.normal),
+              restSeconds:
+                  initialRestPreset.effectiveRestFor(RoutineSetType.normal),
             ),
           ),
         ],
@@ -318,16 +318,21 @@ final class RoutineCreateController extends ChangeNotifier {
     if (!_editable || initiatingEntryId == memberEntryId) return false;
     final first = _entries.indexWhere((e) => e.id == initiatingEntryId);
     final second = _entries.indexWhere((e) => e.id == memberEntryId);
-    if (first < 0 || second < 0 ||
+    if (first < 0 ||
+        second < 0 ||
         _entries[first].supersetId != null ||
-        _entries[second].supersetId != null) return false;
+        _entries[second].supersetId != null) {
+      return false;
+    }
     final id = _newUuid();
     final ordered = [first, second]..sort();
     final members = [
       _withSuperset(_entries[ordered[0]], id),
       _withSuperset(_entries[ordered[1]], id),
     ];
-    final next = [..._entries]..removeAt(ordered[1])..removeAt(ordered[0]);
+    final next = [..._entries]
+      ..removeAt(ordered[1])
+      ..removeAt(ordered[0]);
     next.insertAll(ordered[0], members);
     _entries = next;
     _supersets = [
@@ -363,7 +368,8 @@ final class RoutineCreateController extends ChangeNotifier {
     if (index < 0) return false;
     final groupId = _entries[index].supersetId;
     if (groupId == null) return false;
-    final members = _entries.where((entry) => entry.supersetId == groupId).length;
+    final members =
+        _entries.where((entry) => entry.supersetId == groupId).length;
     if (members <= 2) {
       _entries = [
         for (final entry in _entries)
@@ -479,10 +485,9 @@ final class RoutineCreateController extends ChangeNotifier {
     final inRange =
         entry.sets.isNotEmpty && entry.sets.first.prescription.isRepRange;
     final preset = _restPresets[entry.id] ?? const RoutineRestTimerPreset();
-    final effectiveRest =
-        _restPresets.containsKey(entry.id) || !preset.isOff
-            ? preset.effectiveRestFor(prescription.setType)
-            : prescription.restSeconds;
+    final effectiveRest = _restPresets.containsKey(entry.id) || !preset.isOff
+        ? preset.effectiveRestFor(prescription.setType)
+        : prescription.restSeconds;
     final initial = SetPrescription(
       reps: prescription.reps,
       repsMax: inRange ? (prescription.repsMax ?? prescription.reps) : null,

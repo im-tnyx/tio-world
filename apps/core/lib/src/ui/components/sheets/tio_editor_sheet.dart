@@ -70,6 +70,7 @@ class TioEditorSheet extends StatelessWidget {
     this.canDismiss = true,
     this.titleTrailing,
     this.flushActions = false,
+    this.pinHeader = false,
     this.bottomPadding = TioEditorSheetTokens.bottomPadding,
   });
 
@@ -99,6 +100,13 @@ class TioEditorSheet extends StatelessWidget {
   /// thing, and doing both leaves a band of dead space above the line that
   /// reads as content having been cut off.
   final bool flushActions;
+
+  /// Keeps the handle and header fixed while [content] occupies the remaining
+  /// sheet body. The caller owns scrolling in [content] when this is true.
+  ///
+  /// Defaults to false to preserve the existing behavior where the header and
+  /// content scroll together.
+  final bool pinHeader;
 
   /// The minimum room below the sheet's actions, not an addition to the
   /// device's bottom inset: the larger of the two wins, so the action lands
@@ -146,24 +154,33 @@ class TioEditorSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: TioEditorSheetTokens.handleGap),
-                Flexible(
-                  fit: FlexFit.loose,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _header(colors),
-                        SizedBox(
-                          height: titleTrailing == null
-                              ? TioEditorSheetTokens.headerGap
-                              : TioEditorSheetTokens.headerGapWithTrailing,
-                        ),
-                        content,
-                      ],
+                if (pinHeader) ...[
+                  _header(colors),
+                  SizedBox(
+                    height: titleTrailing == null
+                        ? TioEditorSheetTokens.headerGap
+                        : TioEditorSheetTokens.headerGapWithTrailing,
+                  ),
+                  Flexible(fit: FlexFit.loose, child: content),
+                ] else
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _header(colors),
+                          SizedBox(
+                            height: titleTrailing == null
+                                ? TioEditorSheetTokens.headerGap
+                                : TioEditorSheetTokens.headerGapWithTrailing,
+                          ),
+                          content,
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 if (actions != null) ...[
                   if (!flushActions)
                     const SizedBox(height: TioEditorSheetTokens.actionGap),

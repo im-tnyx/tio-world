@@ -575,6 +575,8 @@ Features still own callbacks, navigation, values, keys, domain copy, and intenti
 
 `TioEditorSheet` keeps its actions pinned below the scroll view, separated by `TioEditorSheetTokens.actionGap`. `flushActions` removes that gap so the action region begins immediately below the body; it defaults to false, so no existing sheet moves. Pass true only when the action region draws its own boundary — a rule across the sheet, for instance — because a gap and a separator say the same thing twice and leave dead space above the line.
 
+`TioEditorSheet.pinHeader` defaults to false, preserving the original behavior where the handle, header, and body scroll together. Set it to true when the sheet body owns its own scrollable area and the handle/header must remain visible; in that mode Core does not wrap `content` in another scroll view, so the caller is responsible for constraining and scrolling long content.
+
 `showTioConfirmationBottomSheet` is the reusable presenter for confirm/cancel decisions. It owns the modal shell, safe-area handling, presenter-level `TioConfirmationIntent`, boolean result semantics, and internal `TioCard` + `TioButton` composition. Features supply only the title, message, confirm/cancel labels, optional icon widget, and semantic confirmation intent. Do not rebuild a bespoke confirmation sheet when this presenter matches the intent.
 
 For an owner/session-scoped workflow that can lose authorization while the confirmation is open, callers may pass `activeWhileOpen: ValueListenable<bool>` to either Core confirmation presenter. When it becomes false, the presenter redacts the content and removes **only its own** modal route. Existing callers that omit this optional binding retain their original result and route behavior.

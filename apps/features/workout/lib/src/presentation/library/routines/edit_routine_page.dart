@@ -298,14 +298,15 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         if (!mounted || !settings.isReady) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Could not load Default Rest Timer.')),
+              const SnackBar(
+                  content: Text('Could not load Default Rest Timer.')),
             );
           }
           return;
         }
       }
-      final initialRestPreset = settings?.defaultRestPreset ??
-          const RoutineRestTimerPreset();
+      final initialRestPreset =
+          settings?.defaultRestPreset ?? const RoutineRestTimerPreset();
       for (final exercise in chosen) {
         if (!_canEdit || exercise.status != ExerciseStatus.active) break;
         final entryId = editor.addPickedExercise(
@@ -388,22 +389,29 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   ) async {
     final openingEntries = editor.state.entries;
     final candidates = [
-      for (final candidate in openingEntries.where((candidate) =>
-          candidate.id != entry.id && candidate.supersetId == null))
-        RoutineSupersetMemberCandidate(
-          entryId: candidate.id,
-          title: _exerciseTitle(candidate.exercise),
-        ),
+      for (final candidate in openingEntries)
+        if (candidate.id != entry.id)
+          RoutineSupersetMemberCandidate(
+            entryId: candidate.id,
+            title: _exerciseTitle(candidate.exercise),
+            supersetLabel: routineSupersetMemberLabel(
+              openingEntries,
+              candidate.id,
+            ),
+          ),
     ];
     final selected = await showRoutineSupersetMemberSheet(
       context,
+      initiatingExerciseTitle: _exerciseTitle(entry.exercise),
       candidates: candidates,
     );
     if (!mounted ||
         !identical(editor, _editor) ||
         !identical(openingEntries, editor.state.entries) ||
         !_canEdit ||
-        selected == null) return;
+        selected == null) {
+      return;
+    }
     if (entry.supersetId == null) {
       editor.createSuperset(entry.id, selected);
     } else {
@@ -895,7 +903,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       ),
       onReorder: (from, to) {
         if (_canEdit) {
-          _editor?.moveExercise(from, to > from ? to - 1 : to);
+          // SliverReorderableList.onReorderItem already adjusts the
+          // destination after removing the dragged item.
+          _editor?.moveExercise(from, to);
         }
       },
       itemBuilder: _exerciseCard,
@@ -973,7 +983,10 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       addSet: () => _addSetInline(entry),
       restPreset: _editor?.getExerciseRestPreset(entry.id) ??
           const RoutineRestTimerPreset(),
-      supersetLabel: routineSupersetMemberLabel(state.entries, entry.id),
+      supersetLabel: routineSupersetMemberLabel(
+        _editor?.state.entries ?? const [],
+        entry.id,
+      ),
       onConfigureRestTimer: () => _configureRestTimer(entry),
       routineId: widget.routine.id,
       routineNotesRepository: widget.routineNotesRepository,

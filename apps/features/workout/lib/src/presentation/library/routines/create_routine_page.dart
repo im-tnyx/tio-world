@@ -364,8 +364,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         return;
       }
     }
-    final initialRestPreset = settings?.defaultRestPreset ??
-        const RoutineRestTimerPreset();
+    final initialRestPreset =
+        settings?.defaultRestPreset ?? const RoutineRestTimerPreset();
     for (final exercise in chosen) {
       if (!_enabled || exercise.status != ExerciseStatus.active) break;
       final id = _draft.addPickedExercise(
@@ -425,25 +425,31 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   Future<void> _selectSupersetMember(RoutineCompositionEntry entry) async {
     final openingEntries = _draft.state.entries;
-    final eligible = openingEntries.where((candidate) =>
-        candidate.id != entry.id &&
-        candidate.supersetId == null);
     final candidates = [
-      for (final candidate in eligible)
-        RoutineSupersetMemberCandidate(
-          entryId: candidate.id,
-          title: _entryExercises[candidate.id]?.displayName ??
-              'Selected Exercise',
-        ),
+      for (final candidate in openingEntries)
+        if (candidate.id != entry.id)
+          RoutineSupersetMemberCandidate(
+            entryId: candidate.id,
+            title: _entryExercises[candidate.id]?.displayName ??
+                'Selected Exercise',
+            supersetLabel: routineSupersetMemberLabel(
+              openingEntries,
+              candidate.id,
+            ),
+          ),
     ];
     final selected = await showRoutineSupersetMemberSheet(
       context,
+      initiatingExerciseTitle:
+          _entryExercises[entry.id]?.displayName ?? 'Selected Exercise',
       candidates: candidates,
     );
     if (!mounted ||
         !identical(openingEntries, _draft.state.entries) ||
         !_enabled ||
-        selected == null) return;
+        selected == null) {
+      return;
+    }
     if (entry.supersetId == null) {
       _draft.createSuperset(entry.id, selected);
     } else {
@@ -827,7 +833,9 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
           ),
           onReorder: (from, to) {
             if (_enabled) {
-              _draft.moveExercise(from, to > from ? to - 1 : to);
+              // SliverReorderableList.onReorderItem already adjusts the
+              // destination after removing the dragged item.
+              _draft.moveExercise(from, to);
             }
           },
           itemBuilder: _exerciseCard,

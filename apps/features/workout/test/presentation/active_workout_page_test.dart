@@ -343,8 +343,7 @@ Future<void> _pumpPage(
         onBack: onBack,
         onSettingsPressed: onSettingsPressed,
         clock: clock ?? () => tester.binding.clock.now(),
-        workoutRuntimeSettingsController:
-            workoutRuntimeSettingsController,
+        workoutRuntimeSettingsController: workoutRuntimeSettingsController,
       ),
     ),
   );
@@ -431,10 +430,11 @@ Future<void> _addPreviewBench(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<({
-  ActiveWorkoutDraftController draft,
-  WorkoutRuntimeSettingsController settings,
-})> _createSupersetPreview(
+Future<
+    ({
+      ActiveWorkoutDraftController draft,
+      WorkoutRuntimeSettingsController settings,
+    })> _createSupersetPreview(
   WidgetTester tester, {
   required bool smartScrollingEnabled,
 }) async {
@@ -480,7 +480,6 @@ Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
 }
 
 void main() {
-
   testWidgets('late initial vibration read still enables an active rest',
       (tester) async {
     final calls = <String>[];
@@ -524,9 +523,13 @@ void main() {
     );
     await _addPreviewBench(tester);
     final exercise = local.draft!.exercises.single;
-    expect(await local.toggleLogged(
-      exercise.id, exercise.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await local.toggleLogged(
+          exercise.id,
+          exercise.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
     expect(settings.isVibrationReady, isFalse);
     pendingRead.complete(true);
@@ -535,8 +538,7 @@ void main() {
 
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 5));
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('rest expiry vibrates while Workout rest sheet remains open',
@@ -583,24 +585,28 @@ void main() {
     );
     await _addPreviewBench(tester);
     final exercise = draft.draft!.exercises.single;
-    expect(await draft.toggleLogged(
-      exercise.id, exercise.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await draft.toggleLogged(
+          exercise.id,
+          exercise.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
 
     await tester.tap(find.byKey(ValueKey(
       'active-workout-preview-exercise-rest-timer-${exercise.id}',
     )));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
     await tester.pump(const Duration(seconds: 6));
 
-    expect(find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(
+        find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
     await tester.pump(const Duration(seconds: 5));
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('legacy duration sheet does not suppress natural rest expiry',
@@ -647,11 +653,9 @@ void main() {
     await tester.pump(const Duration(seconds: 6));
 
     expect(find.byType(WorkoutDurationBottomSheet), findsOneWidget);
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
     await tester.pump(const Duration(seconds: 6));
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('legacy resume before deadline re-arms natural expiry',
@@ -695,8 +699,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump(const Duration(seconds: 3));
 
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('removing legacy logged Set suppresses related rest vibration',
@@ -791,9 +794,13 @@ void main() {
     await _addPreviewBench(tester);
     final first = draft.draft!.exercises.single;
     expect(first.restPreset.normalRestSeconds, 5);
-    expect(await draft.toggleLogged(
-      first.id, first.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await draft.toggleLogged(
+          first.id,
+          first.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
     expect(draft.draft!.activeRest, isNotNull);
     await tester.pump(const Duration(seconds: 6));
@@ -803,12 +810,20 @@ void main() {
     expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
         hasLength(1));
 
-    expect(await draft.toggleLogged(
-      first.id, first.sets.single.id, reps: 10,
-    ), isTrue); // Removes logged Set/rest.
-    expect(await draft.toggleLogged(
-      first.id, first.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await draft.toggleLogged(
+          first.id,
+          first.sets.single.id,
+          reps: 10,
+        ),
+        isTrue); // Removes logged Set/rest.
+    expect(
+        await draft.toggleLogged(
+          first.id,
+          first.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
     expect(await draft.skipRest(), isTrue);
     await tester.pump(const Duration(seconds: 7));
@@ -860,16 +875,20 @@ void main() {
     );
     await _addPreviewBench(tester);
     final first = draft.draft!.exercises.single;
-    expect(await draft.toggleLogged(
-      first.id, first.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await draft.toggleLogged(
+          first.id,
+          first.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pump(const Duration(seconds: 6));
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump(const Duration(milliseconds: 100));
-    expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
-        isEmpty);
+    expect(
+        feedback.where((value) => value == 'HapticFeedback.vibrate'), isEmpty);
   });
 
   testWidgets('paused legacy workout rest expires with foreground vibration',
@@ -914,8 +933,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 6));
     expect(controller.state.activeRestTimer, isNull);
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('legacy natural expiry vibrates, manual cancel does not',
@@ -1040,16 +1058,11 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Smart Superset Scrolling advances to the next member when ON',
+  testWidgets('Log Workout marks Superset below the title with a group dot',
       (tester) async {
-    tester.view.physicalSize = const Size(360, 420);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
     final harness = await _createSupersetPreview(
       tester,
-      smartScrollingEnabled: true,
+      smartScrollingEnabled: false,
     );
     addTearDown(harness.draft.dispose);
     addTearDown(harness.settings.dispose);
@@ -1065,6 +1078,42 @@ void main() {
       workoutRuntimeSettingsController: harness.settings,
       showStartPreview: true,
     );
+
+    expect(
+        find.byKey(const ValueKey('superset-member-dot-A1')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('superset-group-marker-A1')), findsNothing);
+    expect(find.text('SUPERSET A1'), findsOneWidget);
+  });
+
+  testWidgets('Smart Superset Scrolling advances to the next member when ON',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 360);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: true,
+    );
+    expect(harness.settings.smartSupersetScrollingEnabled, isTrue);
+    expect(harness.draft.isBusy, isFalse);
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
+    await tester.pumpAndSettle();
 
     final viewport = find.byKey(
       const ValueKey('active-workout-start-preview'),
@@ -1098,12 +1147,16 @@ void main() {
     await tester.pump();
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
-    await tester.tap(
+    expect(harness.draft.isBusy, isFalse);
+    final setToggle = tester.widget<IconButton>(
       find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
     );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    expect(setToggle.onPressed, isNotNull);
+    setToggle.onPressed!();
+    await tester.pumpAndSettle();
 
+    expect(
+        harness.draft.draft!.exercises.first.sets.first.loggedAtUtc, isNotNull);
     final viewportRect = tester.getRect(viewport);
     final nextMemberRect = tester.getRect(nextMemberSet);
     expect(nextMemberRect.top, greaterThanOrEqualTo(viewportRect.top));
@@ -1173,8 +1226,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-
-  testWidgets('Save-only Log Workout Settings delegates without discarding draft',
+  testWidgets(
+      'Save-only Log Workout Settings delegates without discarding draft',
       (tester) async {
     final store = _DraftStore();
     final draft = ActiveWorkoutDraftController(
@@ -1199,7 +1252,8 @@ void main() {
     expect(draft.draft, isNotNull);
     final originalId = draft.draft!.id;
     final savedBefore = store.saveCount;
-    final settingsAction = find.byKey(const ValueKey('active-workout-preview-settings'));
+    final settingsAction =
+        find.byKey(const ValueKey('active-workout-preview-settings'));
     await tester.ensureVisible(settingsAction);
     await tester.pumpAndSettle();
     await tester.tap(settingsAction);
@@ -1228,9 +1282,10 @@ void main() {
       controller: controller,
       onSettingsPressed: () => settingsCalls++,
     );
-    expect(find.byKey(const ValueKey('active-workout-settings')),
-        findsOneWidget);
-    final settingsAction = find.byKey(const ValueKey('active-workout-settings'));
+    expect(
+        find.byKey(const ValueKey('active-workout-settings')), findsOneWidget);
+    final settingsAction =
+        find.byKey(const ValueKey('active-workout-settings'));
     await tester.ensureVisible(settingsAction);
     await tester.pumpAndSettle();
     await tester.tap(settingsAction);
@@ -1266,8 +1321,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
     expect(draftController.draft!.time.isPaused, isTrue);
-    expect(store.saved!.time.pausedAtUtc,
-        DateTime.utc(2026, 11, 10, 10));
+    expect(store.saved!.time.pausedAtUtc, DateTime.utc(2026, 11, 10, 10));
   });
 
   testWidgets('removing a preview Set preserves performed state on later Sets',
@@ -2554,8 +2608,7 @@ void main() {
         findsNothing);
   });
 
-  testWidgets(
-      'local draft preview wins over a restored legacy active session',
+  testWidgets('local draft preview wins over a restored legacy active session',
       (tester) async {
     final repository = _FakeSessionRepository()
       ..active = WorkoutSessionRecord(session: _session(), revision: 1);
@@ -3576,8 +3629,7 @@ void main() {
     });
   }
 
-  testWidgets(
-      'Play resume with legacy session does not create a local draft',
+  testWidgets('Play resume with legacy session does not create a local draft',
       (tester) async {
     final store = _DraftStore();
     final draftController = ActiveWorkoutDraftController(

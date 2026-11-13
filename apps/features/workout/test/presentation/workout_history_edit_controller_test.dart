@@ -255,7 +255,8 @@ void main() {
     ]);
     expect((snapshot['exercises'] as List)[0]['superset_id'], groupId);
     expect((snapshot['exercises'] as List)[1]['superset_id'], groupId);
-    expect((snapshot['exercises'] as List)[2].containsKey('superset_id'), isFalse);
+    expect(
+        (snapshot['exercises'] as List)[2].containsKey('superset_id'), isFalse);
 
     editor.removeExercise(1);
     expect(editor.exercises.first.supersetId, isNull);
@@ -263,8 +264,12 @@ void main() {
     payload = WorkoutHistoryEditDto.payload(_request(source, editor));
     snapshot = payload['routine_snapshot'] as Map;
     expect(snapshot['superset_groups'], isEmpty);
-    expect((snapshot['exercises'] as List).every(
-        (exercise) => !exercise.containsKey('superset_id')), isTrue);
+    expect(
+      (snapshot['exercises'] as List)
+          .cast<Map<String, dynamic>>()
+          .every((exercise) => !exercise.containsKey('superset_id')),
+      isTrue,
+    );
   });
 
   test('pre-existing skipped set without timestamp survives metadata edit', () {
@@ -288,8 +293,8 @@ void main() {
 
     expect(editor.exercises.single.sets, hasLength(2));
     expect(editor.canUpdate, isTrue);
-    final rows = WorkoutHistoryEditDto.payload(_request(source, editor))[
-        'performed_sets'] as List;
+    final rows = WorkoutHistoryEditDto.payload(
+        _request(source, editor))['performed_sets'] as List;
     expect(rows, hasLength(2));
     expect(rows[1]['id'], source.allPerformedSets[1].id);
     expect(rows[1]['set_index'], 1);
@@ -337,8 +342,8 @@ void main() {
     expect(editor.hasPerformedSetLimitExceeded, isFalse);
     expect(editor.canUpdate, isTrue);
     expect(
-      (WorkoutHistoryEditDto.payload(_request(source, editor))[
-          'performed_sets'] as List),
+      (WorkoutHistoryEditDto.payload(_request(source, editor))['performed_sets']
+          as List),
       hasLength(500),
     );
 

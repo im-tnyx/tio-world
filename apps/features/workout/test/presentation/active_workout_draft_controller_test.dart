@@ -496,7 +496,6 @@ void main() {
     reopened.dispose();
   });
 
-
   test('subtracting beyond remaining rest cancels without expired deadline',
       () async {
     final store = _Store();
@@ -510,14 +509,21 @@ void main() {
     );
     addTearDown(controller.dispose);
     expect(await controller.restoreOrStart(), isTrue);
-    expect(await controller.addExercises(
-      [_exercise('ex_first', 'First')],
-      initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
-    ), isTrue);
+    expect(
+        await controller.addExercises(
+          [_exercise('ex_first', 'First')],
+          initialRestPreset:
+              const RoutineRestTimerPreset(normalRestSeconds: 60),
+        ),
+        isTrue);
     final exercise = controller.draft!.exercises.single;
-    expect(await controller.toggleLogged(
-      exercise.id, exercise.sets.single.id, reps: 8,
-    ), isTrue);
+    expect(
+        await controller.toggleLogged(
+          exercise.id,
+          exercise.sets.single.id,
+          reps: 8,
+        ),
+        isTrue);
     expect(controller.draft!.activeRest, isNotNull);
     now = now.add(const Duration(seconds: 50));
     expect(await controller.adjustRest(-15), isTrue);
@@ -541,8 +547,7 @@ void main() {
     expect(
       await controller.addExercises(
         [_exercise('ex_first', 'First')],
-        initialRestPreset:
-            const RoutineRestTimerPreset(normalRestSeconds: 60),
+        initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
       ),
       isTrue,
     );
@@ -555,8 +560,7 @@ void main() {
     expect(
       await controller.addExercises(
         [_exercise('ex_second', 'Second')],
-        initialRestPreset:
-            const RoutineRestTimerPreset(normalRestSeconds: 90),
+        initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 90),
       ),
       isTrue,
     );
@@ -902,8 +906,10 @@ void main() {
     expect(await controller.addSet(first.id), isTrue);
     expect(await controller.addSet(first.id), isTrue);
     first = controller.draft!.exercises[0];
-    expect(await controller.setType(first.id, first.sets[0].id,
-        RoutineSetType.warmUp), isTrue);
+    expect(
+        await controller.setType(
+            first.id, first.sets[0].id, RoutineSetType.warmUp),
+        isTrue);
     expect(await controller.createSuperset(first.id, second.id), isTrue);
     final groupId = controller.draft!.exercises.first.supersetId!;
 
@@ -947,19 +953,15 @@ void main() {
     expect(await controller.skipRest(), isTrue);
     first = controller.draft!.exercises.first;
     final secondRound = first.sets[1];
-    expect(await controller.setType(first.id, secondRound.id,
-        RoutineSetType.failure), isTrue);
+    expect(
+        await controller.setType(
+            first.id, secondRound.id, RoutineSetType.failure),
+        isTrue);
     expect(await controller.toggleLogged(first.id, secondRound.id), isTrue);
     expect(controller.draft!.activeRest!.roundIndex, 1);
     expect(controller.draft!.activeRest!.totalDurationSeconds, 60);
-    await expectLater(
-      controller.removeFromSuperset(first.id),
-      throwsStateError,
-    );
-    await expectLater(
-      controller.removeSet(first.id, first.sets[2].id),
-      throwsStateError,
-    );
+    expect(await controller.removeFromSuperset(first.id), isFalse);
+    expect(await controller.removeSet(first.id, first.sets[2].id), isFalse);
 
     expect(await controller.skipRest(), isTrue);
     first = controller.draft!.exercises.first;
@@ -975,8 +977,10 @@ void main() {
     expect(controller.draft!.activeRest, isNull);
     expect(await controller.removeFromSuperset(first.id), isTrue);
     expect(controller.draft!.supersets, isEmpty);
-    expect(controller.draft!.exercises.every((exercise) =>
-        exercise.supersetId == null), isTrue);
+    expect(
+        controller.draft!.exercises
+            .every((exercise) => exercise.supersetId == null),
+        isTrue);
   });
 
   test('discardForReplacement clears durable draft for Play replacement',

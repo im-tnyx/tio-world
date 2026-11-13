@@ -59,7 +59,8 @@ final class RoutineCompositionEntry {
       _equal(sets, other.sets);
 
   @override
-  int get hashCode => Object.hash(id, supersetId, exercise, Object.hashAll(sets));
+  int get hashCode =>
+      Object.hash(id, supersetId, exercise, Object.hashAll(sets));
 }
 
 /// Stable shared-rest configuration for a contiguous group of Routine entries.
@@ -75,7 +76,8 @@ final class RoutineSupersetGroup {
     ]) {
       if (seconds != null &&
           (seconds < 5 || seconds > 600 || seconds % 5 != 0)) {
-        throw ArgumentError('Superset rest must be OFF or 5-second steps up to 600.');
+        throw ArgumentError(
+            'Superset rest must be OFF or 5-second steps up to 600.');
       }
     }
   }
@@ -100,18 +102,28 @@ String? routineSupersetMemberLabel(
 ) {
   final entryIndex = entries.indexWhere((entry) => entry.id == entryId);
   if (entryIndex < 0) return null;
-  final groupId = entries[entryIndex].supersetId;
+  return supersetMemberLabelForGroups(
+    entries.map((entry) => entry.supersetId).toList(growable: false),
+    entryIndex,
+  );
+}
+
+/// Stable-position display label for an ordered list of group identities.
+/// Shared by Routine composition and the local workout draft.
+String? supersetMemberLabelForGroups(
+  List<String?> orderedGroupIds,
+  int entryIndex,
+) {
+  if (entryIndex < 0 || entryIndex >= orderedGroupIds.length) return null;
+  final groupId = orderedGroupIds[entryIndex];
   if (groupId == null) return null;
   final groups = <String>[];
-  for (final entry in entries) {
-    final id = entry.supersetId;
+  for (final id in orderedGroupIds) {
     if (id != null && !groups.contains(id)) groups.add(id);
   }
   final groupIndex = groups.indexOf(groupId);
-  final memberIndex = entries
-      .take(entryIndex + 1)
-      .where((entry) => entry.supersetId == groupId)
-      .length;
+  final memberIndex =
+      orderedGroupIds.take(entryIndex + 1).where((id) => id == groupId).length;
   if (groupIndex < 0 || memberIndex == 0) return null;
   var number = groupIndex + 1;
   var letters = '';
@@ -140,6 +152,7 @@ final class RoutineCompositionSnapshot {
   final RoutineId routineId;
   final int revision;
   final String? lastMutationId;
+
   /// Bracket-validated name when supported by the owner-scoped adapter.
   /// Older in-memory mocks may omit it; name-aware Updates must fail closed.
   final String? name;
@@ -168,7 +181,7 @@ final class RoutineCompositionSave {
     List<RoutineSupersetGroup> supersets = const [],
     Map<String, ExerciseType?> expectedCustomTypes = const {},
   })  : expectedCustomTypes = Map.unmodifiable(expectedCustomTypes),
-         expectedRevision = _revision(expectedRevision),
+        expectedRevision = _revision(expectedRevision),
         mutationId = _uuid(mutationId),
         entries = _entries(entries),
         supersets = _supersets(entries, supersets);
@@ -178,6 +191,7 @@ final class RoutineCompositionSave {
   final String mutationId;
   final List<RoutineCompositionEntry> entries;
   final List<RoutineSupersetGroup> supersets;
+
   /// Optional wire hints on Custom entry UUIDs; JSON null is an exact type.
   /// Snapshot equality/replay intentionally compares persisted Sets, not hints.
   final Map<String, ExerciseType?> expectedCustomTypes;
@@ -200,16 +214,16 @@ final class RoutineAggregateUpdate {
   })  : expectedRevision = _revision(expectedRevision),
         mutationId = _uuid(mutationId),
         entries = entries == null ? null : _entries(entries),
-        supersets = entries == null
-            ? null
-            : _supersets(entries, supersets),
+        supersets = entries == null ? null : _supersets(entries, supersets),
         expectedCustomTypes = Map.unmodifiable(expectedCustomTypes) {
+    final requestedName = name;
     if (expectedName.trim().isEmpty ||
-        (name != null && name!.trim().isEmpty) ||
-        (name == null && entries == null)) {
+        (requestedName != null && requestedName.trim().isEmpty) ||
+        (requestedName == null && entries == null)) {
       throw ArgumentError('Invalid Routine aggregate Update.');
     }
-    if (entries == null && (expectedCustomTypes.isNotEmpty || supersets != null)) {
+    if (entries == null &&
+        (expectedCustomTypes.isNotEmpty || supersets.isNotEmpty)) {
       throw ArgumentError('Name-only Update cannot supply Set type hints.');
     }
   }
@@ -333,7 +347,8 @@ List<RoutineSupersetGroup> _supersets(
   for (final group in groups) {
     final count = memberCounts[group.id] ?? 0;
     final memberPositions = positions[group.id] ?? const <int>[];
-    if (count < 2 || count > 3 ||
+    if (count < 2 ||
+        count > 3 ||
         memberPositions.last - memberPositions.first + 1 != count) {
       throw ArgumentError('Superset must contain 2–3 contiguous entries.');
     }
