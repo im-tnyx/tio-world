@@ -24,6 +24,7 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
   void initState() {
     super.initState();
     unawaited(widget.controller.load());
+    unawaited(widget.controller.loadRestTimerVibration());
   }
 
   Future<void> _editDefaultRestTimer() async {
@@ -47,6 +48,16 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
       await controller.setDefaultRestSeconds(selected.normalRestSeconds);
     } catch (_) {
       if (mounted) _showMessage('Could not save Default Rest Timer. Try again.');
+    }
+  }
+
+  Future<void> _setRestTimerVibration(bool enabled) async {
+    try {
+      await widget.controller.setRestTimerVibrationEnabled(enabled);
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Could not save Rest Timer Vibration. Try again.');
+      }
     }
   }
 
@@ -138,6 +149,37 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
                         size: TioSize.dp22,
                       ),
                       onTap: controller.isSaving ? null : _editDefaultRestTimer,
+                    ),
+                    TioSettingsValueRow(
+                      key: const ValueKey('workout-rest-timer-vibration'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.vibration_rounded,
+                      ),
+                      label: 'Rest Timer Vibration',
+                      onTap: null,
+                      showEditAffordance: false,
+                      value: controller.isVibrationLoading
+                          ? const CircularProgressIndicator()
+                          : controller.isVibrationReady
+                              ? Switch.adaptive(
+                                  key: const ValueKey(
+                                    'workout-rest-timer-vibration-switch',
+                                  ),
+                                  value: controller.restTimerVibrationEnabled,
+                                  onChanged: controller.isVibrationSaving
+                                      ? null
+                                      : (enabled) =>
+                                          unawaited(_setRestTimerVibration(enabled)),
+                                )
+                              : TioButton.secondary(
+                                  key: const ValueKey(
+                                    'workout-rest-timer-vibration-retry',
+                                  ),
+                                  label: 'Retry',
+                                  onPressed: () => unawaited(
+                                    controller.loadRestTimerVibration(),
+                                  ),
+                                ),
                     ),
                   ],
                 ),

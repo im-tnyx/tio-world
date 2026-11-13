@@ -1,14 +1,14 @@
 # Workout Settings Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-11-12 (W10-A source branch; PR/CI handoff pending)
+Last Verified: 2026-11-13 (W10-A merged on main; W10-B approved implementation in separate PR)
 Owner: `apps/features/workout`
-Truth Boundary: Authoritative for Workout Settings ownership and behavior; runtime source wins for actual implementation, and the W10-A PR/CI handoff remains pending.
+Truth Boundary: Authoritative for Workout Settings ownership and behavior; runtime source wins for actual implementation, and current PR/CI status is tracked independently.
 
 **Surface:** Nested Phone Workout configuration
 **Route:** `/settings/workout`
 **Primary owner:** `apps/features/workout`
-**Status:** W10-A implements the bounded Default Rest Timer preference. Other Workout Settings remain planned and are not implied by this slice.
+**Status:** W10-A Default Rest Timer is merged via PR #753; W10-B Rest Timer Vibration is a separately approved, review-gated slice. Other Workout Settings remain planned.
 
 ## Purpose
 
@@ -43,6 +43,26 @@ persisted as `null`. Active Workout preserves the choice in its existing
 countdown engine and controls are reused.
 
 No Supabase schema, migration, RLS, RPC or sync behavior is part of W10-A.
+
+## Rest Timer Vibration — W10-B (review-gated)
+
+Workout Settings adds a separate device-local **Rest Timer Vibration**
+switch, default OFF. Its boolean preference uses an owner-scoped
+`SharedPreferencesAsync` key and is never written to Supabase. A vibration
+read/write failure must not block Default Rest, Add Exercise or Save. A
+read failure remains retryable independently.
+
+When enabled before a Rest starts, a successful foreground natural expiry
+may send one best-effort platform vibration. Both the Save-only draft and
+legacy online Active Workout paths share the same one-shot eligibility logic;
+manual Skip, Cancel, OFF, countdown cancellation by adjustment, logged Set
+removal, background expiry and restored already-expired countdowns stay
+silent. No music/audio, background alarms, notification service or Wear/watch
+haptics are included. The platform may suppress haptics; this does not affect
+workout data or countdown state.
+
+W10-B does not change the existing per-Exercise Rest Timer, UTC deadlines,
+Draft recovery, Workout pause rules or Routine composition persistence.
 
 ## Target Content
 

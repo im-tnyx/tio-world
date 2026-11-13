@@ -8,4 +8,9 @@ abstract interface class WorkoutRuntimeSettingsRepository {
   Future<void> writeDefaultRestSeconds(int seconds);
 
   Future<void> clearDefaultRestSeconds();
+
+  /// Device-local opt-in; absent or unreadable values safely resolve to OFF.
+  Future<bool> readRestTimerVibrationEnabled();
+
+  Future<void> writeRestTimerVibrationEnabled(bool enabled);
 }

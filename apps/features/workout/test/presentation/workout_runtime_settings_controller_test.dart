@@ -2,6 +2,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
 
 final class _Repository implements WorkoutRuntimeSettingsRepository {
+  bool vibrationEnabled = false;
+  bool failNextVibrationRead = false;
+
+  @override
+  Future<bool> readRestTimerVibrationEnabled() async {
+    if (failNextVibrationRead) {
+      failNextVibrationRead = false;
+      throw StateError('Simulated vibration storage read failure');
+    }
+    return vibrationEnabled;
+  }
+
+  @override
+  Future<void> writeRestTimerVibrationEnabled(bool enabled) async {
+    vibrationEnabled = enabled;
+  }
+
   int? seconds;
   int readCount = 0;
   bool failNextRead = false;
@@ -65,6 +82,46 @@ void main() {
     expect(controller.error, isNull);
     expect(controller.savedDefaultRestSeconds, 60);
     expect(controller.defaultRestLabel, '1min');
+  });
+
+  test('vibration OFF by default and ON/OFF changes do not affect rest',
+      () async {
+    final repository = _Repository()..seconds = 90;
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+
+    await controller.loadRestTimerVibration();
+    expect(controller.isVibrationReady, isTrue);
+    expect(controller.restTimerVibrationEnabled, isFalse);
+    await controller.setRestTimerVibrationEnabled(true);
+    expect(controller.restTimerVibrationEnabled, isTrue);
+    expect(repository.vibrationEnabled, isTrue);
+    await controller.setRestTimerVibrationEnabled(false);
+    expect(controller.restTimerVibrationEnabled, isFalse);
+    await controller.load();
+    expect(controller.savedDefaultRestSeconds, 90);
+  });
+
+  test('vibration read failure is retryable and does not block Default Rest',
+      () async {
+    final repository = _Repository()
+      ..seconds = 60
+      ..failNextVibrationRead = true;
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+
+    await controller.loadRestTimerVibration();
+    expect(controller.isVibrationReady, isFalse);
+    expect(controller.restTimerVibrationEnabled, isFalse);
+    expect(controller.vibrationError, isA<StateError>());
+    await controller.load();
+    expect(controller.isReady, isTrue);
+    expect(controller.effectiveDefaultRestSeconds, 60);
+
+    await controller.loadRestTimerVibration();
+    expect(controller.isVibrationReady, isTrue);
+    expect(controller.vibrationError, isNull);
+    expect(controller.restTimerVibrationEnabled, isFalse);
   });
 
   test('rejects values outside the existing wheel contract', () async {

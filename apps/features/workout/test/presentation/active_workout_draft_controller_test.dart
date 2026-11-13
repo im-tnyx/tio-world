@@ -496,6 +496,35 @@ void main() {
     reopened.dispose();
   });
 
+
+  test('subtracting beyond remaining rest cancels without expired deadline',
+      () async {
+    final store = _Store();
+    var now = DateTime.utc(2026, 11, 12, 10);
+    var nextId = 400;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(controller.dispose);
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(await controller.addExercises(
+      [_exercise('ex_first', 'First')],
+      initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
+    ), isTrue);
+    final exercise = controller.draft!.exercises.single;
+    expect(await controller.toggleLogged(
+      exercise.id, exercise.sets.single.id, reps: 8,
+    ), isTrue);
+    expect(controller.draft!.activeRest, isNotNull);
+    now = now.add(const Duration(seconds: 50));
+    expect(await controller.adjustRest(-15), isTrue);
+    expect(controller.draft!.activeRest, isNull);
+    expect(store.saved!.activeRest, isNull);
+  });
+
   test('new Exercise rest default snapshots, recovers, and drives countdown',
       () async {
     final store = _Store();

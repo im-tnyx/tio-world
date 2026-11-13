@@ -43,6 +43,15 @@ final class ActiveWorkoutController extends ChangeNotifier {
   var _isActionInFlight = false;
   Timer? _durationTicker;
 
+  // Presentation-only event sequence: a user Skip/Cancel never increments it.
+  int _restCompletionRevision = 0;
+  int get restCompletionRevision => _restCompletionRevision;
+
+  // One stable identity per started rest; manual deadline adjustments must
+  // not reset the vibration preference snapshot for that rest.
+  int _restStartRevision = 0;
+  int get restStartRevision => _restStartRevision;
+
   DateTime _nowUtc() => _clock().toUtc();
 
   /// Calculates elapsed active workout duration safely.
@@ -615,6 +624,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
       return;
     }
     final target = _nowUtc().add(Duration(seconds: durationSeconds));
+    _restStartRevision++;
     _emit(state.copyWith(
       activeRestTimer: ActiveRestTimerState(
         targetInstantUtc: target,
@@ -690,6 +700,7 @@ final class ActiveWorkoutController extends ChangeNotifier {
 
     ActiveRestTimerState? restTimer = state.activeRestTimer;
     if (restTimer != null && restTimer.isExpired(now)) {
+      _restCompletionRevision++;
       restTimer = null;
     }
 

@@ -16,6 +16,10 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
   }
 
   static const _keyPrefix = 'workout_default_rest_timer_seconds_v1_';
+  static const _vibrationKeyPrefix = 'workout_rest_timer_vibration_enabled_v1_';
+
+  static String vibrationStorageKeyFor(String ownerId) =>
+      '$_vibrationKeyPrefix${ownerId.trim()}';
 
   static String storageKeyFor(String ownerId) => '$_keyPrefix${ownerId.trim()}';
 
@@ -23,6 +27,7 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
   SharedPreferencesAsync? _preferences;
 
   String get _storageKey => storageKeyFor(_ownerId);
+  String get _vibrationStorageKey => vibrationStorageKeyFor(_ownerId);
 
   SharedPreferencesAsync get _store =>
       _preferences ??= SharedPreferencesAsync();
@@ -54,6 +59,20 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
 
   @override
   Future<void> clearDefaultRestSeconds() => _store.remove(_storageKey);
+
+  @override
+  Future<bool> readRestTimerVibrationEnabled() async {
+    try {
+      return await _store.getBool(_vibrationStorageKey) ?? false;
+    } on TypeError {
+      await _store.remove(_vibrationStorageKey);
+      return false;
+    }
+  }
+
+  @override
+  Future<void> writeRestTimerVibrationEnabled(bool enabled) =>
+      _store.setBool(_vibrationStorageKey, enabled);
 
   static bool _isSupported(int seconds) =>
       seconds == 0 ||

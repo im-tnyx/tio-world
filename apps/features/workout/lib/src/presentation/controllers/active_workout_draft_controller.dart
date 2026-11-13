@@ -682,10 +682,16 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         final rest = draft.activeRest;
         if (rest == null) throw StateError('No active rest timer.');
         final total = rest.totalDurationSeconds + seconds;
-        if (total <= 0) return draft.copyWith(activeRest: null);
+        final target = rest.targetAtUtc.add(Duration(seconds: seconds));
+        // A manual decrement that crosses the deadline cancels this rest.
+        // Never leave an already-expired adjusted deadline to masquerade as
+        // a naturally completed countdown in the presentation observer.
+        if (total <= 0 || !target.isAfter(_nowUtc())) {
+          return draft.copyWith(activeRest: null);
+        }
         return draft.copyWith(
           activeRest: ActiveWorkoutDraftRest(
-            targetAtUtc: rest.targetAtUtc.add(Duration(seconds: seconds)),
+            targetAtUtc: target,
             totalDurationSeconds: total,
             exerciseId: rest.exerciseId,
             setId: rest.setId,

@@ -693,11 +693,32 @@ void main() {
         90,
       );
 
+      final sameRest = controller.restStartRevision;
       controller.addRestTimerSeconds(30);
       expect(controller.state.activeRestTimer?.totalDurationSeconds, 120);
+      expect(controller.restStartRevision, sameRest);
+      controller.startRestTimer(durationSeconds: 40);
+      expect(controller.restStartRevision, sameRest + 1);
 
       controller.cancelRestTimer();
       expect(controller.state.activeRestTimer, isNull);
+      expect(controller.restCompletionRevision, 0);
+    });
+
+    test('OFF and manual cancel never announce natural rest completion', () async {
+      final controller = createController();
+      final session = createTestSession();
+      fakeRepo.activeSessionToReturn =
+          WorkoutSessionRecord(session: session, revision: 1);
+      await controller.restoreActiveSession();
+
+      controller.startRestTimer(durationSeconds: 0);
+      expect(controller.restCompletionRevision, 0);
+      controller.startRestTimer(durationSeconds: 30);
+      controller.cancelRestTimer();
+      currentTime = testStartTime.add(const Duration(seconds: 35));
+      controller.updateElapsedDuration();
+      expect(controller.restCompletionRevision, 0);
     });
 
     test('suggests rest duration from routine snapshot', () async {
@@ -741,6 +762,9 @@ void main() {
       controller.updateElapsedDuration();
 
       expect(controller.state.activeRestTimer, isNull);
+      expect(controller.restCompletionRevision, 1);
+      controller.updateElapsedDuration();
+      expect(controller.restCompletionRevision, 1);
       expect(controller.state.activeElapsedDuration, const Duration(seconds: 35));
     });
   });

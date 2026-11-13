@@ -1264,6 +1264,23 @@ Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
 
 final class _RuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
+  bool vibrationEnabled = false;
+  bool failNextVibrationRead = false;
+
+  @override
+  Future<bool> readRestTimerVibrationEnabled() async {
+    if (failNextVibrationRead) {
+      failNextVibrationRead = false;
+      throw StateError('Simulated vibration storage read failure');
+    }
+    return vibrationEnabled;
+  }
+
+  @override
+  Future<void> writeRestTimerVibrationEnabled(bool enabled) async {
+    vibrationEnabled = enabled;
+  }
+
   _RuntimeSettingsRepository({this.initialSeconds});
 
   int? initialSeconds;
