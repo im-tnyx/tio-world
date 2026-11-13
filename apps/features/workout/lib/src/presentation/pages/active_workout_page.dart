@@ -39,6 +39,24 @@ Future<void> _vibrateAtRestCompletion() async {
   }
 }
 
+/// Tracks temporary Workout-owned sheets without treating another full-screen
+/// destination as the current Workout screen.
+final class _WorkoutModalCounter {
+  int depth = 0;
+}
+
+Future<T> _withWorkoutModal<T>(
+  _WorkoutModalCounter counter,
+  Future<T> Function() show,
+) async {
+  counter.depth++;
+  try {
+    return await show();
+  } finally {
+    counter.depth--;
+  }
+}
+
 DateTime _wallDateTime(DateTime instantUtc, int offsetMinutes) {
   final wall = instantUtc.toUtc().add(Duration(minutes: offsetMinutes));
   return DateTime(wall.year, wall.month, wall.day, wall.hour, wall.minute);
@@ -145,6 +163,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
   final ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(false);
   bool _draftChecked = false;
   final RestTimerCompletionGate _legacyRestGate = RestTimerCompletionGate();
+  final _WorkoutModalCounter _workoutModalCounter = _WorkoutModalCounter();
   int _observedLegacyCompletionRevision = 0;
   String? _observedLegacyRestId;
   bool _vibrationForeground = true;
@@ -256,7 +275,8 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
           // online session. Never buzz for the hidden legacy timer.
           !(widget.showStartPreview &&
               widget.draftController?.draft != null) &&
-          (ModalRoute.of(context)?.isCurrent ?? true)) {
+          ((ModalRoute.of(context)?.isCurrent ?? true) ||
+              _workoutModalCounter.depth > 0)) {
         unawaited(_vibrateAtRestCompletion());
       }
     }
@@ -312,7 +332,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
     final session = state.session;
     if (controller == null || session == null || state.isTerminal) return;
 
-    final shouldToggle = await showModalBottomSheet<bool>(
+    final shouldToggle = await _withWorkoutModal(_workoutModalCounter, () => showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -324,7 +344,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
         onAction: () => Navigator.of(sheetContext).pop(true),
         clock: widget.clock,
       ),
-    );
+    ));
 
     if (!mounted ||
         shouldToggle != true ||
@@ -441,7 +461,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
     final controller = _controller;
     if (controller == null || state.isActionPending || state.isTerminal) return;
 
-    final confirmed = await showTioConfirmationBottomSheet(
+    final confirmed = await _withWorkoutModal(_workoutModalCounter, () => showTioConfirmationBottomSheet(
       context: context,
       title: 'Discard workout?',
       message: 'This session and any logged sets will be discarded.',
@@ -449,7 +469,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
       cancelLabel: 'Keep working out',
       intent: TioConfirmationIntent.destructive,
       activeWhileOpen: _sessionActive,
-    );
+    ));
     if (!mounted ||
         confirmed != true ||
         !identical(controller, _controller) ||
@@ -561,6 +581,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
         return _SessionState(
           state: state,
           controller: controller,
+          workoutModalCounter: _workoutModalCounter,
           onDurationPressed:
               state.isActionPending ? null : () => _showPauseDetails(state),
           onPauseOrResume:
@@ -583,6 +604,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
   Widget _buildDraftPreview() => _StartWorkoutPreview(
         onBack: widget.onBack,
         createDraftIfMissing: widget.createDraftIfMissing,
+        workoutModalCounter: _workoutModalCounter,
         catalogRepository: widget.catalogRepository,
         userExerciseRepository: widget.userExerciseRepository,
         gymLocationRepository: widget.gymLocationRepository,
@@ -612,6 +634,7 @@ class _StartWorkoutPreview extends StatefulWidget {
   const _StartWorkoutPreview({
     required this.onBack,
     required this.createDraftIfMissing,
+    required this.workoutModalCounter,
     this.catalogRepository,
     this.userExerciseRepository,
     this.gymLocationRepository,
@@ -622,6 +645,7 @@ class _StartWorkoutPreview extends StatefulWidget {
 
   final VoidCallback onBack;
   final bool createDraftIfMissing;
+  final _WorkoutModalCounter workoutModalCounter;
   final ExerciseCatalogRepository? catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
   final GymLocationRepository? gymLocationRepository;
@@ -662,7 +686,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         _draftRestGate.complete(id, vibrationEnabled: enabled) &&
         _vibrationForeground &&
         mounted &&
-        (ModalRoute.of(context)?.isCurrent ?? true)) {
+        ((ModalRoute.of(context)?.isCurrent ?? true) ||
+            widget.workoutModalCounter.depth > 0)) {
       unawaited(_vibrateAtRestCompletion());
     }
   }
@@ -758,7 +783,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   }
 
   Future<void> _showPauseDetails() async {
-    final shouldToggle = await showModalBottomSheet<bool>(
+    final shouldToggle = await _withWorkoutModal(widget.workoutModalCounter, () => showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -769,7 +794,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         onAction: () => Navigator.of(sheetContext).pop(true),
         clock: widget.clock,
       ),
-    );
+    ));
 
     if (!mounted || shouldToggle != true) return;
     await _togglePause();
@@ -855,11 +880,11 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     RoutineCompositionSet set,
   ) async {
     final sets = _setsForExercise(exerciseIndex);
-    final chosen = await showWorkoutSetTypeSheet(
+    final chosen = await _withWorkoutModal(widget.workoutModalCounter, () => showWorkoutSetTypeSheet(
       context: context,
       sets: sets,
       targetSet: set,
-    );
+    ));
     if (!mounted || chosen == null) return;
     final controller = widget.draftController;
     if (controller == null || exerciseIndex >= _previewExercises.length) return;
@@ -889,13 +914,13 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     final loadKg = logged?.loadKg ?? set.prescription.loadKg;
     final reps = logged?.reps ?? set.prescription.reps;
 
-    final selected = await showWorkoutRpeSheet(
+    final selected = await _withWorkoutModal(widget.workoutModalCounter, () => showWorkoutRpeSheet(
       context: context,
       setNumber: setIndex + 1,
       loadKg: loadKg,
       reps: reps,
       initialRpe: currentRpe,
-    );
+    ));
 
     if (!mounted || selected == null) return;
     if (exerciseIndex >= _previewExercises.length) return;
@@ -907,7 +932,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   }
 
   Future<void> _showExerciseOptions(int exerciseIndex) async {
-    final action = await showRoutineExerciseOptionsSheet(context);
+    final action = await _withWorkoutModal(widget.workoutModalCounter, () => showRoutineExerciseOptionsSheet(context));
     if (!mounted || action == null) return;
     final controller = widget.draftController;
     if (controller == null || exerciseIndex >= _previewExercises.length) return;
@@ -986,13 +1011,13 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   }) async {
     if (index >= _previewExercises.length) return;
     final activePreset = current ?? _previewExercises[index].restPreset;
-    final result = await showRoutineRestTimerSheet(
+    final result = await _withWorkoutModal(widget.workoutModalCounter, () => showRoutineRestTimerSheet(
       context: context,
       initialNormalRestSeconds: activePreset.normalRestSeconds,
       initialWarmUpRestSeconds: activePreset.warmUpRestSeconds,
       exerciseName: exerciseName,
       hasWarmUpSets: hasWarmUpSets,
-    );
+    ));
     if (result != null && mounted && index < _previewExercises.length) {
       await widget.draftController?.setRestPreset(
         _previewExercises[index].id,
@@ -1014,14 +1039,14 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   }
 
   Future<void> _discard() async {
-    final confirmed = await showTioConfirmationBottomSheet(
+    final confirmed = await _withWorkoutModal(widget.workoutModalCounter, () => showTioConfirmationBottomSheet(
       context: context,
       title: 'Discard workout?',
       message: 'This session and any logged sets will be discarded.',
       confirmLabel: 'Discard workout',
       cancelLabel: 'Keep working out',
       intent: TioConfirmationIntent.destructive,
-    );
+    ));
     if (!mounted || confirmed != true) return;
     if (await widget.draftController?.discard() == true) {
       _ticker?.cancel();
@@ -1602,6 +1627,7 @@ class _SessionState extends StatefulWidget {
   const _SessionState({
     required this.state,
     required this.controller,
+    required this.workoutModalCounter,
     required this.onDurationPressed,
     required this.onPauseOrResume,
     required this.onComplete,
@@ -1613,6 +1639,7 @@ class _SessionState extends StatefulWidget {
 
   final ActiveWorkoutState state;
   final ActiveWorkoutController controller;
+  final _WorkoutModalCounter workoutModalCounter;
   final VoidCallback? onDurationPressed;
   final VoidCallback? onPauseOrResume;
   final VoidCallback? onComplete;
@@ -1699,7 +1726,7 @@ class _SessionStateState extends State<_SessionState> {
   }
 
   Future<void> _showExerciseOptions(int occurrenceIndex) async {
-    final action = await showRoutineExerciseOptionsSheet(context);
+    final action = await _withWorkoutModal(widget.workoutModalCounter, () => showRoutineExerciseOptionsSheet(context));
     if (!mounted || action == null) return;
     if (action == RoutineExerciseOption.remove) {
       unawaited(
@@ -1732,13 +1759,13 @@ class _SessionStateState extends State<_SessionState> {
   }) async {
     final activePreset =
         current ?? _restPresets[index] ?? const RoutineRestTimerPreset();
-    final result = await showRoutineRestTimerSheet(
+    final result = await _withWorkoutModal(widget.workoutModalCounter, () => showRoutineRestTimerSheet(
       context: context,
       initialNormalRestSeconds: activePreset.normalRestSeconds,
       initialWarmUpRestSeconds: activePreset.warmUpRestSeconds,
       exerciseName: exerciseName,
       hasWarmUpSets: hasWarmUpSets,
-    );
+    ));
     if (result != null && mounted) {
       setState(() {
         _restPresets[index] = result;
