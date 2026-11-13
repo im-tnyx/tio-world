@@ -17,23 +17,23 @@
 **Implementation owner:** ChatGPT (sole writer of W10-B; not the W10-A owner)
 **Previous agent:** Not applicable — new child slice
 **Last commit agent:** ChatGPT — single-owner W10-B
-**Last commit SHA:** `042dd2af3792ee7ca781523e661a5901387bc23d` (latest source fix; task-document reconciliation follows)
-**Review owner:** `i-the` requested on PR #754; Codex automated review raised four P2 findings, all with source fixes/replies, not independently resolved
+**Last commit SHA:** `3f4311b144400e8b4c1efb81f9ba7de98b9ab41a` (latest source remediation; this task-document follow-up is docs-only)
+**Review owner:** `i-the` requested on PR #754; Codex automated review raised six P2 findings, each with scoped source fix/reply, none independently accepted or resolved
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub remote main `706bcdf4cba238e567b14cdbc2b48b0942abcf9a`, protected; no open PR. Local Windows checkout/worktree **unavailable** from ChatGPT; do not claim local status.
 **Branch:** `tnyx/w10b-rest-vibration`
-**HEAD SHA:** `042dd2af3792ee7ca781523e661a5901387bc23d` (latest source head before this docs-only reconciliation)
+**HEAD SHA:** `3f4311b144400e8b4c1efb81f9ba7de98b9ab41a` (latest source head before this docs-only checkpoint)
 **Observed working-tree state:** Not observable from remote connector
 **Observed uncommitted/dirty files:** Not observable
 **PR / tracker:** [PR #754](https://github.com/im-tnyx/tio-world/pull/754) OPEN/UNMERGED; Linear [TNYX-87](https://linear.app/tnyx/issue/TNYX-87); GitHub [#48](https://github.com/im-tnyx/tio-world/issues/48).
-**Current implementation state:** Settings bool + independent read/retry, foreground one-shot gate, draft/legacy expiry wiring, modal-sheet awareness, stable rest occurrence identity, legacy foreground rearming and logged Set removal haptic suppression, focused source tests. W10-A merged via PR #753.
+**Current implementation state:** Settings boolean/local retry, foreground one-shot gate, draft/legacy expiry, modal-sheet awareness, stable rest identity, legacy resume/paused rest ticking, source Set-removal haptic suppression, manual deadline adjustment cancellation and focused source tests. W10-A merged via PR #753.
 **Relevant execution surface:** `WorkoutRuntimeSettingsRepository`, `SharedPreferencesWorkoutRuntimeSettingsRepository`, `WorkoutRuntimeSettingsController`, `WorkoutSettingsPage`, `ActiveWorkoutDraftController`, `ActiveWorkoutController`, `ActiveWorkoutPage`, app auth-bound composition and focused tests.
 **Validation completed at SHA:** Audit-only source/GitHub/Linear/Supabase metadata, no implementation tests run.
 **Validation remaining:** Exact-final-head Flutter tests/analyze, Android Native CI, independent re-review/resolve of four P2 discussions, and real Android/iOS phone QA. No local toolchain/device access in this ChatGPT environment.
 **Current blocker:** W10 epic TNYX-87 formally blocked by TNYX-78. Owner approved W10-B child specifically; do not close epic or alter dependencies.
-**Open review finding IDs:** [P2 #4558285034](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558285034) preference-load race; [P2 #4558317255](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558317255) Workout modal sheet; [P2 #4558373627](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558373627) legacy resumed rearm; [P2 #4558373640](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558373640) source Set removal. Fixed in branch and replied, **reviewer verification pending**.
-**Next exact action:** Complete exact-final-head Flutter/Android CI and obtain independent reviewer disposition of all four P2 discussions; no merge without PR-specific owner approval.
+**Open review finding IDs:** P2 [#4558285034](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558285034) preference-load race; [#4558317255](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558317255) Workout-owned modal sheet; [#4558373627](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558373627) legacy resumed rearm; [#4558373640](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558373640) logged Set removal; [#4558415880](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558415880) manual deadline adjustment; [#4558415890](https://github.com/im-tnyx/tio-world/pull/754#discussion_r4558415890) paused legacy rest. All have source fixes/replies; **reviewer verification and thread disposition pending**.
+**Next exact action:** Complete exact-final-head Flutter/Android CI and obtain independent reviewer disposition of all six P2 discussions; no merge without PR-specific owner approval.
 
 ## 1. Discovery
 
@@ -111,7 +111,7 @@ Keep completion cause in the owning Workout presentation/controller boundary. No
 
 ## Review remediation checkpoint — 2026-11-13
 
-- W10-B PR #754 raised P2 preference-read race, owned modal sheet visibility, foreground resume arming and logged Set removal feedback. All four have scoped source fixes with independent reviewer threads intentionally still open until verification.
-- Last source commit: `042dd2af3792ee7ca781523e661a5901387bc23d`. Local Flutter/Dart and physical Android/iOS tests were NOT RUN. GitHub Docs Hygiene and attribution guard passed at this source checkpoint; Flutter/Dart analyze passed in latest-head job while Flutter tests and Android builds were still running at last check.
+- W10-B PR #754 raised six P2 findings: preference-read race, owned modal visibility, foreground resume rearming, logged Set removal, manual adjustment cancellation and paused legacy Rest expiry. All six have scoped source fixes/replies; reviewer threads intentionally remain open until independent verification.
+- Last source commit: `3f4311b144400e8b4c1efb81f9ba7de98b9ab41a`. Local Flutter/Dart and physical Android/iOS tests were NOT RUN. GitHub Docs Hygiene and attribution guard PASS at this source checkpoint; Flutter and Android CI were still in progress at last check. Earlier source-head analyze passed, but is not proof of this exact final head.
 - No protected main push, force push, Supabase schema/data/hosted action, Android notification service, Watch change, background vibration or merge.
 - This handoff edit is **docs-only** and creates a fresh PR head; all CI outcomes must be checked on that final head, not assumed from the prior source commit.
