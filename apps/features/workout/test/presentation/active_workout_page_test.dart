@@ -576,6 +576,99 @@ void main() {
         hasLength(1));
   });
 
+  testWidgets('legacy resume before deadline re-arms natural expiry',
+      (tester) async {
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          calls.add(call.arguments as String? ?? '');
+        }
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+
+    final settings = WorkoutRuntimeSettingsController(
+      repository: _RuntimeSettingsRepository()..vibrationEnabled = true,
+    );
+    addTearDown(settings.dispose);
+    await settings.loadRestTimerVibration();
+    final sessionRepo = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1);
+    final controller = ActiveWorkoutController(
+      repository: sessionRepo,
+      currentUserId: () => _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(controller.dispose);
+    await _pumpPage(
+      tester,
+      controller: controller,
+      workoutRuntimeSettingsController: settings,
+      clock: () => tester.binding.clock.now(),
+    );
+    controller.startRestTimer(durationSeconds: 5);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump(const Duration(seconds: 3));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(seconds: 3));
+
+    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'),
+        hasLength(1));
+  });
+
+  testWidgets('removing legacy logged Set suppresses related rest vibration',
+      (tester) async {
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'HapticFeedback.vibrate') {
+          calls.add(call.arguments as String? ?? '');
+        }
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+
+    final settings = WorkoutRuntimeSettingsController(
+      repository: _RuntimeSettingsRepository()..vibrationEnabled = true,
+    );
+    addTearDown(settings.dispose);
+    await settings.loadRestTimerVibration();
+    final sessionRepo = _FakeSessionRepository()
+      ..active = WorkoutSessionRecord(session: _session(), revision: 1);
+    final controller = ActiveWorkoutController(
+      repository: sessionRepo,
+      currentUserId: () => _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(controller.dispose);
+    await _pumpPage(
+      tester,
+      controller: controller,
+      workoutRuntimeSettingsController: settings,
+      clock: () => tester.binding.clock.now(),
+    );
+    controller.startRestTimer(
+      durationSeconds: 5,
+      sessionExerciseIndex: 0,
+      setIndex: 0,
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('active-workout-set-toggle-0')));
+    await tester.pumpAndSettle();
+    expect(controller.state.activeRestTimer, isNotNull);
+
+    await tester.pump(const Duration(seconds: 6));
+    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'), isEmpty);
+  });
+
   testWidgets('draft natural expiry vibrates once; Skip and OFF stay silent',
       (tester) async {
     final feedback = <String>[];

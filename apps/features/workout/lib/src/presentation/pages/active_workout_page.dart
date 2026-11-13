@@ -185,6 +185,11 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _vibrationForeground = state == AppLifecycleState.resumed;
     _legacyRestGate.setForeground(_vibrationForeground);
+    // Re-arm a still-positive online rest immediately on foreground return,
+    // before its next ticker can observe/clear an expired rest.
+    if (_vibrationForeground && _controller != null && mounted) {
+      _observeLegacyRest(_controller!);
+    }
     final draftController = widget.draftController;
     if (draftController == null) return;
     if (state == AppLifecycleState.hidden ||
@@ -295,6 +300,15 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
       preferenceReady:
           widget.workoutRuntimeSettingsController?.isVibrationReady ?? false,
     );
+  }
+
+  void _suppressRemovedRestFeedback(int exerciseIndex, int setIndex) {
+    final rest = _controller?.state.activeRestTimer;
+    if (rest != null &&
+        rest.sessionExerciseIndex == exerciseIndex &&
+        rest.setIndex == setIndex) {
+      _legacyRestGate.suppressCurrentRest();
+    }
   }
 
   void _syncTicker(ActiveWorkoutState state) {
@@ -581,6 +595,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
           state: state,
           controller: controller,
           workoutModalCounter: _workoutModalCounter,
+          onRestSourceRemoved: _suppressRemovedRestFeedback,
           onDurationPressed:
               state.isActionPending ? null : () => _showPauseDetails(state),
           onPauseOrResume:
@@ -1627,6 +1642,7 @@ class _SessionState extends StatefulWidget {
     required this.state,
     required this.controller,
     required this.workoutModalCounter,
+    required this.onRestSourceRemoved,
     required this.onDurationPressed,
     required this.onPauseOrResume,
     required this.onComplete,
@@ -1639,6 +1655,7 @@ class _SessionState extends StatefulWidget {
   final ActiveWorkoutState state;
   final ActiveWorkoutController controller;
   final _WorkoutModalCounter workoutModalCounter;
+  final void Function(int exerciseIndex, int setIndex) onRestSourceRemoved;
   final VoidCallback? onDurationPressed;
   final VoidCallback? onPauseOrResume;
   final VoidCallback? onComplete;
@@ -2136,7 +2153,10 @@ class _SessionStateState extends State<_SessionState> {
           onToggleLogged: (
               {reps, loadKg, durationSeconds, distanceMeters}) async {
             if (isComplete) {
-              await controller.removeSet(performed.id);
+              final removed = await controller.removeSet(performed.id);
+              if (removed) {
+                widget.onRestSourceRemoved(exercise.occurrenceIndex, setIndex);
+              }
             } else {
               final logged = await controller.logSet(
                 sessionExerciseIndex: exercise.occurrenceIndex,

@@ -75,6 +75,29 @@ void main() {
     expect(gate.complete('new-rest', vibrationEnabled: true), isTrue);
   });
 
+  test('removed source suppresses current Rest haptic without changing countdown',
+      () {
+    final gate = RestTimerCompletionGate();
+    gate.observeRest(
+      restId: 'logged-set',
+      remainingPositive: true,
+      vibrationEnabled: true,
+    );
+    gate.suppressCurrentRest();
+    gate.observeRest(
+      restId: 'logged-set',
+      remainingPositive: true,
+      vibrationEnabled: true,
+    );
+    expect(gate.complete('logged-set', vibrationEnabled: true), isFalse);
+    gate.observeRest(
+      restId: 'another-rest',
+      remainingPositive: true,
+      vibrationEnabled: true,
+    );
+    expect(gate.complete('another-rest', vibrationEnabled: true), isTrue);
+  });
+
   test('background expiry and already-expired restored rest are silent', () {
     final gate = RestTimerCompletionGate();
     gate.observeRest(

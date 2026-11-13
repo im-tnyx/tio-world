@@ -58,6 +58,14 @@ final class RestTimerCompletionGate {
     }
   }
 
+  /// A source Set was removed. Keep countdown state unchanged, but never buzz
+  /// for this rest occurrence after its source has been removed.
+  void suppressCurrentRest() {
+    _enabledAtStart = false;
+    _armed = false;
+    _completed = true;
+  }
+
   /// Consumes the completion even if feedback is disabled or the app is hidden.
   bool complete(String restId, {required bool vibrationEnabled}) {
     if (restId != _currentRestId || _completed) return false;
