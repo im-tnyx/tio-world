@@ -16,6 +16,7 @@ final _exerciseRef = ExerciseRef.catalog('ex_barbell_bench_press');
 
 final class _DraftStore implements ActiveWorkoutDraftStore {
   ActiveWorkoutDraft? saved;
+  int saveCount = 0;
   bool failLoad = false;
 
   @override
@@ -25,7 +26,10 @@ final class _DraftStore implements ActiveWorkoutDraftStore {
   }
 
   @override
-  Future<void> save(ActiveWorkoutDraft draft) async => saved = draft;
+  Future<void> save(ActiveWorkoutDraft draft) async {
+    saved = draft;
+    saveCount++;
+  }
 
   @override
   Future<void> delete() async => saved = null;
