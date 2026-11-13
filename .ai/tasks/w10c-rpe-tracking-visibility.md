@@ -84,3 +84,9 @@
 - New app-router regression initially failed on exact head `78b5504a51b486a56bced48829e957345cd9e8c6`: the test checked `router.routeInformationProvider` for a nested imperative push, which retains the branch root URL by existing go_router behavior; it now checks `GoRouterState.of(WorkoutSettingsPage)` directly.
 - The same CI surfaced a **real** `setState() called during build` problem when Settings initialization notified the shared runtime settings controller while the live Save-only preview was still listening beneath the pushed route. The preview now filters unrelated Rest-setting notifications by the actual RPE visibility boolean and defers a genuine RPE-triggered rebuild until after the frame if the framework is currently in its persistent build phase. On controller replacement it re-seeds the observed visibility; disposed previews do not set state.
 - No new settings owner/router or data persistence. Re-run exact-head Flutter/Android CI; do not claim PASS yet, do not merge. Original 320dp P2 remains independent-review pending.
+
+## Additional Codex P2 — fresh empty Log Workout Settings
+
+- Automated reviewer requested a **fresh empty Log Workout** regression with **Default Rest still unloaded** before opening Settings, distinct from the Routine-seeded navigation test. The underlying build-phase `setState` fix is at `07be6ce3adc1c5a787cca9a164df0a9d6b9b4879`.
+- Added app-router widget regression: `/workout/active?preview=1` starts an empty owner-bound local draft; assert runtime default-rest preference `isReady=false`; tap Settings; assert canonical Workout Settings route, successful default load and no framework exception; Back returns to the exact same empty draft ID with no extra save. No Supabase, no merge.
+- Exact-head CI and independent reviewer verification still required.

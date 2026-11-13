@@ -149,6 +149,53 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('fresh empty Log Workout opens Settings before Rest default loads',
+      (tester) async {
+    final store = _MemoryActiveWorkoutDraftStore();
+    final (container, router) = await _app(
+      tester,
+      AppMode.hybrid,
+      withRoutineComposition: true,
+      withRoutineStartForTest: true,
+      activeDraftStore: store,
+    );
+    router.go('$_activePath?preview=1');
+    await tester.pumpAndSettle();
+    expect(find.byType(ActiveWorkoutPage), findsOneWidget);
+    expect(find.text('Get started'), findsOneWidget);
+    final draftController = container.read(activeWorkoutDraftControllerProvider);
+    final originalDraft = draftController!.draft!;
+    expect(originalDraft.exercises, isEmpty);
+    final runtime = container.read(workoutRuntimeSettingsControllerProvider);
+    expect(runtime, isNotNull);
+    expect(runtime!.isReady, isFalse,
+        reason: 'Default Rest only loads when a setting or Add Exercise asks');
+    final savesBeforeSettings = store.saveCount;
+
+    final settingsAction =
+        find.byKey(const ValueKey('active-workout-preview-settings'));
+    await tester.ensureVisible(settingsAction);
+    await tester.pumpAndSettle();
+    await tester.tap(settingsAction);
+    await tester.pumpAndSettle();
+
+    final settingsPage = find.byType(WorkoutSettingsPage);
+    expect(settingsPage, findsOneWidget);
+    expect(GoRouterState.of(tester.element(settingsPage)).uri.path,
+        AppRoutes.workoutSettings.path);
+    expect(runtime.isReady, isTrue);
+    expect(tester.takeException(), isNull,
+        reason: 'Settings init must not rebuild underlying preview mid-frame');
+
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(ActiveWorkoutPage), findsOneWidget);
+    expect(draftController.draft?.id, originalDraft.id);
+    expect(draftController.draft?.exercises, isEmpty);
+    expect(store.saveCount, savesBeforeSettings);
+    expect(tester.takeException(), isNull);
+  });
+
   test('Library hides the bottom navigation and root top bar', () {
     final policy = shellChromePolicyForPath(_libraryPath);
 
