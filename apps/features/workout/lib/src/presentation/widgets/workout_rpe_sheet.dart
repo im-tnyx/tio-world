@@ -302,7 +302,7 @@ class _WorkoutRpeSheetState extends State<WorkoutRpeSheet> {
                                       RpeMetadata.format(RpeMetadata.values[i]),
                                       style: TextStyle(
                                         color: i == selectedIndex
-                                            ? TioPalette.white
+                                            ? colors.onPrimary
                                             : colors.textPrimary,
                                         fontSize: i == selectedIndex
                                             ? TioFontSize.size15

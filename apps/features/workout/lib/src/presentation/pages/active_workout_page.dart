@@ -79,6 +79,7 @@ class ActiveWorkoutPage extends StatelessWidget {
     required this.controller,
     super.key,
     this.onBack,
+    this.onSettingsPressed,
     this.showStartPreview = false,
     this.createDraftIfMissing = true,
     this.catalogRepository,
@@ -91,6 +92,9 @@ class ActiveWorkoutPage extends StatelessWidget {
 
   final ActiveWorkoutController? controller;
   final VoidCallback? onBack;
+
+  /// App-owned navigation callback; the Workout feature does not import routes.
+  final VoidCallback? onSettingsPressed;
 
   /// Entry-only UI: never creates a session, exercise, or fake identity.
   final bool showStartPreview;
@@ -116,6 +120,7 @@ class ActiveWorkoutPage extends StatelessWidget {
     return _ActiveWorkoutBody(
       controller: controller,
       onBack: onBack ?? () => Navigator.of(context).maybePop(),
+      onSettingsPressed: onSettingsPressed,
       showStartPreview: showStartPreview,
       createDraftIfMissing: createDraftIfMissing,
       catalogRepository: catalogRepository,
@@ -132,6 +137,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
   const _ActiveWorkoutBody({
     required this.controller,
     required this.onBack,
+    this.onSettingsPressed,
     required this.showStartPreview,
     required this.createDraftIfMissing,
     this.catalogRepository,
@@ -144,6 +150,7 @@ class _ActiveWorkoutBody extends StatefulWidget {
 
   final ActiveWorkoutController? controller;
   final VoidCallback onBack;
+  final VoidCallback? onSettingsPressed;
   final bool showStartPreview;
   final bool createDraftIfMissing;
   final ExerciseCatalogRepository? catalogRepository;
@@ -613,6 +620,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
               ? null
               : () => _discard(state),
           onBack: widget.onBack,
+          onSettingsPressed: widget.onSettingsPressed,
           catalogRepository: widget.catalogRepository,
           userExerciseRepository: widget.userExerciseRepository,
         );
@@ -621,6 +629,7 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
 
   Widget _buildDraftPreview() => _StartWorkoutPreview(
         onBack: widget.onBack,
+        onSettingsPressed: widget.onSettingsPressed,
         createDraftIfMissing: widget.createDraftIfMissing,
         workoutModalCounter: _workoutModalCounter,
         catalogRepository: widget.catalogRepository,
@@ -651,6 +660,7 @@ class _LoadingState extends StatelessWidget {
 class _StartWorkoutPreview extends StatefulWidget {
   const _StartWorkoutPreview({
     required this.onBack,
+    this.onSettingsPressed,
     required this.createDraftIfMissing,
     required this.workoutModalCounter,
     this.catalogRepository,
@@ -662,6 +672,7 @@ class _StartWorkoutPreview extends StatefulWidget {
   });
 
   final VoidCallback onBack;
+  final VoidCallback? onSettingsPressed;
   final bool createDraftIfMissing;
   final _WorkoutModalCounter workoutModalCounter;
   final ExerciseCatalogRepository? catalogRepository;
@@ -1344,8 +1355,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
                             key: const ValueKey(
                                 'active-workout-preview-settings'),
                             label: 'Settings',
-                            onPressed: () =>
-                                _showDeferredAction(context, 'Settings'),
+                            onPressed: widget.onSettingsPressed,
                           ),
                         ),
                         const SizedBox(width: TioSpacing.md),
@@ -1672,6 +1682,7 @@ class _SessionState extends StatefulWidget {
     required this.onComplete,
     required this.onDiscard,
     required this.onBack,
+    this.onSettingsPressed,
     this.catalogRepository,
     this.userExerciseRepository,
   });
@@ -1685,6 +1696,7 @@ class _SessionState extends StatefulWidget {
   final VoidCallback? onComplete;
   final VoidCallback? onDiscard;
   final VoidCallback onBack;
+  final VoidCallback? onSettingsPressed;
   final ExerciseCatalogRepository? catalogRepository;
   final UserExerciseRepository? userExerciseRepository;
 
@@ -2009,8 +2021,7 @@ class _SessionStateState extends State<_SessionState> {
                             child: TioButton.secondary(
                               key: const ValueKey('active-workout-settings'),
                               label: 'Settings',
-                              onPressed: () =>
-                                  _showDeferredAction(context, 'Settings'),
+                              onPressed: widget.onSettingsPressed,
                             ),
                           ),
                           const SizedBox(width: TioSpacing.md),
