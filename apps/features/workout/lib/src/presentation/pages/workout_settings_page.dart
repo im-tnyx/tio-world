@@ -156,6 +156,7 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
                         icon: Icons.vibration_rounded,
                       ),
                       label: 'Rest Timer Vibration',
+                      onTap: null,
                       showEditAffordance: false,
                       value: controller.isVibrationLoading
                           ? const CircularProgressIndicator()

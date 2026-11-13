@@ -410,6 +410,7 @@ void main() {
         if (call.method == 'HapticFeedback.vibrate') {
           feedback.add(call.arguments as String? ?? '');
         }
+        return null;
       },
     );
     addTearDown(() => tester.binding.defaultBinaryMessenger
@@ -478,6 +479,7 @@ void main() {
         if (call.method == 'HapticFeedback.vibrate') {
           feedback.add(call.arguments as String? ?? '');
         }
+        return null;
       },
     );
     addTearDown(() => tester.binding.defaultBinaryMessenger
@@ -533,6 +535,7 @@ void main() {
         if (call.method == 'HapticFeedback.vibrate') {
           feedback.add(call.arguments as String? ?? '');
         }
+        return null;
       },
     );
     addTearDown(() => tester.binding.defaultBinaryMessenger

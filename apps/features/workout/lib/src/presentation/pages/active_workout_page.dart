@@ -252,6 +252,10 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
           _legacyRestGate.complete(id, vibrationEnabled: enabled) &&
           _vibrationForeground &&
           mounted &&
+          // Local Save-only draft preview takes precedence over a restored
+          // online session. Never buzz for the hidden legacy timer.
+          !(widget.showStartPreview &&
+              widget.draftController?.draft != null) &&
           (ModalRoute.of(context)?.isCurrent ?? true)) {
         unawaited(_vibrateAtRestCompletion());
       }
