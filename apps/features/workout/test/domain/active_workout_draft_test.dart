@@ -119,8 +119,13 @@ void main() {
       saveRequestId: _id(3),
       time: WorkoutTime.start(startedAtUtc: started),
     );
-    expect(() => ActiveWorkoutDraft.fromJson({...empty.toJson(), 'version': 2}),
+    expect(() => ActiveWorkoutDraft.fromJson({...empty.toJson(), 'version': 3}),
         throwsFormatException);
+    final versionOne = Map<String, dynamic>.from(empty.toJson())
+      ..['version'] = 1
+      ..remove('supersets');
+    final restoredVersionOne = ActiveWorkoutDraft.fromJson(versionOne);
+    expect(restoredVersionOne.supersets, isEmpty);
     expect(
       () => ActiveWorkoutDraft(
         id: _id(1),
@@ -142,6 +147,66 @@ void main() {
       ),
       throwsArgumentError,
     );
+  });
+
+  test('Superset group, member references and shared rest survive recovery', () {
+    const groupId = '00000000-0000-4000-8000-000000000020';
+    final first = ActiveWorkoutDraftExercise(
+      id: _id(30),
+      supersetId: groupId,
+      exerciseRef: ExerciseRef.catalog('ex_first'),
+      displayName: 'First',
+      sets: [
+        ActiveWorkoutDraftSet(
+          id: _id(40),
+          prescription: SetPrescription(setType: RoutineSetType.warmUp),
+        ),
+      ],
+    );
+    final second = ActiveWorkoutDraftExercise(
+      id: _id(31),
+      supersetId: groupId,
+      exerciseRef: ExerciseRef.catalog('ex_second'),
+      displayName: 'Second',
+      sets: [
+        ActiveWorkoutDraftSet(
+          id: _id(41),
+          prescription: SetPrescription(),
+        ),
+      ],
+    );
+    final draft = ActiveWorkoutDraft(
+      id: _id(1),
+      ownerId: _id(2),
+      saveRequestId: _id(3),
+      time: WorkoutTime.start(startedAtUtc: started),
+      exercises: [first, second],
+      supersets: [
+        ActiveWorkoutDraftSuperset(
+          id: groupId,
+          restPreset: const RoutineRestTimerPreset(
+            normalRestSeconds: 60,
+            warmUpRestSeconds: 15,
+          ),
+        ),
+      ],
+      activeRest: ActiveWorkoutDraftRest(
+        targetAtUtc: started.add(const Duration(seconds: 15)),
+        totalDurationSeconds: 15,
+        exerciseId: first.id,
+        setId: first.sets.single.id,
+        supersetId: groupId,
+        roundIndex: 0,
+      ),
+    );
+
+    final restored = ActiveWorkoutDraft.fromJson(draft.toJson());
+    expect(restored.supersets.single.id, groupId);
+    expect(restored.supersets.single.restPreset.warmUpRestSeconds, 15);
+    expect(restored.exercises.map((exercise) => exercise.supersetId),
+        [groupId, groupId]);
+    expect(restored.activeRest!.supersetId, groupId);
+    expect(restored.activeRest!.roundIndex, 0);
   });
 
   test('skipped completion survives restoration without fabricated metrics',

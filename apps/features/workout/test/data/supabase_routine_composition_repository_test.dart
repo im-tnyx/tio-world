@@ -119,6 +119,37 @@ void main() {
         isTrue);
   });
 
+  test('reads owner-scoped Superset configuration and member references',
+      () async {
+    const groupId = '66666666-6666-4666-8666-666666666666';
+    final gateway = _Gateway()
+      ..entries = [
+        _entry(1, 0)..['superset_id'] = groupId,
+        _entry(2, 1)..['superset_id'] = groupId,
+      ]
+      ..sets = [_set(10, 1, 0), _set(11, 2, 0)]
+      ..supersets = [
+        {
+          'id': groupId,
+          'user_id': _owner,
+          'routine_id': _routine.value,
+          'normal_rest_seconds': 60,
+          'warm_up_rest_seconds': 15,
+        },
+      ];
+
+    final snapshot = (await gateway.repository.read(_routine))!;
+    expect(snapshot.supersets.single.id, groupId);
+    expect(snapshot.supersets.single.restPreset.normalRestSeconds, 60);
+    expect(snapshot.supersets.single.restPreset.warmUpRestSeconds, 15);
+    expect(snapshot.entries.map((entry) => entry.supersetId),
+        [groupId, groupId]);
+    expect(gateway.supersetCalls, 1);
+    expect(
+        gateway.scopes.every((scope) => scope == '$_owner/${_routine.value}'),
+        isTrue);
+  });
+
   test('empty existing composition is distinct from missing Routine', () async {
     final gateway = _Gateway();
     expect((await gateway.repository.read(_routine))!.entries, isEmpty);
@@ -317,7 +348,8 @@ void main() {
       mutationId: _mutation, entries: snapshot.entries,
     );
     expect(await gw.repository.save(command), 1);
-    final payload = (gw.saved!['exercises'] as List).single;
+    final envelope = gw.saved!['exercises'] as Map;
+    final payload = (envelope['entries'] as List).single;
     final serialized = (payload['sets'] as List).single;
     expect(serialized['set_type'], 'drop');
     expect(serialized['reps_max'], 12);
@@ -407,17 +439,21 @@ void main() {
       'routineId': _routine.value,
       'expectedRevision': 0,
       'mutationId': _mutation,
-      'exercises': [
-        {
-          'id': _id(1),
-          'exercise_ref': 'ex_squat',
-          'sets': [
-            {'id': _id(10), 'reps': 8, 'reps_max': null,
-             'set_type': 'normal', 'load_kg': null, 'distance_meters': null,
-              'duration_seconds': null, 'rest_seconds': null}
-          ]
-        }
-      ],
+      'exercises': {
+        'schema_version': 2,
+        'entries': [
+          {
+            'id': _id(1),
+            'exercise_ref': 'ex_squat',
+            'sets': [
+              {'id': _id(10), 'reps': 8, 'reps_max': null,
+               'set_type': 'normal', 'load_kg': null, 'distance_meters': null,
+                'duration_seconds': null, 'rest_seconds': null}
+            ]
+          }
+        ],
+        'supersets': <Object>[],
+      },
     });
     expect(gateway.saveCalls, 1);
     expect(gateway.headerCalls, 0);
@@ -851,13 +887,19 @@ void main() {
   });
 }
 
-final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdateGateway {
+final class _Gateway
+    implements
+        RoutineCompositionGateway,
+        RoutineAggregateUpdateGateway,
+        RoutineSupersetReadGateway {
   String? owner = _owner;
   Map<String, dynamic>? header = _header();
   List<Map<String, dynamic>> entries = [];
   List<Map<String, dynamic>> sets = [];
+  List<Map<String, dynamic>> supersets = [];
   int cap = 500;
   int headerCalls = 0, entryCalls = 0, setCalls = 0, saveCalls = 0;
+  int supersetCalls = 0;
   int aggregateCalls = 0;
   Map<String, dynamic>? aggregateArgs;
   Future<Object?> Function()? onAggregate;
@@ -928,11 +970,23 @@ final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdat
   }
 
   @override
+  Future<List<Map<String, dynamic>>> readSupersets({
+    required String userId,
+    required String routineId,
+    required int limit,
+    String? afterId,
+  }) async {
+    supersetCalls++;
+    scopes.add('$userId/$routineId');
+    return _page(supersets, afterId, limit);
+  }
+
+  @override
   Future<Object?> save(
       {required String routineId,
       required int expectedRevision,
       required String mutationId,
-      required List<Map<String, dynamic>> exercises}) async {
+      required Map<String, dynamic> exercises}) async {
     saveCalls++;
     saved = {
       'routineId': routineId,
@@ -950,7 +1004,7 @@ final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdat
     required String expectedName,
     required String mutationId,
     String? name,
-    List<Map<String, dynamic>>? exercises,
+    Map<String, dynamic>? exercises,
   }) async {
     aggregateCalls++;
     aggregateArgs = {

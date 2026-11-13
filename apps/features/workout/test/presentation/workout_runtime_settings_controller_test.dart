@@ -4,8 +4,11 @@ import 'package:tio_feature_workout/workout.dart';
 final class _Repository implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
+  bool smartSupersetScrollingEnabled = false;
   bool failNextRpeRead = false;
   bool failNextRpeWrite = false;
+  bool failNextSmartSupersetScrollingRead = false;
+  bool failNextSmartSupersetScrollingWrite = false;
 
   @override
   Future<bool> readRpeTrackingEnabled() async {
@@ -23,6 +26,24 @@ final class _Repository implements WorkoutRuntimeSettingsRepository {
       throw StateError('Simulated RPE preference save failure');
     }
     rpeEnabled = enabled;
+  }
+
+  @override
+  Future<bool> readSmartSupersetScrollingEnabled() async {
+    if (failNextSmartSupersetScrollingRead) {
+      failNextSmartSupersetScrollingRead = false;
+      throw StateError('Simulated smart scrolling preference read failure');
+    }
+    return smartSupersetScrollingEnabled;
+  }
+
+  @override
+  Future<void> writeSmartSupersetScrollingEnabled(bool enabled) async {
+    if (failNextSmartSupersetScrollingWrite) {
+      failNextSmartSupersetScrollingWrite = false;
+      throw StateError('Simulated smart scrolling preference save failure');
+    }
+    smartSupersetScrollingEnabled = enabled;
   }
 
   bool failNextVibrationRead = false;
@@ -185,6 +206,49 @@ void main() {
     await expectLater(ctrl.setRpeTrackingEnabled(false), throwsStateError);
     expect(ctrl.rpeTrackingEnabled, isTrue);
     expect(repo.rpeEnabled, isTrue);
+  });
+
+  test('smart Superset scrolling defaults OFF and persists independently',
+      () async {
+    final repository = _Repository()..seconds = 45;
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+
+    await controller.loadSmartSupersetScrolling();
+    expect(controller.isSmartSupersetScrollingReady, isTrue);
+    expect(controller.smartSupersetScrollingEnabled, isFalse);
+    await controller.setSmartSupersetScrollingEnabled(true);
+    expect(repository.smartSupersetScrollingEnabled, isTrue);
+    expect(controller.smartSupersetScrollingEnabled, isTrue);
+    await controller.load();
+    expect(controller.effectiveDefaultRestSeconds, 45);
+    await controller.loadRpeTracking();
+    expect(controller.rpeTrackingEnabled, isFalse);
+  });
+
+  test('smart scrolling read retries and failed save keeps the stored value',
+      () async {
+    final repository = _Repository()
+      ..smartSupersetScrollingEnabled = true
+      ..failNextSmartSupersetScrollingRead = true;
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+
+    await controller.loadSmartSupersetScrolling();
+    expect(controller.isSmartSupersetScrollingReady, isFalse);
+    expect(controller.smartSupersetScrollingEnabled, isFalse);
+    expect(controller.smartSupersetScrollingError, isA<StateError>());
+    await controller.loadSmartSupersetScrolling();
+    expect(controller.isSmartSupersetScrollingReady, isTrue);
+    expect(controller.smartSupersetScrollingEnabled, isTrue);
+
+    repository.failNextSmartSupersetScrollingWrite = true;
+    await expectLater(
+      controller.setSmartSupersetScrollingEnabled(false),
+      throwsStateError,
+    );
+    expect(controller.smartSupersetScrollingEnabled, isTrue);
+    expect(repository.smartSupersetScrollingEnabled, isTrue);
   });
 
   test('rejects values outside the existing wheel contract', () async {

@@ -40,6 +40,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   Future<void> _mutationTail = Future<void>.value();
   bool _disposed = false;
   Object? _error;
+  final Set<String> _pendingSetToggles = {};
 
   /// Backgrounding that arrived while restore had not published a draft yet.
   DateTime? _pendingBackgroundedAtUtc;
@@ -86,6 +87,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             entry.sets.map((set) => set.prescription).toList(growable: false);
         exercises.add(ActiveWorkoutDraftExercise(
           id: _newUuid(),
+          supersetId: entry.supersetId,
           exerciseRef: exercise.ref,
           displayName: exercise.displayName,
           exerciseType: exercise.exerciseType,
@@ -110,6 +112,13 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         lastActivityAtUtc: startedAtUtc,
         workoutTitle: request.routine.name,
         exercises: exercises,
+        supersets: [
+          for (final group in request.composition.supersets)
+            ActiveWorkoutDraftSuperset(
+              id: group.id,
+              restPreset: group.restPreset,
+            ),
+        ],
       );
       if (_disposed) return false;
       // Match existing Play behavior: publish the account-bound draft first,
@@ -376,14 +385,147 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         return draft.copyWith(exercises: next);
       });
 
-  Future<bool> removeExercise(String exerciseId) => _change((draft) {
-        final next = draft.exercises.where((e) => e.id != exerciseId).toList();
-        if (next.length == draft.exercises.length) {
-          throw StateError('Exercise occurrence is missing.');
+  Future<bool> createSuperset(String firstExerciseId, String secondExerciseId) =>
+      _change((draft) {
+        final first = draft.exercises.indexWhere((e) => e.id == firstExerciseId);
+        final second = draft.exercises.indexWhere((e) => e.id == secondExerciseId);
+        if (first < 0 || second < 0 || first == second ||
+            draft.exercises[first].supersetId != null ||
+            draft.exercises[second].supersetId != null) {
+          throw StateError('Select two eligible exercises.');
+        }
+        if (draft.exercises[first].sets.any((set) => set.loggedAtUtc != null) ||
+            draft.exercises[second].sets.any((set) => set.loggedAtUtc != null)) {
+          throw StateError('Superset membership is frozen after progress.');
+        }
+        final id = _newUuid();
+        final ordered = [first, second]..sort();
+        final members = [
+          draft.exercises[ordered[0]].copyWith(supersetId: id),
+          draft.exercises[ordered[1]].copyWith(supersetId: id),
+        ];
+        final next = [...draft.exercises]
+          ..removeAt(ordered[1])
+          ..removeAt(ordered[0]);
+        next.insertAll(ordered[0], members);
+        return draft.copyWith(
+          exercises: next,
+          supersets: [
+            ...draft.supersets,
+            ActiveWorkoutDraftSuperset(
+              id: id,
+              restPreset: draft.exercises[first].restPreset,
+            ),
+          ],
+        );
+      });
+
+  Future<bool> addSupersetMember(String supersetId, String exerciseId) =>
+      _change((draft) {
+        if (_supersetHasProgress(draft, supersetId)) {
+          throw StateError('Superset membership is frozen after progress.');
+        }
+        final members = draft.exercises
+            .where((exercise) => exercise.supersetId == supersetId)
+            .length;
+        final index = draft.exercises.indexWhere((e) => e.id == exerciseId);
+        if (members < 2 || members >= 3 || index < 0 ||
+            draft.exercises[index].supersetId != null) {
+          throw StateError('Select an eligible Superset exercise.');
+        }
+        final next = [...draft.exercises]..removeAt(index);
+        final last = next.lastIndexWhere((e) => e.supersetId == supersetId);
+        next.insert(last + 1, draft.exercises[index].copyWith(supersetId: supersetId));
+        return draft.copyWith(exercises: next);
+      });
+
+  Future<bool> removeFromSuperset(String exerciseId) => _change((draft) {
+        final index = draft.exercises.indexWhere((e) => e.id == exerciseId);
+        if (index < 0) throw StateError('Exercise occurrence is missing.');
+        final groupId = draft.exercises[index].supersetId;
+        if (groupId == null) return draft;
+        if (_supersetHasProgress(draft, groupId)) {
+          throw StateError('Superset membership is frozen after progress.');
+        }
+        final memberCount = draft.exercises
+            .where((exercise) => exercise.supersetId == groupId)
+            .length;
+        final next = [...draft.exercises];
+        var supersets = draft.supersets;
+        if (memberCount <= 2) {
+          for (var i = 0; i < next.length; i++) {
+            if (next[i].supersetId == groupId) {
+              next[i] = next[i].copyWith(supersetId: null);
+            }
+          }
+          supersets = supersets.where((group) => group.id != groupId).toList();
+        } else {
+          next[index] = next[index].copyWith(supersetId: null);
         }
         return draft.copyWith(
           exercises: next,
-          activeRest: draft.activeRest?.exerciseId == exerciseId
+          supersets: supersets,
+          activeRest:
+              draft.activeRest?.supersetId == groupId ? null : draft.activeRest,
+        );
+      });
+
+  Future<bool> configureSupersetRestTimer(
+    String supersetId, {
+    required int? normalRestSeconds,
+    required int? warmUpRestSeconds,
+  }) =>
+      _change((draft) {
+        final index = draft.supersets.indexWhere((group) => group.id == supersetId);
+        if (index < 0) throw StateError('Superset is missing.');
+        final groups = [...draft.supersets];
+        groups[index] = ActiveWorkoutDraftSuperset(
+          id: supersetId,
+          restPreset: RoutineRestTimerPreset(
+            normalRestSeconds: normalRestSeconds,
+            warmUpRestSeconds: warmUpRestSeconds,
+          ),
+        );
+        // The persisted active countdown keeps its captured deadline and
+        // duration; the edited pair is read when the next round completes.
+        return draft.copyWith(supersets: groups);
+      });
+
+  bool _supersetHasProgress(ActiveWorkoutDraft draft, String supersetId) =>
+      draft.exercises
+          .where((exercise) => exercise.supersetId == supersetId)
+          .any((exercise) =>
+              exercise.sets.any((set) => set.loggedAtUtc != null));
+
+  Future<bool> removeExercise(String exerciseId) => _change((draft) {
+        final removed = draft.exercises.where((e) => e.id == exerciseId).firstOrNull;
+        if (removed == null) throw StateError('Exercise occurrence is missing.');
+        if (removed.supersetId != null &&
+            _supersetHasProgress(draft, removed.supersetId!)) {
+          throw StateError('Superset membership is frozen after progress.');
+        }
+        final next = draft.exercises.where((e) => e.id != exerciseId).toList();
+        var supersets = draft.supersets;
+        if (removed.supersetId != null) {
+          final remaining = next
+              .where((e) => e.supersetId == removed.supersetId)
+              .toList();
+          if (remaining.length < 2) {
+            for (var index = 0; index < next.length; index++) {
+              if (next[index].supersetId == removed.supersetId) {
+                next[index] = next[index].copyWith(supersetId: null);
+              }
+            }
+            supersets = supersets
+                .where((group) => group.id != removed.supersetId)
+                .toList();
+          }
+        }
+        return draft.copyWith(
+          exercises: next,
+          supersets: supersets,
+          activeRest: draft.activeRest?.exerciseId == exerciseId ||
+                  draft.activeRest?.supersetId == removed.supersetId
               ? null
               : draft.activeRest,
         );
@@ -398,8 +540,14 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         final next = [...draft.exercises];
         final index = next.indexWhere((e) => e.id == exerciseId);
         if (index < 0) throw StateError('Exercise occurrence is missing.');
+        final current = next[index];
+        if (current.supersetId != null &&
+            _supersetHasProgress(draft, current.supersetId!)) {
+          throw StateError('Superset member cannot be replaced after progress.');
+        }
         next[index] = ActiveWorkoutDraftExercise(
           id: _newUuid(),
+          supersetId: current.supersetId,
           exerciseRef: replacement.ref,
           displayName: replacement.displayName,
           exerciseType: replacement.exerciseType,
@@ -438,23 +586,49 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
         final next = [...draft.exercises];
         final index = next.indexWhere((e) => e.id == exerciseId);
         if (index < 0) throw StateError('Exercise occurrence is missing.');
+        final current = next[index];
         final remaining = next[index].sets.where((s) => s.id != setId).toList();
         if (remaining.length == next[index].sets.length) {
           throw StateError('Set is missing.');
         }
         // Save snapshot validation requires 1–8 sets per exercise. Removing the
         // last set drops the empty exercise instead of leaving prescribed_sets:[].
+        if (current.supersetId != null &&
+            _supersetHasProgress(draft, current.supersetId!)) {
+          throw StateError('Superset sets cannot be changed after progress.');
+        }
         if (remaining.isEmpty) {
           next.removeAt(index);
         } else {
           next[index] = next[index].copyWith(sets: remaining);
         }
+        var supersets = draft.supersets;
+        if (remaining.isEmpty && current.supersetId != null) {
+          final members = next
+              .where((exercise) => exercise.supersetId == current.supersetId)
+              .toList();
+          if (members.length < 2) {
+            for (var memberIndex = 0; memberIndex < next.length; memberIndex++) {
+              if (next[memberIndex].supersetId == current.supersetId) {
+                next[memberIndex] = next[memberIndex].copyWith(supersetId: null);
+              }
+            }
+            supersets = supersets
+                .where((group) => group.id != current.supersetId)
+                .toList();
+          }
+        }
         return draft.copyWith(
           exercises: next,
+          supersets: supersets,
           // Only clear rest when the resting set itself was removed. Dropping a
           // different set on the same exercise must keep an active countdown.
           activeRest:
-              draft.activeRest?.setId == setId ? null : draft.activeRest,
+              draft.activeRest?.setId == setId ||
+                      current.supersetId != null &&
+                          draft.activeRest?.supersetId == current.supersetId
+                  ? null
+                  : draft.activeRest,
         );
       });
 
@@ -627,8 +801,10 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
     int? durationSeconds,
     double? distanceMeters,
     bool isSkipped = false,
-  }) =>
-      _change((draft) {
+  }) {
+    final pendingKey = '$exerciseId::$setId';
+    if (!_pendingSetToggles.add(pendingKey)) return Future<bool>.value(false);
+    return _change((draft) {
         final next = [...draft.exercises];
         final exerciseIndex = next.indexWhere((e) => e.id == exerciseId);
         if (exerciseIndex < 0) {
@@ -649,7 +825,11 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             loggedAtUtc: null,
             isSkipped: false,
           );
-          if (rest?.setId == setId) rest = null;
+          if (exercise.supersetId != null &&
+              rest?.supersetId == exercise.supersetId ||
+              rest?.setId == setId) {
+            rest = null;
+          }
         } else {
           sets[setIndex] = set.copyWith(
             reps: reps,
@@ -659,21 +839,71 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             loggedAtUtc: _nowUtc(),
             isSkipped: isSkipped,
           );
-          final restSeconds = exercise.hasRestOverride
-              ? exercise.restPreset.effectiveRestFor(set.prescription.setType)
-              : set.prescription.restSeconds;
-          rest = restSeconds == null || restSeconds <= 0
-              ? null
-              : ActiveWorkoutDraftRest(
-                  targetAtUtc: _nowUtc().add(Duration(seconds: restSeconds)),
-                  totalDurationSeconds: restSeconds,
-                  exerciseId: exerciseId,
-                  setId: setId,
-                );
+          final groupId = exercise.supersetId;
+          if (groupId == null) {
+            final restSeconds = exercise.hasRestOverride
+                ? exercise.restPreset.effectiveRestFor(set.prescription.setType)
+                : set.prescription.restSeconds;
+            rest = restSeconds == null || restSeconds <= 0
+                ? null
+                : ActiveWorkoutDraftRest(
+                    targetAtUtc: _nowUtc().add(Duration(seconds: restSeconds)),
+                    totalDurationSeconds: restSeconds,
+                    exerciseId: exerciseId,
+                    setId: setId,
+                  );
+          } else {
+            final currentRest = draft.activeRest;
+            if (currentRest?.supersetId != groupId) rest = null;
+            final roundSets = <ActiveWorkoutDraftSet>[];
+            final groupMembers = draft.exercises
+                .where((member) => member.supersetId == groupId)
+                .toList();
+            for (final member in groupMembers) {
+              if (setIndex < member.sets.length) {
+                roundSets.add(member.sets[setIndex]);
+              }
+            }
+            // The current set is in [sets] and has just been completed; use
+            // the updated copy while every other member contributes its own
+            // available set at this ordinal position.
+            roundSets.removeWhere((roundSet) => roundSet.id == setId);
+            roundSets.add(sets[setIndex]);
+            final roundComplete = roundSets.isNotEmpty &&
+                roundSets.every((roundSet) => roundSet.loggedAtUtc != null);
+            final lastRound = groupMembers
+                .map((member) => member.sets.length)
+                .fold<int>(0, (max, count) => count > max ? count : max) -
+                1;
+            if (roundComplete && setIndex >= lastRound) {
+              rest = null;
+            } else if (roundComplete) {
+              final group = draft.supersets
+                  .where((candidate) => candidate.id == groupId)
+                  .firstOrNull;
+              if (group == null) throw StateError('Superset is missing.');
+              final hasWarmUp = roundSets.any((roundSet) =>
+                  roundSet.prescription.setType == RoutineSetType.warmUp);
+              final restSeconds = group.restPreset.effectiveRestFor(
+                hasWarmUp ? RoutineSetType.warmUp : RoutineSetType.normal,
+              );
+              rest = restSeconds == null || restSeconds <= 0
+                  ? null
+                  : ActiveWorkoutDraftRest(
+                      targetAtUtc: _nowUtc().add(Duration(seconds: restSeconds)),
+                      totalDurationSeconds: restSeconds,
+                      exerciseId: exerciseId,
+                      setId: setId,
+                      supersetId: groupId,
+                      roundIndex: setIndex,
+                    );
+            }
+          }
         }
         next[exerciseIndex] = exercise.copyWith(sets: sets);
         return draft.copyWith(exercises: next, activeRest: rest);
-      });
+      }).whenComplete(() => _pendingSetToggles.remove(pendingKey));
+  }
 
   Future<bool> skipRest() =>
       _change((draft) => draft.copyWith(activeRest: null));
@@ -695,6 +925,8 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             totalDurationSeconds: total,
             exerciseId: rest.exerciseId,
             setId: rest.setId,
+            supersetId: rest.supersetId,
+            roundIndex: rest.roundIndex,
           ),
         );
       });

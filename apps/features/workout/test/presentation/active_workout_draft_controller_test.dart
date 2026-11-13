@@ -874,6 +874,111 @@ void main() {
     reopened.dispose();
   });
 
+  test('Superset round timer waits for all available members and restores',
+      () async {
+    var now = DateTime.utc(2026, 11, 12, 8);
+    var nextId = 1000;
+    final store = _Store();
+    var controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(() => controller.dispose());
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(
+      await controller.addExercises(
+        [_exercise('ex_first', 'First'), _exercise('ex_second', 'Second')],
+        initialRestPreset: const RoutineRestTimerPreset(
+          normalRestSeconds: 45,
+          warmUpRestSeconds: 15,
+        ),
+      ),
+      isTrue,
+    );
+    var first = controller.draft!.exercises[0];
+    final second = controller.draft!.exercises[1];
+    expect(await controller.addSet(first.id), isTrue);
+    expect(await controller.addSet(first.id), isTrue);
+    first = controller.draft!.exercises[0];
+    expect(await controller.setType(first.id, first.sets[0].id,
+        RoutineSetType.warmUp), isTrue);
+    expect(await controller.createSuperset(first.id, second.id), isTrue);
+    final groupId = controller.draft!.exercises.first.supersetId!;
+
+    first = controller.draft!.exercises.first;
+    final secondSet = controller.draft!.exercises
+        .firstWhere((exercise) => exercise.id == second.id)
+        .sets
+        .single;
+    expect(await controller.toggleLogged(first.id, first.sets[0].id), isTrue);
+    expect(controller.draft!.activeRest, isNull);
+    expect(
+      await controller.toggleLogged(second.id, secondSet.id, isSkipped: true),
+      isTrue,
+    );
+    expect(controller.draft!.activeRest!.supersetId, groupId);
+    expect(controller.draft!.activeRest!.roundIndex, 0);
+    expect(controller.draft!.activeRest!.totalDurationSeconds, 15);
+
+    controller.dispose();
+    controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(controller.draft!.supersets.single.id, groupId);
+    expect(controller.draft!.activeRest!.remaining(now),
+        const Duration(seconds: 15));
+    expect(
+      await controller.configureSupersetRestTimer(
+        groupId,
+        normalRestSeconds: 60,
+        warmUpRestSeconds: 20,
+      ),
+      isTrue,
+    );
+    // An active countdown retains the duration captured when it started.
+    expect(controller.draft!.activeRest!.totalDurationSeconds, 15);
+
+    expect(await controller.skipRest(), isTrue);
+    first = controller.draft!.exercises.first;
+    final secondRound = first.sets[1];
+    expect(await controller.setType(first.id, secondRound.id,
+        RoutineSetType.failure), isTrue);
+    expect(await controller.toggleLogged(first.id, secondRound.id), isTrue);
+    expect(controller.draft!.activeRest!.roundIndex, 1);
+    expect(controller.draft!.activeRest!.totalDurationSeconds, 60);
+    await expectLater(
+      controller.removeFromSuperset(first.id),
+      throwsStateError,
+    );
+    await expectLater(
+      controller.removeSet(first.id, first.sets[2].id),
+      throwsStateError,
+    );
+
+    expect(await controller.skipRest(), isTrue);
+    first = controller.draft!.exercises.first;
+    expect(await controller.toggleLogged(first.id, first.sets[2].id), isTrue);
+    expect(controller.draft!.activeRest, isNull, reason: 'no final rest');
+
+    // Unlogging every completed set reopens membership editing and cancels rest.
+    first = controller.draft!.exercises.first;
+    for (final set in first.sets) {
+      expect(await controller.toggleLogged(first.id, set.id), isTrue);
+    }
+    expect(await controller.toggleLogged(second.id, secondSet.id), isTrue);
+    expect(controller.draft!.activeRest, isNull);
+    expect(await controller.removeFromSuperset(first.id), isTrue);
+    expect(controller.draft!.supersets, isEmpty);
+    expect(controller.draft!.exercises.every((exercise) =>
+        exercise.supersetId == null), isTrue);
+  });
+
   test('discardForReplacement clears durable draft for Play replacement',
       () async {
     final store = _Store();

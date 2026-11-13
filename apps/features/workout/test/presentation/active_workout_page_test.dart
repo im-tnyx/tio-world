@@ -356,6 +356,7 @@ final class _RuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
+  bool smartSupersetScrollingEnabled = false;
   bool failNextRpeRead = false;
   bool failNextRpeWrite = false;
 
@@ -376,6 +377,14 @@ final class _RuntimeSettingsRepository
     }
     rpeEnabled = enabled;
   }
+
+  @override
+  Future<bool> readSmartSupersetScrollingEnabled() async =>
+      smartSupersetScrollingEnabled;
+
+  @override
+  Future<void> writeSmartSupersetScrollingEnabled(bool enabled) async =>
+      smartSupersetScrollingEnabled = enabled;
 
   bool failNextVibrationRead = false;
   Completer<bool>? pendingVibrationRead;
@@ -420,6 +429,47 @@ Future<void> _addPreviewBench(WidgetTester tester) async {
   await tester.pump();
   await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
   await tester.pumpAndSettle();
+}
+
+Future<({
+  ActiveWorkoutDraftController draft,
+  WorkoutRuntimeSettingsController settings,
+})> _createSupersetPreview(
+  WidgetTester tester, {
+  required bool smartScrollingEnabled,
+}) async {
+  final draft = ActiveWorkoutDraftController(
+    store: _DraftStore(),
+    ownerId: _userId,
+    clock: () => tester.binding.clock.now(),
+  );
+  await draft.restoreOrStart();
+  await draft.addExercises(
+    [
+      Exercise(
+        ref: ExerciseRef.catalog('ex_barbell_bench_press'),
+        displayName: 'Bench Press',
+        exerciseType: ExerciseType.weightReps,
+        status: ExerciseStatus.active,
+      ),
+      Exercise(
+        ref: ExerciseRef.catalog('ex_barbell_back_squat'),
+        displayName: 'Back Squat',
+        exerciseType: ExerciseType.weightReps,
+        status: ExerciseStatus.active,
+      ),
+    ],
+    initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
+  );
+  final first = draft.draft!.exercises.first;
+  await draft.addSet(first.id);
+  await draft.createSuperset(first.id, draft.draft!.exercises.last.id);
+  final settings = WorkoutRuntimeSettingsController(
+    repository: _RuntimeSettingsRepository()
+      ..smartSupersetScrollingEnabled = smartScrollingEnabled,
+  );
+  await settings.loadSmartSupersetScrolling();
+  return (draft: draft, settings: settings);
 }
 
 Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
@@ -987,6 +1037,139 @@ void main() {
     expect(draft.draft!.activeRest, isNull);
     expect(store.saved!.exercises.first.hasRestOverride, isTrue);
     expect(store.saved!.exercises.first.restPreset.isOff, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Smart Superset Scrolling advances to the next member when ON',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 420);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: true,
+    );
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
+
+    final viewport = find.byKey(
+      const ValueKey('active-workout-start-preview'),
+    );
+    final nextMemberSet = find.byKey(
+      const ValueKey('active-workout-preview-set-toggle-1-0'),
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pump();
+    expect(
+      tester.getRect(nextMemberSet).top,
+      greaterThan(tester.getRect(viewport).bottom),
+    );
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '40',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '8',
+    );
+    await tester.pump();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final viewportRect = tester.getRect(viewport);
+    final nextMemberRect = tester.getRect(nextMemberSet);
+    expect(nextMemberRect.top, greaterThanOrEqualTo(viewportRect.top));
+    expect(nextMemberRect.bottom, lessThanOrEqualTo(viewportRect.bottom));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Smart Superset Scrolling leaves the viewport unchanged when OFF',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 420);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: false,
+    );
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pump();
+    final updatedViewport = tester.widget<SingleChildScrollView>(
+      find.byKey(const ValueKey('active-workout-start-preview')),
+    );
+    final scrollController = updatedViewport.controller!;
+    final initialOffset = scrollController.offset;
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '40',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '8',
+    );
+    await tester.pump();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(scrollController.offset, initialOffset);
     expect(tester.takeException(), isNull);
   });
 

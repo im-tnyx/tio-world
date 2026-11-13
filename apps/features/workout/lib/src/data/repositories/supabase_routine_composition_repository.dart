@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../domain/models/routine_rest_timer_preset.dart';
 import '../../domain/repositories/routine_composition_repository.dart';
 import 'supabase_routine_composition_gateway.dart';
 import 'routine_move_delete_attempt_gate.dart';
@@ -106,6 +107,7 @@ final class SupabaseRoutineCompositionRepository
       final before = _header(start, routineId, owner);
       List<Map<String, dynamic>> entries = const [];
       List<Map<String, dynamic>> sets = const [];
+      List<Map<String, dynamic>> supersets = const [];
       RoutineCompositionException? provisionalFailure;
       try {
         entries = await _pages(
@@ -122,6 +124,16 @@ final class SupabaseRoutineCompositionRepository
                 routineId: routineId.value,
                 limit: _pageSize,
                 afterId: cursor));
+        final gateway = _gateway;
+        if (gateway is RoutineSupersetReadGateway) {
+          supersets = await _pages(
+              owner,
+              (cursor) => gateway.readSupersets(
+                  userId: owner,
+                  routineId: routineId.value,
+                  limit: _pageSize,
+                  afterId: cursor));
+        }
       } on RoutineCompositionException catch (error) {
         if (error.kind != RoutineCompositionFailureKind.malformedData) rethrow;
         provisionalFailure = error;
@@ -133,7 +145,8 @@ final class SupabaseRoutineCompositionRepository
       if (before != after) continue;
       if (provisionalFailure != null) throw provisionalFailure;
       // Decode only after the bracket: intermediate pages may mix revisions.
-      final snapshot = _snapshot(routineId, owner, after, entries, sets);
+      final snapshot = _snapshot(
+          routineId, owner, after, entries, sets, supersets);
       _checkOwner(owner);
       return snapshot;
     }
@@ -221,6 +234,7 @@ final class SupabaseRoutineCompositionRepository
               expectedRevision: command.expectedRevision,
               mutationId: command.mutationId,
               entries: command.entries!,
+              supersets: command.supersets ?? const [],
               expectedCustomTypes: command.expectedCustomTypes,
             ));
       result = await (gateway as RoutineAggregateUpdateGateway).updateAggregate(
@@ -383,6 +397,7 @@ final class SupabaseRoutineCompositionRepository
     _Header header,
     List<Map<String, dynamic>> entryRows,
     List<Map<String, dynamic>> setRows,
+    List<Map<String, dynamic>> supersetRows,
   ) {
     final entries = List<Map<String, dynamic>>.of(entryRows)
       ..sort(
@@ -413,6 +428,24 @@ final class SupabaseRoutineCompositionRepository
       }
       (grouped[parent] ??= []).add(row);
     }
+    final supersets = <RoutineSupersetGroup>[];
+    final supersetIds = <String>{};
+    for (final row in supersetRows) {
+      _owned(row, owner);
+      if (_uuid(row['routine_id']) != routine.value ||
+          !supersetIds.add(_uuid(row['id']))) {
+        throw _malformed;
+      }
+      final normal = row['normal_rest_seconds'];
+      final warmUp = row['warm_up_rest_seconds'];
+      supersets.add(RoutineSupersetGroup(
+        id: _uuid(row['id']),
+        restPreset: RoutineRestTimerPreset(
+          normalRestSeconds: normal == null ? null : _integer(normal),
+          warmUpRestSeconds: warmUp == null ? null : _integer(warmUp),
+        ),
+      ));
+    }
     try {
       return RoutineCompositionSnapshot(
         routineId: routine,
@@ -439,10 +472,14 @@ final class SupabaseRoutineCompositionRepository
               _integer(a['position']).compareTo(_integer(b['position'])));
           return RoutineCompositionEntry(
             id: _uuid(row['id']),
+            supersetId: row['superset_id'] == null
+                ? null
+                : _uuid(row['superset_id']),
             exercise: reference,
             sets: [for (var i = 0; i < rows.length; i++) _set(rows[i], i)],
           );
         }).toList(growable: false),
+        supersets: supersets,
       );
     } on ArgumentError {
       throw _malformed;
@@ -529,12 +566,15 @@ final class SupabaseRoutineCompositionRepository
     return value.toLowerCase();
   }
 
-  static List<Map<String, dynamic>> payload(RoutineCompositionSave command) =>
-      [
+  static Map<String, dynamic> payload(RoutineCompositionSave command) =>
+      {
+        'schema_version': 2,
+        'entries': [
         for (final entry in command.entries)
           {
             'id': entry.id,
             'exercise_ref': entry.exercise.value,
+            if (entry.supersetId != null) 'superset_id': entry.supersetId,
             if (command.expectedCustomTypes.containsKey(entry.id))
               'expected_exercise_type':
                   command.expectedCustomTypes[entry.id]?.storageValue,
@@ -552,7 +592,16 @@ final class SupabaseRoutineCompositionRepository
                 }
             ],
           },
-      ];
+        ],
+        'supersets': [
+          for (final group in command.supersets)
+            {
+              'id': group.id,
+              'normal_rest_seconds': group.restPreset.normalRestSeconds,
+              'warm_up_rest_seconds': group.restPreset.warmUpRestSeconds,
+            },
+        ],
+      };
 
   static bool _ambiguous(PostgrestException error) {
     final status = int.tryParse(error.code ?? '');

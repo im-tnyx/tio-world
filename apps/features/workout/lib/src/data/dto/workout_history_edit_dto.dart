@@ -94,11 +94,25 @@ abstract final class WorkoutHistoryEditDto {
     };
     final snapshot = Map<String, dynamic>.from(original);
     final performed = <Map<String, dynamic>>[];
+    final activeSupersetIds = request.exercises
+        .map((exercise) => exercise.supersetId)
+        .whereType<String>()
+        .toSet();
+    final originalGroups = (original['superset_groups'] as List? ?? const [])
+        .map((group) => Map<String, dynamic>.from(group as Map));
+    if (original.containsKey('superset_groups') || activeSupersetIds.isNotEmpty) {
+      snapshot['superset_groups'] = [
+        for (final group in originalGroups)
+          if (activeSupersetIds.contains(group['id'])) group,
+      ];
+    }
     snapshot['exercises'] = [
       for (final (exerciseIndex, exercise) in request.exercises.indexed)
         {
           'exercise_ref': exercise.exerciseRef.value,
           'display_name': exercise.displayName,
+          if (exercise.supersetId != null)
+            'superset_id': exercise.supersetId,
           if (exercise.exerciseType != null)
             'exercise_type': exercise.exerciseType!.storageValue,
           'occurrence_index': exerciseIndex,

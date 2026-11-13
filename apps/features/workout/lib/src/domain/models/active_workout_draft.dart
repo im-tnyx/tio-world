@@ -15,6 +15,7 @@ final class ActiveWorkoutDraft {
     required this.time,
     this.revision = 0,
     List<ActiveWorkoutDraftExercise> exercises = const [],
+    List<ActiveWorkoutDraftSuperset> supersets = const [],
     this.canonicalSessionId,
     this.canonicalRevision,
     this.workoutTitle,
@@ -33,7 +34,8 @@ final class ActiveWorkoutDraft {
   })  : id = _uuid(id),
         ownerId = _uuid(ownerId),
         saveRequestId = _uuid(saveRequestId),
-        exercises = List.unmodifiable(exercises) {
+        exercises = List.unmodifiable(exercises),
+        supersets = List.unmodifiable(supersets) {
     if (backgroundedAtUtc != null &&
         (!backgroundedAtUtc!.isUtc ||
             time.isPaused ||
@@ -88,21 +90,46 @@ final class ActiveWorkoutDraft {
         }
       }
     }
+    final groupIds = supersets.map((group) => group.id).toSet();
+    if (groupIds.length != supersets.length) {
+      throw ArgumentError('Duplicate Superset ID.');
+    }
+    final members = <String, List<int>>{};
+    for (var index = 0; index < exercises.length; index++) {
+      final groupId = exercises[index].supersetId;
+      if (groupId == null) continue;
+      if (!groupIds.contains(groupId)) {
+        throw ArgumentError('Draft exercise references a missing Superset.');
+      }
+      (members[groupId] ??= []).add(index);
+    }
+    for (final group in supersets) {
+      final positions = members[group.id] ?? const <int>[];
+      if (positions.length < 2 || positions.length > 3 ||
+          positions.last - positions.first + 1 != positions.length) {
+        throw ArgumentError('Draft Superset must contain 2–3 contiguous exercises.');
+      }
+    }
     if (activeRest != null &&
         !exercises.any((exercise) =>
             exercise.id == activeRest!.exerciseId &&
             exercise.sets.any((set) => set.id == activeRest!.setId))) {
       throw ArgumentError('Rest timer references a removed draft set.');
     }
+    if (activeRest?.supersetId != null &&
+        !groupIds.contains(activeRest!.supersetId)) {
+      throw ArgumentError('Rest timer references a missing Superset.');
+    }
   }
 
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
   final String id;
   final String ownerId;
   final String saveRequestId;
   final int revision;
   final WorkoutTime time;
   final List<ActiveWorkoutDraftExercise> exercises;
+  final List<ActiveWorkoutDraftSuperset> supersets;
   final WorkoutSessionId? canonicalSessionId;
   final int? canonicalRevision;
   final String? workoutTitle;
@@ -129,6 +156,7 @@ final class ActiveWorkoutDraft {
     WorkoutTime? time,
     int? revision,
     List<ActiveWorkoutDraftExercise>? exercises,
+    List<ActiveWorkoutDraftSuperset>? supersets,
     Object? canonicalSessionId = _unchanged,
     Object? canonicalRevision = _unchanged,
     Object? workoutTitle = _unchanged,
@@ -152,6 +180,7 @@ final class ActiveWorkoutDraft {
         time: time ?? this.time,
         revision: revision ?? this.revision,
         exercises: exercises ?? this.exercises,
+        supersets: supersets ?? this.supersets,
         canonicalSessionId: identical(canonicalSessionId, _unchanged)
             ? this.canonicalSessionId
             : canonicalSessionId as WorkoutSessionId?,
@@ -222,6 +251,7 @@ final class ActiveWorkoutDraft {
         'activity_type': activityType,
         'overall_rpe': overallRpe,
         'active_rest': activeRest?.toJson(),
+        'supersets': supersets.map((group) => group.toJson()).toList(),
         'backgrounded_at_utc': backgroundedAtUtc?.toIso8601String(),
         'last_activity_at_utc': lastActivityAtUtc?.toIso8601String(),
         'submitted_at_utc': submittedAtUtc?.toIso8601String(),
@@ -230,7 +260,8 @@ final class ActiveWorkoutDraft {
       };
 
   factory ActiveWorkoutDraft.fromJson(Map<String, dynamic> json) {
-    if (json['version'] != schemaVersion) {
+    final version = json['version'];
+    if (version != 1 && version != schemaVersion) {
       throw const FormatException('Unsupported ActiveWorkoutDraft version.');
     }
     try {
@@ -270,6 +301,11 @@ final class ActiveWorkoutDraft {
             : ActiveWorkoutDraftRest.fromJson(
                 Map<String, dynamic>.from(json['active_rest'] as Map),
               ),
+        supersets: (json['supersets'] as List? ?? const [])
+            .map((entry) => ActiveWorkoutDraftSuperset.fromJson(
+                  Map<String, dynamic>.from(entry as Map),
+                ))
+            .toList(),
         backgroundedAtUtc: optionalUtc(json['backgrounded_at_utc']),
         lastActivityAtUtc: optionalUtc(json['last_activity_at_utc']),
         submittedAtUtc: optionalUtc(json['submitted_at_utc']),
@@ -295,10 +331,12 @@ final class ActiveWorkoutDraftExercise {
     required String displayName,
     this.exerciseType,
     this.thumbnailUrl,
+    String? supersetId,
     this.hasRestOverride = false,
     this.restPreset = const RoutineRestTimerPreset(),
     List<ActiveWorkoutDraftSet> sets = const [],
   })  : id = _uuid(id),
+        supersetId = supersetId == null ? null : _uuid(supersetId),
         displayName = displayName.trim(),
         sets = List.unmodifiable(sets) {
     if (this.displayName.isEmpty) {
@@ -313,6 +351,7 @@ final class ActiveWorkoutDraftExercise {
   }
 
   final String id;
+  final String? supersetId;
   final ExerciseRef exerciseRef;
   final String displayName;
   final ExerciseType? exerciseType;
@@ -325,10 +364,14 @@ final class ActiveWorkoutDraftExercise {
     List<ActiveWorkoutDraftSet>? sets,
     RoutineRestTimerPreset? restPreset,
     bool? hasRestOverride,
+    Object? supersetId = _unchanged,
   }) =>
       ActiveWorkoutDraftExercise(
         id: id,
         exerciseRef: exerciseRef,
+        supersetId: identical(supersetId, _unchanged)
+            ? this.supersetId
+            : supersetId as String?,
         displayName: displayName,
         exerciseType: exerciseType,
         thumbnailUrl: thumbnailUrl,
@@ -339,6 +382,7 @@ final class ActiveWorkoutDraftExercise {
 
   Map<String, Object?> toJson() => {
         'id': id,
+        if (supersetId != null) 'superset_id': supersetId,
         'exercise_ref': exerciseRef.value,
         'display_name': displayName,
         'exercise_type': exerciseType?.storageValue,
@@ -354,6 +398,9 @@ final class ActiveWorkoutDraftExercise {
       return ActiveWorkoutDraftExercise(
         id: json['id'] as String,
         exerciseRef: ExerciseRef.parse(json['exercise_ref'] as String),
+        supersetId: json['superset_id'] == null
+            ? null
+            : json['superset_id'] as String,
         displayName: json['display_name'] as String,
         exerciseType: json['exercise_type'] == null
             ? null
@@ -374,6 +421,46 @@ final class ActiveWorkoutDraftExercise {
       );
     } catch (_) {
       throw const FormatException('Invalid draft exercise.');
+    }
+  }
+}
+
+final class ActiveWorkoutDraftSuperset {
+  ActiveWorkoutDraftSuperset({
+    required String id,
+    required this.restPreset,
+  }) : id = _uuid(id) {
+    for (final seconds in [
+      restPreset.normalRestSeconds,
+      restPreset.warmUpRestSeconds,
+    ]) {
+      if (seconds != null &&
+          (seconds < 5 || seconds > 600 || seconds % 5 != 0)) {
+        throw ArgumentError('Superset rest must be OFF or 5-second steps up to 600.');
+      }
+    }
+  }
+
+  final String id;
+  final RoutineRestTimerPreset restPreset;
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'rest_normal_seconds': restPreset.normalRestSeconds,
+        'rest_warm_up_seconds': restPreset.warmUpRestSeconds,
+      };
+
+  factory ActiveWorkoutDraftSuperset.fromJson(Map<String, dynamic> json) {
+    try {
+      return ActiveWorkoutDraftSuperset(
+        id: json['id'] as String,
+        restPreset: RoutineRestTimerPreset(
+          normalRestSeconds: json['rest_normal_seconds'] as int?,
+          warmUpRestSeconds: json['rest_warm_up_seconds'] as int?,
+        ),
+      );
+    } catch (_) {
+      throw const FormatException('Invalid draft Superset.');
     }
   }
 }
@@ -504,9 +591,14 @@ final class ActiveWorkoutDraftRest {
     required this.totalDurationSeconds,
     required String exerciseId,
     required String setId,
+    String? supersetId,
+    this.roundIndex,
   })  : exerciseId = _uuid(exerciseId),
-        setId = _uuid(setId) {
-    if (!targetAtUtc.isUtc || totalDurationSeconds <= 0) {
+        setId = _uuid(setId),
+        supersetId = supersetId == null ? null : _uuid(supersetId) {
+    if (!targetAtUtc.isUtc || totalDurationSeconds <= 0 ||
+        (supersetId == null) != (roundIndex == null) ||
+        roundIndex != null && roundIndex! < 0) {
       throw ArgumentError('Invalid draft rest timer.');
     }
   }
@@ -515,6 +607,8 @@ final class ActiveWorkoutDraftRest {
   final int totalDurationSeconds;
   final String exerciseId;
   final String setId;
+  final String? supersetId;
+  final int? roundIndex;
 
   Duration remaining(DateTime nowUtc) {
     final value = targetAtUtc.difference(nowUtc.toUtc());
@@ -526,6 +620,8 @@ final class ActiveWorkoutDraftRest {
         'total_duration_seconds': totalDurationSeconds,
         'exercise_id': exerciseId,
         'set_id': setId,
+        'superset_id': supersetId,
+        'round_index': roundIndex,
       };
 
   factory ActiveWorkoutDraftRest.fromJson(Map<String, dynamic> json) {
@@ -535,6 +631,8 @@ final class ActiveWorkoutDraftRest {
         totalDurationSeconds: json['total_duration_seconds'] as int,
         exerciseId: json['exercise_id'] as String,
         setId: json['set_id'] as String,
+        supersetId: json['superset_id'] as String?,
+        roundIndex: json['round_index'] as int?,
       );
     } catch (_) {
       throw const FormatException('Invalid draft rest timer.');

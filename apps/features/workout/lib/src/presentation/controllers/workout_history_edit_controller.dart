@@ -41,10 +41,17 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
           (set) => set.setIndex >= RoutineCompositionLimits.maxSetsPerExercise,
         );
     final rawExercises = source.rawSnapshot!['exercises'] as List;
+    var supersets = List<Map<String, dynamic>>.from(
+      (source.rawSnapshot!['superset_groups'] as List? ?? const []).map(
+        (group) => Map<String, dynamic>.from(group as Map),
+      ),
+    );
     _exercises = [
       for (final exercise in snapshot.exercises)
         ActiveWorkoutDraftExercise(
           id: const Uuid().v4(),
+          supersetId: (rawExercises[exercise.occurrenceIndex] as Map)
+              ['superset_id'] as String?,
           exerciseRef: exercise.exerciseRef,
           displayName: exercise.displayName,
           exerciseType: exercise.exerciseType,
@@ -82,14 +89,18 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
           ],
         ),
     ];
+    _supersetGroups = supersets;
   }
 
   final WorkoutHistoryDetail source;
   late final Set<String> _preservedSkippedSetIds;
   late final bool hasUnsupportedPerformedSets;
   late List<ActiveWorkoutDraftExercise> _exercises;
+  late List<Map<String, dynamic>> _supersetGroups;
   List<ActiveWorkoutDraftExercise> get exercises =>
       List.unmodifiable(_exercises);
+  List<Map<String, dynamic>> get supersetGroups =>
+      List.unmodifiable(_supersetGroups);
 
   /// Matches serialized Update rows, including old skipped sets without times.
   int get updatePerformedSetCount => _exercises.fold(
@@ -169,13 +180,32 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
       throw StateError('This exercise type cannot be logged.');
     }
     final next = [..._exercises];
-    next[index] = _newExercise(replacement);
+    next[index] = _newExercise(
+      replacement,
+      supersetId: next[index].supersetId,
+    );
     _exercises = next;
     notifyListeners();
   }
 
   void removeExercise(int index) {
     final next = [..._exercises]..removeAt(index);
+    final removedGroupId = _exercises[index].supersetId;
+    if (removedGroupId != null) {
+      final remaining = next
+          .where((exercise) => exercise.supersetId == removedGroupId)
+          .length;
+      if (remaining < 2) {
+        for (var memberIndex = 0; memberIndex < next.length; memberIndex++) {
+          if (next[memberIndex].supersetId == removedGroupId) {
+            next[memberIndex] = next[memberIndex].copyWith(supersetId: null);
+          }
+        }
+        _supersetGroups = _supersetGroups
+            .where((group) => group['id'] != removedGroupId)
+            .toList();
+      }
+    }
     _exercises = next;
     notifyListeners();
   }
@@ -267,9 +297,13 @@ final class WorkoutHistoryEditController extends ChangeNotifier {
     notifyListeners();
   }
 
-  static ActiveWorkoutDraftExercise _newExercise(Exercise exercise) =>
+  static ActiveWorkoutDraftExercise _newExercise(
+    Exercise exercise, {
+    String? supersetId,
+  }) =>
       ActiveWorkoutDraftExercise(
         id: const Uuid().v4(),
+        supersetId: supersetId,
         exerciseRef: exercise.ref,
         displayName: exercise.displayName,
         exerciseType: exercise.exerciseType,

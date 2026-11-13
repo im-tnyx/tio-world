@@ -9,10 +9,12 @@ final class RoutineCreateCommand {
     required this.routine,
     required String mutationId,
     required List<RoutineCompositionEntry> entries,
+    List<RoutineSupersetGroup> supersets = const [],
     Map<String, ExerciseType?> expectedCustomTypes = const {},
   })  : expectedCustomTypes = Map.unmodifiable(expectedCustomTypes),
          mutationId = mutationId,
-        entries = List.unmodifiable(entries) {
+        entries = List.unmodifiable(entries),
+        supersets = List.unmodifiable(supersets) {
     if (routine.name.trim().isEmpty || entries.isEmpty) {
       throw ArgumentError('Create requires a name and an Exercise.');
     }
@@ -23,6 +25,7 @@ final class RoutineCreateCommand {
       expectedRevision: 0,
       mutationId: mutationId,
       entries: entries,
+      supersets: supersets,
       expectedCustomTypes: expectedCustomTypes,
     );
   }
@@ -30,6 +33,7 @@ final class RoutineCreateCommand {
   final Routine routine;
   final String mutationId;
   final List<RoutineCompositionEntry> entries;
+  final List<RoutineSupersetGroup> supersets;
   final Map<String, ExerciseType?> expectedCustomTypes;
 
   /// Positive read-only evidence that this unique Routine ID was committed.
@@ -52,6 +56,7 @@ final class RoutineCreateCommand {
       expectedRevision: 0,
       mutationId: mutationId,
       entries: entries,
+      supersets: supersets,
     ));
   }
 }

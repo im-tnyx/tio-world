@@ -14,6 +14,7 @@ import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
 import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
+import 'routine_superset_member_sheet.dart';
 import 'routine_set_input_row.dart';
 import 'routine_set_type_badge.dart';
 import 'routine_set_type_option.dart';
@@ -351,7 +352,15 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   Future<void> _showExerciseOptions(RoutineCompositionEntry entry) async {
     if (!_canEdit) return;
     final openingEditor = _editor;
-    final action = await showRoutineExerciseOptionsSheet(context);
+    final memberCount = openingEditor?.state.entries
+            .where((candidate) => candidate.supersetId == entry.supersetId)
+            .length ??
+        0;
+    final action = await showRoutineExerciseOptionsSheet(
+      context,
+      isGrouped: entry.supersetId != null,
+      canAddSupersetMember: entry.supersetId == null || memberCount < 3,
+    );
     if (!mounted ||
         !identical(openingEditor, _editor) ||
         !_canEdit ||
@@ -366,7 +375,47 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       await _addExercise(replacing: entry);
     } else if (action == RoutineExerciseOption.remove) {
       _removeEntry(entry);
+    } else if (action == RoutineExerciseOption.removeFromSuperset) {
+      openingEditor.removeFromSuperset(entry.id);
+    } else if (action == RoutineExerciseOption.addToSuperset) {
+      await _selectSupersetMember(entry, openingEditor);
     }
+  }
+
+  Future<void> _selectSupersetMember(
+    RoutineCompositionEntry entry,
+    RoutineEditorController editor,
+  ) async {
+    final openingEntries = editor.state.entries;
+    final candidates = [
+      for (final candidate in openingEntries.where((candidate) =>
+          candidate.id != entry.id && candidate.supersetId == null))
+        RoutineSupersetMemberCandidate(
+          entryId: candidate.id,
+          title: _exerciseTitle(candidate.exercise),
+        ),
+    ];
+    final selected = await showRoutineSupersetMemberSheet(
+      context,
+      candidates: candidates,
+    );
+    if (!mounted ||
+        !identical(editor, _editor) ||
+        !identical(openingEntries, editor.state.entries) ||
+        !_canEdit ||
+        selected == null) return;
+    if (entry.supersetId == null) {
+      editor.createSuperset(entry.id, selected);
+    } else {
+      editor.addSupersetMember(entry.supersetId!, selected);
+    }
+  }
+
+  String _exerciseTitle(ExerciseRef ref) {
+    for (final item in _source?.state.items ?? <ExerciseListItem>[]) {
+      if (item.exercise.ref == ref) return item.exercise.displayName;
+    }
+    return 'Exercise unavailable';
   }
 
   void _removeEntry(RoutineCompositionEntry entry) {
@@ -845,7 +894,9 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
         ],
       ),
       onReorder: (from, to) {
-        if (_canEdit) _editor?.moveExercise(from, to);
+        if (_canEdit) {
+          _editor?.moveExercise(from, to > from ? to - 1 : to);
+        }
       },
       itemBuilder: _exerciseCard,
       footer: TioButton.secondary(
@@ -922,6 +973,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       addSet: () => _addSetInline(entry),
       restPreset: _editor?.getExerciseRestPreset(entry.id) ??
           const RoutineRestTimerPreset(),
+      supersetLabel: routineSupersetMemberLabel(state.entries, entry.id),
       onConfigureRestTimer: () => _configureRestTimer(entry),
       routineId: widget.routine.id,
       routineNotesRepository: widget.routineNotesRepository,

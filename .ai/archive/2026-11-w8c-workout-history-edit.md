@@ -1,6 +1,6 @@
 # W8C Completed Workout Edit
 
-**Status:** Source and Save/Edit alignment fixes through `95ccbf66a4c333c34dd8004efd0c853d051ce513` are pushed; exact-head Flutter, Android, database and docs CI passed, and all 12 review threads are resolved. Emulator visual re-check, independent approval, and the TNYX-84 dependency remain pending. Do not merge.
+**Status:** Validated / merged 2026-11-13 per the checked-in main audit; PR #752 is merged. The pre-merge gate snapshot below is historical. No hosted migration or device acceptance is claimed here.
 **Primary owner:** Codex
 **Planning owner:** Codex
 **Implementation owner:** Codex
@@ -43,7 +43,7 @@
 - [x] Publish the Save/Edit alignment fix; exact-head Flutter, Android, database and docs CI passed.
 - [ ] Re-check the same Save/Edit states on emulator against the supplied 912x2048 screenshots; local Flutter tooling is unavailable in this shell.
 
-## Handoff
+## Historical Pre-Merge Handoff
 
 **Last pushed gate (verified at source head `95ccbf66a4c333c34dd8004efd0c853d051ce513`):** PR #752 is open and GitHub reports it mergeable. Exact-head [Flutter CI #43221748239](https://github.com/im-tnyx/tio-world/actions/runs/43221748239) (including `Test Flutter (app-workout)` and the Workout analyzer), [Android Native CI #43221748431](https://github.com/im-tnyx/tio-world/actions/runs/43221748431), [Supabase Database CI #43221748145](https://github.com/im-tnyx/tio-world/actions/runs/43221748145) (migration replay and W8C regression), and [Docs Hygiene CI #43221748388](https://github.com/im-tnyx/tio-world/actions/runs/43221748388) all succeeded. The three required `Main Protection` status checks—`Commit attribution guard`, `Attribution guard runner`, and `Check documentation diff hygiene`—also succeeded. All 12 inline review threads are resolved after matching the findings to current code and validation. The most recent independent review remains `CHANGES_REQUESTED` on an older head; a fresh approval is still required. The active ruleset requires one approving review, all threads resolved, and does not allow bypass. Cursor review automations were neutral because of usage limits, not code-analysis passes.
 **Tracker and release gate:** Linear TNYX-85 remains In Review and blocked by TNYX-84, which is still In Progress. W8C's migration is present in the PR, replayed by exact-head Database CI, and recorded in the linked testing project's ledger; no production migration was applied. The emulator previously showed History and Detail, but the Edit attempt was backed out without saving, so authenticated Update/device acceptance remains unverified. Local Flutter/Dart/Melos/FVM are unavailable in this shell; exact-head GitHub CI is the current validation evidence. No production change, deployment, or merge is claimed.

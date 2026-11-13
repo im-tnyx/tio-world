@@ -20,19 +20,33 @@ enum RoutineEditorStatus {
   outcomeUnknown,
 }
 
+RoutineCompositionEntry _editorEntryWithSuperset(
+  RoutineCompositionEntry entry,
+  String? supersetId,
+) =>
+    RoutineCompositionEntry(
+      id: entry.id,
+      exercise: entry.exercise,
+      supersetId: supersetId,
+      sets: entry.sets,
+    );
+
 /// Feature-owned immutable view of a *draft*, never a second persisted truth.
 final class RoutineEditorState {
   RoutineEditorState({
     required this.status,
     required List<RoutineCompositionEntry> entries,
+    List<RoutineSupersetGroup> supersets = const [],
     this.revision,
     this.name = '',
     this.dirty = false,
     this.message,
-  }) : entries = List.unmodifiable(entries);
+  })  : entries = List.unmodifiable(entries),
+        supersets = List.unmodifiable(supersets);
 
   final RoutineEditorStatus status;
   final List<RoutineCompositionEntry> entries;
+  final List<RoutineSupersetGroup> supersets;
   final int? revision;
   final String name;
   final bool dirty;
@@ -102,6 +116,8 @@ final class RoutineEditorController extends ChangeNotifier {
 
   List<RoutineCompositionEntry> _baseline = const [];
   List<RoutineCompositionEntry> _draft = const [];
+  List<RoutineSupersetGroup> _baselineSupersets = const [];
+  List<RoutineSupersetGroup> _draftSupersets = const [];
   String _baselineName = '';
   String _draftName = '';
   // Selected Custom definition per newly added/replaced entry. Historical
@@ -170,6 +186,8 @@ final class RoutineEditorController extends ChangeNotifier {
       _draftName = _baselineName;
       _baseline = current.entries;
       _draft = current.entries;
+      _baselineSupersets = current.supersets;
+      _draftSupersets = current.supersets;
       _pickedCustomTypes.clear();
       _restPresets.clear();
       for (final entry in current.entries) {
@@ -192,6 +210,8 @@ final class RoutineEditorController extends ChangeNotifier {
       if (_disposed || epoch != _epoch) return;
       _baseline = const [];
       _draft = const [];
+      _baselineSupersets = const [];
+      _draftSupersets = const [];
       _baselineName = '';
       _draftName = '';
       _publish(RoutineEditorState(
@@ -245,6 +265,7 @@ final class RoutineEditorController extends ChangeNotifier {
     _replaceEntry(index, RoutineCompositionEntry(
       id: newId,
       exercise: exercise.ref,
+      supersetId: _draft[index].supersetId,
       sets: [
         RoutineCompositionSet(
           id: setId,
@@ -256,8 +277,28 @@ final class RoutineEditorController extends ChangeNotifier {
   }
 
   bool removeExercise(String entryId) {
-    if (!_state.canEdit || !_draft.any((e) => e.id == entryId)) return false;
+    if (!_state.canEdit) return false;
+    final removed = _draft.where((e) => e.id == entryId).firstOrNull;
+    if (removed == null) return false;
     _setDraft(_draft.where((e) => e.id != entryId).toList());
+    if (removed.supersetId != null) {
+      final remaining = _draft
+          .where((entry) => entry.supersetId == removed.supersetId)
+          .toList();
+      if (remaining.length < 2) {
+        _draft = List.unmodifiable([
+          for (final entry in _draft)
+            if (entry.supersetId == removed.supersetId)
+              _editorEntryWithSuperset(entry, null)
+            else
+              entry,
+        ]);
+        _draftSupersets = _draftSupersets
+            .where((group) => group.id != removed.supersetId)
+            .toList();
+        _publish(_ready());
+      }
+    }
     _pickedCustomTypes.remove(entryId);
     _restPresets.remove(entryId);
     return true;
@@ -270,13 +311,136 @@ final class RoutineEditorController extends ChangeNotifier {
         from == to) {
       return false;
     }
-    final next = [..._draft];
-    next.insert(to, next.removeAt(from));
+    final moving = _draft[from];
+    final movingGroup = moving.supersetId;
+    final sourceIndexes = movingGroup == null
+        ? [from]
+        : [
+            for (var i = 0; i < _draft.length; i++)
+              if (_draft[i].supersetId == movingGroup) i,
+          ];
+    final sourceStart = sourceIndexes.first;
+    final sourceEnd = sourceIndexes.last + 1;
+    if (to >= sourceStart && to < sourceEnd) {
+      if (to > from) {
+        if (sourceEnd >= _draft.length) return false;
+        to = sourceEnd;
+      } else {
+        if (sourceStart == 0) return false;
+        to = sourceStart - 1;
+      }
+    }
+    final block = _draft.sublist(sourceStart, sourceEnd);
+    final next = [..._draft]..removeRange(sourceStart, sourceEnd);
+    var target = to > sourceStart ? to - block.length + 1 : to;
+    target = target.clamp(0, next.length);
+    if (target < next.length && next[target].supersetId != null) {
+      final targetGroup = next[target].supersetId;
+      final first = next.indexWhere((e) => e.supersetId == targetGroup);
+      final last = next.lastIndexWhere((e) => e.supersetId == targetGroup) + 1;
+      target = from < to ? last : first;
+    }
+    next.insertAll(target, block);
     _setDraft(next);
     return true;
   }
 
+  bool createSuperset(String initiatingEntryId, String memberEntryId) {
+    if (!_state.canEdit || initiatingEntryId == memberEntryId) return false;
+    final first = _draft.indexWhere((e) => e.id == initiatingEntryId);
+    final second = _draft.indexWhere((e) => e.id == memberEntryId);
+    if (first < 0 || second < 0 ||
+        _draft[first].supersetId != null ||
+        _draft[second].supersetId != null) return false;
+    final id = _newUuid();
+    final ordered = [first, second]..sort();
+    final members = [
+      _editorEntryWithSuperset(_draft[ordered[0]], id),
+      _editorEntryWithSuperset(_draft[ordered[1]], id),
+    ];
+    final next = [..._draft]..removeAt(ordered[1])..removeAt(ordered[0]);
+    next.insertAll(ordered[0], members);
+    _draftSupersets = [
+      ..._draftSupersets,
+      RoutineSupersetGroup(
+        id: id,
+        restPreset: getExerciseRestPreset(initiatingEntryId),
+      ),
+    ];
+    _setDraft(next);
+    return true;
+  }
+
+  bool addSupersetMember(String groupId, String entryId) {
+    if (!_state.canEdit ||
+        !_draftSupersets.any((group) => group.id == groupId) ||
+        _draft.where((entry) => entry.supersetId == groupId).length >= 3) {
+      return false;
+    }
+    final index = _draft.indexWhere((entry) => entry.id == entryId);
+    if (index < 0 || _draft[index].supersetId != null) return false;
+    final next = [..._draft]..removeAt(index);
+    final last = next.lastIndexWhere((entry) => entry.supersetId == groupId);
+    next.insert(last + 1, _editorEntryWithSuperset(_draft[index], groupId));
+    _setDraft(next);
+    return true;
+  }
+
+  bool removeFromSuperset(String entryId) {
+    if (!_state.canEdit) return false;
+    final index = _draft.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final groupId = _draft[index].supersetId;
+    if (groupId == null) return false;
+    final members = _draft.where((entry) => entry.supersetId == groupId).length;
+    if (members <= 2) {
+      _draft = List.unmodifiable([
+        for (final entry in _draft)
+          if (entry.supersetId == groupId)
+            _editorEntryWithSuperset(entry, null)
+          else
+            entry,
+      ]);
+      _draftSupersets = _draftSupersets.where((group) => group.id != groupId).toList();
+      _publish(_ready());
+    } else {
+      final next = [..._draft]..[index] = _editorEntryWithSuperset(_draft[index], null);
+      _setDraft(next);
+    }
+    return true;
+  }
+
+  RoutineSupersetGroup? supersetForEntry(String entryId) {
+    final entry = _draft.where((item) => item.id == entryId).firstOrNull;
+    final groupId = entry?.supersetId;
+    if (groupId == null) return null;
+    return _draftSupersets.where((group) => group.id == groupId).firstOrNull;
+  }
+
+  bool configureSupersetRestTimer(
+    String groupId, {
+    required int? normalRestSeconds,
+    required int? warmUpRestSeconds,
+  }) {
+    if (!_state.canEdit) return false;
+    final index = _draftSupersets.indexWhere((group) => group.id == groupId);
+    if (index < 0) return false;
+    final next = [..._draftSupersets];
+    next[index] = RoutineSupersetGroup(
+      id: groupId,
+      restPreset: RoutineRestTimerPreset(
+        normalRestSeconds: normalRestSeconds,
+        warmUpRestSeconds: warmUpRestSeconds,
+      ),
+    );
+    _draftSupersets = next;
+    _publish(_ready());
+    return true;
+  }
+
   RoutineRestTimerPreset getExerciseRestPreset(String entryId) {
+    final group = supersetForEntry(entryId);
+    if (group != null) return group.restPreset;
     return _restPresets[entryId] ?? const RoutineRestTimerPreset();
   }
 
@@ -289,6 +453,13 @@ final class RoutineEditorController extends ChangeNotifier {
     final index = _draft.indexWhere((e) => e.id == entryId);
     if (index < 0) return false;
     final entry = _draft[index];
+    if (entry.supersetId != null) {
+      return configureSupersetRestTimer(
+        entry.supersetId!,
+        normalRestSeconds: normalRestSeconds,
+        warmUpRestSeconds: warmUpRestSeconds,
+      );
+    }
     final preset = RoutineRestTimerPreset(
       normalRestSeconds: normalRestSeconds,
       warmUpRestSeconds: warmUpRestSeconds,
@@ -318,6 +489,7 @@ final class RoutineEditorController extends ChangeNotifier {
       RoutineCompositionEntry(
         id: entry.id,
         exercise: entry.exercise,
+        supersetId: entry.supersetId,
         sets: updatedSets,
       ),
     );
@@ -337,7 +509,7 @@ final class RoutineEditorController extends ChangeNotifier {
         current.sets.first.prescription.isRepRange;
     // Existing-Routine Edit must not introduce a fixed Set into an Exercise
     // containing ranged Sets, which the canonical RPC correctly rejects.
-    final preset = getExerciseRestPreset(current.id);
+    final preset = _restPresets[current.id] ?? const RoutineRestTimerPreset();
     final effectiveRest =
         _restPresets.containsKey(entryId) || !preset.isOff
             ? preset.effectiveRestFor(prescription.setType)
@@ -365,6 +537,7 @@ final class RoutineEditorController extends ChangeNotifier {
     _replaceEntry(index, RoutineCompositionEntry(
       id: current.id,
       exercise: current.exercise,
+      supersetId: current.supersetId,
       sets: nextSets,
     ));
     return id;
@@ -402,6 +575,7 @@ final class RoutineEditorController extends ChangeNotifier {
     _replaceEntry(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
+      supersetId: entry.supersetId,
       sets: nextSets,
     ));
     return true;
@@ -418,6 +592,7 @@ final class RoutineEditorController extends ChangeNotifier {
     _replaceEntry(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
+      supersetId: entry.supersetId,
       sets: [
         for (final set in entry.sets)
           RoutineCompositionSet(
@@ -448,6 +623,7 @@ final class RoutineEditorController extends ChangeNotifier {
     _replaceEntry(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
+      supersetId: entry.supersetId,
       sets: entry.sets.where((s) => s.id != setId).toList(),
     ));
     return true;
@@ -467,7 +643,7 @@ final class RoutineEditorController extends ChangeNotifier {
     final p = current.prescription;
     if (p.setType == type) return true;
 
-    final preset = getExerciseRestPreset(entryId);
+    final preset = _restPresets[entryId] ?? const RoutineRestTimerPreset();
     final int? newRestSeconds;
     if (_restPresets.containsKey(entryId) || !preset.isOff) {
       newRestSeconds = preset.effectiveRestFor(type);
@@ -510,6 +686,7 @@ final class RoutineEditorController extends ChangeNotifier {
     _replaceEntry(index, RoutineCompositionEntry(
       id: entry.id,
       exercise: entry.exercise,
+      supersetId: entry.supersetId,
       sets: reordered,
     ));
     return true;
@@ -522,7 +699,9 @@ final class RoutineEditorController extends ChangeNotifier {
     _publish(_ready());
   }
 
-  bool get compositionDirty => !listEquals(_baseline, _draft);
+  bool get compositionDirty =>
+      !listEquals(_baseline, _draft) ||
+      !listEquals(_baselineSupersets, _draftSupersets);
   bool get _compositionDirty => compositionDirty;
   bool get _nameDirty => _draftName.trim() != _baselineName;
 
@@ -548,6 +727,7 @@ final class RoutineEditorController extends ChangeNotifier {
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.saved,
         entries: _draft,
+        supersets: _draftSupersets,
         revision: _revision,
       ));
       return true;
@@ -564,6 +744,7 @@ final class RoutineEditorController extends ChangeNotifier {
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.verifying,
         entries: _draft,
+        supersets: _draftSupersets,
         revision: _revision,
         dirty: true,
       ));
@@ -675,6 +856,7 @@ final class RoutineEditorController extends ChangeNotifier {
             mutationId: mutationId,
             name: _draftName.trim(),
             entries: compositionDirty ? _draft : null,
+            supersets: compositionDirty ? _draftSupersets : const [],
             expectedCustomTypes: expectedCustomTypes,
           )
         : null;
@@ -685,11 +867,13 @@ final class RoutineEditorController extends ChangeNotifier {
             expectedRevision: _revision,
             mutationId: mutationId,
             entries: _draft,
+            supersets: _draftSupersets,
             expectedCustomTypes: expectedCustomTypes,
           );
     _publish(RoutineEditorState(
       status: RoutineEditorStatus.saving,
       entries: _draft,
+      supersets: _draftSupersets,
       revision: _revision,
       dirty: true,
     ));
@@ -707,10 +891,12 @@ final class RoutineEditorController extends ChangeNotifier {
       if (_disposed || !_authorized) return false;
       _revision = revision;
       _baseline = _draft;
+      _baselineSupersets = _draftSupersets;
       _baselineName = _draftName.trim();
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.saved,
         entries: _draft,
+        supersets: _draftSupersets,
         revision: revision,
       ));
       return true;
@@ -721,6 +907,7 @@ final class RoutineEditorController extends ChangeNotifier {
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.outcomeUnknown,
         entries: _draft,
+        supersets: _draftSupersets,
         revision: _revision,
         dirty: true,
         message: 'Could not confirm Update. Check saved data before editing again.',
@@ -733,6 +920,7 @@ final class RoutineEditorController extends ChangeNotifier {
         _publish(RoutineEditorState(
           status: RoutineEditorStatus.revisionConflict,
           entries: _draft,
+          supersets: _draftSupersets,
           revision: _revision,
           dirty: true,
           message: 'This Routine changed elsewhere. Reload before editing.',
@@ -742,6 +930,8 @@ final class RoutineEditorController extends ChangeNotifier {
           error.kind == RoutineCompositionFailureKind.notFound) {
         _draft = const [];
         _baseline = const [];
+        _draftSupersets = const [];
+        _baselineSupersets = const [];
         _publish(RoutineEditorState(
           status: RoutineEditorStatus.notFound,
           entries: const [],
@@ -766,6 +956,7 @@ final class RoutineEditorController extends ChangeNotifier {
       _publish(RoutineEditorState(
         status: RoutineEditorStatus.outcomeUnknown,
         entries: _draft,
+        supersets: _draftSupersets,
         revision: _revision,
         dirty: true,
         message: 'Could not confirm Update. Check saved data before editing again.',
@@ -794,6 +985,8 @@ final class RoutineEditorController extends ChangeNotifier {
       if (current == null || current.routineId != routine.id) {
         _draft = const [];
         _baseline = const [];
+        _draftSupersets = const [];
+        _baselineSupersets = const [];
         _uncertainCommand = null;
         _publish(RoutineEditorState(
           status: RoutineEditorStatus.notFound,
@@ -811,6 +1004,7 @@ final class RoutineEditorController extends ChangeNotifier {
           _publish(RoutineEditorState(
             status: RoutineEditorStatus.revisionConflict,
             entries: _draft,
+            supersets: _draftSupersets,
             revision: current.revision,
             dirty: true,
             message: 'Saved content differs. Reload before editing.',
@@ -820,6 +1014,8 @@ final class RoutineEditorController extends ChangeNotifier {
         _revision = current.revision;
         _baseline = current.entries;
         _draft = current.entries;
+        _baselineSupersets = current.supersets;
+        _draftSupersets = current.supersets;
         _uncertainCommand = null;
         _uncertainAggregateCommand = null;
         _baselineName = current.name ?? _baselineName;
@@ -827,6 +1023,7 @@ final class RoutineEditorController extends ChangeNotifier {
         _publish(RoutineEditorState(
           status: RoutineEditorStatus.saved,
           entries: _draft,
+          supersets: _draftSupersets,
           revision: _revision,
         ));
         return true;
@@ -835,6 +1032,7 @@ final class RoutineEditorController extends ChangeNotifier {
         _publish(RoutineEditorState(
           status: RoutineEditorStatus.revisionConflict,
           entries: _draft,
+          supersets: _draftSupersets,
           revision: current.revision,
           dirty: true,
           message: 'This Routine changed elsewhere. Reload before editing.',
@@ -861,6 +1059,7 @@ final class RoutineEditorController extends ChangeNotifier {
   RoutineEditorState _ready({String? message}) => RoutineEditorState(
     status: RoutineEditorStatus.ready,
     entries: _draft,
+    supersets: _draftSupersets,
     revision: _revision,
     name: _draftName,
     dirty: _compositionDirty || _nameDirty,

@@ -53,6 +53,7 @@ class WorkoutExerciseCard extends StatelessWidget {
     this.notesEnabled,
     this.controllerRegistry,
     this.showRpe = false,
+    this.supersetLabel,
     this.keyPrefix,
     super.key,
   });
@@ -85,6 +86,7 @@ class WorkoutExerciseCard extends StatelessWidget {
   final bool? notesEnabled;
   final RoutineNotesControllerRegistry? controllerRegistry;
   final bool showRpe;
+  final String? supersetLabel;
   final String? keyPrefix;
 
   @override
@@ -145,15 +147,12 @@ class WorkoutExerciseCard extends StatelessWidget {
                             ),
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: Text(
-                                title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: TioFontSize.size16,
-                                  fontWeight: TioFontWeight.w600,
-                                  color: colors.primary,
-                                ),
+                              child: _exerciseHeading(
+                                context,
+                                title: title,
+                                label: supersetLabel,
+                                titleColor: colors.primary,
+                                titleWeight: TioFontWeight.w600,
                               ),
                             ),
                           ),
@@ -170,16 +169,13 @@ class WorkoutExerciseCard extends StatelessWidget {
                               ),
                               child: Align(
                                 alignment: Alignment.centerLeft,
-                                child: Text(
-                                  title,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: TioFontSize.size16,
-                                    fontWeight: TioFontWeight.w500,
-                                    color: colors.textPrimary,
-                                  ),
-                                ),
+                              child: _exerciseHeading(
+                                context,
+                                title: title,
+                                label: supersetLabel,
+                                titleColor: colors.textPrimary,
+                                titleWeight: TioFontWeight.w500,
+                              ),
                               ),
                             ),
                           ),
@@ -477,6 +473,42 @@ class WorkoutExerciseCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _exerciseHeading(
+    BuildContext context, {
+    required String title,
+    required String? label,
+    required Color titleColor,
+    required FontWeight titleWeight,
+  }) =>
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: TioFontSize.size16,
+              fontWeight: titleWeight,
+              color: titleColor,
+            ),
+          ),
+          if (label != null) ...[
+            const SizedBox(height: TioSpacing.xxs),
+            Text(
+              'SUPERSET $label',
+              key: ValueKey('superset-member-label-$label'),
+              style: TextStyle(
+                color: context.tioColors.primary,
+                fontSize: TioFontSize.size11,
+                fontWeight: TioFontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      );
 }
 
 /// Backwards-compatible aliases for Routine Composer callers.

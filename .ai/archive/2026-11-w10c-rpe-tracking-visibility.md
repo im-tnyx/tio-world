@@ -1,6 +1,6 @@
 # W10-C — RPE Tracking Visibility in Save-only Log Workout
 
-**Status:** In review — PR #755; exact source-head CI green; independent final approval pending
+**Status:** Validated / merged 2026-11-13 per the checked-in main audit; PR #755 is merged. The pre-merge review snapshot below is historical. Device acceptance is not independently verified here.
 **Primary owner:** `apps/features/workout`
 **Affected platforms:** Flutter Android and iOS phone
 
@@ -12,7 +12,7 @@
 **Approved boundaries:** Add one RPE Tracking switch to existing Workout Settings. Missing/malformed preference OFF; store boolean via existing owner-scoped SharedPreferencesAsync repository. Only the Save-only `Log Workout` draft's working RPE header and picker respond to the switch (even at 320dp). Hide is presentation-only, never clears draft, saved RPE or historical values. Settings changes apply live through the existing controller. Read failure stays retryable and must not block workout.
 **Explicit non-changes:** No Supabase migration/RPC/RLS/schema/deploy; no cloud sync for the preference, new RPE calculation/scale, legacy online W7B session RPE writes, W8 Completed Workout History Edit, Routine templates, RIR, sound/notification/other Settings, redesign, watch, or PR merge.
 
-## Active Handoff
+## Historical Pre-Merge Handoff
 
 **Planning owner:** Tio-world owner / Linear TNYX-87 / GitHub #48
 **Implementation owner:** ChatGPT (sole source writer on focused branch; no second implementation agent)

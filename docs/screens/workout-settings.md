@@ -1,14 +1,14 @@
 # Workout Settings Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-11-13 (W10-A/B merged; W10-C in separate review-gated branch)
+Last Verified: 2026-11-13 (W10-A/B/C merged; Superset scrolling is an active source slice)
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for Workout Settings ownership and behavior; runtime source wins for actual implementation, and current PR/CI status is tracked independently.
 
 **Surface:** Nested Phone Workout configuration
 **Route:** `/settings/workout`
 **Primary owner:** `apps/features/workout`
-**Status:** W10-A and W10-B merged via PRs #753/#754; W10-C RPE Tracking is a separate approved, review-gated slice. Other Workout Settings remain planned.
+**Status:** W10-A, W10-B, and W10-C are merged via PRs #753–#755. Smart Superset Scrolling is part of the active, unmerged Superset implementation slice. Other Workout Settings remain planned.
 
 ## Purpose
 
@@ -64,7 +64,7 @@ workout data or countdown state.
 W10-B does not change the existing per-Exercise Rest Timer, UTC deadlines,
 Draft recovery, Workout pause rules or Routine composition persistence.
 
-## RPE Tracking — W10-C (review-gated)
+## RPE Tracking — W10-C (merged)
 
 The in-Workout **Settings** action on the Log Workout screen is wired to
 this same canonical Workout Settings route, using app-owned push navigation.
@@ -93,6 +93,19 @@ The existing RPE picker and draft-to-completed-snapshot Save flow are reused.
 Legacy online Active Workout has no per-Set RPE write implementation; W10-C
 does not extend that path, History Edit or overall Workout RPE. No new RPE
 scale, Supabase schema, migration, RLS or RPC is part of this slice.
+
+## Smart Superset Scrolling — active implementation slice
+
+**Smart Superset Scrolling** is a device-local, owner-scoped boolean preference
+stored separately from the other Workout settings. It defaults to **OFF** and
+does not sync to Supabase. When enabled, completed Superset sets can move focus
+to the next member in that round; after a round's Rest Timer finishes or is
+skipped, focus can move to the next round. Scrolling waits while a field is
+focused or a modal is open, and a failed scroll does not undo set logging.
+
+This approved behavior is in the active Superset source slice; its brief records
+validation and hosted-state limits. No hosted migration has been applied for
+this slice.
 
 ## Target Content
 

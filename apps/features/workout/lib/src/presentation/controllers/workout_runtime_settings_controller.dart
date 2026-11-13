@@ -34,11 +34,68 @@ final class WorkoutRuntimeSettingsController extends ChangeNotifier {
   bool _rpeTrackingEnabled = false;
   Object? _rpeError;
 
+  // Superset scrolling is opt-in and independent from other device settings.
+  Future<void>? _smartSupersetScrollingLoadFuture;
+  bool _isSmartSupersetScrollingLoaded = false;
+  bool _isSmartSupersetScrollingLoading = false;
+  bool _isSmartSupersetScrollingSaving = false;
+  bool _smartSupersetScrollingEnabled = false;
+  Object? _smartSupersetScrollingError;
+
   bool get isRpeLoading => _isRpeLoading;
   bool get isRpeSaving => _isRpeSaving;
   bool get isRpeReady => _isRpeLoaded && _rpeError == null;
   bool get rpeTrackingEnabled => isRpeReady && _rpeTrackingEnabled;
   Object? get rpeError => _rpeError;
+
+  bool get isSmartSupersetScrollingLoading =>
+      _isSmartSupersetScrollingLoading;
+  bool get isSmartSupersetScrollingSaving => _isSmartSupersetScrollingSaving;
+  bool get isSmartSupersetScrollingReady =>
+      _isSmartSupersetScrollingLoaded && _smartSupersetScrollingError == null;
+  bool get smartSupersetScrollingEnabled =>
+      isSmartSupersetScrollingReady && _smartSupersetScrollingEnabled;
+  Object? get smartSupersetScrollingError => _smartSupersetScrollingError;
+
+  Future<void> loadSmartSupersetScrolling() {
+    if (_isSmartSupersetScrollingLoaded) return Future<void>.value();
+    return _smartSupersetScrollingLoadFuture ??=
+        _loadSmartSupersetScrolling();
+  }
+
+  Future<void> _loadSmartSupersetScrolling() async {
+    _isSmartSupersetScrollingLoading = true;
+    _smartSupersetScrollingError = null;
+    notifyListeners();
+    try {
+      _smartSupersetScrollingEnabled =
+          await _repository.readSmartSupersetScrollingEnabled();
+      _isSmartSupersetScrollingLoaded = true;
+    } catch (error) {
+      _smartSupersetScrollingError = error;
+      _smartSupersetScrollingEnabled = false;
+    } finally {
+      _isSmartSupersetScrollingLoading = false;
+      _smartSupersetScrollingLoadFuture = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> setSmartSupersetScrollingEnabled(bool enabled) async {
+    await loadSmartSupersetScrolling();
+    if (!isSmartSupersetScrollingReady) {
+      throw StateError('Smart Superset Scrolling preference is unavailable.');
+    }
+    _isSmartSupersetScrollingSaving = true;
+    notifyListeners();
+    try {
+      await _repository.writeSmartSupersetScrollingEnabled(enabled);
+      _smartSupersetScrollingEnabled = enabled;
+    } finally {
+      _isSmartSupersetScrollingSaving = false;
+      notifyListeners();
+    }
+  }
 
   Future<void> loadRpeTracking() {
     if (_isRpeLoaded) return Future<void>.value();

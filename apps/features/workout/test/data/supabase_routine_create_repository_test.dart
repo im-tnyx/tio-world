@@ -47,13 +47,15 @@ void main() {
     expect(requests, hasLength(1));
     expect(requests.single.method, 'POST');
     expect(requests.single.url.path,
-        '/rest/v1/rpc/create_user_workout_routine_with_composition');
+        '/rest/v1/rpc/create_user_workout_routine_with_composition_v2');
     expect(jsonDecode(requests.single.body), {
       'p_routine_id': request.routine.id.value,
       'p_program_id': request.routine.programId.value,
       'p_name': 'Routine 1',
       'p_client_mutation_id': request.mutationId,
-      'p_exercises': [
+      'p_exercises': {
+        'schema_version': 2,
+        'entries': [
         {
           'id': request.entries.single.id,
           'exercise_ref': 'ex_bench_press',
@@ -70,7 +72,9 @@ void main() {
             }
           ],
         }
-      ],
+        ],
+        'supersets': <Object>[],
+      },
     });
   });
 

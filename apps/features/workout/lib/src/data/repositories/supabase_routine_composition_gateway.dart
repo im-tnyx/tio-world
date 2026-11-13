@@ -25,7 +25,18 @@ abstract interface class RoutineCompositionGateway {
     required String routineId,
     required int expectedRevision,
     required String mutationId,
-    required List<Map<String, dynamic>> exercises,
+    required Map<String, dynamic> exercises,
+  });
+}
+
+/// Optional read capability keeps legacy in-memory gateways usable while the
+/// authenticated Supabase adapter reads additive group rows.
+abstract interface class RoutineSupersetReadGateway {
+  Future<List<Map<String, dynamic>>> readSupersets({
+    required String userId,
+    required String routineId,
+    required int limit,
+    String? afterId,
   });
 }
 
@@ -39,12 +50,13 @@ abstract interface class RoutineAggregateUpdateGateway {
     required String expectedName,
     required String mutationId,
     String? name,
-    List<Map<String, dynamic>>? exercises,
+    Map<String, dynamic>? exercises,
   });
 }
 
 final class SupabaseRoutineCompositionGateway
-    implements RoutineCompositionGateway, RoutineAggregateUpdateGateway {
+    implements RoutineCompositionGateway, RoutineAggregateUpdateGateway,
+        RoutineSupersetReadGateway {
   SupabaseRoutineCompositionGateway(this._client);
 
   final SupabaseClient _client;
@@ -73,7 +85,26 @@ final class SupabaseRoutineCompositionGateway
     var query = _client
         .from('user_workout_routine_exercises')
         .select(
-            'id,user_id,routine_id,position,catalog_exercise_id,user_exercise_id')
+            'id,user_id,routine_id,position,catalog_exercise_id,user_exercise_id,superset_id')
+        .eq('user_id', userId)
+        .eq('routine_id', routineId);
+    if (afterId != null) query = query.gt('id', afterId);
+    return await query
+        .order('id', ascending: true)
+        .limit(limit)
+        .retry(enabled: false);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> readSupersets({
+    required String userId,
+    required String routineId,
+    required int limit,
+    String? afterId,
+  }) async {
+    var query = _client
+        .from('user_workout_routine_supersets')
+        .select('id,user_id,routine_id,normal_rest_seconds,warm_up_rest_seconds')
         .eq('user_id', userId)
         .eq('routine_id', routineId);
     if (afterId != null) query = query.gt('id', afterId);
@@ -110,10 +141,10 @@ final class SupabaseRoutineCompositionGateway
     required String routineId,
     required int expectedRevision,
     required String mutationId,
-    required List<Map<String, dynamic>> exercises,
+    required Map<String, dynamic> exercises,
   }) async =>
       await _client
-          .rpc<Object?>('save_user_workout_routine_composition', params: {
+          .rpc<Object?>('save_user_workout_routine_composition_v2', params: {
         'p_routine_id': routineId,
         'p_expected_revision': expectedRevision,
         'p_client_mutation_id': mutationId,
@@ -128,10 +159,10 @@ final class SupabaseRoutineCompositionGateway
     required String expectedName,
     required String mutationId,
     String? name,
-    List<Map<String, dynamic>>? exercises,
+    Map<String, dynamic>? exercises,
   }) async =>
       await _client.rpc<Object?>(
-        'update_user_workout_routine_with_composition',
+        'update_user_workout_routine_with_composition_v2',
         params: {
           'p_routine_id': routineId,
           'p_program_id': programId,

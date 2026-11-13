@@ -18,6 +18,8 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
   static const _keyPrefix = 'workout_default_rest_timer_seconds_v1_';
   static const _vibrationKeyPrefix = 'workout_rest_timer_vibration_enabled_v1_';
   static const _rpeKeyPrefix = 'workout_rpe_tracking_enabled_v1_';
+  static const _smartSupersetScrollingKeyPrefix =
+      'workout_smart_superset_scrolling_enabled_v1_';
 
   static String vibrationStorageKeyFor(String ownerId) =>
       '$_vibrationKeyPrefix${ownerId.trim()}';
@@ -27,12 +29,17 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
   static String rpeStorageKeyFor(String ownerId) =>
       '$_rpeKeyPrefix${ownerId.trim()}';
 
+  static String smartSupersetScrollingStorageKeyFor(String ownerId) =>
+      '$_smartSupersetScrollingKeyPrefix${ownerId.trim()}';
+
   final String _ownerId;
   SharedPreferencesAsync? _preferences;
 
   String get _storageKey => storageKeyFor(_ownerId);
   String get _vibrationStorageKey => vibrationStorageKeyFor(_ownerId);
   String get _rpeStorageKey => rpeStorageKeyFor(_ownerId);
+  String get _smartSupersetScrollingStorageKey =>
+      smartSupersetScrollingStorageKeyFor(_ownerId);
 
   SharedPreferencesAsync get _store =>
       _preferences ??= SharedPreferencesAsync();
@@ -92,6 +99,20 @@ final class SharedPreferencesWorkoutRuntimeSettingsRepository
   @override
   Future<void> writeRpeTrackingEnabled(bool enabled) =>
       _store.setBool(_rpeStorageKey, enabled);
+
+  @override
+  Future<bool> readSmartSupersetScrollingEnabled() async {
+    try {
+      return await _store.getBool(_smartSupersetScrollingStorageKey) ?? false;
+    } on TypeError {
+      await _store.remove(_smartSupersetScrollingStorageKey);
+      return false;
+    }
+  }
+
+  @override
+  Future<void> writeSmartSupersetScrollingEnabled(bool enabled) =>
+      _store.setBool(_smartSupersetScrollingStorageKey, enabled);
 
   static bool _isSupported(int seconds) =>
       seconds == 0 ||
