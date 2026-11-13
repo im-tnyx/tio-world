@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
@@ -17,6 +18,7 @@ import '../../domain/exercises/exercise_catalog.dart';
 import '../controllers/active_workout_controller.dart';
 import '../controllers/active_workout_draft_controller.dart';
 import '../controllers/workout_runtime_settings_controller.dart';
+import '../controllers/rest_timer_completion_gate.dart';
 import '../controllers/active_workout_state.dart';
 import '../library/exercises/exercises_controller.dart';
 import '../library/exercises/exercises_page.dart';
@@ -28,6 +30,14 @@ import '../widgets/workout_rpe_sheet.dart';
 import '../widgets/workout_set_input_row.dart';
 import '../widgets/workout_set_type_sheet.dart';
 import 'save_workout_page.dart';
+
+Future<void> _vibrateAtRestCompletion() async {
+  try {
+    await HapticFeedback.vibrate();
+  } catch (_) {
+    // Haptics are optional; platform failures must never interrupt logging.
+  }
+}
 
 DateTime _wallDateTime(DateTime instantUtc, int offsetMinutes) {
   final wall = instantUtc.toUtc().add(Duration(minutes: offsetMinutes));
@@ -134,17 +144,28 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
   ActiveWorkoutController? _controller;
   final ValueNotifier<bool> _sessionActive = ValueNotifier<bool>(false);
   bool _draftChecked = false;
+  final RestTimerCompletionGate _legacyRestGate = RestTimerCompletionGate();
+  int _observedLegacyCompletionRevision = 0;
+  String? _observedLegacyRestId;
+  bool _vibrationForeground = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _vibrationForeground = WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    _legacyRestGate.setForeground(_vibrationForeground);
+    final settings = widget.workoutRuntimeSettingsController;
+    if (settings != null) unawaited(settings.loadRestTimerVibration());
     unawaited(_restoreExistingDraft());
     _bindController(widget.controller);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _vibrationForeground = state == AppLifecycleState.resumed;
+    _legacyRestGate.setForeground(_vibrationForeground);
     final draftController = widget.draftController;
     if (draftController == null) return;
     if (state == AppLifecycleState.hidden ||
@@ -181,6 +202,11 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
     if (!identical(oldWidget.controller, widget.controller)) {
       _bindController(widget.controller);
     }
+    if (!identical(oldWidget.workoutRuntimeSettingsController,
+        widget.workoutRuntimeSettingsController)) {
+      final settings = widget.workoutRuntimeSettingsController;
+      if (settings != null) unawaited(settings.loadRestTimerVibration());
+    }
   }
 
   void _bindController(ActiveWorkoutController? next) {
@@ -188,8 +214,17 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
     _controller?.removeListener(_onControllerChanged);
     _controller?.stopDurationTicker();
     _controller = next;
+    _legacyRestGate.observeRest(
+      restId: null,
+      remainingPositive: false,
+      vibrationEnabled: false,
+    );
+    _observedLegacyRestId = null;
+    _observedLegacyCompletionRevision =
+        next?.restCompletionRevision ?? 0;
     next?.addListener(_onControllerChanged);
     _sessionActive.value = next != null;
+    if (next != null) _observeLegacyRest(next);
     if (next != null) {
       Future<void>.microtask(next.restoreActiveSession);
     }
@@ -200,8 +235,41 @@ class _ActiveWorkoutBodyState extends State<_ActiveWorkoutBody>
     if (controller == null || !mounted) return;
     _sessionActive.value =
         controller.state.status != ActiveWorkoutStatus.authInvalidated;
+    _observeLegacyRest(controller);
     _syncTicker(controller.state);
     setState(() {});
+  }
+
+  void _observeLegacyRest(ActiveWorkoutController controller) {
+    final enabled = widget.workoutRuntimeSettingsController
+            ?.restTimerVibrationEnabled ??
+        false;
+    final revision = controller.restCompletionRevision;
+    if (revision != _observedLegacyCompletionRevision) {
+      _observedLegacyCompletionRevision = revision;
+      final id = _observedLegacyRestId;
+      if (id != null &&
+          _legacyRestGate.complete(id, vibrationEnabled: enabled) &&
+          _vibrationForeground &&
+          mounted &&
+          (ModalRoute.of(context)?.isCurrent ?? true)) {
+        unawaited(_vibrateAtRestCompletion());
+      }
+    }
+    final rest = controller.state.activeRestTimer;
+    final restId = rest == null
+        ? null
+        : '${rest.targetInstantUtc.microsecondsSinceEpoch}:'
+            '${rest.sessionExerciseIndex}:${rest.setIndex}';
+    _observedLegacyRestId = restId;
+    _legacyRestGate.observeRest(
+      restId: restId,
+      remainingPositive: rest != null &&
+          rest.remainingDuration(
+            (widget.clock?.call() ?? DateTime.now()).toUtc(),
+          ) > Duration.zero,
+      vibrationEnabled: enabled,
+    );
   }
 
   void _syncTicker(ActiveWorkoutState state) {
@@ -559,9 +627,44 @@ class _StartWorkoutPreview extends StatefulWidget {
   State<_StartWorkoutPreview> createState() => _StartWorkoutPreviewState();
 }
 
-class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
+class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
+    with WidgetsBindingObserver {
   final Map<int, List<ExerciseNoteDraftSnapshot>> _exerciseNotes = {};
   Timer? _ticker;
+  final RestTimerCompletionGate _draftRestGate = RestTimerCompletionGate();
+  bool _vibrationForeground = true;
+
+  void _observeDraftRest() {
+    final rest = _draft?.activeRest;
+    final enabled = widget.workoutRuntimeSettingsController
+            ?.restTimerVibrationEnabled ??
+        false;
+    final id = rest == null
+        ? null
+        : '${rest.exerciseId}:${rest.setId}:'
+            '${rest.targetAtUtc.microsecondsSinceEpoch}';
+    final remaining = rest?.remaining(_nowUtc()) ?? Duration.zero;
+    _draftRestGate.observeRest(
+      restId: id,
+      remainingPositive: remaining > Duration.zero,
+      vibrationEnabled: enabled,
+    );
+    if (id != null &&
+        remaining <= Duration.zero &&
+        _draftRestGate.complete(id, vibrationEnabled: enabled) &&
+        _vibrationForeground &&
+        mounted &&
+        (ModalRoute.of(context)?.isCurrent ?? true)) {
+      unawaited(_vibrateAtRestCompletion());
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _vibrationForeground = state == AppLifecycleState.resumed;
+    _draftRestGate.setForeground(_vibrationForeground);
+    if (_vibrationForeground && mounted) _observeDraftRest();
+  }
 
   ActiveWorkoutDraft? get _draft => widget.draftController?.draft;
   List<ActiveWorkoutDraftExercise> get _previewExercises =>
@@ -609,6 +712,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
+      _observeDraftRest();
       final restActive =
           (_draft?.activeRest?.remaining(_nowUtc()) ?? Duration.zero) >
               Duration.zero;
@@ -666,12 +770,20 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _vibrationForeground = WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    _draftRestGate.setForeground(_vibrationForeground);
+    final settings = widget.workoutRuntimeSettingsController;
+    if (settings != null) unawaited(settings.loadRestTimerVibration());
     widget.draftController?.addListener(_onDraftChanged);
+    _observeDraftRest();
     _ensureDraftOrTicker();
   }
 
   void _onDraftChanged() {
     if (!mounted) return;
+    _observeDraftRest();
     if (_draft == null) {
       _ticker?.cancel();
       _ticker = null;
@@ -699,12 +811,24 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview> {
         oldWidget.createDraftIfMissing != widget.createDraftIfMissing) {
       oldWidget.draftController?.removeListener(_onDraftChanged);
       widget.draftController?.addListener(_onDraftChanged);
+      _draftRestGate.observeRest(
+        restId: null,
+        remainingPositive: false,
+        vibrationEnabled: false,
+      );
+      _observeDraftRest();
       _ensureDraftOrTicker();
+    }
+    if (!identical(oldWidget.workoutRuntimeSettingsController,
+        widget.workoutRuntimeSettingsController)) {
+      final settings = widget.workoutRuntimeSettingsController;
+      if (settings != null) unawaited(settings.loadRestTimerVibration());
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.draftController?.removeListener(_onDraftChanged);
     _ticker?.cancel();
     _ticker = null;
