@@ -410,7 +410,7 @@ void main() {
       SystemChannels.platform,
       (call) async {
         if (call.method == 'HapticFeedback.vibrate') {
-          calls.add(call.arguments as String? ?? '');
+          calls.add(call.method);
         }
         return null;
       },
@@ -457,7 +457,7 @@ void main() {
 
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 5));
-    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'),
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
         hasLength(1));
   });
 
@@ -468,7 +468,7 @@ void main() {
       SystemChannels.platform,
       (call) async {
         if (call.method == 'HapticFeedback.vibrate') {
-          calls.add(call.arguments as String? ?? '');
+          calls.add(call.method);
         }
         return null;
       },
@@ -518,10 +518,10 @@ void main() {
     await tester.pump(const Duration(seconds: 6));
 
     expect(find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
-    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'),
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
         hasLength(1));
     await tester.pump(const Duration(seconds: 5));
-    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'),
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
         hasLength(1));
   });
 
@@ -532,7 +532,7 @@ void main() {
       SystemChannels.platform,
       (call) async {
         if (call.method == 'HapticFeedback.vibrate') {
-          calls.add(call.arguments as String? ?? '');
+          calls.add(call.method);
         }
         return null;
       },
@@ -569,10 +569,10 @@ void main() {
     await tester.pump(const Duration(seconds: 6));
 
     expect(find.byType(WorkoutDurationBottomSheet), findsOneWidget);
-    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'),
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
         hasLength(1));
     await tester.pump(const Duration(seconds: 6));
-    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'),
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
         hasLength(1));
   });
 
@@ -583,7 +583,7 @@ void main() {
       SystemChannels.platform,
       (call) async {
         if (call.method == 'HapticFeedback.vibrate') {
-          calls.add(call.arguments as String? ?? '');
+          calls.add(call.method);
         }
         return null;
       },
@@ -617,7 +617,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump(const Duration(seconds: 3));
 
-    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'),
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
         hasLength(1));
   });
 
@@ -628,7 +628,7 @@ void main() {
       SystemChannels.platform,
       (call) async {
         if (call.method == 'HapticFeedback.vibrate') {
-          calls.add(call.arguments as String? ?? '');
+          calls.add(call.method);
         }
         return null;
       },
@@ -666,7 +666,7 @@ void main() {
     expect(controller.state.activeRestTimer, isNotNull);
 
     await tester.pump(const Duration(seconds: 6));
-    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'), isEmpty);
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), isEmpty);
   });
 
   testWidgets('draft natural expiry vibrates once; Skip and OFF stay silent',
@@ -676,7 +676,7 @@ void main() {
       SystemChannels.platform,
       (call) async {
         if (call.method == 'HapticFeedback.vibrate') {
-          feedback.add(call.arguments as String? ?? '');
+          feedback.add(call.method);
         }
         return null;
       },
@@ -719,10 +719,10 @@ void main() {
     await tester.pump();
     expect(draft.draft!.activeRest, isNotNull);
     await tester.pump(const Duration(seconds: 6));
-    expect(feedback.where((value) => value == 'HapticFeedbackType.vibrate'),
+    expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
         hasLength(1));
     await tester.pump(const Duration(seconds: 8));
-    expect(feedback.where((value) => value == 'HapticFeedbackType.vibrate'),
+    expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
         hasLength(1));
 
     expect(await draft.toggleLogged(
@@ -734,7 +734,7 @@ void main() {
     await tester.pump();
     expect(await draft.skipRest(), isTrue);
     await tester.pump(const Duration(seconds: 7));
-    expect(feedback.where((value) => value == 'HapticFeedbackType.vibrate'),
+    expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
         hasLength(1));
   });
 
@@ -745,7 +745,7 @@ void main() {
       SystemChannels.platform,
       (call) async {
         if (call.method == 'HapticFeedback.vibrate') {
-          feedback.add(call.arguments as String? ?? '');
+          feedback.add(call.method);
         }
         return null;
       },
@@ -790,7 +790,7 @@ void main() {
     await tester.pump(const Duration(seconds: 6));
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump(const Duration(milliseconds: 100));
-    expect(feedback.where((value) => value == 'HapticFeedbackType.vibrate'),
+    expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
         isEmpty);
   });
 
@@ -801,7 +801,7 @@ void main() {
       SystemChannels.platform,
       (call) async {
         if (call.method == 'HapticFeedback.vibrate') {
-          calls.add(call.arguments as String? ?? '');
+          calls.add(call.method);
         }
         return null;
       },
@@ -836,7 +836,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 6));
     expect(controller.state.activeRestTimer, isNull);
-    expect(calls.where((v) => v == 'HapticFeedbackType.vibrate'),
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
         hasLength(1));
   });
 
@@ -847,7 +847,7 @@ void main() {
       SystemChannels.platform,
       (call) async {
         if (call.method == 'HapticFeedback.vibrate') {
-          feedback.add(call.arguments as String? ?? '');
+          feedback.add(call.method);
         }
         return null;
       },
@@ -880,12 +880,12 @@ void main() {
     controller.startRestTimer(durationSeconds: 5);
     await tester.pump();
     await tester.pump(const Duration(seconds: 6));
-    expect(feedback.where((value) => value == 'HapticFeedbackType.vibrate'),
+    expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
         hasLength(1));
     controller.startRestTimer(durationSeconds: 5);
     controller.cancelRestTimer();
     await tester.pump(const Duration(seconds: 6));
-    expect(feedback.where((value) => value == 'HapticFeedbackType.vibrate'),
+    expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
         hasLength(1));
   });
 
