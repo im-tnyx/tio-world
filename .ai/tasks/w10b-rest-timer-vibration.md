@@ -1,6 +1,6 @@
 # W10-B — Foreground Rest Timer Vibration
 
-**Status:** In progress — approved by owner, implementation pending
+**Status:** In review — source committed, CI and independent review pending
 **Primary owner:** `apps/features/workout`
 **Affected platforms:** Flutter Android/iOS phones only
 
@@ -16,24 +16,24 @@
 **Planning owner:** #00 Tio-world / owner
 **Implementation owner:** ChatGPT (sole writer of W10-B; not the W10-A owner)
 **Previous agent:** Not applicable — new child slice
-**Last commit agent:** Not applicable before first commit
-**Last commit SHA:** Not yet committed
+**Last commit agent:** ChatGPT — single-owner W10-B
+**Last commit SHA:** `fc408f6b9dee5b3458f7d8f6aa9b42644b33c65c` (runtime source checkpoint; documentation/test follow-up pending)
 **Review owner:** Independent GitHub reviewer to be requested after PR
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
 **Repository state last verified:** GitHub remote main `706bcdf4cba238e567b14cdbc2b48b0942abcf9a`, protected; no open PR. Local Windows checkout/worktree **unavailable** from ChatGPT; do not claim local status.
 **Branch:** `tnyx/w10b-rest-vibration`
-**HEAD SHA:** Base `706bcdf4cba238e567b14cdbc2b48b0942abcf9a`; update after commits
+**HEAD SHA:** `fc408f6b9dee5b3458f7d8f6aa9b42644b33c65c` (source checkpoint, before this handoff commit)
 **Observed working-tree state:** Not observable from remote connector
 **Observed uncommitted/dirty files:** Not observable
 **PR / tracker:** Linear [TNYX-87](https://linear.app/tnyx/issue/TNYX-87); GitHub [#48](https://github.com/im-tnyx/tio-world/issues/48).
-**Current implementation state:** Not yet written. W10-A was merged by [PR #753](https://github.com/im-tnyx/tio-world/pull/753) at `706bcdf4`; W10-A `.ai/tasks` and screen docs retain historical pre-merge status.
+**Current implementation state:** W10-B Settings bool, independent read/retry, foreground one-shot gate, draft/legacy expiry wiring and focused tests committed. W10-A merged via PR #753; old W10-A handoff in task index was stale.
 **Relevant execution surface:** `WorkoutRuntimeSettingsRepository`, `SharedPreferencesWorkoutRuntimeSettingsRepository`, `WorkoutRuntimeSettingsController`, `WorkoutSettingsPage`, `ActiveWorkoutDraftController`, `ActiveWorkoutController`, `ActiveWorkoutPage`, app auth-bound composition and focused tests.
 **Validation completed at SHA:** Audit-only source/GitHub/Linear/Supabase metadata, no implementation tests run.
 **Validation remaining:** Focused Flutter tests/analyze, exact-head CI, peer review, real Android/iOS phone acceptance.
 **Current blocker:** W10 epic TNYX-87 formally blocked by TNYX-78. Owner approved W10-B child specifically; do not close epic or alter dependencies.
 **Open review finding IDs:** None (no PR/review yet).
-**Next exact action:** Implement bounded W10-B using existing owner-local storage and one-shot per-rest completion semantics; review-gated PR only.
+**Next exact action:** Create W10-B review-gated PR; exact-head Flutter/Android/Docs CI, address independent review findings. Do not merge.
 
 ## 1. Discovery
 
@@ -81,15 +81,15 @@ Rest timer UTC deadline / explicit natural-expiry signal
 Keep completion cause in the owning Workout presentation/controller boundary. No other module owns vibration logic, and preference errors do not block rest countdowns.
 
 ## 5. Implementation Plan
-- [ ] Preserve W10-A and extend Workout local preferences with separate haptic state/error/retry.
-- [ ] One themed Settings switch, error handling and accessibility.
-- [ ] Shared per-rest completion gate, draft + legacy runtime wiring and foreground suppression.
-- [ ] Add focused controller/repository/widget/lifecycle tests; regression OFF/Skip/Adjust/Restore.
+- [x] Preserve W10-A and extend Workout local preferences with separate haptic state/error/retry.
+- [x] One themed Settings switch and error handling (accessibility requires QA).
+- [x] Shared per-rest completion gate, draft + legacy runtime wiring and foreground suppression.
+- [x] Add focused controller/repository/widget/lifecycle source tests; **not yet run**.
 - [ ] Exact-head CI and independent review; no merge.
 
 ## 6. Quality Review
 
-**Validation run:** NOT RUN; local Flutter/Dart SDK unavailable in ChatGPT environment. GitHub CI after PR required.
+**Validation run:** NOT RUN locally; Flutter/Dart SDK unavailable in ChatGPT container. Focused source tests were added but not executed. GitHub exact-head CI and physical-device QA pending.
 
 | Criterion | Proposed evidence | Outcome |
 |---|---|---|
@@ -105,6 +105,6 @@ Keep completion cause in the owning Workout presentation/controller boundary. No
 
 ## 7. Final Handoff
 
-**Changed files:** Pending implementation.
+**Changed files:** Workout Settings repository/controller/UI, one-shot gate, Active Workout draft+legacy presentation, legacy completion revision, focused test fixtures/cases, docs and this handoff.
 **Known limitations:** Foreground-only phone feedback; OS may suppress haptics; no alarm or scheduled delivery guarantee.
 **Final Status:** REVIEW pending implementation/testing and independent review.
