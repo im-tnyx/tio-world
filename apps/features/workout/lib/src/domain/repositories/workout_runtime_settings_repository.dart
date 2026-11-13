@@ -13,4 +13,9 @@ abstract interface class WorkoutRuntimeSettingsRepository {
   Future<bool> readRestTimerVibrationEnabled();
 
   Future<void> writeRestTimerVibrationEnabled(bool enabled);
+
+  /// Local-only RPE column visibility; unreadable or absent means OFF.
+  Future<bool> readRpeTrackingEnabled();
+
+  Future<void> writeRpeTrackingEnabled(bool enabled);
 }

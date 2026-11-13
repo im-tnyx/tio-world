@@ -826,10 +826,18 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     _draftRestGate.setForeground(_vibrationForeground);
     final settings = widget.workoutRuntimeSettingsController;
-    if (settings != null) unawaited(settings.loadRestTimerVibration());
+    if (settings != null) {
+      unawaited(settings.loadRestTimerVibration());
+      unawaited(settings.loadRpeTracking());
+      settings.addListener(_onRpeSettingsChanged);
+    }
     widget.draftController?.addListener(_onDraftChanged);
     _observeDraftRest();
     _ensureDraftOrTicker();
+  }
+
+  void _onRpeSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onDraftChanged() {
@@ -872,14 +880,22 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     }
     if (!identical(oldWidget.workoutRuntimeSettingsController,
         widget.workoutRuntimeSettingsController)) {
+      oldWidget.workoutRuntimeSettingsController
+          ?.removeListener(_onRpeSettingsChanged);
       final settings = widget.workoutRuntimeSettingsController;
-      if (settings != null) unawaited(settings.loadRestTimerVibration());
+      if (settings != null) {
+        unawaited(settings.loadRestTimerVibration());
+        unawaited(settings.loadRpeTracking());
+        settings.addListener(_onRpeSettingsChanged);
+      }
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.workoutRuntimeSettingsController
+        ?.removeListener(_onRpeSettingsChanged);
     widget.draftController?.removeListener(_onDraftChanged);
     _ticker?.cancel();
     _ticker = null;
@@ -1197,7 +1213,10 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       // would block test settle; parent already navigates Back on discard.
       return const SizedBox.shrink();
     }
-    final showRpe = MediaQuery.sizeOf(context).width >= 360;
+    // The setting controls the Save-only picker, never a width heuristic.
+    // Hiding it is presentation-only and preserves draft RPE values.
+    final showRpe =
+        widget.workoutRuntimeSettingsController?.rpeTrackingEnabled ?? false;
     final canFinish = _loggedSets.isNotEmpty;
     final isComplete = _isWorkoutComplete;
     final rest = _draft?.activeRest;
