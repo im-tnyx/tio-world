@@ -122,9 +122,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(settingsAction);
     await tester.pumpAndSettle();
-    expect(router.routeInformationProvider.value.uri.path,
+    // Imperative go_router pushes retain the reported shell branch URL.
+    // Validate the destination's own route state instead of the address bar.
+    final settingsPage = find.byType(WorkoutSettingsPage);
+    expect(settingsPage, findsOneWidget);
+    expect(GoRouterState.of(tester.element(settingsPage)).uri.path,
         AppRoutes.workoutSettings.path);
-    expect(find.byType(WorkoutSettingsPage), findsOneWidget);
     expect(find.byKey(const ValueKey('workout-rpe-tracking-switch')),
         findsOneWidget);
 

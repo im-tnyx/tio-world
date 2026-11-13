@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
@@ -692,6 +693,8 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   Timer? _ticker;
   final RestTimerCompletionGate _draftRestGate = RestTimerCompletionGate();
   bool _vibrationForeground = true;
+  bool _rpeVisible = false;
+  bool _rpeRebuildScheduled = false;
 
   void _observeDraftRest() {
     final rest = _draft?.activeRest;
@@ -837,6 +840,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     _draftRestGate.setForeground(_vibrationForeground);
     final settings = widget.workoutRuntimeSettingsController;
+    _rpeVisible = settings?.rpeTrackingEnabled ?? false;
     if (settings != null) {
       unawaited(settings.loadRestTimerVibration());
       unawaited(settings.loadRpeTracking());
@@ -848,7 +852,26 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
   }
 
   void _onRpeSettingsChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // The shared controller also emits Rest/default-load notifications.
+    // Only changes to the RPE visibility contract should rebuild this draft.
+    final visible =
+        widget.workoutRuntimeSettingsController?.rpeTrackingEnabled ?? false;
+    if (_rpeVisible == visible) return;
+    _rpeVisible = visible;
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      // The Settings page may load while this route remains mounted beneath
+      // it. Never mark a different subtree dirty during its build phase.
+      if (_rpeRebuildScheduled) return;
+      _rpeRebuildScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _rpeRebuildScheduled = false;
+        if (mounted) setState(() {});
+      });
+    } else {
+      setState(() {});
+    }
   }
 
   void _onDraftChanged() {
@@ -894,6 +917,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       oldWidget.workoutRuntimeSettingsController
           ?.removeListener(_onRpeSettingsChanged);
       final settings = widget.workoutRuntimeSettingsController;
+      _rpeVisible = settings?.rpeTrackingEnabled ?? false;
       if (settings != null) {
         unawaited(settings.loadRestTimerVibration());
         unawaited(settings.loadRpeTracking());

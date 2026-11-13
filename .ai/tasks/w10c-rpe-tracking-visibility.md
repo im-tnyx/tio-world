@@ -78,3 +78,9 @@
 - The RPE slider's selected number now uses semantic `colors.onPrimary` over its semantic `colors.primary` circular fill rather than hard-coded white; unselected numbers keep `colors.textPrimary`. No RPE scale/picker-selection behavior or layout redesign.
 - Added feature widget tests for both Settings callback paths, app route navigation/back preserving the Routine-seeded draft and reflecting RPE toggle, and per-theme selected/unselected text foreground checks for Light, Dark and Tio Dark. All tests are **authored, not PASS until exact-head CI runs**.
 - No Supabase changes, no merge, no PR duplication. All changes remain on PR #755 review-gated branch.
+
+## CI-driven navigation lifecycle remediation
+
+- New app-router regression initially failed on exact head `78b5504a51b486a56bced48829e957345cd9e8c6`: the test checked `router.routeInformationProvider` for a nested imperative push, which retains the branch root URL by existing go_router behavior; it now checks `GoRouterState.of(WorkoutSettingsPage)` directly.
+- The same CI surfaced a **real** `setState() called during build` problem when Settings initialization notified the shared runtime settings controller while the live Save-only preview was still listening beneath the pushed route. The preview now filters unrelated Rest-setting notifications by the actual RPE visibility boolean and defers a genuine RPE-triggered rebuild until after the frame if the framework is currently in its persistent build phase. On controller replacement it re-seeds the observed visibility; disposed previews do not set state.
+- No new settings owner/router or data persistence. Re-run exact-head Flutter/Android CI; do not claim PASS yet, do not merge. Original 320dp P2 remains independent-review pending.
