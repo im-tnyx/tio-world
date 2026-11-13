@@ -117,9 +117,10 @@ void main() {
     final originalDraft = draftController!.draft!;
     final savesBeforeSettings = store.saveCount;
 
-    await tester.tap(
-      find.byKey(const ValueKey('active-workout-preview-settings')),
-    );
+    final settingsAction = find.byKey(const ValueKey('active-workout-preview-settings'));
+    await tester.ensureVisible(settingsAction);
+    await tester.pumpAndSettle();
+    await tester.tap(settingsAction);
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path,
         AppRoutes.workoutSettings.path);
