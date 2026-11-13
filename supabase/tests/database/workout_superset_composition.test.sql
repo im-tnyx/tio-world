@@ -4,27 +4,41 @@
 -- compatibility. This test is intended for the disposable local CI database.
 begin;
 
+create extension if not exists pgtap schema extensions;
+select plan(17);
+
 create function pg_temp.assert_true(p_ok boolean, p_message text)
-returns void language plpgsql as $$
+returns text language plpgsql as $$
 begin
-  if p_ok is not true then
-    raise exception 'assertion failed: %', p_message;
-  end if;
+  return extensions.ok(p_ok, p_message);
 end;
 $$;
 
 create function pg_temp.assert_raises(p_sql text, p_state text, p_message text)
-returns void language plpgsql as $$
-declare v_state text;
+returns text language plpgsql as $$
+declare
+  v_state text;
+  v_message text;
 begin
   begin
     execute p_sql;
+    raise exception 'pg_temp.assert_raises_operation_succeeded' using errcode = 'P0001';
   exception when others then
-    get stacked diagnostics v_state = returned_sqlstate;
-    if v_state = p_state then return; end if;
-    raise exception 'assertion failed: % expected %, got %', p_message, p_state, v_state;
+    get stacked diagnostics
+      v_state = returned_sqlstate,
+      v_message = message_text;
+    if v_state = 'P0001'
+        and v_message = 'pg_temp.assert_raises_operation_succeeded' then
+      return extensions.ok(false, p_message || ' (operation succeeded)');
+    end if;
+    if v_state = p_state then
+      return extensions.ok(true, p_message);
+    end if;
+    return extensions.ok(
+      false,
+      pg_catalog.format('%s (expected SQLSTATE %s, got %s)', p_message, p_state, v_state)
+    );
   end;
-  raise exception 'assertion failed: % (operation succeeded)', p_message;
 end;
 $$;
 
