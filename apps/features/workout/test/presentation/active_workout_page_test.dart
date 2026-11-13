@@ -1086,6 +1086,84 @@ void main() {
     expect(find.text('SUPERSET A1'), findsOneWidget);
   });
 
+  testWidgets('Superset picker excludes an exercise with skipped progress',
+      (tester) async {
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: false,
+    );
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    expect(
+        await harness.draft.addExercises([
+          Exercise(
+            ref: ExerciseRef.catalog('ex_c'),
+            displayName: 'Eligible Exercise',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+          Exercise(
+            ref: ExerciseRef.catalog('ex_d'),
+            displayName: 'Skipped Exercise',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+        ]),
+        isTrue);
+    final eligible = harness.draft.draft!.exercises[2];
+    final skipped = harness.draft.draft!.exercises[3];
+    expect(
+      await harness.draft.toggleLogged(
+        skipped.id,
+        skipped.sets.single.id,
+        isSkipped: true,
+      ),
+      isTrue,
+    );
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
+
+    final firstCard =
+        find.byKey(const ValueKey('active-workout-preview-exercise-0'));
+    await tester.ensureVisible(firstCard);
+    await tester.tap(find.descendant(
+      of: firstCard,
+      matching: find.byTooltip('Exercise options'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-exercise-option-add-superset')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(ValueKey('routine-superset-candidate-${eligible.id}')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(ValueKey('routine-superset-candidate-${skipped.id}')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.byKey(ValueKey('routine-superset-candidate-${eligible.id}')),
+    );
+    await tester.pumpAndSettle();
+    expect(harness.draft.draft!.exercises[2].supersetId,
+        harness.draft.draft!.supersets.single.id);
+    expect(harness.draft.draft!.exercises[3].supersetId, isNull);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Smart Superset Scrolling advances to the next member when ON',
       (tester) async {
     tester.view.physicalSize = const Size(360, 360);

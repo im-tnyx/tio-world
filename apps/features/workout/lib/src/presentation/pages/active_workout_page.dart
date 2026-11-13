@@ -1179,8 +1179,11 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
       () => showRoutineExerciseOptionsSheet(
         context,
         isGrouped: groupId != null,
-        canAddSupersetMember:
-            !groupHasProgress && (groupId == null || groupMemberCount < 3),
+        canAddSupersetMember: !groupHasProgress &&
+            (groupId == null
+                ? (widget.draftController?.canJoinSuperset(exercise.id) ??
+                    false)
+                : groupMemberCount < 3),
         canRemoveFromSuperset: !groupHasProgress,
         canReplaceExercise: !groupHasProgress,
         canRemoveExercise: !groupHasProgress,
@@ -1229,7 +1232,10 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         for (var candidateIndex = 0;
             candidateIndex < current.exercises.length;
             candidateIndex++)
-          if (current.exercises[candidateIndex].id != exerciseId)
+          if (current.exercises[candidateIndex].id != exerciseId &&
+              (current.exercises[candidateIndex].supersetId != null ||
+                  controller
+                      .canJoinSuperset(current.exercises[candidateIndex].id)))
             RoutineSupersetMemberCandidate(
               entryId: current.exercises[candidateIndex].id,
               title: current.exercises[candidateIndex].displayName,

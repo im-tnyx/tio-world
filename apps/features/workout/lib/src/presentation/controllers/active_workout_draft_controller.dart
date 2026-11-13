@@ -430,7 +430,7 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             .length;
         final index = draft.exercises.indexWhere((e) => e.id == exerciseId);
         if (members < 2 || members >= 3 || index < 0 ||
-            draft.exercises[index].supersetId != null) {
+            !_canJoinSuperset(draft, exerciseId)) {
           throw StateError('Select an eligible Superset exercise.');
         }
         final next = [...draft.exercises]..removeAt(index);
@@ -460,7 +460,10 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
           }
           supersets = supersets.where((group) => group.id != groupId).toList();
         } else {
-          next[index] = next[index].copyWith(supersetId: null);
+          final removed = next.removeAt(index);
+          final lastMember =
+              next.lastIndexWhere((exercise) => exercise.supersetId == groupId);
+          next.insert(lastMember + 1, removed.copyWith(supersetId: null));
         }
         return draft.copyWith(
           exercises: next,
@@ -494,8 +497,22 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
   bool _supersetHasProgress(ActiveWorkoutDraft draft, String supersetId) =>
       draft.exercises
           .where((exercise) => exercise.supersetId == supersetId)
-          .any((exercise) =>
-              exercise.sets.any((set) => set.loggedAtUtc != null));
+          .any(_exerciseHasProgress);
+
+  bool canJoinSuperset(String exerciseId) {
+    final draft = _draft;
+    return draft != null && _canJoinSuperset(draft, exerciseId);
+  }
+
+  bool _canJoinSuperset(ActiveWorkoutDraft draft, String exerciseId) {
+    final exercise = draft.exercises.where((e) => e.id == exerciseId).firstOrNull;
+    return exercise != null &&
+        exercise.supersetId == null &&
+        !_exerciseHasProgress(exercise);
+  }
+
+  bool _exerciseHasProgress(ActiveWorkoutDraftExercise exercise) =>
+      exercise.sets.any((set) => set.loggedAtUtc != null);
 
   Future<bool> removeExercise(String exerciseId) => _change((draft) {
         final removed = draft.exercises.where((e) => e.id == exerciseId).firstOrNull;

@@ -912,6 +912,92 @@ void main() {
     expect(controller.draft!.activeRest, isNull);
   });
 
+  test('ungrouping the middle Active Workout member keeps its group contiguous',
+      () async {
+    final store = _Store();
+    var nextId = 1200;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(controller.dispose);
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(
+      await controller.addExercises([
+        _exercise('ex_a', 'A'),
+        _exercise('ex_b', 'B'),
+        _exercise('ex_c', 'C'),
+        _exercise('ex_d', 'D'),
+      ]),
+      isTrue,
+    );
+    final ids = controller.draft!.exercises.map((e) => e.id).toList();
+    expect(await controller.createSuperset(ids[0], ids[1]), isTrue);
+    final groupId = controller.draft!.supersets.single.id;
+    expect(await controller.addSupersetMember(groupId, ids[2]), isTrue);
+
+    expect(await controller.removeFromSuperset(ids[1]), isTrue);
+    expect(controller.draft!.exercises.map((e) => e.id),
+        [ids[0], ids[2], ids[1], ids[3]]);
+    expect(controller.draft!.exercises.map((e) => e.supersetId),
+        [groupId, groupId, null, null]);
+    expect(store.saved!.exercises.map((e) => e.id),
+        [ids[0], ids[2], ids[1], ids[3]]);
+
+    final first = controller.draft!.exercises.first;
+    expect(
+        await controller.toggleLogged(first.id, first.sets.single.id), isTrue);
+    expect(await controller.removeFromSuperset(ids[2]), isFalse);
+    expect(controller.draft!.exercises.map((e) => e.supersetId),
+        [groupId, groupId, null, null]);
+  });
+
+  test('completed or skipped incoming exercise cannot join a Superset',
+      () async {
+    final store = _Store();
+    var nextId = 1300;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(controller.dispose);
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(
+        await controller.addExercises([
+          _exercise('ex_a', 'A'),
+          _exercise('ex_b', 'B'),
+          _exercise('ex_c', 'C'),
+          _exercise('ex_d', 'D'),
+        ]),
+        isTrue);
+    final ids = controller.draft!.exercises.map((e) => e.id).toList();
+    expect(await controller.createSuperset(ids[0], ids[1]), isTrue);
+    final groupId = controller.draft!.supersets.single.id;
+    final cSet = controller.draft!.exercises[2].sets.single.id;
+    final dSet = controller.draft!.exercises[3].sets.single.id;
+
+    expect(await controller.toggleLogged(ids[2], cSet, reps: 8), isTrue);
+    expect(controller.canJoinSuperset(ids[2]), isFalse);
+    expect(await controller.addSupersetMember(groupId, ids[2]), isFalse);
+    expect(
+        await controller.toggleLogged(ids[3], dSet, isSkipped: true), isTrue);
+    expect(controller.canJoinSuperset(ids[3]), isFalse);
+    expect(await controller.addSupersetMember(groupId, ids[3]), isFalse);
+    expect(controller.draft!.exercises.map((e) => e.supersetId),
+        [groupId, groupId, null, null]);
+
+    expect(await controller.toggleLogged(ids[2], cSet), isTrue);
+    expect(controller.canJoinSuperset(ids[2]), isTrue);
+    expect(await controller.addSupersetMember(groupId, ids[2]), isTrue);
+    expect(controller.draft!.exercises.map((e) => e.id),
+        [ids[0], ids[1], ids[2], ids[3]]);
+    expect(controller.draft!.exercises[2].supersetId, groupId);
+    expect(controller.canJoinSuperset(ids[2]), isFalse);
+    expect(controller.canJoinSuperset('missing'), isFalse);
+  });
+
   test('Superset round timer waits for all available members and restores',
       () async {
     var now = DateTime.utc(2026, 11, 12, 8);
