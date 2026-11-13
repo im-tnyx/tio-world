@@ -18,17 +18,17 @@
 **Implementation owner:** ChatGPT (sole source writer on focused branch; no second implementation agent)
 **Previous agent:** Not applicable — new W10-C child slice.
 **Last commit agent:** ChatGPT
-**Last commit SHA:** Pending implementation checkpoint.
+**Last commit SHA:** `ff3ff87e5b7cb6477a79cc9867f9b9ea414aea7b` (source/test checkpoint, docs follow-up pending).
 **Review owner:** Independent GitHub reviewer `i-the` requested after PR; review not yet performed.
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable.
 **Repository state last verified:** Remote GitHub main@5ac411c3f9f636192afc2faa0db70bc1813c4101 on 2026-11-13; remote connector only, local Windows checkout `G:\\projects\\Tio-World` not accessible.
 **Branch:** `tnyx/w10c-rpe-tracking`
-**HEAD SHA:** Initial base main@5ac411c3; task/source commits pending.
+**HEAD SHA:** `ff3ff87e5b7cb6477a79cc9867f9b9ea414aea7b` (latest source/test head before docs-only follow-up).
 **Observed working-tree state:** Local working tree unavailable; no claim of clean checkout.
 **Observed uncommitted/dirty files:** Unavailable.
 **PR / tracker:** No W10-C PR yet; [GitHub #48](https://github.com/im-tnyx/tio-world/issues/48), [Linear TNYX-87](https://linear.app/tnyx/issue/TNYX-87) Backlog/blocked by TNYX-78 for broad W10. This approved child does not change epic status.
-**Current implementation state:** Discovery completed; only this handoff and index to be committed first.
+**Current implementation state:** Source and focused tests authored in branch; PR review and CI still pending.
 **Relevant execution surface:** `WorkoutRuntimeSettingsRepository`, `SharedPreferencesWorkoutRuntimeSettingsRepository`, `WorkoutRuntimeSettingsController`, `WorkoutSettingsPage`, Save-only draft preview in `ActiveWorkoutPage`, existing `WorkoutExerciseCard`, `WorkoutSetInputRow`, `showWorkoutRpeSheet`.
 **Validation completed at SHA:** Source/planning metadata audit only. No local Flutter/Dart command run; toolchain unavailable in ChatGPT environment.
 **Validation remaining:** Focused controller/repository/widget/routing regressions, current-head Flutter/analyzer/Android/Docs CI, independent PR review, physical phone acceptance.
@@ -52,11 +52,11 @@
 
 ## Implementation Plan
 
-- [ ] Add repository/controller local RPE boolean, independent load/retry and safe save; update existing repository fakes.
-- [ ] Add RPE Tracking switch with separate read failure/Retry UI on existing Workout Settings page.
-- [ ] Connect only Save-only Log Workout preview to live preference, remove width-based visibility veto, reuse existing RPE controls; preserve legacy session behavior.
+- [x] Add repository/controller local RPE boolean, independent load/retry and safe save; update existing repository fakes.
+- [x] Add RPE Tracking switch with separate read failure/Retry UI on existing Workout Settings page.
+- [x] Connect only Save-only Log Workout preview to live preference, remove width-based visibility veto, reuse existing RPE controls; preserve legacy session behavior.
 - [ ] Add focused tests: OFF/ON, persistence/restart/account isolation, malformed/failure/retry, live toggle, existing draft RPE retains/reappears, 320dp/390dp accessibility and no overflow.
-- [ ] Reconcile `docs/screens/workout-settings.md` and `docs/screens/active-workout.md`.
+- [x] Reconcile `docs/screens/workout-settings.md` and `docs/screens/active-workout.md`.
 - [ ] Exact-head CI, independent GitHub review-gated PR; no merge.
 
 ## Quality Review and Final Handoff
