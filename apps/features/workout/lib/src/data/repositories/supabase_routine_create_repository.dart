@@ -34,12 +34,13 @@ final class SupabaseRoutineCreateRepository implements RoutineCreateRepository {
         expectedRevision: 0,
         mutationId: command.mutationId,
         entries: command.entries,
+        supersets: command.supersets,
         expectedCustomTypes: command.expectedCustomTypes,
       ),
     );
     try {
       final result = await _client.rpc<Object?>(
-        'create_user_workout_routine_with_composition',
+        'create_user_workout_routine_with_composition_v2',
         params: {
           'p_routine_id': command.routine.id.value,
           'p_program_id': command.routine.programId.value,

@@ -14,6 +14,7 @@ Future<void> _open(
   String? supportingText,
   Widget? titleTrailing,
   bool canDismiss = true,
+  bool pinHeader = false,
   double? bottomPadding,
   Size? surfaceSize,
   double textScale = 1,
@@ -29,6 +30,7 @@ Future<void> _open(
           supportingText: supportingText,
           titleTrailing: titleTrailing,
           canDismiss: canDismiss,
+          pinHeader: pinHeader,
           content: content,
           actions: actions,
         )
@@ -37,6 +39,7 @@ Future<void> _open(
           supportingText: supportingText,
           titleTrailing: titleTrailing,
           canDismiss: canDismiss,
+          pinHeader: pinHeader,
           bottomPadding: bottomPadding,
           content: content,
           actions: actions,
@@ -172,7 +175,8 @@ void main() {
         surfaceSize: const Size(400, 600),
         content: Column(
           children: [
-            for (var i = 0; i < 40; i++) SizedBox(height: 40, child: Text('r$i')),
+            for (var i = 0; i < 40; i++)
+              SizedBox(height: 40, child: Text('r$i')),
           ],
         ),
         actions: TioButton.primary(
@@ -255,6 +259,39 @@ void main() {
       final rect = tester.getRect(save);
       expect(rect.bottom, lessThanOrEqualTo(600 - 300));
       expect(rect.top, greaterThanOrEqualTo(0));
+    });
+  });
+
+  group('pinned header', () {
+    testWidgets('keeps the header fixed while caller content scrolls',
+        (tester) async {
+      await _open(
+        tester,
+        pinHeader: true,
+        content: ListView.builder(
+          key: const ValueKey('pinned-header-list'),
+          itemCount: 20,
+          itemBuilder: (context, index) => SizedBox(
+            height: TioSize.dp48,
+            child: Text('Row $index'),
+          ),
+        ),
+      );
+
+      final title = find.text('Daily Step Goal');
+      final titleTop = tester.getRect(title).top;
+      final list = find.byKey(const ValueKey('pinned-header-list'));
+      await tester.dragUntilVisible(
+        find.text('Row 19'),
+        list,
+        const Offset(0, -160),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.getRect(title).top, titleTop);
+      expect(find.text('Row 19'), findsOneWidget);
+      expect(find.byType(SingleChildScrollView), findsNothing);
+      expect(tester.takeException(), isNull);
     });
   });
 

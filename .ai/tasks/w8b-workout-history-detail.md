@@ -41,4 +41,4 @@
 **Known limitations:** Device acceptance unavailable; Edit Workout separately specified later. W7/TNYX-84 remains In Progress.
 **Next exact action:** Push the scoped W8B change, then inspect exact-head CI and independent review.
 
-**2026-11-12 handoff:** The owner subsequently approved the separate [W8C edit slice](w8c-workout-history-edit.md) on the same PR branch. The disabled Edit behavior and next-action wording above record the prior W8B checkpoint. W8C owns the new implementation; W7/TNYX-84 remains In Progress.
+**2026-11-12 handoff:** The owner subsequently approved the separate [W8C edit slice](../archive/2026-11-w8c-workout-history-edit.md) on the same PR branch; W8C source is merged through PR #752 per the 2026-11-13 main audit. The disabled Edit behavior and next-action wording above record the prior W8B checkpoint. W7/TNYX-84 remains In Progress.

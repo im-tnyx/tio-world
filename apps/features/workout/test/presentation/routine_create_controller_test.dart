@@ -251,6 +251,74 @@ void main() {
     expect(c.state.entries.map((e) => e.id), [_entry2, _entry1]);
   });
 
+  test('Superset create, capacity, timer seed, ungroup and block reorder', () {
+    var nextId = 0;
+    final c = RoutineCreateController(
+      program: Program(id: ProgramId(_programId), name: 'Program 1'),
+      initialName: 'Routine 1',
+      repository: _Creates(),
+      newUuid: () =>
+          '90000000-0000-4000-8000-${(++nextId).toString().padLeft(12, '0')}',
+    );
+    addTearDown(c.dispose);
+
+    final first = c.addPickedExercise(
+      _exercise,
+      initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
+    )!;
+    final second = c.addPickedExercise(
+      _exercise,
+      initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 90),
+    )!;
+    final third = c.addPickedExercise(_exercise)!;
+    final fourth = c.addPickedExercise(_exercise)!;
+
+    expect(c.createSuperset(first, second), isTrue);
+    final groupId = c.state.entries.first.supersetId!;
+    expect(c.state.supersets.single.id, groupId);
+    expect(c.state.supersets.single.restPreset.normalRestSeconds, 60);
+    expect(c.state.entries[0].sets.single.prescription.restSeconds, 60);
+    expect(c.state.entries[1].sets.single.prescription.restSeconds, 90);
+    expect(c.addSupersetMember(groupId, third), isTrue);
+    expect(c.state.entries.where((entry) => entry.supersetId == groupId),
+        hasLength(3));
+    expect(c.addSupersetMember(groupId, fourth), isFalse);
+    expect(c.state.entries.map((entry) => entry.id),
+        [first, second, third, fourth]);
+
+    expect(c.removeFromSuperset(second), isTrue);
+    expect(c.state.entries.map((entry) => entry.id),
+        [first, third, second, fourth]);
+    expect(c.state.entries.take(2).every((entry) => entry.supersetId == groupId),
+        isTrue);
+    expect(c.state.entries[2].supersetId, isNull);
+    expect(c.removeFromSuperset(second), isFalse);
+    expect(c.addSupersetMember(groupId, second), isTrue);
+    expect(c.removeFromSuperset(third), isTrue);
+    expect(c.addSupersetMember(groupId, third), isTrue);
+
+    // Move a member to another position; the complete contiguous block moves.
+    expect(c.moveExercise(0, 3), isTrue);
+    expect(c.state.entries.map((entry) => entry.id),
+        [fourth, first, second, third]);
+    expect(c.state.entries
+        .where((entry) => entry.supersetId == groupId)
+        .map((entry) => entry.id), [first, second, third]);
+
+    expect(c.removeFromSuperset(first), isTrue);
+    expect(c.state.entries.firstWhere((entry) => entry.id == first).supersetId,
+        isNull);
+    expect(c.state.entries.where((entry) => entry.supersetId == groupId),
+        hasLength(2));
+    expect(c.removeFromSuperset(second), isTrue);
+    expect(c.state.supersets, isEmpty);
+    expect(c.state.entries
+        .where((entry) => entry.id == third || entry.id == second)
+        .every((entry) => entry.supersetId == null), isTrue);
+    expect(c.state.entries.firstWhere((entry) => entry.id == second)
+        .sets.single.prescription.restSeconds, 90);
+  });
+
   test('Set Type and Rep Range preserve UUID/load/rest and mode', () {
     final c = _controller(_Creates());
     addTearDown(c.dispose);

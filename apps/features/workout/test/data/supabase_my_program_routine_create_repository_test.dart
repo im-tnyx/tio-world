@@ -69,7 +69,7 @@ void main() {
     expect(requests, hasLength(1));
     expect(requests.single.method, 'POST');
     expect(requests.single.url.path,
-        '/rest/v1/rpc/create_user_workout_routine_in_my_program');
+        '/rest/v1/rpc/create_user_workout_routine_in_my_program_v2');
 
     final sent = jsonDecode(requests.single.body) as Map<String, dynamic>;
     expect(sent.keys.toSet(), {
@@ -79,7 +79,10 @@ void main() {
     expect(sent['p_routine_id'], _routine);
     expect(sent['p_name'], 'Routine 1');
     expect(sent['p_client_mutation_id'], _mutation);
-    final entries = sent['p_exercises'] as List<dynamic>;
+    final composition = sent['p_exercises'] as Map<String, dynamic>;
+    expect(composition['schema_version'], 2);
+    expect(composition['supersets'], isEmpty);
+    final entries = composition['entries'] as List<dynamic>;
     expect(entries, hasLength(1));
     final entry = entries.single as Map<String, dynamic>;
     expect(entry['id'], _entry);

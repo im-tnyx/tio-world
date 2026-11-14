@@ -13,6 +13,7 @@ final class MyProgramRoutineCreateCommand {
     required String name,
     required String mutationId,
     required List<RoutineCompositionEntry> entries,
+    List<RoutineSupersetGroup> supersets = const [],
     Map<String, ExerciseType?> expectedCustomTypes = const {},
   })  : name = name.trim(),
         // The canonical composer normalizes a validated UUID to lowercase.
@@ -22,9 +23,11 @@ final class MyProgramRoutineCreateCommand {
           expectedRevision: 0,
           mutationId: mutationId,
           entries: entries,
+          supersets: supersets,
           expectedCustomTypes: expectedCustomTypes,
         ).mutationId,
         entries = List.unmodifiable(entries),
+        supersets = List.unmodifiable(supersets),
         expectedCustomTypes = Map.unmodifiable(expectedCustomTypes) {
     // A nonempty Exercise without Sets passes the basic composition envelope
     // but the atomic #568 RPC rejects it. Block it before any dispatch.
@@ -38,6 +41,7 @@ final class MyProgramRoutineCreateCommand {
   final String name;
   final String mutationId;
   final List<RoutineCompositionEntry> entries;
+  final List<RoutineSupersetGroup> supersets;
   final Map<String, ExerciseType?> expectedCustomTypes;
 
   /// Positive composition evidence only. The caller must also prove that the
@@ -57,6 +61,7 @@ final class MyProgramRoutineCreateCommand {
       expectedRevision: 0,
       mutationId: mutationId,
       entries: entries,
+      supersets: supersets,
     ));
   }
 

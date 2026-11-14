@@ -18,12 +18,15 @@ final class RoutineCreateState {
     required this.status,
     required this.name,
     required List<RoutineCompositionEntry> entries,
+    List<RoutineSupersetGroup> supersets = const [],
     this.message,
-  }) : entries = List.unmodifiable(entries);
+  })  : entries = List.unmodifiable(entries),
+        supersets = List.unmodifiable(supersets);
 
   final RoutineCreateStatus status;
   final String name;
   final List<RoutineCompositionEntry> entries;
+  final List<RoutineSupersetGroup> supersets;
   final String? message;
 
   bool get canSave =>
@@ -36,6 +39,17 @@ final class RoutineCreateState {
             entry.sets.map((s) => s.prescription),
           ));
 }
+
+RoutineCompositionEntry _withSuperset(
+  RoutineCompositionEntry entry,
+  String? supersetId,
+) =>
+    RoutineCompositionEntry(
+      id: entry.id,
+      exercise: entry.exercise,
+      supersetId: supersetId,
+      sets: entry.sets,
+    );
 
 /// One canonical in-memory Routine draft for an existing Program or the
 /// server-owned default Program. Neither mode allows metadata-only writes.
@@ -95,6 +109,7 @@ final class RoutineCreateController extends ChangeNotifier {
   final String Function() _newUuid;
   String _name;
   List<RoutineCompositionEntry> _entries = const [];
+  List<RoutineSupersetGroup> _supersets = const [];
   // One selected Custom measurement contract per *entry* (not per Exercise
   // ref: duplicate refs may be added independently to a Routine).
   final Map<String, ExerciseType?> _pickedCustomTypes = {};
@@ -143,6 +158,7 @@ final class RoutineCreateController extends ChangeNotifier {
       status: _status,
       name: _name,
       entries: _entries,
+      supersets: _supersets,
       message: _message,
     );
     notifyListeners();
@@ -180,8 +196,8 @@ final class RoutineCreateController extends ChangeNotifier {
           RoutineCompositionSet(
             id: setId,
             prescription: SetPrescription(
-              restSeconds: initialRestPreset
-                  .effectiveRestFor(RoutineSetType.normal),
+              restSeconds:
+                  initialRestPreset.effectiveRestFor(RoutineSetType.normal),
             ),
           ),
         ],
@@ -214,6 +230,7 @@ final class RoutineCreateController extends ChangeNotifier {
         RoutineCompositionEntry(
           id: newId,
           exercise: exercise.ref,
+          supersetId: _entries[index].supersetId,
           sets: [
             RoutineCompositionSet(
               id: setId,
@@ -225,8 +242,27 @@ final class RoutineCreateController extends ChangeNotifier {
   }
 
   bool removeExercise(String entryId) {
-    if (!_editable || !_entries.any((e) => e.id == entryId)) return false;
+    if (!_editable) return false;
+    final removed = _entries.where((e) => e.id == entryId).firstOrNull;
+    if (removed == null) return false;
     _entries = _entries.where((e) => e.id != entryId).toList();
+    if (removed.supersetId != null) {
+      final remaining = _entries
+          .where((entry) => entry.supersetId == removed.supersetId)
+          .toList();
+      if (remaining.length < 2) {
+        _entries = [
+          for (final entry in _entries)
+            if (entry.supersetId == removed.supersetId)
+              _withSuperset(entry, null)
+            else
+              entry,
+        ];
+        _supersets = _supersets
+            .where((group) => group.id != removed.supersetId)
+            .toList();
+      }
+    }
     _pickedCustomTypes.remove(entryId);
     _restPresets.remove(entryId);
     _publish();
@@ -242,14 +278,149 @@ final class RoutineCreateController extends ChangeNotifier {
         from == to) {
       return false;
     }
-    final next = [..._entries];
-    next.insert(to, next.removeAt(from));
+    final moving = _entries[from];
+    final movingGroup = moving.supersetId;
+    final sourceIndexes = movingGroup == null
+        ? [from]
+        : [
+            for (var i = 0; i < _entries.length; i++)
+              if (_entries[i].supersetId == movingGroup) i,
+          ];
+    final sourceStart = sourceIndexes.first;
+    final sourceEnd = sourceIndexes.last + 1;
+    if (to >= sourceStart && to < sourceEnd) {
+      if (to > from) {
+        if (sourceEnd >= _entries.length) return false;
+        to = sourceEnd;
+      } else {
+        if (sourceStart == 0) return false;
+        to = sourceStart - 1;
+      }
+    }
+    final block = _entries.sublist(sourceStart, sourceEnd);
+    final next = [..._entries]..removeRange(sourceStart, sourceEnd);
+    var target = to > sourceStart ? to - block.length + 1 : to;
+    target = target.clamp(0, next.length);
+    if (target < next.length && next[target].supersetId != null) {
+      final targetGroup = next[target].supersetId;
+      final first = next.indexWhere((e) => e.supersetId == targetGroup);
+      final last = next.lastIndexWhere((e) => e.supersetId == targetGroup) + 1;
+      target = from < to ? last : first;
+    }
+    next.insertAll(target, block);
     _entries = next;
     _publish();
     return true;
   }
 
+  /// Forms a new two-member group and keeps its members adjacent in the draft.
+  bool createSuperset(String initiatingEntryId, String memberEntryId) {
+    if (!_editable || initiatingEntryId == memberEntryId) return false;
+    final first = _entries.indexWhere((e) => e.id == initiatingEntryId);
+    final second = _entries.indexWhere((e) => e.id == memberEntryId);
+    if (first < 0 ||
+        second < 0 ||
+        _entries[first].supersetId != null ||
+        _entries[second].supersetId != null) {
+      return false;
+    }
+    final id = _newUuid();
+    final ordered = [first, second]..sort();
+    final members = [
+      _withSuperset(_entries[ordered[0]], id),
+      _withSuperset(_entries[ordered[1]], id),
+    ];
+    final next = [..._entries]
+      ..removeAt(ordered[1])
+      ..removeAt(ordered[0]);
+    next.insertAll(ordered[0], members);
+    _entries = next;
+    _supersets = [
+      ..._supersets,
+      RoutineSupersetGroup(
+        id: id,
+        restPreset: getExerciseRestPreset(initiatingEntryId),
+      ),
+    ];
+    _publish();
+    return true;
+  }
+
+  bool addSupersetMember(String groupId, String entryId) {
+    if (!_editable ||
+        !_supersets.any((group) => group.id == groupId) ||
+        _entries.where((entry) => entry.supersetId == groupId).length >= 3) {
+      return false;
+    }
+    final index = _entries.indexWhere((entry) => entry.id == entryId);
+    if (index < 0 || _entries[index].supersetId != null) return false;
+    final next = [..._entries]..removeAt(index);
+    final last = next.lastIndexWhere((entry) => entry.supersetId == groupId);
+    next.insert(last + 1, _withSuperset(_entries[index], groupId));
+    _entries = next;
+    _publish();
+    return true;
+  }
+
+  bool removeFromSuperset(String entryId) {
+    if (!_editable) return false;
+    final index = _entries.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final groupId = _entries[index].supersetId;
+    if (groupId == null) return false;
+    final members =
+        _entries.where((entry) => entry.supersetId == groupId).length;
+    if (members <= 2) {
+      _entries = [
+        for (final entry in _entries)
+          if (entry.supersetId == groupId)
+            _withSuperset(entry, null)
+          else
+            entry,
+      ];
+      _supersets = _supersets.where((group) => group.id != groupId).toList();
+    } else {
+      final next = [..._entries]..removeAt(index);
+      final lastMember =
+          next.lastIndexWhere((entry) => entry.supersetId == groupId);
+      next.insert(lastMember + 1, _withSuperset(_entries[index], null));
+      _entries = next;
+    }
+    _publish();
+    return true;
+  }
+
+  RoutineSupersetGroup? supersetForEntry(String entryId) {
+    final entry = _entries.where((item) => item.id == entryId).firstOrNull;
+    final groupId = entry?.supersetId;
+    if (groupId == null) return null;
+    return _supersets.where((group) => group.id == groupId).firstOrNull;
+  }
+
+  bool configureSupersetRestTimer(
+    String groupId, {
+    required int? normalRestSeconds,
+    required int? warmUpRestSeconds,
+  }) {
+    if (!_editable) return false;
+    final index = _supersets.indexWhere((group) => group.id == groupId);
+    if (index < 0) return false;
+    final next = [..._supersets];
+    next[index] = RoutineSupersetGroup(
+      id: groupId,
+      restPreset: RoutineRestTimerPreset(
+        normalRestSeconds: normalRestSeconds,
+        warmUpRestSeconds: warmUpRestSeconds,
+      ),
+    );
+    _supersets = next;
+    _publish();
+    return true;
+  }
+
   RoutineRestTimerPreset getExerciseRestPreset(String entryId) {
+    final group = supersetForEntry(entryId);
+    if (group != null) return group.restPreset;
     return _restPresets[entryId] ?? const RoutineRestTimerPreset();
   }
 
@@ -262,6 +433,13 @@ final class RoutineCreateController extends ChangeNotifier {
     final index = _entries.indexWhere((e) => e.id == entryId);
     if (index < 0) return false;
     final entry = _entries[index];
+    if (entry.supersetId != null) {
+      return configureSupersetRestTimer(
+        entry.supersetId!,
+        normalRestSeconds: normalRestSeconds,
+        warmUpRestSeconds: warmUpRestSeconds,
+      );
+    }
     final preset = RoutineRestTimerPreset(
       normalRestSeconds: normalRestSeconds,
       warmUpRestSeconds: warmUpRestSeconds,
@@ -289,6 +467,7 @@ final class RoutineCreateController extends ChangeNotifier {
       RoutineCompositionEntry(
         id: entry.id,
         exercise: entry.exercise,
+        supersetId: entry.supersetId,
         sets: updatedSets,
       ),
     );
@@ -309,11 +488,10 @@ final class RoutineCreateController extends ChangeNotifier {
     // Repetition mode is Exercise-wide.
     final inRange =
         entry.sets.isNotEmpty && entry.sets.first.prescription.isRepRange;
-    final preset = getExerciseRestPreset(entry.id);
-    final effectiveRest =
-        _restPresets.containsKey(entry.id) || !preset.isOff
-            ? preset.effectiveRestFor(prescription.setType)
-            : prescription.restSeconds;
+    final preset = _restPresets[entry.id] ?? const RoutineRestTimerPreset();
+    final effectiveRest = _restPresets.containsKey(entry.id) || !preset.isOff
+        ? preset.effectiveRestFor(prescription.setType)
+        : prescription.restSeconds;
     final initial = SetPrescription(
       reps: prescription.reps,
       repsMax: inRange ? (prescription.repsMax ?? prescription.reps) : null,
@@ -339,6 +517,7 @@ final class RoutineCreateController extends ChangeNotifier {
         RoutineCompositionEntry(
           id: entry.id,
           exercise: entry.exercise,
+          supersetId: entry.supersetId,
           sets: nextSets,
         ));
     return id;
@@ -378,6 +557,7 @@ final class RoutineCreateController extends ChangeNotifier {
         RoutineCompositionEntry(
           id: entry.id,
           exercise: entry.exercise,
+          supersetId: entry.supersetId,
           sets: nextSets,
         ));
     return true;
@@ -397,7 +577,7 @@ final class RoutineCreateController extends ChangeNotifier {
     final p = current.prescription;
     if (p.setType == type) return true;
 
-    final preset = getExerciseRestPreset(entryId);
+    final preset = _restPresets[entryId] ?? const RoutineRestTimerPreset();
     final int? newRestSeconds;
     if (_restPresets.containsKey(entryId) || !preset.isOff) {
       newRestSeconds = preset.effectiveRestFor(type);
@@ -444,6 +624,7 @@ final class RoutineCreateController extends ChangeNotifier {
         RoutineCompositionEntry(
           id: entry.id,
           exercise: entry.exercise,
+          supersetId: entry.supersetId,
           sets: reordered,
         ));
     return true;
@@ -461,6 +642,7 @@ final class RoutineCreateController extends ChangeNotifier {
         RoutineCompositionEntry(
           id: entry.id,
           exercise: entry.exercise,
+          supersetId: entry.supersetId,
           sets: [
             for (final s in entry.sets)
               RoutineCompositionSet(
@@ -496,6 +678,7 @@ final class RoutineCreateController extends ChangeNotifier {
         RoutineCompositionEntry(
           id: entry.id,
           exercise: entry.exercise,
+          supersetId: entry.supersetId,
           sets: entry.sets.where((s) => s.id != setId).toList(),
         ));
     return true;
@@ -599,6 +782,7 @@ final class RoutineCreateController extends ChangeNotifier {
         ),
         mutationId: _newUuid(),
         entries: _entries,
+        supersets: _supersets,
         expectedCustomTypes: _pickedCustomTypes,
       );
     } else {
@@ -607,6 +791,7 @@ final class RoutineCreateController extends ChangeNotifier {
         name: _name.trim(),
         mutationId: _newUuid(),
         entries: _entries,
+        supersets: _supersets,
         expectedCustomTypes: _pickedCustomTypes,
       );
     }

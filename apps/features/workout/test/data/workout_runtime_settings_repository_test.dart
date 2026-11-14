@@ -124,6 +124,42 @@ void main() {
     expect(await prefs.getString(key), isNull);
   });
 
+  test('Smart Superset Scrolling is owner-scoped and defaults OFF', () async {
+    final first = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-a',
+    );
+    final other = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-b',
+    );
+    expect(await first.readSmartSupersetScrollingEnabled(), isFalse);
+    expect(await other.readSmartSupersetScrollingEnabled(), isFalse);
+
+    await first.writeSmartSupersetScrollingEnabled(true);
+    expect(await first.readSmartSupersetScrollingEnabled(), isTrue);
+    expect(await other.readSmartSupersetScrollingEnabled(), isFalse);
+    expect(
+      await SharedPreferencesWorkoutRuntimeSettingsRepository(
+        ownerId: 'owner-a',
+      ).readSmartSupersetScrollingEnabled(),
+      isTrue,
+    );
+  });
+
+  test('malformed Smart Superset Scrolling value recovers to OFF', () async {
+    final prefs = SharedPreferencesAsync();
+    const ownerId = 'owner-a';
+    final key =
+        SharedPreferencesWorkoutRuntimeSettingsRepository
+            .smartSupersetScrollingStorageKeyFor(ownerId);
+    await prefs.setString(key, 'enabled');
+    final repository = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: ownerId,
+      preferences: prefs,
+    );
+    expect(await repository.readSmartSupersetScrollingEnabled(), isFalse);
+    expect(await prefs.getString(key), isNull);
+  });
+
   test('supported 5-second values round-trip and clear restores unset',
       () async {
     final repository = SharedPreferencesWorkoutRuntimeSettingsRepository(

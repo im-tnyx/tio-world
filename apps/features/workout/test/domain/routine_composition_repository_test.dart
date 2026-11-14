@@ -8,6 +8,61 @@ const _mutation = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 final _routine = RoutineId('11111111-1111-1111-1111-111111111111');
 
 void main() {
+  test('save reconciliation compares group IDs while preserving entry order',
+      () {
+    const a = '10000000-0000-4000-8000-000000000001';
+    const b = '20000000-0000-4000-8000-000000000002';
+    RoutineCompositionEntry member(String id, String groupId) =>
+        RoutineCompositionEntry(
+            id: id,
+            exercise: ExerciseRef.catalog('ex_squat'),
+            supersetId: groupId);
+    final entries = [
+      member('30000000-0000-4000-8000-000000000001', b),
+      member('30000000-0000-4000-8000-000000000002', b),
+      member('30000000-0000-4000-8000-000000000003', a),
+      member('30000000-0000-4000-8000-000000000004', a)
+    ];
+    final groupA = RoutineSupersetGroup(
+        id: a, restPreset: const RoutineRestTimerPreset(normalRestSeconds: 60));
+    final groupB = RoutineSupersetGroup(
+        id: b, restPreset: const RoutineRestTimerPreset(normalRestSeconds: 90));
+    final snapshot = RoutineCompositionSnapshot(
+        routineId: _routine,
+        revision: 1,
+        entries: entries,
+        supersets: [groupA, groupB]);
+    RoutineCompositionSave save(List<RoutineCompositionEntry> values,
+            List<RoutineSupersetGroup> groups) =>
+        RoutineCompositionSave(
+            routineId: _routine,
+            expectedRevision: 0,
+            mutationId: _mutation,
+            entries: values,
+            supersets: groups);
+    expect(snapshot.hasSameContent(save(entries, [groupB, groupA])), isTrue);
+    final aggregate = RoutineAggregateUpdate(routineId: _routine,
+        programId: ProgramId('40000000-0000-4000-8000-000000000001'),
+        expectedRevision: 0, expectedName: 'Day', mutationId: _mutation,
+        name: 'Day', entries: entries, supersets: [groupB, groupA]);
+    final namedSnapshot = RoutineCompositionSnapshot(routineId: _routine,
+        revision: 1, name: 'Day', entries: entries,
+        supersets: [groupA, groupB]);
+    expect(aggregate.matches(namedSnapshot), isTrue);
+    expect(
+        snapshot
+            .hasSameContent(save(entries.reversed.toList(), [groupB, groupA])),
+        isFalse);
+    expect(
+        snapshot.hasSameContent(save(entries, [
+          groupB,
+          RoutineSupersetGroup(
+              id: a,
+              restPreset: const RoutineRestTimerPreset(normalRestSeconds: 120))
+        ])),
+        isFalse);
+  });
+
   test(
       'identified envelopes project canonical values without losing repeated refs',
       () {
@@ -101,6 +156,112 @@ void main() {
         () => RoutineCompositionEntry(
             id: _entry, exercise: first.exercise, sets: [set, set]),
         throwsArgumentError);
+  });
+
+  test('Superset composition requires two or three contiguous known members',
+      () {
+    const groupId = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+    final group = RoutineSupersetGroup(
+      id: groupId,
+      restPreset: const RoutineRestTimerPreset(
+        normalRestSeconds: 60,
+        warmUpRestSeconds: 15,
+      ),
+    );
+    RoutineCompositionEntry member(String id, {String? groupRef}) =>
+        RoutineCompositionEntry(
+          id: id,
+          exercise: ExerciseRef.catalog('ex_squat'),
+          supersetId: groupRef,
+          sets: [
+            RoutineCompositionSet(
+              id: 'eeeeeeee-eeee-eeee-eeee-${id.substring(24)}',
+              prescription: SetPrescription(reps: 8),
+            ),
+          ],
+        );
+    final first =
+        member('10000000-0000-4000-8000-000000000001', groupRef: groupId);
+    final second =
+        member('10000000-0000-4000-8000-000000000002', groupRef: groupId);
+    final third =
+        member('10000000-0000-4000-8000-000000000003', groupRef: groupId);
+
+    expect(
+      RoutineCompositionSnapshot(
+        routineId: _routine,
+        revision: 1,
+        entries: [first, second],
+        supersets: [group],
+      ).supersets.single.restPreset.normalRestSeconds,
+      60,
+    );
+    expect(
+      RoutineCompositionSnapshot(
+        routineId: _routine,
+        revision: 1,
+        entries: [first, second, third],
+        supersets: [group],
+      ).entries,
+      hasLength(3),
+    );
+    for (final invalidEntries in [
+      [first],
+      [
+        first,
+        second,
+        third,
+        member('10000000-0000-4000-8000-000000000004', groupRef: groupId)
+      ],
+      [first, member('10000000-0000-4000-8000-000000000005'), second],
+    ]) {
+      expect(
+        () => RoutineCompositionSnapshot(
+          routineId: _routine,
+          revision: 1,
+          entries: invalidEntries,
+          supersets: [group],
+        ),
+        throwsArgumentError,
+      );
+    }
+    expect(
+      () => RoutineCompositionSnapshot(
+        routineId: _routine,
+        revision: 1,
+        entries: [first, second],
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('Superset labels follow ordered Routine blocks', () {
+    const firstGroup = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+    const secondGroup = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+    RoutineCompositionEntry entry(String id, String? groupId) =>
+        RoutineCompositionEntry(
+          id: id,
+          exercise: ExerciseRef.catalog('ex_squat'),
+          supersetId: groupId,
+          sets: [
+            RoutineCompositionSet(
+              id: 'eeeeeeee-eeee-eeee-eeee-${id.substring(24)}',
+              prescription: SetPrescription(reps: 8),
+            ),
+          ],
+        );
+    final entries = [
+      entry('10000000-0000-4000-8000-000000000001', firstGroup),
+      entry('10000000-0000-4000-8000-000000000002', firstGroup),
+      entry('10000000-0000-4000-8000-000000000003', null),
+      entry('10000000-0000-4000-8000-000000000004', secondGroup),
+      entry('10000000-0000-4000-8000-000000000005', secondGroup),
+    ];
+    expect(routineSupersetMemberLabel(entries, entries[0].id), 'A1');
+    expect(routineSupersetMemberLabel(entries, entries[1].id), 'A2');
+    expect(routineSupersetMemberLabel(entries, entries[3].id), 'B1');
+    expect(routineSupersetMemberLabel(entries, entries[4].id), 'B2');
+    expect(routineSupersetMemberLabel(entries, entries[2].id), isNull);
   });
 
   test('UUID grammar accepts canonical non-v4 and rejects invalid identities',

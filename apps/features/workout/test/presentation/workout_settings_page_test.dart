@@ -6,6 +6,8 @@ import 'package:tio_feature_workout/workout.dart';
 final class _Repository implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
+  bool smartSupersetScrollingEnabled = false;
+  bool failNextSmartSupersetScrollingRead = false;
   bool failNextRpeRead = false;
   bool failNextRpeWrite = false;
 
@@ -26,6 +28,19 @@ final class _Repository implements WorkoutRuntimeSettingsRepository {
     }
     rpeEnabled = enabled;
   }
+
+  @override
+  Future<bool> readSmartSupersetScrollingEnabled() async {
+    if (failNextSmartSupersetScrollingRead) {
+      failNextSmartSupersetScrollingRead = false;
+      throw StateError('Simulated smart scrolling storage read failure');
+    }
+    return smartSupersetScrollingEnabled;
+  }
+
+  @override
+  Future<void> writeSmartSupersetScrollingEnabled(bool enabled) async =>
+      smartSupersetScrollingEnabled = enabled;
 
   bool failNextVibrationRead = false;
 
@@ -102,7 +117,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   });
 
-  testWidgets('failed read shows Retry and recovers to the saved setting',
+  testWidgets(
+      'Default Rest Timer failure has an independent Retry and preserves settings',
       (tester) async {
     final repository = _Repository()
       ..seconds = 60
@@ -116,10 +132,14 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Could not load Workout Settings.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-default-rest-timer')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('workout-settings-retry')),
         findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.byKey(const ValueKey('workout-smart-superset-scrolling-switch')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-rest-timer-vibration-switch')),
+        findsOneWidget);
     expect(repository.readCount, 1);
 
     await tester.tap(find.byKey(const ValueKey('workout-settings-retry')));
@@ -229,6 +249,60 @@ void main() {
     await tester.tap(retry);
     await tester.pumpAndSettle();
     final toggle = find.byKey(const ValueKey('workout-rpe-tracking-switch'));
+    expect(toggle, findsOneWidget);
+    expect(tester.widget<Switch>(toggle).value, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Smart Superset Scrolling is OFF by default and saves locally',
+      (tester) async {
+    final repository = _Repository();
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child!),
+      home: WorkoutSettingsPage(controller: controller),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('workout-smart-superset-scrolling')),
+        findsOneWidget);
+    final toggle = find.byKey(
+      const ValueKey('workout-smart-superset-scrolling-switch'),
+    );
+    expect(toggle, findsOneWidget);
+    expect(tester.widget<Switch>(toggle).value, isFalse);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(repository.smartSupersetScrollingEnabled, isTrue);
+    expect(tester.widget<Switch>(toggle).value, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Smart scrolling read failure has an independent Retry',
+      (tester) async {
+    final repository = _Repository()
+      ..smartSupersetScrollingEnabled = true
+      ..failNextSmartSupersetScrollingRead = true;
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child!),
+      home: WorkoutSettingsPage(controller: controller),
+    ));
+    await tester.pumpAndSettle();
+
+    final retry = find.byKey(
+      const ValueKey('workout-smart-superset-scrolling-retry'),
+    );
+    expect(retry, findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-rpe-tracking-switch')),
+        findsOneWidget);
+    await tester.tap(retry);
+    await tester.pumpAndSettle();
+    final toggle = find.byKey(
+      const ValueKey('workout-smart-superset-scrolling-switch'),
+    );
     expect(toggle, findsOneWidget);
     expect(tester.widget<Switch>(toggle).value, isTrue);
     expect(tester.takeException(), isNull);

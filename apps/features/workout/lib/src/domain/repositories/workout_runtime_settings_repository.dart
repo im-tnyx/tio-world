@@ -18,4 +18,9 @@ abstract interface class WorkoutRuntimeSettingsRepository {
   Future<bool> readRpeTrackingEnabled();
 
   Future<void> writeRpeTrackingEnabled(bool enabled);
+
+  /// Device-local opt-in; absent or unreadable values safely resolve to OFF.
+  Future<bool> readSmartSupersetScrollingEnabled();
+
+  Future<void> writeSmartSupersetScrollingEnabled(bool enabled);
 }

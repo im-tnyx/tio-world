@@ -660,6 +660,10 @@ jobs:
         shell: bash
         run: bash supabase/tests/database/run_pgtap.sh supabase/tests/database/w8c_completed_workout_edit.test.sql
 
+      - name: Run Superset Routine composition SQL matrix
+        shell: bash
+        run: bash supabase/tests/database/run_pgtap.sh supabase/tests/database/workout_superset_composition.test.sql
+
       - name: Reject unsafe W7B-1 concurrency fixture connection overrides
         shell: bash
         run: bash supabase/tests/database/w7b_session_concurrency_guard.test.sh

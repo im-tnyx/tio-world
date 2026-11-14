@@ -13,6 +13,7 @@ const _e2 = '30000000-0000-4000-8000-000000000002';
 const _s1 = '40000000-0000-4000-8000-000000000001';
 const _s2 = '40000000-0000-4000-8000-000000000002';
 const _custom = '50000000-0000-4000-8000-000000000001';
+const _group = '60000000-0000-4000-8000-000000000001';
 
 Program _program(String id) => Program(id: ProgramId(id), name: 'Program');
 Routine _routine(String id, String program) =>
@@ -21,11 +22,13 @@ Routine _routine(String id, String program) =>
 RoutineCompositionSnapshot _snapshot({
   String routineId = _r1,
   List<RoutineCompositionEntry> entries = const [],
+  List<RoutineSupersetGroup> supersets = const [],
 }) =>
     RoutineCompositionSnapshot(
       routineId: RoutineId(routineId),
       revision: 3,
       entries: entries,
+      supersets: supersets,
     );
 
 RoutineCompositionEntry _entry(
@@ -57,6 +60,34 @@ RoutineDetailController _controller(
     );
 
 void main() {
+  test('grouped Routine keeps shared rest and membership in Start request',
+      () async {
+    final ref = ExerciseRef.catalog('ex_approved_bench');
+    final snapshot = _snapshot(entries: [
+      RoutineCompositionEntry(
+          id: _e1, exercise: ref, supersetId: _group, sets: [_set(_s1, 8)]),
+      RoutineCompositionEntry(
+          id: _e2, exercise: ref, supersetId: _group, sets: [_set(_s2, 10)]),
+    ], supersets: [
+      RoutineSupersetGroup(
+          id: _group,
+          restPreset: const RoutineRestTimerPreset(
+              normalRestSeconds: 60, warmUpRestSeconds: 15)),
+    ]);
+    final controller =
+        _controller(_Routines([_routine(_r1, _p1)]), _Compositions(snapshot));
+    addTearDown(controller.dispose);
+    expect(controller.startRequest, isNull);
+    await controller.load();
+    final request = controller.startRequest;
+    expect(request, isNotNull);
+    expect(request!.composition.supersets.single.id, _group);
+    expect(
+        request.composition.supersets.single.restPreset.warmUpRestSeconds, 15);
+    expect(request.composition.entries.map((entry) => entry.supersetId),
+        [_group, _group]);
+  });
+
   test('builds the shared start request only from ready executable content',
       () async {
     final ref = ExerciseRef.catalog('ex_approved_bench');

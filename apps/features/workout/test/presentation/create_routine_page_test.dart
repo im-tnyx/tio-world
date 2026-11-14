@@ -182,6 +182,109 @@ void main() {
         e.sets.single.prescription.reps == null), isTrue);
   });
 
+  testWidgets('Create Superset rest keeps another member warm-up duration',
+      (tester) async {
+    final create = _Create();
+    var nextId = 1;
+    String newId() =>
+        '90000000-0000-4000-8000-${(nextId++).toString().padLeft(12, '0')}';
+    const firstId = '90000000-0000-4000-8000-000000000001';
+    const secondId = '90000000-0000-4000-8000-000000000003';
+    const secondSetId = '90000000-0000-4000-8000-000000000004';
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: const TioThemeConfig(mode: TioThemeMode.dark),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        newUuid: newId,
+      ),
+    ));
+    for (var i = 0; i < 2; i++) {
+      await tester.tap(
+        find.byKey(const ValueKey('create-routine-add-exercise')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bench Press'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+      await tester.pumpAndSettle();
+    }
+    expect(find.byKey(const ValueKey('exercises-page')), findsNothing);
+    expect(find.byKey(const ValueKey('create-routine-entry-$secondId')),
+        findsOneWidget);
+
+    final secondType = find.byKey(
+      const ValueKey('routine-set-type-$secondSetId'),
+    );
+    await tester.ensureVisible(secondType);
+    await tester.tap(secondType);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-type-option-warm_up')));
+    await tester.pumpAndSettle();
+    expect(create.calls, 0);
+    expect(find.text('Select Set Type'), findsNothing);
+
+    final firstOptions = find.byKey(
+      const ValueKey('create-routine-options-$firstId'),
+    );
+    await tester.ensureVisible(firstOptions);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 150));
+    await tester.pumpAndSettle();
+    await tester.tap(firstOptions);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-exercise-option-add-superset')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(
+      const ValueKey('routine-superset-candidate-$secondId'),
+    ));
+    await tester.pumpAndSettle();
+
+    final secondTimer = find.byKey(
+      const ValueKey('create-routine-rest-timer-$secondId'),
+    );
+    await tester.ensureVisible(secondTimer);
+    await tester.tap(secondTimer);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('routine-rest-timer-tab-warmup')));
+    await tester.pumpAndSettle();
+    await _selectRestWheelItem(tester, 5);
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+
+    final firstTimer = find.byKey(
+      const ValueKey('create-routine-rest-timer-$firstId'),
+    );
+    await tester.ensureVisible(firstTimer);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 150));
+    await tester.pumpAndSettle();
+    await tester.tap(firstTimer);
+    await tester.pumpAndSettle();
+    await _selectRestWheelItem(tester, 18);
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+
+    expect(create.command!.supersets.single.restPreset.normalRestSeconds, 90);
+    expect(create.command!.supersets.single.restPreset.warmUpRestSeconds, 25);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Run on Treadmill uses full-width KM/TIME instead of KG/REPS',
       (tester) async {
     final ids = [
@@ -1482,6 +1585,7 @@ final class _RuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
+  bool smartSupersetScrollingEnabled = false;
   bool failNextRpeRead = false;
   bool failNextRpeWrite = false;
 
@@ -1502,6 +1606,14 @@ final class _RuntimeSettingsRepository
     }
     rpeEnabled = enabled;
   }
+
+  @override
+  Future<bool> readSmartSupersetScrollingEnabled() async =>
+      smartSupersetScrollingEnabled;
+
+  @override
+  Future<void> writeSmartSupersetScrollingEnabled(bool enabled) async =>
+      smartSupersetScrollingEnabled = enabled;
 
   bool failNextVibrationRead = false;
 

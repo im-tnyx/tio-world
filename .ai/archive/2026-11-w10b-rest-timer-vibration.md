@@ -1,6 +1,6 @@
 # W10-B — Foreground Rest Timer Vibration
 
-**Status:** In review — W10-B source and focused tests committed; exact-head CI and independent review pending
+**Status:** Validated / merged 2026-11-13 per the checked-in main audit; PR #754 is merged. The pre-merge review snapshot below is historical. Physical phone acceptance is not verified here.
 **Primary owner:** `apps/features/workout`
 **Affected platforms:** Flutter Android/iOS phones only
 
@@ -11,7 +11,7 @@
 **Approved boundaries:** Rest Timer Vibration switch under Workout Settings, default OFF, device-local account-scoped persistence. Best-effort **single vibration per naturally expired rest** in foreground Active Workout. Both current Save-only draft and legacy online session countdown paths. Skip/OFF/Cancel/background must be silent. Reuse Flutter haptic platform API; no new countdown engine.
 **Explicit non-changes:** No Supabase change, migration, RLS/RPC, push/cloud preference sync, background service, notification/lock-screen vibration, Wear OS/watchOS behavior, timer sound/volume, Superset, altered rest-countdown semantics, visual redesign, or merging without owner authorization.
 
-## Active Handoff
+## Historical Pre-Merge Handoff
 
 **Planning owner:** #00 Tio-world / owner
 **Implementation owner:** ChatGPT (sole writer of W10-B; not the W10-A owner)

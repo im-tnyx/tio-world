@@ -496,7 +496,6 @@ void main() {
     reopened.dispose();
   });
 
-
   test('subtracting beyond remaining rest cancels without expired deadline',
       () async {
     final store = _Store();
@@ -510,14 +509,21 @@ void main() {
     );
     addTearDown(controller.dispose);
     expect(await controller.restoreOrStart(), isTrue);
-    expect(await controller.addExercises(
-      [_exercise('ex_first', 'First')],
-      initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
-    ), isTrue);
+    expect(
+        await controller.addExercises(
+          [_exercise('ex_first', 'First')],
+          initialRestPreset:
+              const RoutineRestTimerPreset(normalRestSeconds: 60),
+        ),
+        isTrue);
     final exercise = controller.draft!.exercises.single;
-    expect(await controller.toggleLogged(
-      exercise.id, exercise.sets.single.id, reps: 8,
-    ), isTrue);
+    expect(
+        await controller.toggleLogged(
+          exercise.id,
+          exercise.sets.single.id,
+          reps: 8,
+        ),
+        isTrue);
     expect(controller.draft!.activeRest, isNotNull);
     now = now.add(const Duration(seconds: 50));
     expect(await controller.adjustRest(-15), isTrue);
@@ -541,8 +547,7 @@ void main() {
     expect(
       await controller.addExercises(
         [_exercise('ex_first', 'First')],
-        initialRestPreset:
-            const RoutineRestTimerPreset(normalRestSeconds: 60),
+        initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
       ),
       isTrue,
     );
@@ -555,8 +560,7 @@ void main() {
     expect(
       await controller.addExercises(
         [_exercise('ex_second', 'Second')],
-        initialRestPreset:
-            const RoutineRestTimerPreset(normalRestSeconds: 90),
+        initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 90),
       ),
       isTrue,
     );
@@ -872,6 +876,231 @@ void main() {
     expect(await reopened.toggleLogged(_id(6), _id(7), reps: 9), isTrue);
     expect(reopened.draft!.activeRest, isNull);
     reopened.dispose();
+  });
+
+  test('removing an unrelated ungrouped exercise preserves active rest',
+      () async {
+    final now = DateTime.utc(2026, 11, 13, 10);
+    final store = _Store();
+    var nextId = 200;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(controller.dispose);
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(
+        await controller.addExercises([
+          _exercise('ex_first', 'First'),
+          _exercise('ex_second', 'Second'),
+        ],
+            initialRestPreset:
+                const RoutineRestTimerPreset(normalRestSeconds: 60)),
+        isTrue);
+    final first = controller.draft!.exercises.first;
+    final second = controller.draft!.exercises.last;
+    expect(
+        await controller.toggleLogged(first.id, first.sets.single.id, reps: 8),
+        isTrue);
+    final rest = controller.draft!.activeRest;
+    expect(rest, isNotNull);
+    expect(await controller.removeExercise(second.id), isTrue);
+    expect(controller.draft!.activeRest!.setId, rest!.setId);
+    expect(await controller.removeExercise(first.id), isTrue);
+    expect(controller.draft!.activeRest, isNull);
+  });
+
+  test('ungrouping the middle Active Workout member keeps its group contiguous',
+      () async {
+    final store = _Store();
+    var nextId = 1200;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(controller.dispose);
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(
+      await controller.addExercises([
+        _exercise('ex_a', 'A'),
+        _exercise('ex_b', 'B'),
+        _exercise('ex_c', 'C'),
+        _exercise('ex_d', 'D'),
+      ]),
+      isTrue,
+    );
+    final ids = controller.draft!.exercises.map((e) => e.id).toList();
+    expect(await controller.createSuperset(ids[0], ids[1]), isTrue);
+    final groupId = controller.draft!.supersets.single.id;
+    expect(await controller.addSupersetMember(groupId, ids[2]), isTrue);
+
+    expect(await controller.removeFromSuperset(ids[1]), isTrue);
+    expect(controller.draft!.exercises.map((e) => e.id),
+        [ids[0], ids[2], ids[1], ids[3]]);
+    expect(controller.draft!.exercises.map((e) => e.supersetId),
+        [groupId, groupId, null, null]);
+    expect(store.saved!.exercises.map((e) => e.id),
+        [ids[0], ids[2], ids[1], ids[3]]);
+
+    final first = controller.draft!.exercises.first;
+    expect(
+        await controller.toggleLogged(first.id, first.sets.single.id), isTrue);
+    expect(await controller.removeFromSuperset(ids[2]), isFalse);
+    expect(controller.draft!.exercises.map((e) => e.supersetId),
+        [groupId, groupId, null, null]);
+  });
+
+  test('completed or skipped incoming exercise cannot join a Superset',
+      () async {
+    final store = _Store();
+    var nextId = 1300;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(controller.dispose);
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(
+        await controller.addExercises([
+          _exercise('ex_a', 'A'),
+          _exercise('ex_b', 'B'),
+          _exercise('ex_c', 'C'),
+          _exercise('ex_d', 'D'),
+        ]),
+        isTrue);
+    final ids = controller.draft!.exercises.map((e) => e.id).toList();
+    expect(await controller.createSuperset(ids[0], ids[1]), isTrue);
+    final groupId = controller.draft!.supersets.single.id;
+    final cSet = controller.draft!.exercises[2].sets.single.id;
+    final dSet = controller.draft!.exercises[3].sets.single.id;
+
+    expect(await controller.toggleLogged(ids[2], cSet, reps: 8), isTrue);
+    expect(controller.canJoinSuperset(ids[2]), isFalse);
+    expect(await controller.addSupersetMember(groupId, ids[2]), isFalse);
+    expect(
+        await controller.toggleLogged(ids[3], dSet, isSkipped: true), isTrue);
+    expect(controller.canJoinSuperset(ids[3]), isFalse);
+    expect(await controller.addSupersetMember(groupId, ids[3]), isFalse);
+    expect(controller.draft!.exercises.map((e) => e.supersetId),
+        [groupId, groupId, null, null]);
+
+    expect(await controller.toggleLogged(ids[2], cSet), isTrue);
+    expect(controller.canJoinSuperset(ids[2]), isTrue);
+    expect(await controller.addSupersetMember(groupId, ids[2]), isTrue);
+    expect(controller.draft!.exercises.map((e) => e.id),
+        [ids[0], ids[1], ids[2], ids[3]]);
+    expect(controller.draft!.exercises[2].supersetId, groupId);
+    expect(controller.canJoinSuperset(ids[2]), isFalse);
+    expect(controller.canJoinSuperset('missing'), isFalse);
+  });
+
+  test('Superset round timer waits for all available members and restores',
+      () async {
+    var now = DateTime.utc(2026, 11, 12, 8);
+    var nextId = 1000;
+    final store = _Store();
+    var controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(() => controller.dispose());
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(
+      await controller.addExercises(
+        [_exercise('ex_first', 'First'), _exercise('ex_second', 'Second')],
+        initialRestPreset: const RoutineRestTimerPreset(
+          normalRestSeconds: 45,
+          warmUpRestSeconds: 15,
+        ),
+      ),
+      isTrue,
+    );
+    var first = controller.draft!.exercises[0];
+    final second = controller.draft!.exercises[1];
+    expect(await controller.addSet(first.id), isTrue);
+    expect(await controller.addSet(first.id), isTrue);
+    first = controller.draft!.exercises[0];
+    expect(
+        await controller.setType(
+            first.id, first.sets[0].id, RoutineSetType.warmUp),
+        isTrue);
+    expect(await controller.createSuperset(first.id, second.id), isTrue);
+    final groupId = controller.draft!.exercises.first.supersetId!;
+
+    first = controller.draft!.exercises.first;
+    final secondSet = controller.draft!.exercises
+        .firstWhere((exercise) => exercise.id == second.id)
+        .sets
+        .single;
+    expect(await controller.toggleLogged(first.id, first.sets[0].id), isTrue);
+    expect(controller.draft!.activeRest, isNull);
+    expect(
+      await controller.toggleLogged(second.id, secondSet.id, isSkipped: true),
+      isTrue,
+    );
+    expect(controller.draft!.activeRest!.supersetId, groupId);
+    expect(controller.draft!.activeRest!.roundIndex, 0);
+    expect(controller.draft!.activeRest!.totalDurationSeconds, 15);
+
+    controller.dispose();
+    controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => now,
+      newUuid: () => _id(nextId++),
+    );
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(controller.draft!.supersets.single.id, groupId);
+    expect(controller.draft!.activeRest!.remaining(now),
+        const Duration(seconds: 15));
+    expect(
+      await controller.configureSupersetRestTimer(
+        groupId,
+        normalRestSeconds: 60,
+        warmUpRestSeconds: 20,
+      ),
+      isTrue,
+    );
+    // An active countdown retains the duration captured when it started.
+    expect(controller.draft!.activeRest!.totalDurationSeconds, 15);
+
+    expect(await controller.skipRest(), isTrue);
+    first = controller.draft!.exercises.first;
+    final secondRound = first.sets[1];
+    expect(
+        await controller.setType(
+            first.id, secondRound.id, RoutineSetType.failure),
+        isTrue);
+    expect(await controller.toggleLogged(first.id, secondRound.id), isTrue);
+    expect(controller.draft!.activeRest!.roundIndex, 1);
+    expect(controller.draft!.activeRest!.totalDurationSeconds, 60);
+    expect(await controller.removeFromSuperset(first.id), isFalse);
+    expect(await controller.removeSet(first.id, first.sets[2].id), isFalse);
+
+    expect(await controller.skipRest(), isTrue);
+    first = controller.draft!.exercises.first;
+    expect(await controller.toggleLogged(first.id, first.sets[2].id), isTrue);
+    expect(controller.draft!.activeRest, isNull, reason: 'no final rest');
+
+    // Unlogging every completed set reopens membership editing and cancels rest.
+    first = controller.draft!.exercises.first;
+    for (final set in first.sets) {
+      expect(await controller.toggleLogged(first.id, set.id), isTrue);
+    }
+    expect(await controller.toggleLogged(second.id, secondSet.id), isTrue);
+    expect(controller.draft!.activeRest, isNull);
+    expect(await controller.removeFromSuperset(first.id), isTrue);
+    expect(controller.draft!.supersets, isEmpty);
+    expect(
+        controller.draft!.exercises
+            .every((exercise) => exercise.supersetId == null),
+        isTrue);
   });
 
   test('discardForReplacement clears durable draft for Play replacement',

@@ -75,6 +75,17 @@ void main() {
         requests[2].url.queryParameters['select'],
         contains(
             'entry:user_workout_routine_exercises!user_workout_routine_sets_exercise_owner_fkey!inner(id,user_id,routine_id)'));
+    await gateway.readSupersets(
+      userId: _owner,
+      routineId: _routine,
+      limit: 37,
+      afterId: _id(3),
+    );
+    expect(requests.last.url.path,
+        '/rest/v1/user_workout_routine_supersets');
+    expect(requests.last.url.queryParameters['user_id'], 'eq.$_owner');
+    expect(requests.last.url.queryParameters['routine_id'], 'eq.$_routine');
+    expect(requests.last.url.queryParameters['id'], 'gt.${_id(3)}');
   });
 
   test('name-only uses single versioned authenticated RPC with NULL Exercises',
@@ -100,7 +111,7 @@ void main() {
     expect(requests.length, 1);
     expect(requests.single.method, 'POST');
     expect(requests.single.url.path,
-        '/rest/v1/rpc/update_user_workout_routine_with_composition');
+        '/rest/v1/rpc/update_user_workout_routine_with_composition_v2');
     expect(jsonDecode(requests.single.body), {
       'p_routine_id': _routine,
       'p_program_id': '44444444-4444-4444-4444-444444444444',
@@ -143,12 +154,14 @@ void main() {
     expect(requests.length, 1);
     expect(requests.single.method, 'POST');
     expect(requests.single.url.path,
-        '/rest/v1/rpc/save_user_workout_routine_composition');
+        '/rest/v1/rpc/save_user_workout_routine_composition_v2');
     expect(jsonDecode(requests.single.body), {
       'p_routine_id': _routine,
       'p_expected_revision': 0,
       'p_client_mutation_id': _mutation,
-      'p_exercises': [
+      'p_exercises': {
+        'schema_version': 2,
+        'entries': [
         {
           'id': _id(2),
           'exercise_ref': _owner,
@@ -159,7 +172,9 @@ void main() {
               'rest_seconds': 0}
           ]
         }
-      ],
+        ],
+        'supersets': <Object>[],
+      },
     });
   });
 
@@ -202,7 +217,9 @@ void main() {
       }
       final rows = request.url.path.endsWith('user_workout_routine_sets')
           ? sets
-          : entries;
+          : request.url.path.endsWith('user_workout_routine_supersets')
+              ? <Map<String, dynamic>>[]
+              : entries;
       final cursor = request.url.queryParameters['id']?.substring(3);
       return _json(rows
           .where((row) =>
@@ -216,7 +233,7 @@ void main() {
     final snapshot = (await repository.read(RoutineId(_routine)))!;
     expect(snapshot.entries.map((e) => e.id), [_id(3), _id(2), _id(1)]);
     expect(snapshot.entries.last.sets.map((s) => s.id), [_id(11), _id(10)]);
-    expect(requests.length, 9);
+    expect(requests.length, 10);
     expect(requests.every((request) => request.method == 'GET'), isTrue);
   });
 
@@ -244,7 +261,7 @@ void main() {
             mutationId: _mutation)),
         1);
     expect(posts, 1);
-    expect(gets, 4);
+    expect(gets, 5);
   });
 
   test('SDK malformed HTTP 200 reconciles once or leaves the outcome unknown',
@@ -277,7 +294,7 @@ void main() {
             result, throwsA(isA<RoutineCompositionSaveOutcomeUnknown>()));
       }
       expect(posts, 1);
-      expect(gets, 4);
+      expect(gets, 5);
     }
   });
 

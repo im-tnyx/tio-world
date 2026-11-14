@@ -19,6 +19,7 @@ import 'routine_create_controller.dart';
 import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
+import 'routine_superset_member_sheet.dart';
 import 'routine_set_input_row.dart';
 import 'routine_set_type_badge.dart';
 import 'routine_set_type_option.dart';
@@ -363,8 +364,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
         return;
       }
     }
-    final initialRestPreset = settings?.defaultRestPreset ??
-        const RoutineRestTimerPreset();
+    final initialRestPreset =
+        settings?.defaultRestPreset ?? const RoutineRestTimerPreset();
     for (final exercise in chosen) {
       if (!_enabled || exercise.status != ExerciseStatus.active) break;
       final id = _draft.addPickedExercise(
@@ -396,7 +397,14 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   Future<void> _showExerciseOptions(RoutineCompositionEntry entry) async {
     if (!_enabled) return;
     final openingDraft = _draft;
-    final action = await showRoutineExerciseOptionsSheet(context);
+    final memberCount = _draft.state.entries
+        .where((candidate) => candidate.supersetId == entry.supersetId)
+        .length;
+    final action = await showRoutineExerciseOptionsSheet(
+      context,
+      isGrouped: entry.supersetId != null,
+      canAddSupersetMember: entry.supersetId == null || memberCount < 3,
+    );
     if (!mounted ||
         !identical(openingDraft, _draft) ||
         !_enabled ||
@@ -408,6 +416,44 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       await _pick(replacing: entry);
     } else if (action == RoutineExerciseOption.remove) {
       _removeEntry(entry);
+    } else if (action == RoutineExerciseOption.removeFromSuperset) {
+      _draft.removeFromSuperset(entry.id);
+    } else if (action == RoutineExerciseOption.addToSuperset) {
+      await _selectSupersetMember(entry);
+    }
+  }
+
+  Future<void> _selectSupersetMember(RoutineCompositionEntry entry) async {
+    final openingEntries = _draft.state.entries;
+    final candidates = [
+      for (final candidate in openingEntries)
+        if (candidate.id != entry.id)
+          RoutineSupersetMemberCandidate(
+            entryId: candidate.id,
+            title: _entryExercises[candidate.id]?.displayName ??
+                'Selected Exercise',
+            supersetLabel: routineSupersetMemberLabel(
+              openingEntries,
+              candidate.id,
+            ),
+          ),
+    ];
+    final selected = await showRoutineSupersetMemberSheet(
+      context,
+      initiatingExerciseTitle:
+          _entryExercises[entry.id]?.displayName ?? 'Selected Exercise',
+      candidates: candidates,
+    );
+    if (!mounted ||
+        !identical(openingEntries, _draft.state.entries) ||
+        !_enabled ||
+        selected == null) {
+      return;
+    }
+    if (entry.supersetId == null) {
+      _draft.createSuperset(entry.id, selected);
+    } else {
+      _draft.addSupersetMember(entry.supersetId!, selected);
     }
   }
 
@@ -786,7 +832,11 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
             ],
           ),
           onReorder: (from, to) {
-            if (_enabled) _draft.moveExercise(from, to);
+            if (_enabled) {
+              // SliverReorderableList.onReorderItem already adjusts the
+              // destination after removing the dragged item.
+              _draft.moveExercise(from, to);
+            }
           },
           itemBuilder: _exerciseCard,
           footer: Column(
@@ -918,8 +968,12 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
 
   Future<void> _configureRestTimer(RoutineCompositionEntry entry) async {
     final current = _draft.getExerciseRestPreset(entry.id);
-    final hasWarmUpSets =
-        entry.sets.any((s) => s.prescription.setType == RoutineSetType.warmUp);
+    final members = entry.supersetId == null
+        ? [entry]
+        : _draft.state.entries
+            .where((member) => member.supersetId == entry.supersetId);
+    final hasWarmUpSets = members.any((member) => member.sets
+        .any((set) => set.prescription.setType == RoutineSetType.warmUp));
     final result = await showRoutineRestTimerSheet(
       context: context,
       initialNormalRestSeconds: current.normalRestSeconds,
@@ -962,6 +1016,10 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       selectRepetitionMode: () => _selectRepetitionMode(entry),
       buildSetRow: (set, index) => _setRow(entry, set, index),
       restPreset: _draft.getExerciseRestPreset(entry.id),
+      supersetLabel: routineSupersetMemberLabel(
+        _draft.state.entries,
+        entry.id,
+      ),
       onConfigureRestTimer: () => _configureRestTimer(entry),
       routineNotesRepository: widget.routineNotesRepository,
       routineNotesOwnerId: widget.routineNotesOwnerId,

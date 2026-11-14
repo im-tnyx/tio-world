@@ -62,40 +62,62 @@ void main() {
     final customId = _id(61);
     final catalogId = _id(62);
     final custom = RoutineCompositionEntry(
-      id: customId, exercise: ExerciseRef.userCreated(_id(31)),
-      sets: [RoutineCompositionSet(
-        id: _id(71), prescription: SetPrescription(reps: 12),
-      )],
+      id: customId,
+      exercise: ExerciseRef.userCreated(_id(31)),
+      sets: [
+        RoutineCompositionSet(
+          id: _id(71),
+          prescription: SetPrescription(reps: 12),
+        )
+      ],
     );
     final catalog = RoutineCompositionEntry(
-      id: catalogId, exercise: ExerciseRef.catalog('ex_bench_press'),
-      sets: [RoutineCompositionSet(
-        id: _id(72), prescription: SetPrescription(reps: 8),
-      )],
+      id: catalogId,
+      exercise: ExerciseRef.catalog('ex_bench_press'),
+      sets: [
+        RoutineCompositionSet(
+          id: _id(72),
+          prescription: SetPrescription(reps: 8),
+        )
+      ],
     );
     final command = RoutineCompositionSave(
-      routineId: _routine, expectedRevision: 0, mutationId: _mutation,
+      routineId: _routine,
+      expectedRevision: 0,
+      mutationId: _mutation,
       entries: [custom, catalog],
       expectedCustomTypes: {customId: ExerciseType.weightReps},
     );
-    final payload = SupabaseRoutineCompositionRepository.payload(command);
+    final payload =
+        SupabaseRoutineCompositionRepository.payload(command)['entries']
+            as List<Map<String, dynamic>>;
     expect(payload[0]['expected_exercise_type'], 'weight_reps');
     expect(payload[1].containsKey('expected_exercise_type'), isFalse);
     final none = SupabaseRoutineCompositionRepository.payload(
       RoutineCompositionSave(
-        routineId: _routine, expectedRevision: 0, mutationId: _mutation,
-        entries: [custom], expectedCustomTypes: {customId: null},
+        routineId: _routine,
+        expectedRevision: 0,
+        mutationId: _mutation,
+        entries: [custom],
+        expectedCustomTypes: {customId: null},
       ),
-    );
+    )['entries'] as List<Map<String, dynamic>>;
     expect(none.single.containsKey('expected_exercise_type'), isTrue);
     expect(none.single['expected_exercise_type'], isNull);
-    expect(SupabaseRoutineCompositionRepository.payload(
+    final oldClientPayload = SupabaseRoutineCompositionRepository.payload(
       RoutineCompositionSave(
-        routineId: _routine, expectedRevision: 0, mutationId: _mutation,
+        routineId: _routine,
+        expectedRevision: 0,
+        mutationId: _mutation,
         entries: [custom],
       ),
-    ).single.containsKey('expected_exercise_type'), isFalse,
-      reason: 'older clients can omit the optional type hint');
+    );
+    expect(
+        (oldClientPayload['entries'] as List<Map<String, dynamic>>)
+            .single
+            .containsKey('expected_exercise_type'),
+        isFalse,
+        reason: 'older clients can omit the optional type hint');
   });
 
   test(
@@ -114,6 +136,38 @@ void main() {
     expect(snapshot.entries[1].sets[1].prescription.loadKg, 0);
     expect(snapshot.entries[1].sets[1].prescription.restSeconds, 0);
     expect(snapshot.composition.exercises[1].sets.length, 2);
+    expect(
+        gateway.scopes.every((scope) => scope == '$_owner/${_routine.value}'),
+        isTrue);
+  });
+
+  test('reads owner-scoped Superset configuration and member references',
+      () async {
+    const groupId = '66666666-6666-4666-8666-666666666666';
+    final gateway = _Gateway()
+      ..entries = [
+        _entry(1, 0)..['superset_id'] = groupId,
+        _entry(2, 1)..['superset_id'] = groupId,
+      ]
+      ..sets = [_set(10, 1, 0), _set(11, 2, 0)]
+      ..supersets = [
+        {
+          'id': groupId,
+          'user_id': _owner,
+          'routine_id': _routine.value,
+          'normal_rest_seconds': 60,
+          'warm_up_rest_seconds': 15,
+        },
+      ];
+
+    final snapshot = (await gateway.repository.read(_routine))!;
+    expect(snapshot.supersets.single.id, groupId);
+    expect(snapshot.supersets.single.restPreset.normalRestSeconds, 60);
+    expect(snapshot.supersets.single.restPreset.warmUpRestSeconds, 15);
+    expect(
+        snapshot.entries.map((entry) => entry.supersetId), [groupId, groupId]);
+    expect(gateway.supersetCalls, 2,
+        reason: 'an exact page still requests its final empty page');
     expect(
         gateway.scopes.every((scope) => scope == '$_owner/${_routine.value}'),
         isTrue);
@@ -238,7 +292,10 @@ void main() {
     'fractional duration': (row) => row['duration_seconds'] = 2.5,
     'negative duration': (row) => row['duration_seconds'] = -1,
     'duration exceeds int32': (row) => row['duration_seconds'] = 2147483648,
-    'range with unspecified reps': (row) { row['reps'] = null; row['reps_max'] = 10; },
+    'range with unspecified reps': (row) {
+      row['reps'] = null;
+      row['reps_max'] = 10;
+    },
     'unknown type': (row) => row['set_type'] = 'random',
     'wrong type kind': (row) => row['set_type'] = 12,
     'range max below minimum': (row) => row['reps_max'] = 7,
@@ -286,14 +343,15 @@ void main() {
     expect(prescription.loadKg, isNull);
     expect(prescription.distanceMeters, 2500.5);
     expect(prescription.durationSeconds, 905);
-    final encoded = SupabaseRoutineCompositionRepository.payload(
+    final encoded = (SupabaseRoutineCompositionRepository.payload(
       RoutineCompositionSave(
         routineId: _routine,
         expectedRevision: snapshot.revision,
         mutationId: _mutation,
         entries: snapshot.entries,
       ),
-    ).single['sets'] as List<Map<String, dynamic>>;
+    )['entries'] as List<Map<String, dynamic>>)
+        .single['sets'] as List<Map<String, dynamic>>;
     expect(encoded.single['reps'], isNull);
     expect(encoded.single['distance_meters'], 2500.5);
     expect(encoded.single['duration_seconds'], 905);
@@ -305,7 +363,9 @@ void main() {
       ..['set_type'] = 'drop'
       ..['reps'] = 8
       ..['reps_max'] = 12;
-    final gw = _Gateway()..entries = [_entry(1, 0)]..sets = [row];
+    final gw = _Gateway()
+      ..entries = [_entry(1, 0)]
+      ..sets = [row];
     final snapshot = (await gw.repository.read(_routine))!;
     final set = snapshot.entries.single.sets.single;
     expect(set.id, _id(10));
@@ -313,11 +373,14 @@ void main() {
     expect(set.prescription.reps, 8);
     expect(set.prescription.repsMax, 12);
     final command = RoutineCompositionSave(
-      routineId: _routine, expectedRevision: snapshot.revision,
-      mutationId: _mutation, entries: snapshot.entries,
+      routineId: _routine,
+      expectedRevision: snapshot.revision,
+      mutationId: _mutation,
+      entries: snapshot.entries,
     );
     expect(await gw.repository.save(command), 1);
-    final payload = (gw.saved!['exercises'] as List).single;
+    final envelope = gw.saved!['exercises'] as Map;
+    final payload = (envelope['entries'] as List).single;
     final serialized = (payload['sets'] as List).single;
     expect(serialized['set_type'], 'drop');
     expect(serialized['reps_max'], 12);
@@ -407,17 +470,28 @@ void main() {
       'routineId': _routine.value,
       'expectedRevision': 0,
       'mutationId': _mutation,
-      'exercises': [
-        {
-          'id': _id(1),
-          'exercise_ref': 'ex_squat',
-          'sets': [
-            {'id': _id(10), 'reps': 8, 'reps_max': null,
-             'set_type': 'normal', 'load_kg': null, 'distance_meters': null,
-              'duration_seconds': null, 'rest_seconds': null}
-          ]
-        }
-      ],
+      'exercises': {
+        'schema_version': 2,
+        'entries': [
+          {
+            'id': _id(1),
+            'exercise_ref': 'ex_squat',
+            'sets': [
+              {
+                'id': _id(10),
+                'reps': 8,
+                'reps_max': null,
+                'set_type': 'normal',
+                'load_kg': null,
+                'distance_meters': null,
+                'duration_seconds': null,
+                'rest_seconds': null
+              }
+            ]
+          }
+        ],
+        'supersets': <Object>[],
+      },
     });
     expect(gateway.saveCalls, 1);
     expect(gateway.headerCalls, 0);
@@ -612,7 +686,9 @@ void main() {
     }
   });
 
-  test('atomic Name-only lost response confirms only matched Name/token/revision', () async {
+  test(
+      'atomic Name-only lost response confirms only matched Name/token/revision',
+      () async {
     final gw = _Gateway()..header = _header(1);
     gw.onAggregate = () async {
       gw.header = _header(2, _mutation)..['name'] = 'New Name';
@@ -633,7 +709,8 @@ void main() {
     expect(gw.aggregateArgs!['exercises'], isNull);
   });
 
-  test('atomic same token but differing committed Name cannot confirm', () async {
+  test('atomic same token but differing committed Name cannot confirm',
+      () async {
     final gw = _Gateway()..header = _header(1);
     gw.onAggregate = () async {
       gw.header = _header(2, _mutation)..['name'] = 'Different';
@@ -653,7 +730,8 @@ void main() {
     expect(gw.aggregateCalls, 1);
   });
 
-  test('atomic login switch after dispatch fails closed and never retries', () async {
+  test('atomic login switch after dispatch fails closed and never retries',
+      () async {
     final gw = _Gateway()..header = _header(1);
     gw.onAggregate = () async {
       gw.owner = _otherOwner;
@@ -669,7 +747,9 @@ void main() {
         name: 'New Name',
       )),
       throwsA(isA<RoutineCompositionSaveOutcomeUnknown>().having(
-          (e) => e.reason, 'reason', RoutineCompositionSaveUncertainty.authChanged)),
+          (e) => e.reason,
+          'reason',
+          RoutineCompositionSaveUncertainty.authChanged)),
     );
     expect(gw.aggregateCalls, 1);
   });
@@ -851,13 +931,19 @@ void main() {
   });
 }
 
-final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdateGateway {
+final class _Gateway
+    implements
+        RoutineCompositionGateway,
+        RoutineAggregateUpdateGateway,
+        RoutineSupersetReadGateway {
   String? owner = _owner;
   Map<String, dynamic>? header = _header();
   List<Map<String, dynamic>> entries = [];
   List<Map<String, dynamic>> sets = [];
+  List<Map<String, dynamic>> supersets = [];
   int cap = 500;
   int headerCalls = 0, entryCalls = 0, setCalls = 0, saveCalls = 0;
+  int supersetCalls = 0;
   int aggregateCalls = 0;
   Map<String, dynamic>? aggregateArgs;
   Future<Object?> Function()? onAggregate;
@@ -928,11 +1014,23 @@ final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdat
   }
 
   @override
+  Future<List<Map<String, dynamic>>> readSupersets({
+    required String userId,
+    required String routineId,
+    required int limit,
+    String? afterId,
+  }) async {
+    supersetCalls++;
+    scopes.add('$userId/$routineId');
+    return _page(supersets, afterId, limit);
+  }
+
+  @override
   Future<Object?> save(
       {required String routineId,
       required int expectedRevision,
       required String mutationId,
-      required List<Map<String, dynamic>> exercises}) async {
+      required Map<String, dynamic> exercises}) async {
     saveCalls++;
     saved = {
       'routineId': routineId,
@@ -942,6 +1040,7 @@ final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdat
     };
     return onSave == null ? saveResult : await onSave!();
   }
+
   @override
   Future<Object?> updateAggregate({
     required String routineId,
@@ -950,7 +1049,7 @@ final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdat
     required String expectedName,
     required String mutationId,
     String? name,
-    List<Map<String, dynamic>>? exercises,
+    Map<String, dynamic>? exercises,
   }) async {
     aggregateCalls++;
     aggregateArgs = {
@@ -964,5 +1063,4 @@ final class _Gateway implements RoutineCompositionGateway, RoutineAggregateUpdat
     };
     return onAggregate == null ? 2 : await onAggregate!();
   }
-
 }

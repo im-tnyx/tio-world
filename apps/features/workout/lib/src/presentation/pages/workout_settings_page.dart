@@ -26,6 +26,7 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
     unawaited(widget.controller.load());
     unawaited(widget.controller.loadRestTimerVibration());
     unawaited(widget.controller.loadRpeTracking());
+    unawaited(widget.controller.loadSmartSupersetScrolling());
   }
 
   Future<void> _editDefaultRestTimer() async {
@@ -70,6 +71,16 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
     }
   }
 
+  Future<void> _setSmartSupersetScrolling(bool enabled) async {
+    try {
+      await widget.controller.setSmartSupersetScrollingEnabled(enabled);
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Could not save Smart Superset Scrolling. Try again.');
+      }
+    }
+  }
+
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -100,34 +111,6 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
           animation: widget.controller,
           builder: (context, _) {
             final controller = widget.controller;
-            if (controller.isLoading) {
-              return Center(
-                child: CircularProgressIndicator(color: colors.primary),
-              );
-            }
-            if (!controller.isReady) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(TioSpacing.lg),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Could not load Workout Settings.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: colors.textSecondary),
-                      ),
-                      const SizedBox(height: TioSpacing.md),
-                      TioButton.secondary(
-                        key: const ValueKey('workout-settings-retry'),
-                        label: 'Retry',
-                        onPressed: () => unawaited(controller.load()),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
             return ListView(
               padding: const EdgeInsets.symmetric(
                 horizontal: TioSpacing.lg,
@@ -142,22 +125,36 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
                         icon: Icons.timer_outlined,
                       ),
                       label: 'Default Rest Timer',
-                      value: Text(
-                        controller.defaultRestLabel,
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                          color: colors.textSecondary,
-                          fontWeight: TioFontWeight.w600,
-                          fontSize: TioFontSize.size14,
-                        ),
-                      ),
+                      value: controller.isLoading
+                          ? const CircularProgressIndicator()
+                          : controller.isReady
+                              ? Text(
+                                  controller.defaultRestLabel,
+                                  textAlign: TextAlign.end,
+                                  style: TextStyle(
+                                    color: colors.textSecondary,
+                                    fontWeight: TioFontWeight.w600,
+                                    fontSize: TioFontSize.size14,
+                                  ),
+                                )
+                              : TioButton.secondary(
+                                  key: const ValueKey(
+                                    'workout-settings-retry',
+                                  ),
+                                  label: 'Retry',
+                                  onPressed: () => unawaited(controller.load()),
+                                ),
                       showEditAffordance: false,
                       trailing: Icon(
                         Icons.chevron_right_rounded,
                         color: colors.textMuted,
                         size: TioSize.dp22,
                       ),
-                      onTap: controller.isSaving ? null : _editDefaultRestTimer,
+                      onTap: controller.isSaving ||
+                              controller.isLoading ||
+                              !controller.isReady
+                          ? null
+                          : _editDefaultRestTimer,
                     ),
                     TioSettingsValueRow(
                       key: const ValueKey('workout-rest-timer-vibration'),
@@ -218,6 +215,40 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
                                   label: 'Retry',
                                   onPressed: () =>
                                       unawaited(controller.loadRpeTracking()),
+                                ),
+                    ),
+                    TioSettingsValueRow(
+                      key: const ValueKey('workout-smart-superset-scrolling'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.swap_vert_rounded,
+                      ),
+                      label: 'Smart Superset Scrolling',
+                      onTap: null,
+                      showEditAffordance: false,
+                      value: controller.isSmartSupersetScrollingLoading
+                          ? const CircularProgressIndicator()
+                          : controller.isSmartSupersetScrollingReady
+                              ? Switch.adaptive(
+                                  key: const ValueKey(
+                                    'workout-smart-superset-scrolling-switch',
+                                  ),
+                                  value: controller
+                                      .smartSupersetScrollingEnabled,
+                                  onChanged: controller
+                                          .isSmartSupersetScrollingSaving
+                                      ? null
+                                      : (enabled) => unawaited(
+                                            _setSmartSupersetScrolling(enabled),
+                                          ),
+                                )
+                              : TioButton.secondary(
+                                  key: const ValueKey(
+                                    'workout-smart-superset-scrolling-retry',
+                                  ),
+                                  label: 'Retry',
+                                  onPressed: () => unawaited(
+                                    controller.loadSmartSupersetScrolling(),
+                                  ),
                                 ),
                     ),
                   ],

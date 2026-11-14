@@ -57,6 +57,7 @@ abstract final class WorkoutDraftSaveDto {
       exercises.add({
         'exercise_ref': exercise.exerciseRef.value,
         'display_name': exercise.displayName,
+        if (exercise.supersetId != null) 'superset_id': exercise.supersetId,
         if (exercise.exerciseType != null)
           'exercise_type': exercise.exerciseType!.storageValue,
         'occurrence_index': exerciseIndex,
@@ -88,6 +89,14 @@ abstract final class WorkoutDraftSaveDto {
         'origin': 'ad_hoc',
         'captured_at_utc': draft.time.startedAtUtc.toIso8601String(),
         'exercises': exercises,
+        'superset_groups': [
+          for (final group in draft.supersets)
+            {
+              'id': group.id,
+              'normal_rest_seconds': group.restPreset.normalRestSeconds,
+              'warm_up_rest_seconds': group.restPreset.warmUpRestSeconds,
+            },
+        ],
       },
       'performed_sets': performed,
     };

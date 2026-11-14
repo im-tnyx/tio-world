@@ -39,13 +39,14 @@ final class SupabaseMyProgramRoutineCreateRepository
         expectedRevision: 0,
         mutationId: command.mutationId,
         entries: command.entries,
+        supersets: command.supersets,
         expectedCustomTypes: command.expectedCustomTypes,
       ),
     );
 
     try {
       final result = await _client.rpc<Object?>(
-        'create_user_workout_routine_in_my_program',
+        'create_user_workout_routine_in_my_program_v2',
         params: {
           'p_routine_id': command.routineId.value,
           'p_name': command.name,

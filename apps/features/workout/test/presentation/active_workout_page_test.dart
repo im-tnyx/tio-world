@@ -343,8 +343,7 @@ Future<void> _pumpPage(
         onBack: onBack,
         onSettingsPressed: onSettingsPressed,
         clock: clock ?? () => tester.binding.clock.now(),
-        workoutRuntimeSettingsController:
-            workoutRuntimeSettingsController,
+        workoutRuntimeSettingsController: workoutRuntimeSettingsController,
       ),
     ),
   );
@@ -356,6 +355,7 @@ final class _RuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
+  bool smartSupersetScrollingEnabled = false;
   bool failNextRpeRead = false;
   bool failNextRpeWrite = false;
 
@@ -376,6 +376,14 @@ final class _RuntimeSettingsRepository
     }
     rpeEnabled = enabled;
   }
+
+  @override
+  Future<bool> readSmartSupersetScrollingEnabled() async =>
+      smartSupersetScrollingEnabled;
+
+  @override
+  Future<void> writeSmartSupersetScrollingEnabled(bool enabled) async =>
+      smartSupersetScrollingEnabled = enabled;
 
   bool failNextVibrationRead = false;
   Completer<bool>? pendingVibrationRead;
@@ -422,6 +430,48 @@ Future<void> _addPreviewBench(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<
+    ({
+      ActiveWorkoutDraftController draft,
+      WorkoutRuntimeSettingsController settings,
+    })> _createSupersetPreview(
+  WidgetTester tester, {
+  required bool smartScrollingEnabled,
+}) async {
+  final draft = ActiveWorkoutDraftController(
+    store: _DraftStore(),
+    ownerId: _userId,
+    clock: () => tester.binding.clock.now(),
+  );
+  await draft.restoreOrStart();
+  await draft.addExercises(
+    [
+      Exercise(
+        ref: ExerciseRef.catalog('ex_barbell_bench_press'),
+        displayName: 'Bench Press',
+        exerciseType: ExerciseType.weightReps,
+        status: ExerciseStatus.active,
+      ),
+      Exercise(
+        ref: ExerciseRef.catalog('ex_barbell_back_squat'),
+        displayName: 'Back Squat',
+        exerciseType: ExerciseType.weightReps,
+        status: ExerciseStatus.active,
+      ),
+    ],
+    initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 60),
+  );
+  final first = draft.draft!.exercises.first;
+  await draft.addSet(first.id);
+  await draft.createSuperset(first.id, draft.draft!.exercises.last.id);
+  final settings = WorkoutRuntimeSettingsController(
+    repository: _RuntimeSettingsRepository()
+      ..smartSupersetScrollingEnabled = smartScrollingEnabled,
+  );
+  await settings.loadSmartSupersetScrolling();
+  return (draft: draft, settings: settings);
+}
+
 Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
   final wheel = find.byKey(const ValueKey('routine-rest-timer-wheel'));
   final scrollable = tester.widget<ListWheelScrollView>(wheel);
@@ -430,7 +480,6 @@ Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
 }
 
 void main() {
-
   testWidgets('late initial vibration read still enables an active rest',
       (tester) async {
     final calls = <String>[];
@@ -474,9 +523,13 @@ void main() {
     );
     await _addPreviewBench(tester);
     final exercise = local.draft!.exercises.single;
-    expect(await local.toggleLogged(
-      exercise.id, exercise.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await local.toggleLogged(
+          exercise.id,
+          exercise.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
     expect(settings.isVibrationReady, isFalse);
     pendingRead.complete(true);
@@ -485,8 +538,7 @@ void main() {
 
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 5));
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('rest expiry vibrates while Workout rest sheet remains open',
@@ -533,24 +585,28 @@ void main() {
     );
     await _addPreviewBench(tester);
     final exercise = draft.draft!.exercises.single;
-    expect(await draft.toggleLogged(
-      exercise.id, exercise.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await draft.toggleLogged(
+          exercise.id,
+          exercise.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
 
     await tester.tap(find.byKey(ValueKey(
       'active-workout-preview-exercise-rest-timer-${exercise.id}',
     )));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
     await tester.pump(const Duration(seconds: 6));
 
-    expect(find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(
+        find.byKey(const ValueKey('routine-rest-timer-wheel')), findsOneWidget);
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
     await tester.pump(const Duration(seconds: 5));
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('legacy duration sheet does not suppress natural rest expiry',
@@ -597,11 +653,9 @@ void main() {
     await tester.pump(const Duration(seconds: 6));
 
     expect(find.byType(WorkoutDurationBottomSheet), findsOneWidget);
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
     await tester.pump(const Duration(seconds: 6));
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('legacy resume before deadline re-arms natural expiry',
@@ -645,8 +699,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump(const Duration(seconds: 3));
 
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('removing legacy logged Set suppresses related rest vibration',
@@ -741,9 +794,13 @@ void main() {
     await _addPreviewBench(tester);
     final first = draft.draft!.exercises.single;
     expect(first.restPreset.normalRestSeconds, 5);
-    expect(await draft.toggleLogged(
-      first.id, first.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await draft.toggleLogged(
+          first.id,
+          first.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
     expect(draft.draft!.activeRest, isNotNull);
     await tester.pump(const Duration(seconds: 6));
@@ -753,12 +810,20 @@ void main() {
     expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
         hasLength(1));
 
-    expect(await draft.toggleLogged(
-      first.id, first.sets.single.id, reps: 10,
-    ), isTrue); // Removes logged Set/rest.
-    expect(await draft.toggleLogged(
-      first.id, first.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await draft.toggleLogged(
+          first.id,
+          first.sets.single.id,
+          reps: 10,
+        ),
+        isTrue); // Removes logged Set/rest.
+    expect(
+        await draft.toggleLogged(
+          first.id,
+          first.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
     expect(await draft.skipRest(), isTrue);
     await tester.pump(const Duration(seconds: 7));
@@ -810,16 +875,20 @@ void main() {
     );
     await _addPreviewBench(tester);
     final first = draft.draft!.exercises.single;
-    expect(await draft.toggleLogged(
-      first.id, first.sets.single.id, reps: 10,
-    ), isTrue);
+    expect(
+        await draft.toggleLogged(
+          first.id,
+          first.sets.single.id,
+          reps: 10,
+        ),
+        isTrue);
     await tester.pump();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pump(const Duration(seconds: 6));
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump(const Duration(milliseconds: 100));
-    expect(feedback.where((value) => value == 'HapticFeedback.vibrate'),
-        isEmpty);
+    expect(
+        feedback.where((value) => value == 'HapticFeedback.vibrate'), isEmpty);
   });
 
   testWidgets('paused legacy workout rest expires with foreground vibration',
@@ -864,8 +933,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 6));
     expect(controller.state.activeRestTimer, isNull);
-    expect(calls.where((v) => v == 'HapticFeedback.vibrate'),
-        hasLength(1));
+    expect(calls.where((v) => v == 'HapticFeedback.vibrate'), hasLength(1));
   });
 
   testWidgets('legacy natural expiry vibrates, manual cancel does not',
@@ -990,8 +1058,411 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Log Workout marks Superset below the title with a group dot',
+      (tester) async {
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: false,
+    );
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
 
-  testWidgets('Save-only Log Workout Settings delegates without discarding draft',
+    expect(
+        find.byKey(const ValueKey('superset-member-dot-A1')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('superset-group-marker-A1')), findsNothing);
+    expect(find.text('SUPERSET A1'), findsOneWidget);
+  });
+
+  testWidgets('grouping nonadjacent exercises keeps Note with its exercise',
+      (tester) async {
+    final draft = ActiveWorkoutDraftController(
+      store: _DraftStore(),
+      ownerId: _userId,
+      clock: () => tester.binding.clock.now(),
+    );
+    addTearDown(draft.dispose);
+    expect(await draft.restoreOrStart(), isTrue);
+    expect(
+        await draft.addExercises([
+          Exercise(
+            ref: ExerciseRef.catalog('ex_barbell_bench_press'),
+            displayName: 'Bench Press',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+          Exercise(
+            ref: ExerciseRef.catalog('ex_barbell_back_squat'),
+            displayName: 'Back Squat',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+          Exercise(
+            ref: ExerciseRef.catalog('ex_lat_pulldown'),
+            displayName: 'Lat Pulldown',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+        ]),
+        isTrue);
+    final before = draft.draft!.exercises;
+    final benchId = before[0].id;
+    final squatId = before[1].id;
+    final pulldownId = before[2].id;
+    final settings = WorkoutRuntimeSettingsController(
+      repository: _RuntimeSettingsRepository(),
+    );
+    addTearDown(settings.dispose);
+    await settings.loadSmartSupersetScrolling();
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: draft,
+      workoutRuntimeSettingsController: settings,
+      showStartPreview: true,
+    );
+
+    final squatNoteAction = find.byKey(
+      const ValueKey('exercise-note-action-ex_barbell_back_squat'),
+    );
+    await tester.ensureVisible(squatNoteAction);
+    await tester.tap(squatNoteAction);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercise-note-type-workout')));
+    await tester.pumpAndSettle();
+    final squatNoteInput = find.byKey(
+      const ValueKey('exercise-note-input-ex_barbell_back_squat'),
+    );
+    await tester.enterText(squatNoteInput, 'Squat specific draft');
+    await tester.pumpAndSettle();
+
+    final benchCard =
+        find.byKey(const ValueKey('active-workout-preview-exercise-0'));
+    await tester.ensureVisible(benchCard);
+    await tester.tap(find.descendant(
+      of: benchCard,
+      matching: find.byTooltip('Exercise options'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-exercise-option-add-superset')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(ValueKey('routine-superset-candidate-$pulldownId')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(draft.draft!.exercises.map((e) => e.id),
+        [benchId, pulldownId, squatId]);
+    final restoredSquatNote = find.byKey(
+      const ValueKey('exercise-note-input-ex_barbell_back_squat'),
+    );
+    expect(restoredSquatNote, findsOneWidget);
+    expect(tester.widget<TextField>(restoredSquatNote).controller!.text,
+        'Squat specific draft');
+    expect(
+      find.byKey(const ValueKey('exercise-note-input-ex_lat_pulldown')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Superset picker excludes an exercise with skipped progress',
+      (tester) async {
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: false,
+    );
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    expect(
+        await harness.draft.addExercises([
+          Exercise(
+            ref: ExerciseRef.catalog('ex_c'),
+            displayName: 'Eligible Exercise',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+          Exercise(
+            ref: ExerciseRef.catalog('ex_d'),
+            displayName: 'Skipped Exercise',
+            exerciseType: ExerciseType.weightReps,
+            status: ExerciseStatus.active,
+          ),
+        ]),
+        isTrue);
+    final eligible = harness.draft.draft!.exercises[2];
+    final skipped = harness.draft.draft!.exercises[3];
+    expect(
+      await harness.draft.toggleLogged(
+        skipped.id,
+        skipped.sets.single.id,
+        isSkipped: true,
+      ),
+      isTrue,
+    );
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
+
+    final firstCard =
+        find.byKey(const ValueKey('active-workout-preview-exercise-0'));
+    await tester.ensureVisible(firstCard);
+    await tester.tap(find.descendant(
+      of: firstCard,
+      matching: find.byTooltip('Exercise options'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-exercise-option-add-superset')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(ValueKey('routine-superset-candidate-${eligible.id}')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(ValueKey('routine-superset-candidate-${skipped.id}')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.byKey(ValueKey('routine-superset-candidate-${eligible.id}')),
+    );
+    await tester.pumpAndSettle();
+    expect(harness.draft.draft!.exercises[2].supersetId,
+        harness.draft.draft!.supersets.single.id);
+    expect(harness.draft.draft!.exercises[3].supersetId, isNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shared rest edit keeps another member warm-up duration',
+      (tester) async {
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: false,
+    );
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    final first = harness.draft.draft!.exercises.first;
+    final second = harness.draft.draft!.exercises.last;
+    final groupId = first.supersetId!;
+    expect(
+      await harness.draft.setType(
+        second.id,
+        second.sets.single.id,
+        RoutineSetType.warmUp,
+      ),
+      isTrue,
+    );
+    expect(
+      await harness.draft.configureSupersetRestTimer(
+        groupId,
+        normalRestSeconds: 60,
+        warmUpRestSeconds: 25,
+      ),
+      isTrue,
+    );
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
+
+    final firstTimer = find.byKey(ValueKey(
+      'active-workout-preview-exercise-rest-timer-${first.id}',
+    ));
+    await tester.ensureVisible(firstTimer);
+    await tester.tap(firstTimer);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+        harness.draft.draft!.supersets.single.restPreset.normalRestSeconds, 60);
+    expect(
+        harness.draft.draft!.supersets.single.restPreset.warmUpRestSeconds, 25);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Smart Superset Scrolling advances to the next member when ON',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 360);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: true,
+    );
+    expect(harness.settings.smartSupersetScrollingEnabled, isTrue);
+    expect(harness.draft.isBusy, isFalse);
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
+    await tester.pumpAndSettle();
+
+    final viewport = find.byKey(
+      const ValueKey('active-workout-start-preview'),
+    );
+    final nextMemberSet = find.byKey(
+      const ValueKey('active-workout-preview-set-toggle-1-0'),
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pump();
+    expect(
+      tester.getRect(nextMemberSet).top,
+      greaterThan(tester.getRect(viewport).bottom),
+    );
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '40',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '8',
+    );
+    await tester.pump();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    expect(harness.draft.isBusy, isFalse);
+    final setToggle = tester.widget<IconButton>(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    expect(setToggle.onPressed, isNotNull);
+    setToggle.onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(
+        harness.draft.draft!.exercises.first.sets.first.loggedAtUtc, isNotNull);
+    final viewportRect = tester.getRect(viewport);
+    final nextMemberRect = tester.getRect(nextMemberSet);
+    expect(nextMemberRect.top, greaterThanOrEqualTo(viewportRect.top));
+    expect(nextMemberRect.bottom, lessThanOrEqualTo(viewportRect.bottom));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Smart Superset Scrolling leaves the viewport unchanged when OFF',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 420);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _createSupersetPreview(
+      tester,
+      smartScrollingEnabled: false,
+    );
+    addTearDown(harness.draft.dispose);
+    addTearDown(harness.settings.dispose);
+    final pageController = ActiveWorkoutController(
+      repository: _FakeSessionRepository(),
+      currentUserId: () => _userId,
+    );
+    addTearDown(pageController.dispose);
+    await _pumpPage(
+      tester,
+      controller: pageController,
+      draftController: harness.draft,
+      workoutRuntimeSettingsController: harness.settings,
+      showStartPreview: true,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pump();
+    final updatedViewport = tester.widget<SingleChildScrollView>(
+      find.byKey(const ValueKey('active-workout-start-preview')),
+    );
+    final scrollController = updatedViewport.controller!;
+    final initialOffset = scrollController.offset;
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-load-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '40',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('active-workout-preview-reps-0-0')),
+        matching: find.byType(EditableText),
+      ),
+      '8',
+    );
+    await tester.pump();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('active-workout-preview-set-toggle-0-0')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(scrollController.offset, initialOffset);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'Save-only Log Workout Settings delegates without discarding draft',
       (tester) async {
     final store = _DraftStore();
     final draft = ActiveWorkoutDraftController(
@@ -1016,7 +1487,8 @@ void main() {
     expect(draft.draft, isNotNull);
     final originalId = draft.draft!.id;
     final savedBefore = store.saveCount;
-    final settingsAction = find.byKey(const ValueKey('active-workout-preview-settings'));
+    final settingsAction =
+        find.byKey(const ValueKey('active-workout-preview-settings'));
     await tester.ensureVisible(settingsAction);
     await tester.pumpAndSettle();
     await tester.tap(settingsAction);
@@ -1045,9 +1517,10 @@ void main() {
       controller: controller,
       onSettingsPressed: () => settingsCalls++,
     );
-    expect(find.byKey(const ValueKey('active-workout-settings')),
-        findsOneWidget);
-    final settingsAction = find.byKey(const ValueKey('active-workout-settings'));
+    expect(
+        find.byKey(const ValueKey('active-workout-settings')), findsOneWidget);
+    final settingsAction =
+        find.byKey(const ValueKey('active-workout-settings'));
     await tester.ensureVisible(settingsAction);
     await tester.pumpAndSettle();
     await tester.tap(settingsAction);
@@ -1083,8 +1556,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
     expect(draftController.draft!.time.isPaused, isTrue);
-    expect(store.saved!.time.pausedAtUtc,
-        DateTime.utc(2026, 11, 10, 10));
+    expect(store.saved!.time.pausedAtUtc, DateTime.utc(2026, 11, 10, 10));
   });
 
   testWidgets('removing a preview Set preserves performed state on later Sets',
@@ -2371,8 +2843,7 @@ void main() {
         findsNothing);
   });
 
-  testWidgets(
-      'local draft preview wins over a restored legacy active session',
+  testWidgets('local draft preview wins over a restored legacy active session',
       (tester) async {
     final repository = _FakeSessionRepository()
       ..active = WorkoutSessionRecord(session: _session(), revision: 1);
@@ -3393,8 +3864,7 @@ void main() {
     });
   }
 
-  testWidgets(
-      'Play resume with legacy session does not create a local draft',
+  testWidgets('Play resume with legacy session does not create a local draft',
       (tester) async {
     final store = _DraftStore();
     final draftController = ActiveWorkoutDraftController(

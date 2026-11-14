@@ -11,7 +11,9 @@ WorkoutHistoryDetail _detail({
   bool skippedWithoutTime = false,
   bool legacySchemaVersion = false,
   int performedSetCount = 1,
+  bool grouped = false,
 }) {
+  const groupId = 'aaaaaaaa-1111-4000-8000-000000000071';
   final raw = <String, dynamic>{
     'schema_version': legacySchemaVersion ? 1 : 2,
     if (legacySchemaVersion) ...{
@@ -27,6 +29,7 @@ WorkoutHistoryDetail _detail({
         'display_name': 'Bench Press',
         'exercise_type': 'weight_reps',
         'occurrence_index': 0,
+        if (grouped) 'superset_id': groupId,
         'prescribed_sets': [
           {
             'set_type': 'normal',
@@ -35,7 +38,26 @@ WorkoutHistoryDetail _detail({
           if (skippedWithoutTime) {'set_type': 'normal'},
         ],
       },
+      if (grouped)
+        {
+          'exercise_ref': 'ex_squat',
+          'display_name': 'Squat',
+          'exercise_type': 'weight_reps',
+          'occurrence_index': 1,
+          'superset_id': groupId,
+          'prescribed_sets': [
+            {'set_type': 'normal', 'reps': 8},
+          ],
+        },
     ],
+    if (grouped)
+      'superset_groups': [
+        {
+          'id': groupId,
+          'normal_rest_seconds': 60,
+          'warm_up_rest_seconds': 15,
+        },
+      ],
   };
   final sets = [
     for (var index = 0; index < performedSetCount; index++)
@@ -57,6 +79,16 @@ WorkoutHistoryDetail _detail({
         sessionExerciseIndex: 0,
         setIndex: 1,
         isSkipped: true,
+      ),
+    if (grouped)
+      PerformedSet(
+        id: '55555555-5555-4555-a555-555555555555',
+        exerciseRef: CatalogExerciseRef('ex_squat'),
+        sessionExerciseIndex: 1,
+        setIndex: 0,
+        reps: 8,
+        loadKg: 60,
+        completedAtUtc: DateTime.utc(2026, 11, 11, 20, 43),
       ),
   ];
   return WorkoutHistoryDetail(
@@ -183,6 +215,63 @@ void main() {
     expect(editor.canUpdate, isFalse);
   });
 
+  test('History Edit preserves group on replacement and dissolves below two',
+      () {
+    const groupId = 'aaaaaaaa-1111-4000-8000-000000000071';
+    final source = _detail(grouped: true);
+    final editor = WorkoutHistoryEditController(source);
+    addTearDown(editor.dispose);
+
+    editor.replaceExercise(
+      1,
+      Exercise(
+        ref: CatalogExerciseRef('ex_deadlift'),
+        displayName: 'Deadlift',
+        exerciseType: ExerciseType.weightReps,
+        status: ExerciseStatus.active,
+      ),
+    );
+    expect(editor.exercises[1].supersetId, groupId);
+    editor.toggleLogged(1, 0, reps: 6, loadKg: 80);
+    editor.addExercises([
+      Exercise(
+        ref: CatalogExerciseRef('ex_row'),
+        displayName: 'Row',
+        exerciseType: ExerciseType.weightReps,
+        status: ExerciseStatus.active,
+      ),
+    ]);
+    expect(editor.exercises[2].supersetId, isNull);
+    editor.toggleLogged(2, 0, reps: 10, loadKg: 30);
+
+    var payload = WorkoutHistoryEditDto.payload(_request(source, editor));
+    var snapshot = payload['routine_snapshot'] as Map;
+    expect(snapshot['superset_groups'], [
+      {
+        'id': groupId,
+        'normal_rest_seconds': 60,
+        'warm_up_rest_seconds': 15,
+      },
+    ]);
+    expect((snapshot['exercises'] as List)[0]['superset_id'], groupId);
+    expect((snapshot['exercises'] as List)[1]['superset_id'], groupId);
+    expect(
+        (snapshot['exercises'] as List)[2].containsKey('superset_id'), isFalse);
+
+    editor.removeExercise(1);
+    expect(editor.exercises.first.supersetId, isNull);
+    expect(editor.supersetGroups, isEmpty);
+    payload = WorkoutHistoryEditDto.payload(_request(source, editor));
+    snapshot = payload['routine_snapshot'] as Map;
+    expect(snapshot['superset_groups'], isEmpty);
+    expect(
+      (snapshot['exercises'] as List)
+          .cast<Map<String, dynamic>>()
+          .every((exercise) => !exercise.containsKey('superset_id')),
+      isTrue,
+    );
+  });
+
   test('pre-existing skipped set without timestamp survives metadata edit', () {
     final source = _detail(skippedWithoutTime: true);
     final editor = WorkoutHistoryEditController(source);
@@ -204,8 +293,8 @@ void main() {
 
     expect(editor.exercises.single.sets, hasLength(2));
     expect(editor.canUpdate, isTrue);
-    final rows = WorkoutHistoryEditDto.payload(_request(source, editor))[
-        'performed_sets'] as List;
+    final rows = WorkoutHistoryEditDto.payload(
+        _request(source, editor))['performed_sets'] as List;
     expect(rows, hasLength(2));
     expect(rows[1]['id'], source.allPerformedSets[1].id);
     expect(rows[1]['set_index'], 1);
@@ -253,8 +342,8 @@ void main() {
     expect(editor.hasPerformedSetLimitExceeded, isFalse);
     expect(editor.canUpdate, isTrue);
     expect(
-      (WorkoutHistoryEditDto.payload(_request(source, editor))[
-          'performed_sets'] as List),
+      (WorkoutHistoryEditDto.payload(_request(source, editor))['performed_sets']
+          as List),
       hasLength(500),
     );
 

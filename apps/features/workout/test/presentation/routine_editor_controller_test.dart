@@ -62,6 +62,75 @@ RoutineEditorController _make(
 }
 
 void main() {
+  test('Edit preserves Superset config and reorders its members as one block',
+      () async {
+    const secondId = '30000000-0000-4000-8000-000000000002';
+    const secondSet = '40000000-0000-4000-8000-000000000002';
+    const thirdId = '30000000-0000-4000-8000-000000000003';
+    const thirdSet = '40000000-0000-4000-8000-000000000003';
+    const groupId = '50000000-0000-4000-8000-000000000001';
+    final second = RoutineCompositionEntry(
+      id: secondId,
+      exercise: ExerciseRef.catalog(_ref),
+      sets: [
+        RoutineCompositionSet(
+          id: secondSet,
+          prescription: SetPrescription(reps: 6, restSeconds: 45),
+        ),
+      ],
+    );
+    final third = RoutineCompositionEntry(
+      id: thirdId,
+      exercise: ExerciseRef.catalog(_ref),
+      sets: [
+        RoutineCompositionSet(
+          id: thirdSet,
+          prescription: SetPrescription(reps: 5),
+        ),
+      ],
+    );
+    final compositions = _Compositions(
+      _snapshot(entries: [_entry(), second, third]),
+    );
+    final editor = _make(
+      _Routines([_routine()]),
+      compositions,
+      ids: [groupId, _m],
+    );
+    addTearDown(editor.dispose);
+    await editor.load();
+
+    expect(editor.createSuperset(_e, secondId), isTrue);
+    expect(editor.state.supersets.single.id, groupId);
+    expect(editor.state.supersets.single.restPreset.normalRestSeconds, 30);
+    expect(editor.state.entries[0].sets.single.prescription.restSeconds, 30);
+    expect(editor.state.entries[1].sets.single.prescription.restSeconds, 45);
+    expect(editor.addSupersetMember(groupId, thirdId), isTrue);
+    expect(editor.removeFromSuperset(secondId), isTrue);
+    expect(editor.state.entries.map((entry) => entry.id),
+        [_e, thirdId, secondId]);
+    expect(editor.state.entries.take(2).every((entry) => entry.supersetId == groupId),
+        isTrue);
+    expect(editor.removeFromSuperset(secondId), isFalse);
+    expect(editor.addSupersetMember(groupId, secondId), isTrue);
+    expect(editor.removeFromSuperset(thirdId), isTrue);
+    expect(editor.state.entries.map((entry) => entry.id),
+        [_e, secondId, thirdId]);
+    expect(editor.moveExercise(0, 2), isTrue);
+    expect(editor.state.entries.map((entry) => entry.id),
+        [thirdId, _e, secondId]);
+    expect(editor.state.entries
+        .where((entry) => entry.supersetId == groupId)
+        .map((entry) => entry.id), [_e, secondId]);
+
+    expect(await editor.update(), isTrue);
+    expect(compositions.lastSave!.entries.map((entry) => entry.id),
+        [thirdId, _e, secondId]);
+    expect(compositions.lastSave!.supersets.single.id, groupId);
+    expect(compositions.lastSave!.supersets.single.restPreset.normalRestSeconds,
+        30);
+  });
+
   test('Replace creates fresh blank Set and saves once without old targets',
       () async {
     final comp = _Compositions(_snapshot(entries: [_entry()]));

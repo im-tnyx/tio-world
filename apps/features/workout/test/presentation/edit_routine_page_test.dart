@@ -44,6 +44,7 @@ RoutineCompositionEntry _entry({
 
 RoutineCompositionSnapshot _snapshot({
   List<RoutineCompositionEntry>? entries,
+  List<RoutineSupersetGroup> supersets = const [],
   int revision = 4,
   String? mutation,
   String name = 'Push Day',
@@ -53,6 +54,7 @@ RoutineCompositionSnapshot _snapshot({
       lastMutationId: mutation,
       name: name,
       entries: entries ?? [_entry()],
+      supersets: supersets,
     );
 
 class _Fixtures {
@@ -510,6 +512,69 @@ void main() {
       isNull,
     );
     expect(f.editorResult, isTrue);
+  });
+
+  testWidgets('Edit Superset rest keeps another member warm-up duration',
+      (tester) async {
+    const groupId = '50000000-0000-4000-8000-000000000001';
+    const secondId = '30000000-0000-4000-8000-000000000002';
+    final f = _Fixtures();
+    f.compositions.snapshot = _snapshot(
+      entries: [
+        RoutineCompositionEntry(
+          id: _entryId,
+          supersetId: groupId,
+          exercise: ExerciseRef.catalog(_exerciseRef),
+          sets: [
+            RoutineCompositionSet(
+              id: _setId,
+              prescription: SetPrescription(reps: 8),
+            ),
+          ],
+        ),
+        RoutineCompositionEntry(
+          id: secondId,
+          supersetId: groupId,
+          exercise: ExerciseRef.catalog(_exerciseRef),
+          sets: [
+            RoutineCompositionSet(
+              id: '40000000-0000-4000-8000-000000000002',
+              prescription:
+                  SetPrescription(reps: 8, setType: RoutineSetType.warmUp),
+            ),
+          ],
+        ),
+      ],
+      supersets: [
+        RoutineSupersetGroup(
+          id: groupId,
+          restPreset: const RoutineRestTimerPreset(
+            normalRestSeconds: 60,
+            warmUpRestSeconds: 25,
+          ),
+        ),
+      ],
+    );
+    await f.open(tester);
+    final timer = find.byKey(
+      const ValueKey('edit-routine-rest-timer-$_entryId'),
+    );
+    await tester.ensureVisible(timer);
+    await tester.tap(timer);
+    await tester.pumpAndSettle();
+    await _selectRestWheelItem(tester, 18);
+    await tester.tap(
+      find.byKey(const ValueKey('routine-rest-timer-done-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('edit-routine-update')));
+    await tester.pumpAndSettle();
+
+    expect(f.compositions.lastSave!.supersets.single.restPreset.normalRestSeconds,
+        90);
+    expect(f.compositions.lastSave!.supersets.single.restPreset.warmUpRestSeconds,
+        25);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('picker returns freshly created Custom even when editor source is stale',
@@ -1266,6 +1331,7 @@ final class _RuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
+  bool smartSupersetScrollingEnabled = false;
   bool failNextRpeRead = false;
   bool failNextRpeWrite = false;
 
@@ -1286,6 +1352,14 @@ final class _RuntimeSettingsRepository
     }
     rpeEnabled = enabled;
   }
+
+  @override
+  Future<bool> readSmartSupersetScrollingEnabled() async =>
+      smartSupersetScrollingEnabled;
+
+  @override
+  Future<void> writeSmartSupersetScrollingEnabled(bool enabled) async =>
+      smartSupersetScrollingEnabled = enabled;
 
   bool failNextVibrationRead = false;
 
@@ -1376,6 +1450,7 @@ final class _Compositions implements RoutineCompositionRepository, RoutineAggreg
     if (error != null) throw error!;
     snapshot = _snapshot(
       entries: command.entries ?? snapshot!.entries,
+      supersets: command.supersets ?? snapshot!.supersets,
       revision: command.expectedRevision + 1,
       mutation: command.mutationId,
       name: command.savedName,
@@ -1391,6 +1466,7 @@ final class _Compositions implements RoutineCompositionRepository, RoutineAggreg
     if (error != null) throw error!;
     snapshot = _snapshot(
       entries: command.entries,
+      supersets: command.supersets,
       revision: command.expectedRevision + 1,
       mutation: command.mutationId,
     );

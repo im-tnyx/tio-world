@@ -1,14 +1,14 @@
 # Workout Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-09-30
+Last Verified: 2026-11-13
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for the Workout screen product contract, ownership, and documented current/target behavior; runtime source wins for actual shipped behavior and trackers own delivery status.
 
 **Surface:** Phone primary tab for `workout` and `hybrid` modes
 **Current route:** `/workout`
 **Primary owner:** `apps/features/workout`
-**Status (main source verified 2026-11-11 at `23310eeef6c1d42142f3af8f8563e759350d087c`; W10-A source branch 2026-11-12):** `/workout` renders Workout-owned `WorkoutHomePage` with its date/calendar surface and Library entry. Nested Library, Programs and Exercises, owner-scoped Routine Detail/Edit and the Active Workout route are implemented. Home Play starts an empty account-bound local Save-only draft; Routine Detail, Program Detail and expanded Library Routine rows can seed that draft from a selected Routine (merged PR #748). W8A History action/list/card and W8B Detail/card selection are on PR #752, not yet on main. W10-A adds a device-local Default Rest Timer in Workout Settings and snapshots it when adding Exercises; the PR/CI handoff is pending and this does not complete broader Workout Settings. This is source status, not a distributed app release or phone QA. Scheduled TrainingPlan and Insights remain gated.
+**Status (main source verified 2026-11-13 at `b2c3f5d0`):** `/workout` renders Workout-owned `WorkoutHomePage` with its date/calendar surface and Library entry. Nested Library, Programs and Exercises, owner-scoped Routine Detail/Edit and the Active Workout route are implemented. Home Play starts an empty account-bound local Save-only draft; Routine Detail, Program Detail and expanded Library Routine rows can seed that draft from a selected Routine (merged PR #748). W8A History, W8B Detail, and W8C Edit are merged in PR #752. W10-A Default Rest Timer, W10-B Rest Timer Vibration, and W10-C RPE Tracking are merged in PRs #753–#755. These are source status statements, not a distributed app release or device acceptance. Hosted migration and device claims remain specific to their verified receipts. Scheduled TrainingPlan and Insights remain gated. The owner-approved Superset implementation is an active unmerged source slice; see [the Superset task brief](../../.ai/tasks/workout-superset.md).
 
 ## Purpose
 
@@ -41,8 +41,22 @@ Detail. It opens `/workout/history/:sessionId/edit`, combining saved metadata
 with actual exercise and performed-set inputs. `Update` edits the same completed
 session through an owner-scoped, revision-checked transaction. It supports
 exercise add/remove/replace and set edits, while leaving Active Workout state
-untouched. This source change is on PR #752; merge, database deployment and
-device acceptance are separate gates.
+untouched. This source is merged through PR #752; hosted migration and device
+acceptance remain separate evidence gates.
+
+## Superset — approved active implementation slice
+
+A Routine Superset groups two or three contiguous Exercise entries and moves as
+one block. Save-only Log Workout carries the group and one shared Normal / Warm-up
+Rest Timer pair into the local draft. Unequal set counts are allowed; each
+ordinal set position is a round, and a member with no set at that position is
+omitted. The group Rest Timer starts after all available round members are
+logged or skipped. Smart Superset Scrolling is a separate default-OFF Workout
+setting. Active membership freezes after the first logged or skipped group set.
+
+This is approved product behavior under implementation; the linked task brief
+records source, validation, and hosted-state limits. It does not imply that the
+local migration has been applied to any hosted Supabase project.
 
 1. **Current plan** — selected Routine or TrainingPlan/PlannedWorkout context, its next scheduled workout when one exists, session status, and a clear rest-day state. Reusable Program itself does not own scheduled sessions. Workout Home Play remains the empty ad-hoc start entry; Routine Detail, Program Detail and expanded Library Routine rows can start the selected Routine.
 2. **Library** — one canonical Workout-owned route (`/workout/library`, W6A), reached from the Workout Home entry below the calendar. The approved target category order is **Programs → Exercises → Your Plan**: Programs is default, Exercises is second, and Your Plan is rendered only when a real followed/applicable canonical TrainingPlan exists; otherwise it is hidden completely. There is no standalone Routines category/collection, and saved Routines remain Program-owned. It is not a guided default tab or a Workout-local content tab; a future configurable navigation may promote the same route. See [Library](library.md).
