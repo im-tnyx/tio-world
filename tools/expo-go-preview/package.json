@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start --go",
-    "test": "node --test preview-url.test.js",
+    "test": "node --test",
     "doctor": "expo install --check"
   },
   "dependencies": {

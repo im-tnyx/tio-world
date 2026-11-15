@@ -39,16 +39,18 @@ There are **no Supabase defines or QA secrets** in this run. Accordingly, only u
 
 Find the PC's **private IPv4 address**, e.g. `192.168.1.25`, with `Get-NetIPAddress -AddressFamily IPv4` or `ipconfig`. On the phone's regular browser, first open `http://192.168.1.25:7357` (replace with your LAN IP). If it fails, check the terminal, same Wi-Fi, Windows Firewall private-network port rules, and client isolation. Do not expose this service to the internet.
 
+### Why this preview has a browser-only compatibility shim
+
+The exact Flutter 3.47.9 GitHub compilation on 2026-11-15 failed because Dart-to-JavaScript cannot represent the integer literal `9223372036854775807` at four Routine Move guard comparisons (three in `supabase_routine_move_repository.dart`, one in `routine_move_repository.dart`). The `--wasm` build also fails when building its JavaScript fallback.
+
+The launcher uses `prepare-web-snapshot.js` **only in the detached temporary worktree**. It first checks the expected four original comparisons and then tightens those checks to reject revisions above JS's exact integer range (`> 9007199254740991`). This is deliberately conservative browser-only scaffolding and cannot claim native business-logic parity. The repository's Flutter source, native builds and real credentials are unchanged. If the exact assertions stop matching later Flutter code, compilation stops instead of applying an unknown patch. **Do not test Routine Move, Undo or protected data in this preview.**
+
 ## 3. Terminal B — launch the minimal Expo Go wrapper QR
 
 ```powershell
 Set-Location "G:\projects\Tio-World-Expo759\tools\expo-go-preview"
 node --version
-npm install --no-audit --no-fund
-npm test
-npx expo install --check
-$env:EXPO_PUBLIC_FLUTTER_WEB_URL = "http://192.168.1.25:7357"
-npx expo start --go --lan
+.\start-expo-go.ps1 -LanIPv4 "192.168.1.25"
 ```
 
 **Replace `192.168.1.25` with your actual Windows PC LAN IPv4.** Open Expo Go on Android and scan the QR from Terminal B (on iPhone use the camera/Expo Go flow per its current SDK instructions). The QR connects the phone to **Expo Metro**; the wrapper then loads the **separate Flutter Web URL** on port 7357. If the QR works but WebView fails, verify the Flutter URL in the phone browser. `--tunnel` for Expo does **not** automatically tunnel Flutter Web.

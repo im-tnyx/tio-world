@@ -40,6 +40,10 @@ try {
     & $FlutterBin create --platforms=web --project-name=tio_app .
     if ($LASTEXITCODE -ne 0) { throw "Flutter Web runner generation failed. Preview not ready." }
 
+    Write-Host "Applying narrow browser-only integer guard in temporary worktree (original Flutter checkout unchanged)."
+    & node (Join-Path $PSScriptRoot "prepare-web-snapshot.js") $previewDir
+    if ($LASTEXITCODE -ne 0) { throw "Temporary Web snapshot compatibility validation failed." }
+
     & $FlutterBin pub get
     if ($LASTEXITCODE -ne 0) { throw "Flutter dependency resolution failed. Preview not ready." }
 

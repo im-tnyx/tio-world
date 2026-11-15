@@ -25,11 +25,11 @@
 - **Observed working-tree state:** Remote branch identical to `main` at preflight; local status unknown
 - **Observed uncommitted/dirty files:** Unknown on owner Windows machine; GitHub compare returned zero changed files
 - **PR / tracker:** [GitHub #759](https://github.com/im-tnyx/tio-world/issues/759). Linear mirror blocked by workspace free issue limit.
-- **Current implementation state:** Preparing branch-only reproducible feasibility tests, a minimum Expo Go wrapper, and a device test guide.
+- **Current implementation state:** Prepared branch-only Expo Go wrapper, private-LAN guard, disposable Web runner and CI. Expo wrapper passed on SHA bfd477f; native JS and --wasm Web builds failed on four unsafe 64-bit literals, so a temporary conservative browser-only snapshot guard is being tested in isolated checkout.
 - **Relevant execution surface:** A *temporary detached Git worktree* generates Flutter Web runner; `tools/expo-go-preview` is a dev-only Expo Go shell. No production screens rewritten.
 - **Validation completed at SHA:** None at creation
 - **Validation remaining:** Flutter Web compile, Expo dependency resolve/Metro, physical Expo Go QR, private-LAN networking, actual UI parity, regressions and device acceptance.
-- **Current blocker:** No Flutter SDK, dependency download or phone attached to this chat environment; local Windows test or GitHub CI required
+- **Current blocker:** GitHub native JS and Wasm builds fail because of four int64 literals; testing a strict disposable-only browser guard. Owner physical device is unavailable to this chat.
 - **Open review finding IDs:** Not applicable; no review yet
 - **Next exact action:** Commit only test-owned files on issue branch, run dependency-free Node validation, trigger draft-PR experimental CI, inspect compile logs, and hand off precise physical-device steps. Never merge.
 
@@ -72,12 +72,12 @@ Existing Flutter native app (unchanged)
 
 ## 5. Implementation Plan
 - [ ] Prepare isolated README, PowerShell launcher, small Expo Go wrapper and node URL validation tests.
-- [ ] Implement branch-only feasibility CI without secrets and without modifying tracked Flutter platform files.
+- [x] Implement branch-only feasibility CI without secrets and without modifying tracked Flutter platform files.
 - [ ] Run Web build on actual SDK/CI and record source errors verbatim.
 - [ ] Run Expo Go on physical device; compare to existing Flutter app and record UI/browser/plugin differences.
 - [ ] Owner accepts or rejects adoption. **Leave unmerged unless explicitly approved.**
 
 ## 6. Quality Review
-**At task creation:** no builds, npm installation, Web runtime or device test run. GitHub compare preflight identical; no verified local Windows worktree access. Do not infer UI/feature parity.
+**CI evidence (2026-11-15):** `expo-wrapper` SUCCESS at `bfd477fe` (21/21 private URL tests; Expo SDK 57 package check; Android Metro bundle success, workflow run 43695876823). Flutter Web dart2js FAIL at run 43695663171: four 9223372036854775807 literal errors in existing Workout Move source. Flutter Web `--wasm` FAIL at run 43696044461 because it also compiles dart2js fallback. Next isolated run checks **test-only conservative JS-safe-limit substitution** in the temporary worktree; main source unchanged. Physical Expo Go/browser parity **NOT tested**.
 **Security:** No `SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY` injected, no session credentials or health data, no external Web URL, and no public preview hosting.
-**Acceptance disposition:** BLOCKED until actual Flutter Web compile + device checks; this is not ready for product merge.
+**Acceptance disposition:** NOT ACCEPTED — browser snapshot compilation and device QR/visual checks pending. Even a successful preview is not native behavioral/Move parity. No merge.

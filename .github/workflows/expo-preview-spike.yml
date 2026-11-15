@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: '22.16.0'
       - name: Validate safe private-LAN URL contract
-        run: node --test tools/expo-go-preview/preview-url.test.js
+        run: node --test tools/expo-go-preview/preview-url.test.js tools/expo-go-preview/prepare-web-snapshot.test.js
       - name: Install Expo dev-only dependencies (no credentials)
         working-directory: tools/expo-go-preview
         run: npm install --no-audit --no-fund
@@ -64,6 +64,7 @@ jobs:
           git worktree add --detach "$tmp/worktree" HEAD
           cd "$tmp/worktree/apps/app"
           flutter create --platforms=web --project-name=tio_app .
+          node "$GITHUB_WORKSPACE/tools/expo-go-preview/prepare-web-snapshot.js" "$tmp/worktree"
           flutter pub get
-          flutter build web --debug --wasm --no-pub
-          echo "Flutter WebAssembly build compiled, but Expo Go WebView compatibility and device parity are NOT verified."
+          flutter build web --debug --no-pub
+          echo "Browser-only disposable Web snapshot compiled; native parity and real-device QR are NOT verified."
