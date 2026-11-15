@@ -17,7 +17,7 @@
 - **Last commit agent:** ChatGPT (GitHub connector; latest verified implementation commit `e7bf0cf8c9784602f61799573a1a14ef817d5bc3`; this handoff update is docs-only)
 - **Last commit SHA:** `e7bf0cf8c9784602f61799573a1a14ef817d5bc3` (tested implementation baseline; handoff update may create later docs SHA)
 - **Review owner:** Unassigned; owner to review real device result
-- **Implementation ownership state:** Paused — device acceptance handoff
+- **Implementation ownership state:** Active — owner-requested Expo SDK 58 upgrade on same test-only branch
 - **Ownership transition:** Not applicable
 - **Repository state last verified:** 2026-11-15 via GitHub; local Windows worktree not accessible in this chat
 - **Branch:** `tnyx/issue-759-expo-go-preview-spike`
@@ -25,13 +25,15 @@
 - **Observed working-tree state:** Remote branch ahead of main with only added docs, CI, and test-only Expo files (recheck full exact-head diff after final handoff); local Windows worktree unknown
 - **Observed uncommitted/dirty files:** Unknown on owner Windows machine; GitHub compare returned zero changed files
 - **PR / tracker:** [GitHub #759](https://github.com/im-tnyx/tio-world/issues/759). Linear mirror blocked by workspace free issue limit.
-- **Current implementation state:** Disposable-only Web snapshot compiles successfully; Expo SDK 57 wrapper passes dependency check, 25/25 Node tests and Android Metro bundle. Physical Expo Go QR and actual Flutter Web runtime/navigation remain unverified.
+- **Current implementation state:** User's physical iPhone exposed SDK mismatch: installed Expo Go SDK 58 rejected wrapper SDK 57. Owner explicitly requests SDK 58 upgrade (2026-11-15). Scope limited to test-only Expo package dependencies, iOS Expo Metro CI, launcher/readme and this tracker. Previous SDK 57 feasibility validation remains historical.
 - **Relevant execution surface:** A *temporary detached Git worktree* generates Flutter Web runner; `tools/expo-go-preview` is a dev-only Expo Go shell. No production screens rewritten.
 - **Validation completed at SHA:** `e7bf0cf8c9784602f61799573a1a14ef817d5bc3` — workflow 43696353015: `expo-wrapper` SUCCESS, `flutter-web-compat` SUCCESS. Explicitly test-only; no native Flutter regression test/device proof.
 - **Validation remaining:** Local Windows PowerShell launcher; phone browser reachability and Expo Go QR launch; physical WebView runtime, visual/interaction parity, iOS behavior if applicable; native app untouched. Independent review and owner final merge decision pending.
 - **Current blocker:** Actual physical phone and owner Windows environment unavailable in this chat. The ordinary unmodified Flutter Web build remains blocked by four 64-bit sentinel literals; only the temporary guarded snapshot compiled.
 - **Open review finding IDs:** Not applicable; no review yet
-- **Next exact action:** Owner follows `tools/expo-go-preview/README.md` on Windows: first phone browser test, then Expo Go QR. Attach redacted screenshots/logs to GitHub #759, compare UI with native, and decide accept/reject. Never merge without separate explicit owner approval.
+- **Next exact action:** Upgrade Expo wrapper from SDK 57 to 58 (React Native 0.88, React 19.3.0 and Expo-supported WebView) on branch only; inspect exact-head CI for both Android/iOS Metro bundle and existing Flutter Web temp snapshot. Then owner repeats physical-device QR test. Never merge without separate explicit owner approval.
+
+**Owner decision 2026-11-15 (SDK mismatch resolution):** user's iPhone is running Expo Go SDK 58.0.0, and Expo Go rejected wrapper SDK 57. Upgrade this *test-only* wrapper in the existing issue branch; preserve Flutter native production code and do not merge. SDK 58 release/docs confirm React Native 0.88, React 19.3.0, `react-native-webview` 14.0.1 (Expo bundled). Source: https://docs.expo.dev/versions/v58.0.0/ and https://docs.expo.dev/versions/v58.0.0/sdk/webview/.
 
 ## 1. Discovery
 **User outcome:** QR launch in Expo Go for an optional mobile UI preview while all normal coding/testing continues in Flutter.
