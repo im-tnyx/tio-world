@@ -522,6 +522,8 @@ Two details worth knowing before relying on them:
 
 The generic `TioInput` contract (14dp radius, 52dp minimum height) and the specialised boxed-field family — `TioUsernameInputField` and `TioMobileNumberField` at 16dp — are both current and are deliberately **not** unified.
 
+`TioMobileNumberField` owns one full-width outlined surface containing the country flag, country code and editable number. Its existing 56dp height and 16dp radius remain unchanged. An unverified focused field uses the theme primary outline and the shared focused outline width; the trusted verified state keeps its informational outline priority. Labels and supporting copy remain with the consuming screen. The component continues to own presentation only: number formatting, verification flow and persistence remain caller-owned.
+
 ### Neutral Settings grouping and rows
 
 `TioGroupCard` is the neutral, **non-selectable** grouping surface for canonical grouped Settings and Nutrition rows. It owns the `surfaceRaised` material, shared radius, clipping, and child ordering while callers compose their own rows and separators. It does not represent selected or unselected state; selection cards remain a separate component contract.
