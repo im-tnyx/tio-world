@@ -1,39 +1,39 @@
 # Mobile Number Field Focus Refinement
 
-**Status:** In progress  
-**Primary owner:** Codex  
+**Status:** In progress
+**Primary owner:** Codex
 **Affected platforms:** Flutter Android + iOS
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** Product-visible UI/UX change  
-**Approval status:** Approved  
-**Approval evidence:** Owner requested mobile text field refinement and selected `TioMobileNumberField` on 2026-11-15.  
-**Approved product/UI/data-shape boundaries:** Refine the existing shared `TioMobileNumberField` using the supplied phone-field reference: place the country flag/code and number inside one outlined field, with a clear focus outline. Keep the existing 56dp height, 16dp radius, and all number/verification behavior.  
+**Trigger:** Product-visible UI/UX change
+**Approval status:** Approved
+**Approval evidence:** Owner requested mobile text field refinement and selected `TioMobileNumberField` on 2026-11-15.
+**Approved product/UI/data-shape boundaries:** Refine the existing shared `TioMobileNumberField` using the supplied phone-field reference: place the country flag/code and number inside one outlined field, with a clear focus outline. Keep the existing 56dp height, 16dp radius, and all number/verification behavior.
 **Explicit non-changes:** No `TioInput` or other input changes; no call-site migration; caller-owned labels/helper copy stay where they are; no validation, formatting, focus dismissal, keyboard, verification, persistence, or Supabase changes.
 
 ## Active Handoff
 
-**Planning owner:** Codex  
-**Implementation owner:** Codex  
-**Previous agent:** Not applicable  
-**Last commit agent:** Not applicable  
-**Last commit SHA:** Not applicable  
-**Review owner:** Not available  
-**Implementation ownership state:** Active  
-**Ownership transition:** Not applicable  
-**Repository state last verified:** 2026-11-15; clean before task file creation  
-**Branch:** `tnyx/mobile-number-field-focus-refinement`  
-**HEAD SHA:** `3de52946a73d5b2db025a58c9b0928f5f814ffd5`  
-**Observed working-tree state:** Task brief present before source implementation  
-**Observed uncommitted/dirty files:** `.ai/tasks/mobile-number-field-focus-refinement.md` (created for this task)  
-**PR / tracker:** No task-specific issue supplied. Reconciled Linear `TNYX-152` / GitHub #208 and existing field ownership in GitHub #24; this is a separately authorized visual refinement, not a migration.  
-**Current implementation state:** Shared Core field now uses one outlined surface for the flag, country code and number, with focus styling.  
-**Relevant execution surface:** `apps/core` shared input component  
-**Validation completed at SHA:** Working tree based on HEAD `3de52946a73d5b2db025a58c9b0928f5f814ffd5` — `git -c core.fsmonitor=false diff --check` passed; Flutter analyzer found no issues in the component and focused test; focused widget tests passed 2/2. Dart formatter reported `0 changed`.  
-**Validation remaining:** Device visual validation against the supplied reference. The formatter reported no changes but its restricted-shell attempt exited non-zero during telemetry metadata update.  
-**Current blocker:** None for source/widget validation; device visual acceptance remains unverified.  
-**Open review finding IDs:** None  
+**Planning owner:** Codex
+**Implementation owner:** Codex
+**Previous agent:** Not applicable
+**Last commit agent:** Codex
+**Last commit SHA:** `f258e2e59c81679c7f6e3d0be66ee7c13a6ab66d`
+**Review owner:** Not available
+**Implementation ownership state:** Handoff pending
+**Ownership transition:** Not applicable
+**Repository state last verified:** 2026-11-15; clean before task file creation
+**Branch:** `tnyx/mobile-number-field-focus-refinement`
+**HEAD SHA:** `f258e2e59c81679c7f6e3d0be66ee7c13a6ab66d`
+**Observed working-tree state:** Source slice committed; task handoff metadata update pending
+**Observed uncommitted/dirty files:** `.ai/tasks/mobile-number-field-focus-refinement.md`
+**PR / tracker:** PR creation pending. Reconciled Linear `TNYX-152` / GitHub #208 and existing field ownership in GitHub #24; this is a separately authorized visual refinement, not a migration.
+**Current implementation state:** Shared Core field now uses one outlined surface for the flag, country code and number, with focus styling.
+**Relevant execution surface:** `apps/core` shared input component
+**Validation completed at SHA:** Source commit `f258e2e59c81679c7f6e3d0be66ee7c13a6ab66d` — Flutter analyzer found no issues in the component and focused test; focused widget tests passed 2/2. `git diff --check` will be rerun after this handoff metadata update. Dart formatter reported `0 changed`.
+**Validation remaining:** Device visual validation against the supplied reference. The formatter reported no changes but its restricted-shell attempt exited non-zero during telemetry metadata update.
+**Current blocker:** None for source/widget validation; device visual acceptance remains unverified.
+**Open review finding IDs:** None
 **Next exact action:** Validate the updated field on a mobile viewport/device against the supplied reference.
 
 ## Global UI / Design-System Guardrail
@@ -127,11 +127,11 @@ No change to input, verification, or accessibility states. Focus feedback remain
 
 ### Review Provenance
 
-**Review source / link:** self-review  
-**Reviewer / relation to implementer:** Codex / same implementer  
-**Diff or commit SHA actually reviewed:** Working diff on `tnyx/mobile-number-field-focus-refinement`  
-**Review result and finding IDs/dispositions:** No source-scope issue found by manual review; visual/runtime validation remains open.  
-**Independent review?** No (self-review)  
+**Review source / link:** self-review
+**Reviewer / relation to implementer:** Codex / same implementer
+**Diff or commit SHA actually reviewed:** `f258e2e59c81679c7f6e3d0be66ee7c13a6ab66d` on `tnyx/mobile-number-field-focus-refinement`
+**Review result and finding IDs/dispositions:** No source-scope issue found by manual review; visual/runtime validation remains open.
+**Independent review?** No (self-review)
 **Limitations and unmet required gates:** No device visual acceptance; existing focused widget tests do not assert the new focus outline.
 
 ### Review Findings and Resolution
