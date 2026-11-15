@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Tio Flutter Preview (TEST ONLY)",
+    "slug": "tio-flutter-preview-spike",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["android", "ios"]
+  }
+}

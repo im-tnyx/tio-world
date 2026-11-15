@@ -1,0 +1,18 @@
+{
+  "name": "tio-expo-go-preview-spike",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Issue 759: dev-only Expo Go WebView around an existing Flutter Web preview",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start --go",
+    "test": "node --test preview-url.test.js",
+    "doctor": "expo install --check"
+  },
+  "dependencies": {
+    "expo": "~57.0.12",
+    "react": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-webview": "13.16.1"
+  }
+}

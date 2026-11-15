@@ -1,0 +1,69 @@
+name: Issue 759 Expo preview feasibility (TEST ONLY)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/expo-go-preview/**'
+      - '.ai/tasks/issue-759-expo-go-preview-spike.md'
+      - '.github/workflows/expo-preview-spike.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: expo-759-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  expo-wrapper:
+    if: (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'tnyx/issue-759-expo-go-preview-spike') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'tnyx/issue-759-expo-go-preview-spike')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Validate safe private-LAN URL contract
+        run: node --test tools/expo-go-preview/preview-url.test.js
+      - name: Install Expo dev-only dependencies (no credentials)
+        working-directory: tools/expo-go-preview
+        run: npm install --no-audit --no-fund
+      - name: Check Expo dependency compatibility
+        working-directory: tools/expo-go-preview
+        run: npx expo install --check
+      - name: Verify Metro can bundle the Expo wrapper
+        working-directory: tools/expo-go-preview
+        env:
+          EXPO_PUBLIC_FLUTTER_WEB_URL: http://192.168.1.25:7357
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/tio-expo-759-bundle"
+
+  flutter-web-compat:
+    if: (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'tnyx/issue-759-expo-go-preview-spike') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'tnyx/issue-759-expo-go-preview-spike')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - name: Install exact existing Flutter CI SDK (3.47.9)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/flutter/flutter.git --depth 1 --branch 3.47.9 "$HOME/flutter"
+          echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+      - name: Record Flutter version
+        run: flutter --version
+      - name: Compile Flutter Web from a disposable checkout only
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          git worktree add --detach "$tmp/worktree" HEAD
+          cd "$tmp/worktree/apps/app"
+          flutter create --platforms=web --project-name=tio_app .
+          flutter pub get
+          flutter build web --debug --no-pub
+          echo "Flutter Web compiled, but device/WebView parity is still NOT verified."
