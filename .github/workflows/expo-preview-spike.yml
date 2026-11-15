@@ -34,11 +34,13 @@ jobs:
       - name: Check Expo dependency compatibility
         working-directory: tools/expo-go-preview
         run: npx expo install --check
-      - name: Verify Metro can bundle the Expo wrapper
+      - name: Verify Metro can bundle the Expo SDK 58 wrapper
         working-directory: tools/expo-go-preview
         env:
           EXPO_PUBLIC_FLUTTER_WEB_URL: http://192.168.1.25:7357
-        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/tio-expo-759-bundle"
+        run: |
+          npx expo export --platform android --output-dir "$RUNNER_TEMP/tio-expo-759-android-bundle"
+          npx expo export --platform ios --output-dir "$RUNNER_TEMP/tio-expo-759-ios-bundle"
 
   flutter-web-compat:
     if: (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'tnyx/issue-759-expo-go-preview-spike') || (github.event_name == 'workflow_dispatch' && github.ref_name == 'tnyx/issue-759-expo-go-preview-spike')

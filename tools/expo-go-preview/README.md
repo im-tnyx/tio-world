@@ -6,8 +6,8 @@ This folder is a **minimal React Native/Expo Go WebView shell**. It does not rei
 
 ## Prerequisites
 
-- Windows laptop with current Tio-world Git repository, existing Flutter SDK and Node.js 22.13+ / npm.
-- Android phone (Expo Go supporting SDK 57) or compatible iPhone/Expo Go.
+- Windows laptop with current Tio-world Git repository, existing Flutter SDK and Node.js 22.13+ / npm (Node 22.16+ is used by CI).
+- Android phone (Expo Go supporting SDK 58) or compatible iPhone/Expo Go.
 - Phone and Windows PC on the same **trusted private Wi-Fi/LAN**; no public/hotel/shared network and no port forwarding.
 - Current source branch `tnyx/issue-759-expo-go-preview-spike`.
 - For an iPhone, Expo Go and the Expo CLI may need the same Expo account.
@@ -24,7 +24,20 @@ git worktree add --detach "G:\projects\Tio-World-Expo759" "refs/remotes/origin/t
 Set-Location "G:\projects\Tio-World-Expo759"
 ```
 
-If the target directory already exists, inspect it first. Do not reset or overwrite any existing worktree. Keep normal Flutter work and builds in `G:\projects\Tio-World`.
+If the target directory already exists from the previous SDK 57 test, **do not run `git worktree add` again**. Stop the old Metro/Flutter terminals with Ctrl+C first, then safely refresh the existing *test-only detached worktree* (but only when its Git status is clean):
+
+```powershell
+Set-Location "G:\projects\Tio-World"
+git fetch origin "refs/heads/tnyx/issue-759-expo-go-preview-spike:refs/remotes/origin/tnyx/issue-759-expo-go-preview-spike"
+$testTree = "G:\projects\Tio-World-Expo759"
+$changes = @(git -C $testTree status --porcelain)
+if ($LASTEXITCODE -ne 0 -or $changes.Count -gt 0) {
+    throw "Test checkout contains changes or could not be inspected. Preserve them; do not switch."
+}
+git -C $testTree switch --detach "refs/remotes/origin/tnyx/issue-759-expo-go-preview-spike"
+```
+
+If there are uncommitted changes, preserve them and inspect before switching; do not reset/clean. Keep normal Flutter work and builds in `G:\projects\Tio-World`.
 
 ## 2. Terminal A — start the **real Flutter Web** from a disposable checkout
 
@@ -57,6 +70,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ".\start-expo-go.ps1" -LanIP
 
 If `npm install`, `expo install --check`, Expo bundling, or Flutter Web compile fails, note the error. No existing product source should be modified to conceal failure. Expo SDK / installed Expo Go version mismatch must be recorded as a failed environment gate.
 
+### SDK 58 iPhone mismatch fixed in branch
+
+The initial iPhone report showed **installed Expo Go SDK 58** rejecting this experiment's old **SDK 57** bundle. This branch now targets Expo SDK 58 with React Native 0.88, React 19.3, and Expo-supported WebView 14.0.1. This only fixes the `Expo Go SDK version mismatch` gate; whether iOS can reach/load Flutter Web still requires real-device testing.
+
+If you still see SDK 57 after pulling this branch, close the old Metro terminal, check that you are running this test-only checkout's `tools/expo-go-preview` (not a stale SDK 57 folder), run `npm install`, and use the launcher again. The launcher starts Metro with `--clear` to invalidate its previous cache. No iPhone Expo Go downgrade is required for the reported SDK 58 install.
+
 ## 4. Physical device test receipt (send back in issue #759)
 
 | Gate | Result / proof |
@@ -65,7 +84,7 @@ If `npm install`, `expo install --check`, Expo bundling, or Flutter Web compile 
 | Flutter Web compile/run (Terminal A) | Not tested |
 | Flutter URL in phone browser | Not tested |
 | Node/npm versions and Expo dependency check | Not tested |
-| Expo Go SDK version / QR loads RN wrapper | Not tested |
+| Expo Go SDK 58 / QR loads RN wrapper | Not tested |
 | Flutter Web visible in WebView (not placeholder UI) | Not tested |
 | Existing splash/first reachable screen vs native Flutter | Not tested |
 | Tap/navigation/back/scroll/safe areas/light-dark | Not tested |
@@ -80,7 +99,7 @@ Useful screenshots should be redacted and contain no account details or health d
 - The WebView accepts only `http://PRIVATE_IPV4:7357` (10/8, 172.16/12, 192.168/16) with **no user/password/query/fragment**. Remote/public URL is rejected. No credentials/secrets in Expo, QR, URLs, Git or CI.
 - Unencrypted local HTTP is acceptable **only for unauthenticated, non-sensitive UI smoke on trusted isolated Wi-Fi**; it cannot be used to validate or enter private data.
 - The Expo Go WebView is a browser engine: OAuth, storage, secure keychain, camera, Google sign-in, Health Connect, native plugin semantics, deep links and back handling may differ or fail.
-- If SDK 57 Expo Go is no longer available on your phone, document it. Do not silently add a custom development build, alternate SDK or production configuration to this task.
+- If SDK 58 Expo Go is no longer available on your phone, document it. Do not silently add a custom development build, alternate SDK or production configuration to this task.
 - No API, database, cloud resource, signing identity, native Flutter code, or server change is included.
 
 See [GitHub #759](https://github.com/im-tnyx/tio-world/issues/759) and `.ai/tasks/issue-759-expo-go-preview-spike.md`.

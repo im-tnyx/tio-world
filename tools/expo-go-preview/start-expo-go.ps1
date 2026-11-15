@@ -25,7 +25,7 @@ try {
     Write-Host "Flutter Web: $env:EXPO_PUBLIC_FLUTTER_WEB_URL"
     Write-Host "Keep this terminal running. Scan the QR shown by Expo CLI using Expo Go."
     Write-Host "The Expo QR and Flutter Web port 7357 are separate endpoints on the same private Wi-Fi."
-    & npx.cmd expo start --go --lan
+    & npx.cmd expo start --go --lan --clear
     if ($LASTEXITCODE -ne 0) { throw "Expo Metro failed to launch." }
 }
 finally {
