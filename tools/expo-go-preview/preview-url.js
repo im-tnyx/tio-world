@@ -6,20 +6,16 @@ function resolvePreviewUrl(raw) {
     return { url: null, error: 'Set EXPO_PUBLIC_FLUTTER_WEB_URL to http://YOUR_PRIVATE_LAN_IP:7357 before starting Expo.' };
   }
   const value = raw.trim();
-  let parsed;
-  try {
-    parsed = new URL(value);
-  } catch (_) {
-    return { url: null, error: 'Flutter preview URL is not valid.' };
-  }
-
-  const octets = parsed.hostname.split('.');
-  const isIpv4 = octets.length === 4 &&
-    octets.every((part) => /^\d{1,3}$/.test(part) && String(Number(part)) === part && Number(part) <= 255);
-  if (!isIpv4 || parsed.protocol !== 'http:' || parsed.port !== '7357' ||
-      parsed.username || parsed.password || parsed.search || parsed.hash ||
-      parsed.pathname !== '/') {
+  // Match the raw authority before URL parsing: WHATWG URL normalizes
+  // leading-zero IPv4 octets (e.g. 192.168.01.2 → 192.168.1.2).
+  const match = /^http:\/\/((?:\d{1,3}\.){3}\d{1,3}):7357\/?$/.exec(value);
+  if (!match) {
     return { url: null, error: 'Only http://PRIVATE_LAN_IPV4:7357 is allowed; no credentials, paths, query or public hosts.' };
+  }
+  const octets = match[1].split('.');
+  const isIpv4 = octets.every((part) => String(Number(part)) === part && Number(part) <= 255);
+  if (!isIpv4) {
+    return { url: null, error: 'Flutter preview URL is not a canonical IPv4 address.' };
   }
 
   const first = Number(octets[0]);
@@ -30,7 +26,7 @@ function resolvePreviewUrl(raw) {
   if (!isPrivate) {
     return { url: null, error: 'Use your computer private Wi-Fi/LAN IPv4 address, not localhost or a public URL.' };
   }
-  return { url: parsed.origin + '/', error: null };
+  return { url: 'http://' + match[1] + ':7357/', error: null };
 }
 
 module.exports = { resolvePreviewUrl };
