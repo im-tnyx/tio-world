@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_feature_auth/auth.dart'
@@ -420,15 +420,16 @@ final routinePendingCreateGateProvider = Provider<RoutinePendingCreateGate>(
   },
 );
 
-/// Explicit, default-OFF build-time release-candidate gate for #569.
-/// Only intentionally opted-in internal builds expose the existing Move UI.
+/// Build-time presentation gate for the existing #569 Move flow.
+/// Debug/profile builds default ON; release builds default OFF. An explicit
+/// TIO_MOVE_ROUTINE_RELEASE define overrides that mode-based default.
 /// This is a presentation gate, not RPC authorization or a remote kill switch.
-/// Public distribution requires separate hosted owner/guest QA, device QA,
-/// and the owner's final approved UI/release decision.
+/// Public release still requires the separate hosted security/QA and owner
+/// release decisions documented in the development runbook.
 final routineMoveReleaseEnabledProvider = Provider<bool>(
   (ref) => const bool.fromEnvironment(
     'TIO_MOVE_ROUTINE_RELEASE',
-    defaultValue: false,
+    defaultValue: !kReleaseMode,
   ),
 );
 

@@ -467,8 +467,8 @@ List<RouteBase> _shellBranchChildRoutes(
               ref.watch(programDeleteRepositoryProvider);
           final programDeleteFlow = ref.read(programDeleteFlowProvider);
           // Reuse the feature-owned Move flow and the same existing/New Program
-          // adapter instance. The release capability remains OFF until M3D3
-          // coordination, hosted RPC/grants and device QA are approved.
+          // adapter instance. This build-mode gate controls presentation only;
+          // hosted authorization, security QA and public release remain separate.
           final moveReleaseEnabled =
               ref.watch(routineMoveReleaseEnabledProvider);
           final movePreviewEnabled =
@@ -917,10 +917,9 @@ List<RouteBase> _shellBranchChildRoutes(
             }
           }
 
-          /// Prepare the canonical Workout Move flow behind a default-off
-          /// app release gate; do not expose a partially working card action.
-          /// Both existing Program Move and atomic Create+Move share the
-          /// same session-bound adapter, attempt gate and confirmation flow.
+          /// Prepare the canonical Workout Move flow behind the mode-aware
+          /// app gate. Both existing Program Move and atomic Create+Move share
+          /// the same session-bound adapter, attempt gate and confirmation flow.
           Future<bool> moveRoutine(Program program, Routine routine) async {
             final programs = programRepository;
             final moves = moveRepository;
@@ -1639,8 +1638,8 @@ List<RouteBase> _shellBranchChildRoutes(
           final draftStore = ref.watch(activeWorkoutDraftStoreProvider);
           // #568: the root entry reuses the existing canonical composer.
           // There is NO client-side Program INSERT, default-name identity
-          // inference or second write path. QA may opt in on debug only;
-          // normal builds remain release-OFF despite hosted client EXECUTE.
+          // inference or second write path. My Program first-Routine Create
+          // stays default-OFF; that gate is separate from the Move build mode.
           bool firstRoutineSessionValid(String owner, String cycle) {
             try {
               final liveBoot =
@@ -2083,8 +2082,7 @@ List<RouteBase> _shellBranchChildRoutes(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => Consumer(
         builder: (context, ref, _) => ActiveWorkoutPage(
-          onSettingsPressed: () =>
-              context.push(AppRoutes.workoutSettings.path),
+          onSettingsPressed: () => context.push(AppRoutes.workoutSettings.path),
           controller: ref.watch(activeWorkoutControllerProvider),
           draftController: ref.watch(activeWorkoutDraftControllerProvider),
           workoutRuntimeSettingsController:

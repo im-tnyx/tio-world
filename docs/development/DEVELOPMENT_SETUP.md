@@ -79,44 +79,46 @@ flutter run
 
 A healthy dependency check can still show older transitive packages when they are pinned by Flutter SDK or test package constraints. Focus on direct and dev dependencies first.
 
-## Move Routine R4 internal release-candidate opt-in (default OFF)
+## Move Routine build-mode defaults and internal release-candidate opt-in
 
-**Current source / backend (2026-10-24):** PR #674 is merged and the owner
-applied R3 migration `20261024120000` to the linked hosted Supabase project.
-Read-only verification recorded **70 applied migrations** and `authenticated`
-EXECUTE for three protected Move / Create+Move / Full Undo RPCs. This supersedes
-the older **69-migration / hosted EXECUTE-denied** checkpoints retained below
-as historical isolated-QA notes. The Flutter production Move capability is
-**still OFF in normal builds**.
-
-R4 can now prepare an **explicitly opted-in internal build** that exposes the
-existing owner-approved Move/Undo UI *without redesigning it*:
+**Current Flutter behavior:** `routineMoveReleaseEnabledProvider` uses
+`TIO_MOVE_ROUTINE_RELEASE` as a build-time override, with `!kReleaseMode` as
+its default. With no define, Flutter **debug and profile builds default ON**;
+**release builds default OFF**. Explicit `TIO_MOVE_ROUTINE_RELEASE=false`
+disables the gate in any mode, and explicit `true` opts a build in. Existing
+Move, destination selection, New Program / `Save & Move`, and real Undo flows
+are reused without UI redesign. The `TIO_MOVE_ROUTINE_QA` and zero-write
+`TIO_MOVE_ROUTINE_UI_PREVIEW` paths remain separate debug-only gates.
 
 ```powershell
 Set-Location "G:\projects\Tio-World\apps\app"
+# Ordinary development build: Move is enabled by default.
+& "G:\dev\flutter-sdk\bin\flutter.bat" run
+# Explicitly disable the existing Move gate.
+& "G:\dev\flutter-sdk\bin\flutter.bat" run --dart-define=TIO_MOVE_ROUTINE_RELEASE=false
+# Internal release-candidate opt-in remains available.
 & "G:\dev\flutter-sdk\bin\flutter.bat" run --profile --dart-define=TIO_MOVE_ROUTINE_RELEASE=true
 ```
 
-Only run against an **approved QA account/device** with known disposable
-Program/Routine records. This option can change workout records in the
-configured Supabase project. It is **not** a secret, account allowlist,
-server authorization control, remote kill switch, or approval to distribute
-a public release; hosted RPC endpoints are already separately reachable by
-eligible authenticated callers. A normal build with no define remains OFF.
-The older `TIO_MOVE_ROUTINE_QA` and `TIO_MOVE_ROUTINE_UI_PREVIEW` options
-remain debug-only and independent.
+Move is a real-write flow when connected to an authorized Supabase project.
+Use only an **approved QA account/device** with known disposable
+Program/Routine records. The build define is **not** a secret, account
+allowlist, server authorization control or remote kill switch. The hosted
+RPCs are independently callable by eligible authenticated callers. A public
+release must remain default OFF and requires separate owner approval; do not
+set the opt-in define for public distribution.
 
 Before a production/staged rollout, collect actual hosted negative owner/
 guest/cross-account HTTP evidence, run Move A→B / reverse Undo and atomic
-Save & Move / full Undo on isolated consenting QA data, exercise UNKNOWN and
-session switches, check Android/iOS devices, and obtain the owner's **final
-UI acceptance and release approval**. Deferred independent human security
-reviews remain listed in GitHub #675 for consolidated public-launch audit;
-known serious security problems still require immediate action.
+`Save & Move` / full Undo on isolated consenting QA data, exercise UNKNOWN
+and session switches, check Android/iOS devices, and obtain the owner's
+**final UI acceptance and release approval**. Deferred independent human
+security reviews remain listed in GitHub #675 for consolidated public-launch
+audit; known serious security problems still require immediate action.
 
 ## Move Routine R5 hosted API authorization QA gate (NOT YET PASSED)
 
-**Current hosted ACL, 2026-10-24 read-only:** project `oykupyiitspujzpwwvuj`
+**Historical hosted ACL snapshot, 2026-10-24 read-only:** project `oykupyiitspujzpwwvuj`
 has **70 applied migrations**, latest `20261024120000_grant_move_routine_rpc_execute_to_authenticated`.
 The three exact `move_user_workout_routine`,
 `create_user_workout_program_and_move_routine`, and
@@ -128,6 +130,16 @@ to signed-in permanent users even if the app feature flag is OFF.
 The Supabase Security Advisor's [authenticated-callable SECURITY DEFINER warning](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)
 requires evidence-based disposition, not suppression. SQL ACL checks do
 **not** prove cross-owner, guest or JWT HTTP authorization behavior.
+
+**Current hosted metadata, read-only 2026-11-15:** the same project has **87/87
+applied migrations**, latest `20261112093604_w8c_legacy_snapshot_rpe_compatibility`.
+All three protected Move/Create+Move/Undo RPCs currently have
+`authenticated EXECUTE=true`, `anon=false`, and `service_role=false`; both
+Routine and Program tables have RLS enabled, and direct Routine `program_id`
+updates and Program/Routine deletes remain denied. The Security Advisor still
+reports authenticated-callable `SECURITY DEFINER` warnings on these RPCs. The
+Flutter build-mode gate does not resolve those findings or replace HTTP/JWT
+security evidence.
 
 **QA prerequisites:** obtain separate authorization for any actual hosted
 test writes and use ONLY consenting/disposable QA accounts A and B and
@@ -152,6 +164,15 @@ write even when it is intended as a negative test. Without the prerequisites,
 | R5-P2 | A runs `Save & Move` into a new disposable Program, then full Undo | Verify one atomic new Program+same Routine, then server-confirmed restoration and conditional deletion of only that new, still-empty Program |
 | R5-N6 | Switch account/login cycle or expire the Undo window, and exercise UNKNOWN/timeout on disposable fixtures | No stale-session action, no duplicate retry or false success; record actual final server state and UI behavior |
 
+GitHub #569 contains **owner-reported partial QA**, not independently
+reproduced by this task: unauthenticated calls returned HTTP 401 for the three
+RPCs; owner-scoped existing-Program Move/reversal and atomic `Save & Move` /
+full Undo reportedly preserved Routine identity. Still **NOT RUN** in the
+reported matrix: anonymous Auth denial (N2), cross-owner Routine/destination
+(N3/N4), stale revision/replay (N5), account/session switch, expiry and UNKNOWN
+(N6), and exact same-attempt five-second Undo confirmation. These remain
+security/QA blockers and must not be represented as passed here.
+
 For each gate, retain **restricted** request/response classifications,
 test environment, client/PR SHA, reversible fixture reference, before/after
 owner-scoped row counts/IDs, and an explicit PASS/FAIL/NOT RUN result.
@@ -162,16 +183,18 @@ Use [#569](https://github.com/im-tnyx/tio-world/issues/569) for the
 release gate, [#675](https://github.com/im-tnyx/tio-world/issues/675)
 for deferred human review, and TNYX-40 / TNYX-126 for final public-launch
 security and owner go/no-go. Android and iOS build/device/visual acceptance
-are additional independent gates. No public Move release or default ON build
-is authorized by this runbook.
+are additional independent gates. The owner-approved debug/profile default
+ON does **not** authorize a public release; release-mode builds still default
+OFF and require a separate opt-in plus the outstanding public-launch gates.
 
 ## Move Routine debug UI preview (opt-in)
 
-The #569 Move Routine flow is intentionally release-OFF until protected backend
-capabilities and full mutation/refresh gates have passed. For **visual QA only**,
-the phone app can opt into the existing Routine action/Program destination
-sheets on a **debug build**. This debug-only option is disabled by default and
-cannot be enabled in profile/release builds, even if a define is supplied.
+The existing Move action is available by default in debug/profile builds.
+For **zero-write visual QA only**, `TIO_MOVE_ROUTINE_UI_PREVIEW` selects the
+existing preview path; the preview flag remains debug-only and cannot be
+enabled in profile/release builds, even if a define is supplied. The preview
+path takes precedence over actual Move dispatch and does not call protected
+write RPCs.
 
 ```bash
 cd apps/app
@@ -186,18 +209,20 @@ Only signed-in, verified owners of persisted Routines can open the existing
 selector; it uses owner-scoped Program reads. The existing/new Program
 confirmation UI is preview-only: **neither Move nor Create+Move writes run,
 no new Program is saved, and the Routine stays in its original Program**.
-The UI reports that no change was made. Clearing the define restores the
-default hidden action. This opt-in does not turn on
-`routineMoveReleaseEnabledProvider`, Supabase RPC grants, or production Move.
+The UI reports that no change was made. Clearing the preview define restores
+the normal debug behavior, where the existing Move flow is visible by default.
+Preview mode does not change `routineMoveReleaseEnabledProvider` or Supabase
+RPC grants.
 
 ## Move Routine real-write debug QA (isolated environment, not released)
 
-The #569 existing-Program Move and atomic Create & Move implementation can
-be exercised in an explicitly opted-in **debug** app without enabling the
-production `routineMoveReleaseEnabledProvider`. This is **not** the
+The #569 existing-Program Move and atomic Create & Move implementation is
+available by default in a **debug** app. This real-write path is **not** the
 zero-write preview above. A confirmed QA action uses the existing live,
-owner-bound Move RPC adapter and **can change workout data if the
-connected Supabase database has separately authorized EXECUTE**.
+owner-bound Move RPC adapter and **can change workout data if the connected
+Supabase database has separately authorized EXECUTE**. The legacy
+`TIO_MOVE_ROUTINE_QA` flag remains available for the debug QA path but is not
+required for the normal debug default.
 
 ```bash
 cd apps/app
@@ -310,8 +335,11 @@ capability and does not prove installation on a physical iPhone. A signed,
 authorized debug-device workflow,
 test-account consent, actual-write Android/iOS evidence, A/B isolation, race,
 UNKNOWN readback and rollback review remain separate pre-release gates.
-Do not enable #569 Move permissions or confuse its zero-write preview with
-this actual-write first-Routine QA path.
+This section does not authorize Move QA or waive the separate Move gates above.
+Move visibility defaults ON only for debug/profile builds; the hosted Move
+RPCs are already authenticated-callable, so use only separately approved
+isolated QA data for any real-write verification. Do not confuse the Move
+zero-write preview with this actual-write first-Routine QA path.
 
 ## Flutter Feature Packages
 
