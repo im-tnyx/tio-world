@@ -58,5 +58,5 @@ finally {
     Write-Host "Disposable worktree remains at: $previewDir"
     Write-Host "No automatic deletion/reset of your files was performed."
     Write-Host "Once you confirm it contains no work you want to keep, clean it manually with:"
-    Write-Host "git -C \"$repoRoot\" worktree remove \"$previewDir\" --force"
+    Write-Host ('git -C "{0}" worktree remove "{1}" --force' -f $repoRoot, $previewDir)
 }
