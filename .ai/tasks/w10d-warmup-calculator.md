@@ -1,40 +1,40 @@
 # W10-D — Warm-up Calculator
 
-**Status:** In progress  
-**Primary owner:** `apps/features/workout`  
+**Status:** In progress
+**Primary owner:** `apps/features/workout`
 **Affected platforms:** Flutter phone Android/iOS
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** New product-visible Workout Settings and Log Workout slice.  
-**Approval status:** Approved.  
-**Approval evidence:** Owner's 2026-11-15 chat instruction to build the calculator in Workout Settings and Log Workout (`GO`), followed by screenshot-based approval for named warm-up methods, the Percent/Fixed/Bar editor, and the Routine Create/Edit method picker. The owner confirmed that Routine picker `Done` generates warm-up Set rows from the Exercise's working weight.  
-**Approved scope:** Device-local named warm-up method library; built-in Classic, Strength and Barbell Ramp methods; custom method creation with Percent/Fixed/Bar set rules; method selection in Workout Settings, Log Workout and Routine Create/Edit; calculator preview/insertion; generated routine `warm_up` Set prescriptions using the existing composition contract; plate/dumbbell rounding. Use Tio-World Core tokens/components.  
+**Trigger:** New product-visible Workout Settings and Log Workout slice.
+**Approval status:** Approved.
+**Approval evidence:** Owner's 2026-11-15 chat instruction to build the calculator in Workout Settings and Log Workout (`GO`), followed by screenshot-based approval for named warm-up methods, the Percent/Fixed/Bar editor, and the Routine Create/Edit method picker. The owner confirmed that Routine picker `Done` generates warm-up Set rows from the Exercise's working weight.
+**Approved scope:** Device-local named warm-up method library; built-in Classic, Strength and Barbell Ramp methods; custom method creation with Percent/Fixed/Bar set rules; method selection in Workout Settings, Log Workout and Routine Create/Edit; calculator preview/insertion; generated routine `warm_up` Set prescriptions using the existing composition contract; plate/dumbbell rounding. Use Tio-World Core tokens/components.
 **Explicit non-changes:** No Supabase schema/RPC/hosted change, Workout Profile data, workout-statistics recalculation, watch, or unrelated Workout Settings rows. Preserve unrelated Log Workout and Routine rendering.
 
 ## Active Handoff
 
-**Planning owner:** Codex  
-**Implementation owner:** Codex  
-**Previous agent:** Not applicable  
-**Last commit agent:** Codex  
-**Last commit SHA:** `2692ff8e` (implementation commit; task-brief checkpoint follows)  
-**Review owner:** Independent reviewer pending  
-**Implementation ownership state:** Active  
-**Ownership transition:** Not applicable  
-**Repository state last verified:** `main@7127c22d11f93bd5ebe0576a4dda95e24e8013cf`; clean before branch creation.  
-**Branch:** `tnyx/w10d-warmup-calculator`  
-**HEAD SHA:** `2692ff8e` at this handoff checkpoint.  
-**Observed working-tree state:** Implementation committed; this task brief remains untracked until its handoff commit.  
-**Observed uncommitted/dirty files:** `.ai/tasks/w10d-warmup-calculator.md` only.  
-**PR / tracker:** GitHub Issue #48; Linear TNYX-87 (broader W10 remains Backlog).  
-**Tracker reconciliation (2026-11-15):** GitHub Issue #48 is open and still records the broader runtime-settings slice as pending audit/approval; Linear TNYX-87 is `Backlog` and blocked by TNYX-78. The owner explicitly authorized this bounded W10-D child slice in chat. No W10-D PR was found; parent tracker states were not changed.  
-**Current implementation state:** The initial W10-D calculator/settings slice and approved named-method extension are committed on the task branch, including Settings, Log Workout and Routine Create/Edit. Workout analysis and full package tests passed; visual device acceptance remains open.  
-**Relevant execution surface:** Workout settings repository/controller/page, warm-up domain/calculator sheets, Save-only Log Workout draft/controller/page, Routine Create/Edit composition controllers/pages, canonical screen docs and focused tests.  
-**Validation completed at implementation commit `2692ff8e` (base `7127c22d11f93bd5ebe0576a4dda95e24e8013cf`):** The extension passed Workout `flutter analyze --no-pub`, focused warm-up/Routine tests, focused Routine Create picker test, the full Workout `flutter test --no-pub` suite (1570 tests), a later focused 320dp/light/dark method-sheet test, and `git diff --check` on the same source tree before commit. Earlier Core `flutter analyze`/full `flutter test` and the focused app Log Workout route test passed before the method extension; their affected contracts did not change in this extension.  
-**Validation remaining:** Emulator visual acceptance of compact/light/dark Settings, method editor, Log Workout and Routine Create/Edit flows.  
-**Current blocker:** None for implementation. Device visual acceptance has not yet been performed.  
-**Open review finding IDs:** None yet.  
+**Planning owner:** Codex
+**Implementation owner:** Codex
+**Previous agent:** Not applicable
+**Last commit agent:** Codex
+**Last commit SHA:** `2692ff8e` (implementation commit; task-brief checkpoint follows)
+**Review owner:** Independent reviewer pending
+**Implementation ownership state:** Active
+**Ownership transition:** Not applicable
+**Repository state last verified:** `main@7127c22d11f93bd5ebe0576a4dda95e24e8013cf`; clean before branch creation.
+**Branch:** `tnyx/w10d-warmup-calculator`
+**HEAD SHA:** `2692ff8e` at this handoff checkpoint.
+**Observed working-tree state:** Implementation committed; this task brief remains untracked until its handoff commit.
+**Observed uncommitted/dirty files:** `.ai/tasks/w10d-warmup-calculator.md` only.
+**PR / tracker:** GitHub Issue #48; Linear TNYX-87 (broader W10 remains Backlog).
+**Tracker reconciliation (2026-11-15):** GitHub Issue #48 is open and still records the broader runtime-settings slice as pending audit/approval; Linear TNYX-87 is `Backlog` and blocked by TNYX-78. The owner explicitly authorized this bounded W10-D child slice in chat. No W10-D PR was found; parent tracker states were not changed.
+**Current implementation state:** The initial W10-D calculator/settings slice and approved named-method extension are committed on the task branch, including Settings, Log Workout and Routine Create/Edit. Workout analysis and full package tests passed; visual device acceptance remains open.
+**Relevant execution surface:** Workout settings repository/controller/page, warm-up domain/calculator sheets, Save-only Log Workout draft/controller/page, Routine Create/Edit composition controllers/pages, canonical screen docs and focused tests.
+**Validation completed at implementation commit `2692ff8e` (base `7127c22d11f93bd5ebe0576a4dda95e24e8013cf`):** The extension passed Workout `flutter analyze --no-pub`, focused warm-up/Routine tests, focused Routine Create picker test, the full Workout `flutter test --no-pub` suite (1570 tests), a later focused 320dp/light/dark method-sheet test, and `git diff --check` on the same source tree before commit. Earlier Core `flutter analyze`/full `flutter test` and the focused app Log Workout route test passed before the method extension; their affected contracts did not change in this extension.
+**Validation remaining:** Emulator visual acceptance of compact/light/dark Settings, method editor, Log Workout and Routine Create/Edit flows.
+**Current blocker:** None for implementation. Device visual acceptance has not yet been performed.
+**Open review finding IDs:** None yet.
 **Next exact action:** Push this branch, then inspect the four warm-up surfaces on an emulator before requesting PR review.
 
 ## 1. Discovery
