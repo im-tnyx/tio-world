@@ -103,3 +103,52 @@ Useful screenshots should be redacted and contain no account details or health d
 - No API, database, cloud resource, signing identity, native Flutter code, or server change is included.
 
 See [GitHub #759](https://github.com/im-tnyx/tio-world/issues/759) and `.ai/tasks/issue-759-expo-go-preview-spike.md`.
+
+## 5. OPTIONAL: Existing local QA config + HTTPS-only iPhone login experiment
+
+The default `http://PRIVATE_LAN_IP:7357` browser preview **must remain UI-only**. **Never enter a password, session token or health data there.** QA login requires a tester-controlled, trusted **HTTPS** server at `https://PRIVATE_LAN_IP:7358`; this is a separate opt-in mode and still may hit unsupported Flutter Web Auth/device plugin paths.
+
+**Local input:** The established Git-ignored `G:\projects\Tio-World\apps\app\.runtime.qa.json`, with ONLY the two original Flutter compile-time keys `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. Existing native builds use exactly the same file contract. Do not paste values into chat, Git, a QR URL, or an Expo `EXPO_PUBLIC_*` variable. Validate manually that it selects the **isolated QA project**, not production. The publishable key is *client-safe* but embedded in compiled Web assets (therefore extractable). The QA email/password is never in the config file; enter it **only on your device after trusted HTTPS is confirmed**.
+
+**One-time local TLS prerequisite:** Use [mkcert](https://github.com/FiloSottile/mkcert) on your own PC, from a trusted package source. Generate TLS files **outside the repository** using your real LAN IP. For example:
+
+```powershell
+$qaTls = Join-Path $env:LOCALAPPDATA "Tio-World-Expo759-TLS"
+New-Item -ItemType Directory -Force -Path $qaTls | Out-Null
+mkcert -install
+mkcert -cert-file "$qaTls\qa-preview.pem" -key-file "$qaTls\qa-preview-key.pem" 192.168.1.12
+mkcert -CAROOT
+```
+
+The command `mkcert -CAROOT` prints the directory containing **`rootCA.pem`**. Transfer **only** `rootCA.pem` (NEVER `rootCA-key.pem` or the preview private key) privately to the QA iPhone. Install the CA profile from iOS Settings → Profile Downloaded / General → VPN & Device Management, then enable Full Trust in Settings → General → About → Certificate Trust Settings. This trusts a local development CA **system-wide on that phone**, so do this only on a controlled test iPhone and **remove that CA from iPhone trust after testing**. You can skip QA HTTPS mode entirely rather than install a trusted CA.
+
+Terminal A (new QA HTTPS server; do **not** run the normal HTTP preview on port 7357 at the same time):
+
+```powershell
+Set-Location "G:\projects\Tio-World-Expo759"
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\tools\expo-go-preview\start-qa-web.ps1" `
+  -LanIPv4 "192.168.1.12" `
+  -CertFile "$qaTls\qa-preview.pem" `
+  -KeyFile "$qaTls\qa-preview-key.pem"
+```
+
+This script performs a disposable Flutter Web build with `--dart-define-from-file` pointing at the **existing ignored local QA config**, then serves only that built output on private-LAN HTTPS port 7358. It does not modify the original Flutter app or start an HTTP QA login server. It preserves temporary QA build files for manual review/cleanup; compiled assets contain the client-safe key/URL, so **do not upload the build folder**. Keep Terminal A open.
+
+**Before any credentials:** Visit `https://192.168.1.12:7358` from the iPhone's **Safari** and confirm the page loads with no certificate warning. If certificate trust, TLS, hostname or network fails, stop; do not bypass errors.
+
+Terminal B (Expo QR, separate):
+
+```powershell
+Set-Location "G:\projects\Tio-World-Expo759\tools\expo-go-preview"
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\start-expo-go.ps1" -LanIPv4 "192.168.1.12" -QaHttps
+```
+
+Scan the new QR with Expo Go SDK 58 and first confirm this HTTPS page loads there. Use **only a disposable QA account with no real health data** for a first email/password login test. OAuth, Google identity, device sync and protected app flows are **not** validated by this wrapper. Do not perform Move/Undo write tests; the browser-only integer guard prevents claiming behavior parity.
+
+### Existing GitHub Actions QA secret reuse
+
+The default-branch `Tio Mobile QA Build` workflow already consumes the existing `TIO_IOS_QA_SUPABASE_URL` and `TIO_IOS_QA_SUPABASE_PUBLISHABLE_KEY` secrets for Android/iOS **native** QA builds. That workflow remains unchanged.
+
+This experimental branch's `expo-preview-spike.yml` runs an ordinary PR **synthetic** QA Web compile with test placeholders through the same shared Python validator and `--dart-define-from-file` path. Its optional `workflow_dispatch` `qa_web_compile` job is **strictly manual**, reuses the same two GitHub secrets, makes a non-uploaded QA Web build and removes its temp JSON after execution. **It cannot be run from GitHub Actions while the workflow file exists only on this unmerged branch**; GitHub requires registration of workflow_dispatch workflows on the default branch. Do not merge just to unlock it: user approval and separate security review are still required. Any real-secret CI Web build, local HTTPS iPhone login, auth persistence and RLS smoke remain **NOT VERIFIED** until separately executed.
+
+**Security:** Never pass secrets into Expo bundler, public URLs or user messages, and never use service_role/secret keys or production projects. No new Supabase resources/credentials are introduced.

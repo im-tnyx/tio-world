@@ -28,7 +28,7 @@ if ($qaPath.StartsWith((Resolve-Path $repoRoot).Path + "\", [System.StringCompar
 }
 & node (Join-Path $PSScriptRoot "qa-config-check.js") $qaPath
 if ($LASTEXITCODE -ne 0) { throw "QA client-safe config failed validation; not starting a login preview." }
-& node -e "const r=require('./tools/expo-go-preview/preview-url').resolvePreviewUrl('https://' + process.argv[1] + ':7358');if(!r.url)process.exit(1)" $LanIPv4
+& node -e "const r=require(process.argv[1]).resolvePreviewUrl('https://' + process.argv[2] + ':7358');if(!r.url)process.exit(1)" (Join-Path $PSScriptRoot "preview-url.js") $LanIPv4
 if ($LASTEXITCODE -ne 0) { throw "Private LAN IPv4 is invalid." }
 
 & git -C $repoRoot fetch --no-tags origin "refs/heads/${branch}:refs/remotes/origin/${branch}"

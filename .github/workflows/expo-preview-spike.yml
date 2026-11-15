@@ -8,6 +8,12 @@ on:
       - '.ai/tasks/issue-759-expo-go-preview-spike.md'
       - '.github/workflows/expo-preview-spike.yml'
   workflow_dispatch:
+    inputs:
+      qa_web_compile:
+        description: "Manually test QA Web compilation using existing client-safe QA secrets (no artifacts)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -27,7 +33,7 @@ jobs:
         with:
           node-version: '22.16.0'
       - name: Validate safe private-LAN URL contract
-        run: node --test tools/expo-go-preview/preview-url.test.js tools/expo-go-preview/prepare-web-snapshot.test.js
+        run: node --test tools/expo-go-preview/*.test.js
       - name: Install Expo dev-only dependencies (no credentials)
         working-directory: tools/expo-go-preview
         run: npm install --no-audit --no-fund
@@ -69,4 +75,61 @@ jobs:
           node "$GITHUB_WORKSPACE/tools/expo-go-preview/prepare-web-snapshot.js" "$tmp/worktree"
           flutter pub get
           flutter build web --debug --no-pub
-          echo "Browser-only disposable Web snapshot compiled; native parity and real-device QR are NOT verified."
+          echo "Browser-only disposable Web snapshot compiled. Testing synthetic client-safe QA configuration (not real secrets)."
+          export TIO_QA_SUPABASE_URL="https://tio-synthetic-qa.supabase.co"
+          export TIO_QA_SUPABASE_PUBLISHABLE_KEY="sb_publishable_syntheticCI1234"
+          umask 077
+          qa_file="$RUNNER_TEMP/tio-expo-qa-synthetic.json"
+          trap 'rm -f "$qa_file"' EXIT
+          python3 "$GITHUB_WORKSPACE/.github/scripts/mobile_qa_runtime_config.py" --output "$qa_file"
+          node "$GITHUB_WORKSPACE/tools/expo-go-preview/qa-config-check.js" "$qa_file"
+          flutter build web --debug --no-pub --dart-define-from-file="$qa_file"
+          echo "Synthetic QA Web compile passed; credentials and user login were NOT tested."
+
+
+  flutter-qa-web-manual-secrets:
+    # Never read credentials on pull_request, and never upload a QA-built Web artifact.
+    # This workflow must be registered on the default branch for GitHub Actions
+    # to offer workflow_dispatch. Until owner-approved merge, this job remains unrun.
+    if: github.event_name == 'workflow_dispatch' && inputs.qa_web_compile == true && github.ref_name == 'tnyx/issue-759-expo-go-preview-spike'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install pinned existing Flutter CI SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/flutter/flutter.git --depth 1 --branch 3.47.9 "$HOME/flutter"
+          echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+      - name: Create validated runner-local QA config from EXISTING manual mobile QA secrets
+        shell: bash
+        env:
+          TIO_QA_SUPABASE_URL: ${{ secrets.TIO_IOS_QA_SUPABASE_URL }}
+          TIO_QA_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TIO_IOS_QA_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          python3 .github/scripts/mobile_qa_runtime_config.py --output "$RUNNER_TEMP/tio-expo-qa-runtime.json"
+          node tools/expo-go-preview/qa-config-check.js "$RUNNER_TEMP/tio-expo-qa-runtime.json"
+      - name: Compile isolated QA Web snapshot without uploading or logging config
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          trap 'rm -f "$RUNNER_TEMP/tio-expo-qa-runtime.json"' EXIT
+          tmp="$(mktemp -d)"
+          git worktree add --detach "$tmp/worktree" HEAD
+          cd "$tmp/worktree/apps/app"
+          flutter create --platforms=web --project-name=tio_app .
+          node "$GITHUB_WORKSPACE/tools/expo-go-preview/prepare-web-snapshot.js" "$tmp/worktree"
+          flutter pub get
+          flutter build web --debug --no-pub --dart-define-from-file="$RUNNER_TEMP/tio-expo-qa-runtime.json"
+          echo "Manual CI QA Web compile complete; physical iPhone login still not verified."
+      - name: Remove temporary QA runtime config
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/tio-expo-qa-runtime.json"
