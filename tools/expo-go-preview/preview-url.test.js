@@ -33,3 +33,17 @@ for (const invalid of [
     assert.ok(result.error);
   });
 }
+
+for (const valid of ['https://192.168.1.12:7358', 'https://10.20.1.10:7358/', 'https://172.20.2.2:7358']) {
+  test('accepts trusted HTTPS private QA preview ' + valid, () => {
+    assert.equal(resolvePreviewUrl(valid).url, valid.endsWith('/') ? valid : valid + '/');
+  });
+}
+for (const invalid of [
+  'http://192.168.1.12:7358', 'https://192.168.1.12:7357',
+  'https://8.8.8.8:7358', 'https://192.168.01.12:7358',
+  'https://192.168.1.12:7358/?token=x',
+  'https://user@192.168.1.12:7358'
+]) {
+  test('refuses unsafe QA address ' + invalid, () => assert.equal(resolvePreviewUrl(invalid).url, null));
+}

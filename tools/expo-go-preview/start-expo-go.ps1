@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$LanIPv4
+    [string]$LanIPv4,
+    [switch]$QaHttps
 )
 
 Set-StrictMode -Version Latest
@@ -10,7 +11,12 @@ $ErrorActionPreference = "Stop"
 
 Push-Location $PSScriptRoot
 try {
-    $env:EXPO_PUBLIC_FLUTTER_WEB_URL = "http://${LanIPv4}:7357"
+    if ($QaHttps) {
+        $env:EXPO_PUBLIC_FLUTTER_WEB_URL = "https://${LanIPv4}:7358"
+        Write-Host "QA HTTPS selected. Verify the locally trusted certificate in iPhone Safari before entering any credentials."
+    } else {
+        $env:EXPO_PUBLIC_FLUTTER_WEB_URL = "http://${LanIPv4}:7357"
+    }
     & node -e "const result = require('./preview-url').resolvePreviewUrl(process.env.EXPO_PUBLIC_FLUTTER_WEB_URL); if (result.error) { console.error(result.error); process.exit(1); }"
     if ($LASTEXITCODE -ne 0) { throw "Pass a canonical private LAN IPv4 address (e.g. -LanIPv4 192.168.1.25)." }
 
