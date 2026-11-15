@@ -1,6 +1,6 @@
 # GitHub #569 — Move Routine normal-build default ON
 
-**Status:** Implementation complete; PR handoff pending
+**Status:** Implementation complete; PR #758 open, exact-head validation pending
 **Primary owner:** Codex
 **Affected platforms:** Flutter app shell, app tests, developer documentation, CI gate, task handoff
 
@@ -20,21 +20,21 @@
 **Last commit agent:** Codex
 **Last commit SHA:** `38510b0265f944b2eddd85ac0bb35e6c4574ca1c`
 **Review owner:** GitHub PR reviewers; independent security review remains tracked separately by #675
-**Implementation ownership state:** Implementation complete; awaiting exact-head CI/review
+**Implementation ownership state:** Implementation complete; awaiting exact-head CI and independent review
 **Ownership transition:** Not applicable
 **Repository state last verified:** `tnyx/issue-569-normal-build-default-on` based on `1c59273c55d04049914d70db7e52aaf740b3444f`
 **Branch:** `tnyx/issue-569-normal-build-default-on`
 **Implementation commit SHA:** `38510b0265f944b2eddd85ac0bb35e6c4574ca1c` (based on `main@1c59273c55d04049914d70db7e52aaf740b3444f`).
 **Observed working-tree state:** The implementation and validation-handoff commits are on the task branch; worktree was clean before this PR-status update. No unrelated pre-existing work was present.
 **Observed uncommitted/dirty files:** None before this PR-status update.
-**PR / tracker:** #569 OPEN; #675 OPEN. Linear TNYX-81 is Backlog and blocked by TNYX-78 and TNYX-80. PR #662 was independently approved and merged; PRs #676 (R4) and #677 (R5) are merged. No open Move Routine PR existed before this slice; this slice's PR is pending creation.
+**PR / tracker:** [PR #758](https://github.com/im-tnyx/tio-world/pull/758) is OPEN on `tnyx/issue-569-normal-build-default-on`; exact-head CI is pending for the handoff-updated head and no PR reviews/inline threads exist yet. GitHub #569 remains OPEN; #675 remains OPEN. Linear TNYX-81 remains Backlog, blocked by TNYX-78 and TNYX-80. PR #662 was independently approved and merged; PRs #676 (R4) and #677 (R5) are merged. The #569 and TNYX-81 trackers still need a factual progress comment for this PR.
 **Current implementation state:** The existing provider now defaults ON when `!kReleaseMode` and OFF in release; explicit `TIO_MOVE_ROUTINE_RELEASE=true|false` overrides remain. Move, Save & Move, and Undo behavior are unchanged.
 **Relevant execution surface:** `apps/app/lib/app/composition/workout_providers.dart`; `apps/app/test/app/routine_move_release_gate_test.dart`; `apps/app/test/app/network_providers_test.dart`; `apps/app/test/app/workout_exercises_route_test.dart`; `.github/workflows/flutter-ci.yml`; `docs/development/DEVELOPMENT_SETUP.md`; `docs/screens/routine-library.md`; `docs/data/SUPABASE_STRATEGY.md`.
 **Validation completed at SHA:** `38510b0265f944b2eddd85ac0bb35e6c4574ca1c`. App and workout package `flutter analyze` passed. Provider true/false/default gate tests, app network/provider tests (20), route tests (94), Move/Undo flow (52), destination controller (13), refresh signal (3), repository (113), and delete-attempt gate (7) passed. Android debug, profile, and release APK builds passed without a define. Dart format check passed on the changed provider/gate files; the larger route/network tests retain their pre-existing formatting with only task-related hunks. `git diff --check` passed after all code/document edits.
-**Validation remaining:** Push, create the focused PR, then verify exact-head CI/reviews. No hosted write or device QA is part of this slice.
+**Validation remaining:** Verify exact-head CI and independent PR review after the handoff-only commit. No hosted write or device QA is part of this slice.
 **Current blocker:** No source blocker. Public release remains gated by the unrun hosted HTTP/JWT matrix, independent #675 security review, same-attempt Undo evidence, and Android/iOS acceptance/owner sign-off.
 **Open review finding IDs:** None for this slice yet; pre-existing #675 review debt remains open.
-**Next exact action:** Commit the PR-status handoff update, push the focused branch, create its PR, record the PR link, and wait for exact-head CI/review without merging.
+**Next exact action:** Wait for exact-head CI and independent review, post the factual implementation state to #569 and TNYX-81 without changing their broader statuses, and keep PR #758 unmerged.
 
 ## 1. Discovery
 
