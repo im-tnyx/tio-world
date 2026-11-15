@@ -1,6 +1,6 @@
 # Issue #759 — Flutter Web → Expo Go QR preview feasibility
 
-**Status:** SDK 58 upgrade validated by CI; owner iPhone QR/device acceptance pending; experiment NOT accepted for merge
+**Status:** Expo iPhone unauthenticated welcome screen PASS; HTTPS-only QA login experiment prepared; local/real-secret/device auth validation pending; experiment NOT accepted for merge
 **Primary owner:** Tio-world mobile developer experience / owner
 **Affected platforms:** Dev-only Windows workflow, browser preview and Expo Go (Android/iOS). No Flutter native production change.
 
@@ -17,7 +17,7 @@
 - **Last commit agent:** ChatGPT (GitHub connector; latest verified implementation commit `e7bf0cf8c9784602f61799573a1a14ef817d5bc3`; this handoff update is docs-only)
 - **Last commit SHA:** `e7bf0cf8c9784602f61799573a1a14ef817d5bc3` (tested implementation baseline; handoff update may create later docs SHA)
 - **Review owner:** Unassigned; owner to review real device result
-- **Implementation ownership state:** Paused — test-only SDK 58 upgrade verified; owner physical device handoff
+- **Implementation ownership state:** Paused — test-only HTTPS QA integration validated in synthetic CI; owner HTTPS iPhone QA handoff pending
 - **Ownership transition:** Not applicable
 - **Repository state last verified:** 2026-11-15 via GitHub; local Windows worktree not accessible in this chat
 - **Branch:** `tnyx/issue-759-expo-go-preview-spike`
@@ -104,3 +104,14 @@ Existing Flutter native app (unchanged)
 **CI boundary:** Existing default-branch mobile QA workflow already reuses the same two secret names for native phone QA. Branch-only Expo CI may verify QA build/config wiring using deterministic, synthetic publishable test values; real GitHub-secret driven QA Web build must be manually gated, never on PR, and cannot be claimed verified before it is actually runnable. Do not expose the compiled QA artifact or secret-derived values through workflow uploads, logs or cache. The only current authorization is branch-based experimentation, not release or merge.
 
 **Validation pending:** HTTPS-only URL validation, config shape validation, local static HTTPS server logic and CI synthetic QA Web build, physical iOS TLS trust and authenticated WebView runtime. No account data until trusted HTTPS has been tested and isolated QA project/account confirmed by owner. Physical login success is unknown; `FlutterDeviceIdentityProvider` uses `dart:io` and can fail on Web during device synchronization—do not silently modify production/auth source to bypass it.
+
+## QA HTTPS test-only implementation receipt — 2026-11-15
+
+- **Confirmed owner device state:** physical iPhone with Expo Go SDK 58 successfully renders Tio Flutter Web welcome screen via the original HTTP no-auth preview. This is unauthenticated initial UI only; no sign-in proven.
+- **Existing QA contract verified:** `apps/app/.runtime.qa.json` is an ignored local source with `SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY`; `mobile-qa-build.yml` already uses GitHub secrets `TIO_IOS_QA_SUPABASE_URL`/`TIO_IOS_QA_SUPABASE_PUBLISHABLE_KEY` through `.github/scripts/mobile_qa_runtime_config.py`. Values and actual QA project identity were **not** accessed from chat.
+- **New optional local QA lane:** `tools/expo-go-preview/start-qa-web.ps1` validates the existing local file, builds Web only in a disposable worktree, and serves the compiled, client-safe-key-bearing output through tester-supplied TLS on private LAN `https://IP:7358`. `start-expo-go.ps1 -QaHttps` uses this URL. The old `http://IP:7357` no-auth mode remains unchanged. iPhone must trust the local CA; owner must remove the temporary CA after QA. No credentials or account passwords belong in source/Expo environment/public URLs/CI artifacts.
+- **New CI lane:** pull-request CI runs deterministic synthetic QA Web compilation via the existing validated JSON contract (no real secrets). Optional `workflow_dispatch.qa_web_compile` on branch references historical existing GitHub QA secret names and forbids artifact uploads, but **cannot yet run** while its workflow is not present on the default branch; do not merge merely to enable it. The default-branch manual native Mobile QA workflow remains untouched.
+- **Verified CI at implementation `d05c5c82e50e335c965b55974f04a6c7cb7c82cd`:** [run #43700450487](https://github.com/im-tnyx/tio-world/actions/runs/43700450487) completed successfully for `expo-wrapper` and `flutter-web-compat`; logs confirm ordinary Web and synthetic QA Web builds both generated `build/web`. Manual real-secret job skipped by design.
+- **Security hardening at `fb3b79ca7c0cb97301c48265b13ca04dcf466304`:** HTTPS server reuses strict private-LAN validator and launcher permits only the established local ignored QA file. Pending its exact-head workflow confirmation.
+- **Not verified:** local Windows PowerShell QA startup, iPhone trust of mkcert CA, real GitHub QA-secret-driven Web build, QA Supabase project identity, email/password login, Web session restore, native-only device sync, RLS and personal data. Do not claim complete QA login testing, even after synthetic CI is green.
+- **Review/merge:** #760 remains draft; Flutter production source, Supabase schema and standard builds unchanged. Physical QA acceptance and separate owner merge approval still required.
