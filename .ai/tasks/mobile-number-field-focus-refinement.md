@@ -24,17 +24,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-11-15; clean before task file creation
 **Branch:** `tnyx/mobile-number-field-focus-refinement`
-**HEAD SHA:** `f258e2e59c81679c7f6e3d0be66ee7c13a6ab66d`
-**Observed working-tree state:** Source slice committed; task handoff metadata update pending
-**Observed uncommitted/dirty files:** `.ai/tasks/mobile-number-field-focus-refinement.md`
-**PR / tracker:** PR creation pending. Reconciled Linear `TNYX-152` / GitHub #208 and existing field ownership in GitHub #24; this is a separately authorized visual refinement, not a migration.
-**Current implementation state:** Shared Core field now uses one outlined surface for the flag, country code and number, with focus styling.
+**HEAD SHA:** `e8e5bf7f5e251f65cd6c22c6e12d9240efa9964a`
+**Observed working-tree state:** Two scoped commits pushed; GitHub PR #761 is open and non-draft.
+**Observed uncommitted/dirty files:** `.ai/tasks/mobile-number-field-focus-refinement.md`, `.ai/tasks/README.md` (PR handoff update)
+**PR / tracker:** [GitHub PR #761](https://github.com/im-tnyx/tio-world/pull/761) is open and ready for review. Reconciled Linear `TNYX-152` / GitHub #208 and existing field ownership in GitHub #24; this is a separately authorized visual refinement, not a migration.
+**Current implementation state:** Shared Core field uses one outlined surface for the flag, country code and number, with focus styling; PR #761 is awaiting review and device visual acceptance.
 **Relevant execution surface:** `apps/core` shared input component
 **Validation completed at SHA:** Source commit `f258e2e59c81679c7f6e3d0be66ee7c13a6ab66d` — Flutter analyzer found no issues in the component and focused test; focused widget tests passed 2/2. `git diff --check` will be rerun after this handoff metadata update. Dart formatter reported `0 changed`.
 **Validation remaining:** Device visual validation against the supplied reference. The formatter reported no changes but its restricted-shell attempt exited non-zero during telemetry metadata update.
 **Current blocker:** None for source/widget validation; device visual acceptance remains unverified.
 **Open review finding IDs:** None
-**Next exact action:** Validate the updated field on a mobile viewport/device against the supplied reference.
+**Next exact action:** Address PR review feedback and record device visual acceptance against the supplied reference.
 
 ## Global UI / Design-System Guardrail
 
