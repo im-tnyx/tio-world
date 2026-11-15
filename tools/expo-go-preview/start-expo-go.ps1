@@ -26,7 +26,7 @@ try {
     & npm.cmd test
     if ($LASTEXITCODE -ne 0) { throw "Expo URL contract tests failed." }
     & npx.cmd expo install --check
-    if ($LASTEXITCODE -ne 0) { throw "Expo dependencies are incompatible with SDK 57." }
+    if ($LASTEXITCODE -ne 0) { throw "Expo dependencies are incompatible with SDK 58." }
 
     Write-Host "Flutter Web: $env:EXPO_PUBLIC_FLUTTER_WEB_URL"
     Write-Host "Keep this terminal running. Scan the QR shown by Expo CLI using Expo Go."

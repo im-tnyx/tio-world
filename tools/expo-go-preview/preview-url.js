@@ -3,14 +3,14 @@
 // a path, query, fragment, or an arbitrary public service.
 function resolvePreviewUrl(raw) {
   if (!raw || typeof raw !== 'string') {
-    return { url: null, error: 'Set EXPO_PUBLIC_FLUTTER_WEB_URL to http://YOUR_PRIVATE_LAN_IP:7357 before starting Expo.' };
+    return { url: null, error: 'Set a private LAN preview URL: HTTP port 7357 (UI-only) or trusted HTTPS port 7358 (QA).' };
   }
   const value = raw.trim();
   // Match the raw authority before URL parsing: WHATWG URL normalizes
   // leading-zero IPv4 octets (e.g. 192.168.01.2 → 192.168.1.2).
   const match = /^(http|https):\/\/((?:\d{1,3}\.){3}\d{1,3}):(7357|7358)\/?$/.exec(value);
   if (!match) {
-    return { url: null, error: 'Only http://PRIVATE_LAN_IPV4:7357 is allowed; no credentials, paths, query or public hosts.' };
+    return { url: null, error: 'Only HTTP private IPv4 port 7357 or trusted HTTPS private IPv4 port 7358 is allowed; no credentials, paths, query or public hosts.' };
   }
   const secureQa = match[1] === 'https' && match[3] === '7358';
   const uiOnly = match[1] === 'http' && match[3] === '7357';

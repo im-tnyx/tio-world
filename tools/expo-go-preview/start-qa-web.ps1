@@ -21,10 +21,10 @@ foreach ($file in @($CertFile, $KeyFile)) {
 $qaPath = (Resolve-Path -LiteralPath $QaConfigFile).Path
 $certPath = (Resolve-Path -LiteralPath $CertFile).Path
 $keyPath = (Resolve-Path -LiteralPath $KeyFile).Path
-if ($qaPath.StartsWith((Resolve-Path $repoRoot).Path + "\", [System.StringComparison]::OrdinalIgnoreCase)) {
-    # This is allowed only for the ignored original local QA runtime file.
-    $expected = "G:\projects\Tio-World\apps\app\.runtime.qa.json"
-    if (-not $qaPath.Equals($expected, [System.StringComparison]::OrdinalIgnoreCase)) { throw "QA config must be from the existing ignored local app path." }
+# Only the existing ignored local QA configuration is allowed, not arbitrary files.
+$expected = "G:\projects\Tio-World\apps\app\.runtime.qa.json"
+if (-not $qaPath.Equals($expected, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "Use only the existing ignored G:\projects\Tio-World\apps\app\.runtime.qa.json."
 }
 & node (Join-Path $PSScriptRoot "qa-config-check.js") $qaPath
 if ($LASTEXITCODE -ne 0) { throw "QA client-safe config failed validation; not starting a login preview." }

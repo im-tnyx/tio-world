@@ -4,6 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const https = require('node:https');
+const { resolvePreviewUrl } = require('./preview-url');
 
 const MIME = Object.freeze({
   '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8',
@@ -37,7 +38,7 @@ function run(args) {
   if (args.length !== 4) throw new Error('Usage: node qa-https-server.js BUILD_WEB_DIR CERT_PEM KEY_PEM LAN_IPV4');
   const [root, cert, key, ip] = args;
   // TLS listener is intentionally LAN only; no external hosting.
-  if (!/^(?:10|172|192)\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)) throw new Error('Private LAN IPv4 required.');
+  if (!resolvePreviewUrl('https://' + ip + ':7358').url) throw new Error('Canonical private LAN IPv4 required.');
   if (!fs.existsSync(path.join(root, 'index.html'))) throw new Error('Compiled Flutter Web index missing.');
   const server = https.createServer({ cert: fs.readFileSync(cert), key: fs.readFileSync(key) }, (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
