@@ -20,7 +20,7 @@ PowerShell:
 Set-Location "G:\projects\Tio-World"
 git status --short --branch
 git fetch origin "refs/heads/tnyx/issue-759-expo-go-preview-spike:refs/remotes/origin/tnyx/issue-759-expo-go-preview-spike"
-git worktree add "G:\projects\Tio-World-Expo759" "refs/remotes/origin/tnyx/issue-759-expo-go-preview-spike"
+git worktree add --detach "G:\projects\Tio-World-Expo759" "refs/remotes/origin/tnyx/issue-759-expo-go-preview-spike"
 Set-Location "G:\projects\Tio-World-Expo759"
 ```
 
@@ -30,7 +30,7 @@ If the target directory already exists, inspect it first. Do not reset or overwr
 
 ```powershell
 Set-Location "G:\projects\Tio-World-Expo759"
-& ".\tools\expo-go-preview\start-flutter-web.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\tools\expo-go-preview\start-flutter-web.ps1"
 ```
 
 The script fetches branch #759, creates a uniquely named **temporary detached worktree**, generates `apps/app/web/` only there, resolves the original Flutter dependencies and attempts `flutter run -d web-server --web-hostname=0.0.0.0 --web-port=7357`. This may **FAIL** if native plugins or `dart:io` paths do not support web. Capture exact errors and stop; do not change Flutter product code as part of this spike.
@@ -50,7 +50,7 @@ The launcher uses `prepare-web-snapshot.js` **only in the detached temporary wor
 ```powershell
 Set-Location "G:\projects\Tio-World-Expo759\tools\expo-go-preview"
 node --version
-.\start-expo-go.ps1 -LanIPv4 "192.168.1.25"
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\start-expo-go.ps1" -LanIPv4 "192.168.1.25"
 ```
 
 **Replace `192.168.1.25` with your actual Windows PC LAN IPv4.** Open Expo Go on Android and scan the QR from Terminal B (on iPhone use the camera/Expo Go flow per its current SDK instructions). The QR connects the phone to **Expo Metro**; the wrapper then loads the **separate Flutter Web URL** on port 7357. If the QR works but WebView fails, verify the Flutter URL in the phone browser. `--tunnel` for Expo does **not** automatically tunnel Flutter Web.

@@ -15,17 +15,17 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Pass a canonical private LAN IPv4 address (e.g. -LanIPv4 192.168.1.25)." }
 
     Write-Host "Checking Expo Go dev-only project. Flutter Web must already be running in the other terminal."
-    & npm install --no-audit --no-fund
+    & npm.cmd install --no-audit --no-fund
     if ($LASTEXITCODE -ne 0) { throw "Expo npm dependency installation failed." }
-    & npm test
+    & npm.cmd test
     if ($LASTEXITCODE -ne 0) { throw "Expo URL contract tests failed." }
-    & npx expo install --check
+    & npx.cmd expo install --check
     if ($LASTEXITCODE -ne 0) { throw "Expo dependencies are incompatible with SDK 57." }
 
     Write-Host "Flutter Web: $env:EXPO_PUBLIC_FLUTTER_WEB_URL"
     Write-Host "Keep this terminal running. Scan the QR shown by Expo CLI using Expo Go."
     Write-Host "The Expo QR and Flutter Web port 7357 are separate endpoints on the same private Wi-Fi."
-    & npx expo start --go --lan
+    & npx.cmd expo start --go --lan
     if ($LASTEXITCODE -ne 0) { throw "Expo Metro failed to launch." }
 }
 finally {
