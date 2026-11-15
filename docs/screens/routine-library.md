@@ -122,6 +122,19 @@ contracts remain in force. Source code is merged on `main`; release/device verif
 
 ## One canonical Create/Edit Routine composer — merged #551
 
+**Warm-up methods — W10-D local source slice:** Each compatible weighted
+Exercise's options sheet offers `Warm-up methods` before the other Exercise
+actions. Its shared picker shows Classic, Strength, Barbell Ramp and saved
+custom methods. Done generates leading `warm_up` Set prescriptions from the
+first working Set's positive kilogram load, using the selected method and
+Plate/Dumbbell rounding. A Percent rule requires that working load; Fixed and
+standard 20 kg Bar rules can calculate without it. Applying another method
+replaces existing warm-up Sets only after confirmation. The existing eight-Set
+cap and working Set identities remain enforced. The method library is an
+owner-scoped device preference; the Routine persists the generated Sets using
+its existing composition Save/Update contract, with no method field or schema
+change. This change remains local and has not been merged or device accepted.
+
 **Historical DB-only 2026-10-16 deployment checkpoint (followed by merged Flutter PR #577):** The owner-approved Name+composition migration `20261016120000` from merged PR #576 is **deployed on hosted Supabase and read-only schema/permissions verified**, including the `update_user_workout_routine_with_composition` seven-argument authenticated RPC. Legacy four-argument composition Save and direct metadata Name clients remain supported. This is database/runtime truth, **not Flutter Edit Name functionality or an app release**.
 
 **Merged Flutter [PR #577](https://github.com/im-tnyx/tio-world/pull/577)** integrates the saved Name input with the shared Edit composer and the single atomic Name+composition Update, including a real card **Edit Routine** action. The former Rename-only sheet is no longer the card action. Source merge and hosted RPC deployment do not prove a distributed phone-app release.

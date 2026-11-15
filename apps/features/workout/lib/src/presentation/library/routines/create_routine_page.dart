@@ -8,6 +8,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/exercises/exercise_catalog_repository.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/my_program_routine_create_repository.dart';
 import '../../../domain/repositories/program_repository.dart';
@@ -19,6 +20,7 @@ import 'routine_create_controller.dart';
 import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
+import 'routine_warmup_method_flow.dart';
 import 'routine_superset_member_sheet.dart';
 import 'routine_set_input_row.dart';
 import 'routine_set_type_badge.dart';
@@ -397,6 +399,7 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
   Future<void> _showExerciseOptions(RoutineCompositionEntry entry) async {
     if (!_enabled) return;
     final openingDraft = _draft;
+    final exercise = _entryExercises[entry.id];
     final memberCount = _draft.state.entries
         .where((candidate) => candidate.supersetId == entry.supersetId)
         .length;
@@ -404,6 +407,16 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
       context,
       isGrouped: entry.supersetId != null,
       canAddSupersetMember: entry.supersetId == null || memberCount < 3,
+      canChooseWarmupMethod: widget.workoutRuntimeSettingsController != null &&
+          RoutineCompositionLimits.targetsMatchExerciseType(
+            exercise?.exerciseType,
+            [SetPrescription(reps: 1, loadKg: 1)],
+          ) &&
+          entry.sets
+                  .where((set) =>
+                      set.prescription.setType != RoutineSetType.warmUp)
+                  .length <
+              RoutineCompositionLimits.maxSetsPerExercise,
     );
     if (!mounted ||
         !identical(openingDraft, _draft) ||
@@ -414,6 +427,8 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     if (!_draft.state.entries.any((current) => current.id == entry.id)) return;
     if (action == RoutineExerciseOption.replace) {
       await _pick(replacing: entry);
+    } else if (action == RoutineExerciseOption.warmupMethods) {
+      await _applyWarmupMethod(entry, openingDraft);
     } else if (action == RoutineExerciseOption.remove) {
       _removeEntry(entry);
     } else if (action == RoutineExerciseOption.removeFromSuperset) {
@@ -421,6 +436,93 @@ class _CreateRoutinePageState extends State<CreateRoutinePage> {
     } else if (action == RoutineExerciseOption.addToSuperset) {
       await _selectSupersetMember(entry);
     }
+  }
+
+  Future<void> _applyWarmupMethod(
+    RoutineCompositionEntry entry,
+    RoutineCreateController openingDraft,
+  ) async {
+    final settings = widget.workoutRuntimeSettingsController;
+    final current = openingDraft.state.entries
+        .where((candidate) => candidate.id == entry.id)
+        .firstOrNull;
+    if (settings == null || current == null) return;
+    final openingEntries = openingDraft.state.entries;
+    final existingWarmups = current.sets
+        .where((set) => set.prescription.setType == RoutineSetType.warmUp)
+        .toList();
+    final nonWarmups = current.sets
+        .where((set) => set.prescription.setType != RoutineSetType.warmUp)
+        .toList();
+    final workingWeight = nonWarmups
+        .map((set) => set.prescription.loadKg)
+        .whereType<double>()
+        .firstOrNull;
+    final selected = await chooseRoutineWarmupMethod(
+      context,
+      controller: settings,
+      availableSetSlots:
+          RoutineCompositionLimits.maxSetsPerExercise - nonWarmups.length,
+      workingWeightKg: workingWeight,
+      isDumbbell:
+          isWarmupDumbbellExercise(_entryExercises[entry.id]?.exerciseType),
+    );
+    if (!mounted ||
+        selected == null ||
+        !identical(openingDraft, _draft) ||
+        !_enabled ||
+        !identical(openingEntries, openingDraft.state.entries)) {
+      return;
+    }
+    if (existingWarmups.isNotEmpty) {
+      final replace = await showTioConfirmationBottomSheet(
+        context: context,
+        title: 'Replace warm-up sets?',
+        message: 'The current warm-up sets for this Exercise will be replaced.',
+        confirmLabel: 'Replace sets',
+        cancelLabel: 'Keep sets',
+      );
+      if (!mounted ||
+          replace != true ||
+          !identical(openingDraft, _draft) ||
+          !_enabled ||
+          !identical(openingEntries, openingDraft.state.entries)) {
+        return;
+      }
+    }
+    try {
+      await settings.setWarmupSettings(selected.settings);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not save the selected warm-up method.'),
+        ));
+      }
+      return;
+    }
+    if (!mounted ||
+        !identical(openingDraft, _draft) ||
+        !_enabled ||
+        !identical(openingEntries, openingDraft.state.entries)) {
+      return;
+    }
+    if (!openingDraft.applyWarmupMethod(entry.id, selected.sets)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not apply this warm-up method.'),
+      ));
+      return;
+    }
+    final replacedIds = existingWarmups.map((set) => set.id).toList();
+    _invalidSetIds.removeAll(replacedIds);
+    _untouchedRepSetIds.removeAll(replacedIds);
+    if (replacedIds.contains(_openSetId)) _openSetId = null;
+    final appliedEntry = openingDraft.state.entries
+        .firstWhere((candidate) => candidate.id == entry.id);
+    final appliedWarmupIds = appliedEntry.sets
+        .where((set) => set.prescription.setType == RoutineSetType.warmUp)
+        .map((set) => set.id);
+    _invalidSetIds.removeAll(appliedWarmupIds);
+    _untouchedRepSetIds.removeAll(appliedWarmupIds);
   }
 
   Future<void> _selectSupersetMember(RoutineCompositionEntry entry) async {

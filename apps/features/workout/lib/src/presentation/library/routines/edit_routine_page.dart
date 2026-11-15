@@ -8,12 +8,14 @@ import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 import '../../../domain/repositories/routine_notes_repository.dart';
+import '../../../domain/models/routine_composition_limits.dart';
 import '../exercises/exercises_controller.dart';
 import '../exercises/exercises_state.dart';
 import 'routine_editor_controller.dart';
 import 'routine_exercise_picker_controller.dart';
 import '../exercises/exercises_page.dart';
 import 'routine_exercise_options_sheet.dart';
+import 'routine_warmup_method_flow.dart';
 import 'routine_superset_member_sheet.dart';
 import 'routine_set_input_row.dart';
 import 'routine_set_type_badge.dart';
@@ -353,6 +355,7 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
   Future<void> _showExerciseOptions(RoutineCompositionEntry entry) async {
     if (!_canEdit) return;
     final openingEditor = _editor;
+    final exercise = _exerciseFor(entry.exercise);
     final memberCount = openingEditor?.state.entries
             .where((candidate) => candidate.supersetId == entry.supersetId)
             .length ??
@@ -361,6 +364,16 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
       context,
       isGrouped: entry.supersetId != null,
       canAddSupersetMember: entry.supersetId == null || memberCount < 3,
+      canChooseWarmupMethod: widget.workoutRuntimeSettingsController != null &&
+          RoutineCompositionLimits.targetsMatchExerciseType(
+            exercise?.exerciseType,
+            [SetPrescription(reps: 1, loadKg: 1)],
+          ) &&
+          entry.sets
+                  .where((set) =>
+                      set.prescription.setType != RoutineSetType.warmUp)
+                  .length <
+              RoutineCompositionLimits.maxSetsPerExercise,
     );
     if (!mounted ||
         !identical(openingEditor, _editor) ||
@@ -374,6 +387,8 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     }
     if (action == RoutineExerciseOption.replace) {
       await _addExercise(replacing: entry);
+    } else if (action == RoutineExerciseOption.warmupMethods) {
+      await _applyWarmupMethod(entry, openingEditor);
     } else if (action == RoutineExerciseOption.remove) {
       _removeEntry(entry);
     } else if (action == RoutineExerciseOption.removeFromSuperset) {
@@ -381,6 +396,95 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     } else if (action == RoutineExerciseOption.addToSuperset) {
       await _selectSupersetMember(entry, openingEditor);
     }
+  }
+
+  Future<void> _applyWarmupMethod(
+    RoutineCompositionEntry entry,
+    RoutineEditorController? openingEditor,
+  ) async {
+    final editor = openingEditor;
+    final settings = widget.workoutRuntimeSettingsController;
+    final current = editor?.state.entries
+        .where((candidate) => candidate.id == entry.id)
+        .firstOrNull;
+    if (editor == null || settings == null || current == null) return;
+    final openingEntries = editor.state.entries;
+    final existingWarmups = current.sets
+        .where((set) => set.prescription.setType == RoutineSetType.warmUp)
+        .toList();
+    final nonWarmups = current.sets
+        .where((set) => set.prescription.setType != RoutineSetType.warmUp)
+        .toList();
+    final workingWeight = nonWarmups
+        .map((set) => set.prescription.loadKg)
+        .whereType<double>()
+        .firstOrNull;
+    final selected = await chooseRoutineWarmupMethod(
+      context,
+      controller: settings,
+      availableSetSlots:
+          RoutineCompositionLimits.maxSetsPerExercise - nonWarmups.length,
+      workingWeightKg: workingWeight,
+      isDumbbell: isWarmupDumbbellExercise(
+        _exerciseFor(entry.exercise)?.exerciseType,
+      ),
+    );
+    if (!mounted ||
+        selected == null ||
+        !identical(editor, _editor) ||
+        !_canEdit ||
+        !identical(openingEntries, editor.state.entries)) {
+      return;
+    }
+    if (existingWarmups.isNotEmpty) {
+      final replace = await showTioConfirmationBottomSheet(
+        context: context,
+        title: 'Replace warm-up sets?',
+        message: 'The current warm-up sets for this Exercise will be replaced.',
+        confirmLabel: 'Replace sets',
+        cancelLabel: 'Keep sets',
+      );
+      if (!mounted ||
+          replace != true ||
+          !identical(editor, _editor) ||
+          !_canEdit ||
+          !identical(openingEntries, editor.state.entries)) {
+        return;
+      }
+    }
+    try {
+      await settings.setWarmupSettings(selected.settings);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not save the selected warm-up method.'),
+        ));
+      }
+      return;
+    }
+    if (!mounted ||
+        !identical(editor, _editor) ||
+        !_canEdit ||
+        !identical(openingEntries, editor.state.entries)) {
+      return;
+    }
+    if (!editor.applyWarmupMethod(entry.id, selected.sets)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Could not apply this warm-up method.'),
+      ));
+      return;
+    }
+    final replacedIds = existingWarmups.map((set) => set.id).toList();
+    _invalidSetIds.removeAll(replacedIds);
+    _blankSetIds.removeAll(replacedIds);
+    if (replacedIds.contains(_openSetId)) _openSetId = null;
+    final appliedEntry = editor.state.entries
+        .firstWhere((candidate) => candidate.id == entry.id);
+    final appliedWarmupIds = appliedEntry.sets
+        .where((set) => set.prescription.setType == RoutineSetType.warmUp)
+        .map((set) => set.id);
+    _invalidSetIds.removeAll(appliedWarmupIds);
+    _blankSetIds.removeAll(appliedWarmupIds);
   }
 
   Future<void> _selectSupersetMember(
@@ -425,6 +529,12 @@ class _EditRoutinePageState extends State<EditRoutinePage> {
     }
     return 'Exercise unavailable';
   }
+
+  Exercise? _exerciseFor(ExerciseRef ref) =>
+      (_source?.state.items ?? <ExerciseListItem>[])
+          .where((item) => item.exercise.ref == ref)
+          .firstOrNull
+          ?.exercise;
 
   void _removeEntry(RoutineCompositionEntry entry) {
     if (!_canEdit) return;

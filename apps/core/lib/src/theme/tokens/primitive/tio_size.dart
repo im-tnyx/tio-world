@@ -58,6 +58,7 @@ abstract final class TioSize {
   static const dp135 = 135.0;
   static const dp140 = 140.0;
   static const dp160 = 160.0;
+  static const dp180 = 180.0;
   static const dp200 = 200.0;
   static const dp320 = 320.0;
   static const dp480 = 480.0;

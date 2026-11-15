@@ -16,6 +16,39 @@ void main() {
     SharedPreferencesAsyncPlatform.instance = null;
   });
 
+  test('warm-up method and rounding persist per owner and recover malformed data',
+      () async {
+    final first = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-a',
+    );
+    final second = SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-b',
+    );
+    final custom = WorkoutWarmupSettings(
+      enabled: false,
+      plateRoundingKg: 2.5,
+      dumbbellRoundingKg: .5,
+      formula: const [WarmupFormulaSet(percentage: .5, reps: 7)],
+    );
+    await first.writeWarmupSettings(custom);
+    final restored = await SharedPreferencesWorkoutRuntimeSettingsRepository(
+      ownerId: 'owner-a',
+    ).readWarmupSettings();
+    expect(restored.enabled, isFalse);
+    expect(restored.plateRoundingKg, 2.5);
+    expect(restored.dumbbellRoundingKg, .5);
+    expect(restored.formula.single.percentage, .5);
+    expect(restored.formula.single.reps, 7);
+    expect((await second.readWarmupSettings()).formula.length, 3);
+
+    final prefs = SharedPreferencesAsync();
+    final key = SharedPreferencesWorkoutRuntimeSettingsRepository
+        .warmupStorageKeyFor('owner-a');
+    await prefs.setString(key, '{broken');
+    expect((await first.readWarmupSettings()).formula.length, 3);
+    expect(await prefs.getString(key), isNull);
+  });
+
   test('unset and explicit OFF remain distinct and owner-scoped', () async {
     final firstOwner = SharedPreferencesWorkoutRuntimeSettingsRepository(
       ownerId: 'owner-a',

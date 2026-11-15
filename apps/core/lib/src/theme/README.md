@@ -152,6 +152,8 @@ Do not add arbitrary values “just in case”. A new primitive must be evidence
 
 `TioSize.dp34` is the owner-approved compact visual height for the Active Workout preview top-bar `Finish` action. It is a feature composition value, not a global `TioButton` height change.
 
+`TioSize.dp180` is the exact viewport height of the Workout warm-up formula wheel, matching the established Tio editor wheel while keeping the shared DOB/weight/date-time wheel viewport at `TioWheelPickerTokens.viewportHeight` (`200dp`). `TioOpacity.opacity05` preserves the warm-up wheel's subtle 5% selected-row tint in both light and dark themes.
+
 ### Foundation geometry
 
 Use semantic geometry when the role honestly matches:
@@ -253,7 +255,7 @@ TioFontFamily
 
 A truly one-off typography composition may combine governed physical typography values at the consumer. Do not create a feature typography catalog to hide it.
 
-Fractional evidenced sizes use explicit identifiers such as `TioFontSize.size9_5` and `TioFontSize.size10_5`.
+Fractional evidenced sizes use explicit identifiers such as `TioFontSize.size9_5` and `TioFontSize.size10_5`. `TioFontSize.size10` preserves the 10sp table-heading size used by the owner-provided Workout warm-up reference.
 
 #### Runtime font selection
 

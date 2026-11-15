@@ -5,6 +5,7 @@ import 'package:tio_core/core.dart';
 
 import '../controllers/workout_runtime_settings_controller.dart';
 import '../library/routines/routine_rest_timer_sheet.dart';
+import 'workout_warmup_settings_page.dart';
 
 /// Workout-owned preferences; persistence remains device-local and owner-scoped.
 class WorkoutSettingsPage extends StatefulWidget {
@@ -119,6 +120,27 @@ class _WorkoutSettingsPageState extends State<WorkoutSettingsPage> {
               children: [
                 TioGroupCard(
                   children: [
+                    TioSettingsValueRow(
+                      key: const ValueKey('workout-warmup-calculator'),
+                      leading: const TioSettingsLeadingIcon(
+                        icon: Icons.fitness_center_rounded,
+                      ),
+                      label: 'Warm-up Calculator',
+                      showEditAffordance: false,
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: colors.textMuted,
+                        size: TioSize.dp22,
+                      ),
+                      value: const SizedBox.shrink(),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => WorkoutWarmupSettingsPage(
+                            controller: controller,
+                          ),
+                        ),
+                      ),
+                    ),
                     TioSettingsValueRow(
                       key: const ValueKey('workout-default-rest-timer'),
                       leading: const TioSettingsLeadingIcon(

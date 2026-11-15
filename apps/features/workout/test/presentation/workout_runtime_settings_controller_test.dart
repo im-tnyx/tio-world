@@ -2,6 +2,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_workout/workout.dart';
 
 final class _Repository implements WorkoutRuntimeSettingsRepository {
+  WorkoutWarmupSettings warmupSettings = WorkoutWarmupSettings();
+  bool failNextWarmupRead = false;
+  bool failNextWarmupWrite = false;
+  @override
+  Future<WorkoutWarmupSettings> readWarmupSettings() async {
+    if (failNextWarmupRead) {
+      failNextWarmupRead = false;
+      throw StateError('Simulated warm-up settings read failure');
+    }
+    return warmupSettings;
+  }
+  @override
+  Future<void> writeWarmupSettings(WorkoutWarmupSettings settings) async {
+    if (failNextWarmupWrite) {
+      failNextWarmupWrite = false;
+      throw StateError('Simulated warm-up settings save failure');
+    }
+    warmupSettings = settings;
+  }
+
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
   bool smartSupersetScrollingEnabled = false;
@@ -264,5 +284,30 @@ void main() {
       controller.setDefaultRestSeconds(605),
       throwsArgumentError,
     );
+  });
+
+  test('warm-up settings retry and failed save preserve the last choice',
+      () async {
+    final repository = _Repository()..failNextWarmupRead = true;
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+
+    await controller.loadWarmupSettings();
+    expect(controller.isWarmupReady, isFalse);
+    expect(controller.warmupSettings, isNull);
+    expect(controller.warmupError, isA<StateError>());
+    await controller.loadWarmupSettings();
+    expect(controller.isWarmupReady, isTrue);
+    expect(controller.warmupSettings!.enabled, isTrue);
+
+    repository.failNextWarmupWrite = true;
+    await expectLater(
+      controller.setWarmupSettings(
+        controller.warmupSettings!.copyWith(enabled: false),
+      ),
+      throwsStateError,
+    );
+    expect(controller.warmupSettings!.enabled, isTrue);
+    expect(repository.warmupSettings.enabled, isTrue);
   });
 }

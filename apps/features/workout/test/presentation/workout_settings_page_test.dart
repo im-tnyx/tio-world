@@ -4,6 +4,14 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_workout/workout.dart';
 
 final class _Repository implements WorkoutRuntimeSettingsRepository {
+  WorkoutWarmupSettings warmupSettings = WorkoutWarmupSettings();
+  @override
+  Future<WorkoutWarmupSettings> readWarmupSettings() async => warmupSettings;
+  @override
+  Future<void> writeWarmupSettings(WorkoutWarmupSettings settings) async {
+    warmupSettings = settings;
+  }
+
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
   bool smartSupersetScrollingEnabled = false;
@@ -350,6 +358,31 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.seconds, 0);
     expect(find.text('OFF'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Warm-up Calculator button opens its own settings screen',
+      (tester) async {
+    final repository = _Repository();
+    final controller = WorkoutRuntimeSettingsController(repository: repository);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child!),
+      home: WorkoutSettingsPage(controller: controller),
+    ));
+    await tester.pumpAndSettle();
+
+    final entry = find.byKey(const ValueKey('workout-warmup-calculator'));
+    await tester.ensureVisible(entry);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    expect(find.text('Warmup Method'), findsOneWidget);
+    final toggle = find.byKey(const ValueKey('warmup-calculator-switch'));
+    expect(tester.widget<Switch>(toggle).value, isTrue);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(repository.warmupSettings.enabled, isFalse);
+    expect(tester.widget<Switch>(toggle).value, isFalse);
     expect(tester.takeException(), isNull);
   });
 }

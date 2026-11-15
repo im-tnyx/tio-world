@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/models/active_workout_draft.dart';
 import '../../domain/models/routine_composition_limits.dart';
 import '../../domain/models/routine_rest_timer_preset.dart';
+import '../../domain/models/workout_warmup_calculator.dart';
 import '../../domain/models/workout_routine_start_request.dart';
 import '../../domain/models/workout_save_metadata_limits.dart';
 import '../../domain/repositories/active_workout_draft_store.dart';
@@ -598,6 +599,63 @@ final class ActiveWorkoutDraftController extends ChangeNotifier {
             prescription: SetPrescription(),
           ),
         ]);
+      });
+
+  /// Adds an explicitly accepted calculator preview in one durable draft edit.
+  /// Existing set IDs, prescriptions and performed values are untouched.
+  Future<bool> insertWarmupSets(
+    String exerciseId,
+    List<WarmupCalculatedSet> calculated,
+  ) =>
+      _change((draft) {
+        final next = [...draft.exercises];
+        final index = next.indexWhere((exercise) => exercise.id == exerciseId);
+        if (index < 0) throw StateError('Exercise occurrence is missing.');
+        final exercise = next[index];
+        if (calculated.isEmpty ||
+            exercise.sets.length + calculated.length >
+                RoutineCompositionLimits.maxSetsPerExercise ||
+            calculated.any((set) => !set.loadKg.isFinite ||
+                set.loadKg < 0 || set.reps <= 0 || set.reps > 999)) {
+          throw StateError('Warm-up sets exceed the available set limit.');
+        }
+        if (!RoutineCompositionLimits.targetsMatchExerciseType(
+          exercise.exerciseType,
+          [SetPrescription(reps: 1, loadKg: 1)],
+        )) {
+          throw StateError('Exercise does not support weighted warm-up sets.');
+        }
+        if (_exerciseHasProgress(exercise) ||
+            exercise.supersetId != null &&
+                _supersetHasProgress(draft, exercise.supersetId!)) {
+          throw StateError('Warm-up sets cannot be added after progress.');
+        }
+        final group = draft.supersets
+            .where((candidate) => candidate.id == exercise.supersetId)
+            .firstOrNull;
+        final preset = group?.restPreset ??
+            (exercise.hasRestOverride
+                ? exercise.restPreset
+                : RoutineRestTimerPreset.fromPrescriptions(
+                    exercise.sets.map((set) => set.prescription),
+                  ));
+        final sets = [...exercise.sets];
+        final lastWarmup = sets.lastIndexWhere(
+            (set) => set.prescription.setType == RoutineSetType.warmUp);
+        sets.insertAll(
+          lastWarmup + 1,
+          calculated.map((set) => ActiveWorkoutDraftSet(
+                id: _newUuid(),
+                prescription: SetPrescription(
+                  setType: RoutineSetType.warmUp,
+                  reps: set.reps,
+                  loadKg: set.loadKg,
+                  restSeconds: preset.effectiveRestFor(RoutineSetType.warmUp),
+                ),
+              )),
+        );
+        next[index] = exercise.copyWith(sets: sets);
+        return draft.copyWith(exercises: next);
       });
 
   Future<bool> removeSet(String exerciseId, String setId) => _change((draft) {

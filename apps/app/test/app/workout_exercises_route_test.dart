@@ -3139,6 +3139,14 @@ Future<(ProviderContainer, GoRouter)> _app(
 
 final class _MemoryWorkoutRuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
+  WorkoutWarmupSettings warmupSettings = WorkoutWarmupSettings();
+  @override
+  Future<WorkoutWarmupSettings> readWarmupSettings() async => warmupSettings;
+  @override
+  Future<void> writeWarmupSettings(WorkoutWarmupSettings settings) async {
+    warmupSettings = settings;
+  }
+
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
   bool smartSupersetScrollingEnabled = false;

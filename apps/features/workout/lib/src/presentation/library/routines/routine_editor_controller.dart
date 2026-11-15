@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../../domain/exercises/user_exercise_repository.dart';
 import '../../../domain/models/routine_composition_limits.dart';
 import '../../../domain/models/routine_rest_timer_preset.dart';
+import '../../../domain/models/workout_warmup_calculator.dart';
 import '../../../domain/repositories/routine_composition_repository.dart';
 import '../../../domain/repositories/routine_repository.dart';
 
@@ -563,6 +564,64 @@ final class RoutineEditorController extends ChangeNotifier {
           sets: nextSets,
         ));
     return id;
+  }
+
+  /// Replaces only the leading Warm-up prescriptions with a selected method.
+  /// Existing working Set identities and values are preserved.
+  bool applyWarmupMethod(
+    String entryId,
+    List<WarmupCalculatedSet> calculated,
+  ) {
+    if (!_state.canEdit || calculated.isEmpty) return false;
+    final index = _draft.indexWhere((entry) => entry.id == entryId);
+    if (index < 0) return false;
+    final entry = _draft[index];
+    final oldWarmups = entry.sets
+        .where((set) => set.prescription.setType == RoutineSetType.warmUp)
+        .toList();
+    final workingSets = entry.sets
+        .where((set) => set.prescription.setType != RoutineSetType.warmUp)
+        .toList();
+    if (workingSets.length + calculated.length >
+            RoutineCompositionLimits.maxSetsPerExercise ||
+        calculated.any((set) =>
+            set.reps < 1 ||
+            set.reps > 30 ||
+            !set.loadKg.isFinite ||
+            set.loadKg < 0)) {
+      return false;
+    }
+    final inRange =
+        entry.sets.isNotEmpty && entry.sets.first.prescription.isRepRange;
+    final preset = _restPresets[entry.id] ?? const RoutineRestTimerPreset();
+    final applyPreset = _restPresets.containsKey(entry.id) || !preset.isOff;
+    final warmups = [
+      for (var i = 0; i < calculated.length; i++)
+        RoutineCompositionSet(
+          id: i < oldWarmups.length ? oldWarmups[i].id : _newUuid(),
+          prescription: SetPrescription(
+            reps: calculated[i].reps,
+            repsMax: inRange ? calculated[i].reps : null,
+            setType: RoutineSetType.warmUp,
+            loadKg: calculated[i].loadKg,
+            restSeconds: applyPreset
+                ? preset.effectiveRestFor(RoutineSetType.warmUp)
+                : (i < oldWarmups.length
+                    ? oldWarmups[i].prescription.restSeconds
+                    : null),
+          ),
+        ),
+    ];
+    _replaceEntry(
+      index,
+      RoutineCompositionEntry(
+        id: entry.id,
+        exercise: entry.exercise,
+        supersetId: entry.supersetId,
+        sets: [...warmups, ...workingSets],
+      ),
+    );
+    return true;
   }
 
   bool editSet(String entryId, String setId, SetPrescription prescription) {

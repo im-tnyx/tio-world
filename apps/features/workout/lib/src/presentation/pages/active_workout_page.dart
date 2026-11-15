@@ -31,6 +31,8 @@ import '../widgets/workout_exercise_card.dart';
 import '../widgets/workout_rpe_sheet.dart';
 import '../widgets/workout_set_input_row.dart';
 import '../widgets/workout_set_type_sheet.dart';
+import '../widgets/workout_warmup_calculator_sheet.dart';
+import 'workout_warmup_settings_page.dart';
 import 'save_workout_page.dart';
 
 Future<void> _vibrateAtRestCompletion() async {
@@ -1172,6 +1174,25 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
                 .where((member) => member.supersetId == groupId)
                 .length ??
             0;
+    final warmupSettingsController = widget.workoutRuntimeSettingsController;
+    if (warmupSettingsController != null) {
+      await warmupSettingsController.loadWarmupSettings();
+    }
+    if (!mounted ||
+        exerciseIndex >= _previewExercises.length ||
+        _previewExercises[exerciseIndex].id != exercise.id) {
+      return;
+    }
+    final canUseWarmupCalculator =
+        warmupSettingsController?.warmupSettings?.enabled == true &&
+            !groupHasProgress &&
+            exercise.sets.every((set) => set.loggedAtUtc == null) &&
+            exercise.sets.length <
+                RoutineCompositionLimits.maxSetsPerExercise &&
+            RoutineCompositionLimits.targetsMatchExerciseType(
+              exercise.exerciseType,
+              [SetPrescription(reps: 1, loadKg: 1)],
+            );
     final action = await _withWorkoutModal(
       widget.workoutModalCounter,
       () => showRoutineExerciseOptionsSheet(
@@ -1185,6 +1206,7 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
         canRemoveFromSuperset: !groupHasProgress,
         canReplaceExercise: !groupHasProgress,
         canRemoveExercise: !groupHasProgress,
+        canUseWarmupCalculator: canUseWarmupCalculator,
         lockedMessage: groupHasProgress
             ? 'Superset membership is locked after a set is completed or skipped.'
             : null,
@@ -1195,7 +1217,58 @@ class _StartWorkoutPreviewState extends State<_StartWorkoutPreview>
     final controller = widget.draftController;
     if (controller == null || exerciseIndex >= _previewExercises.length) return;
     final exerciseId = _previewExercises[exerciseIndex].id;
-    if (action == RoutineExerciseOption.remove) {
+    if (action == RoutineExerciseOption.warmupCalculator) {
+      final settings = warmupSettingsController?.warmupSettings;
+      if (settings == null || !settings.enabled) return;
+      final current = controller.draft;
+      final targetExercise = current?.exercises
+          .where((candidate) => candidate.id == exerciseId)
+          .firstOrNull;
+      if (current == null || targetExercise == null) return;
+      final working = targetExercise.sets
+          .where((set) => set.prescription.setType != RoutineSetType.warmUp)
+          .firstOrNull;
+      final calculated = await _withWorkoutModal(
+        widget.workoutModalCounter,
+        () => showWorkoutWarmupCalculatorSheet(
+          context,
+          settings: settings,
+          availableSlots: RoutineCompositionLimits.maxSetsPerExercise -
+              targetExercise.sets.length,
+          initialWeightKg: working?.prescription.loadKg,
+          isDumbbell: const {
+            ExerciseType.dumbbellX2Simultaneous,
+            ExerciseType.dumbbellX1AlternatingSides,
+            ExerciseType.dumbbellX1Simultaneous,
+            ExerciseType.dumbbellX2AlternatingLegs,
+            ExerciseType.dumbbellX1AlternatingLegs,
+          }.contains(targetExercise.exerciseType),
+          onOpenSettings: () =>
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => WorkoutWarmupSettingsPage(
+                  controller: warmupSettingsController!,
+                ),
+              ));
+            }
+          }),
+        ),
+      );
+      _drainPendingSmartScroll();
+      if (!mounted ||
+          calculated == null ||
+          controller.draft?.id != current.id ||
+          warmupSettingsController?.warmupSettings?.enabled != true) {
+        return;
+      }
+      final inserted =
+          await controller.insertWarmupSets(exerciseId, calculated);
+      if (!inserted && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not add Warm-up Sets. Try again.')));
+      }
+    } else if (action == RoutineExerciseOption.remove) {
       if (groupId != null) {
         final confirmed = await _withWorkoutModal(
           widget.workoutModalCounter,

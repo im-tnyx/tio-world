@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
-/// Available actions for one Exercise in an unsaved Create/Edit Routine draft.
-enum RoutineExerciseOption { replace, remove, addToSuperset, removeFromSuperset }
+/// Available Exercise actions; the Log Workout draft can opt into calculator.
+enum RoutineExerciseOption {
+  replace,
+  remove,
+  addToSuperset,
+  removeFromSuperset,
+  warmupMethods,
+  warmupCalculator,
+}
 
-/// Dismissing the sheet returns null and must never change the Routine draft.
+/// Dismissing the sheet returns null and never invokes an Exercise action.
 Future<RoutineExerciseOption?> showRoutineExerciseOptionsSheet(
   BuildContext context, {
   bool isGrouped = false,
@@ -12,8 +19,11 @@ Future<RoutineExerciseOption?> showRoutineExerciseOptionsSheet(
   bool canRemoveFromSuperset = true,
   bool canReplaceExercise = true,
   bool canRemoveExercise = true,
+  bool canChooseWarmupMethod = false,
+  bool canUseWarmupCalculator = false,
   String? lockedMessage,
-}) => showTioEditorSheet<RoutineExerciseOption>(
+}) =>
+    showTioEditorSheet<RoutineExerciseOption>(
       context: context,
       useSafeArea: true,
       builder: (_) => RoutineExerciseOptionsSheet(
@@ -22,6 +32,8 @@ Future<RoutineExerciseOption?> showRoutineExerciseOptionsSheet(
         canRemoveFromSuperset: canRemoveFromSuperset,
         canReplaceExercise: canReplaceExercise,
         canRemoveExercise: canRemoveExercise,
+        canChooseWarmupMethod: canChooseWarmupMethod,
+        canUseWarmupCalculator: canUseWarmupCalculator,
         lockedMessage: lockedMessage,
       ),
     );
@@ -33,6 +45,8 @@ class RoutineExerciseOptionsSheet extends StatelessWidget {
     this.canRemoveFromSuperset = true,
     this.canReplaceExercise = true,
     this.canRemoveExercise = true,
+    this.canChooseWarmupMethod = false,
+    this.canUseWarmupCalculator = false,
     this.lockedMessage,
     super.key,
   });
@@ -42,6 +56,8 @@ class RoutineExerciseOptionsSheet extends StatelessWidget {
   final bool canRemoveFromSuperset;
   final bool canReplaceExercise;
   final bool canRemoveExercise;
+  final bool canChooseWarmupMethod;
+  final bool canUseWarmupCalculator;
   final String? lockedMessage;
 
   @override
@@ -51,6 +67,44 @@ class RoutineExerciseOptionsSheet extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Divider(
+              color: context.tioColors.outlineStrong.withValues(
+                alpha: TioOpacity.opacity10,
+              ),
+              height: TioSize.dp1,
+            ),
+            if (canChooseWarmupMethod)
+              ListTile(
+                key: const ValueKey('routine-exercise-option-warmup-methods'),
+                leading: Icon(
+                  Icons.fitness_center_rounded,
+                  color: context.tioColors.textSecondary,
+                ),
+                title: const Text('Warm-up methods'),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: TioSpacing.lg,
+                  vertical: TioSpacing.xs,
+                ),
+                onTap: () => Navigator.of(context).pop<RoutineExerciseOption>(
+                  RoutineExerciseOption.warmupMethods,
+                ),
+              ),
+            if (canUseWarmupCalculator)
+              ListTile(
+                key: const ValueKey('routine-exercise-option-warmup'),
+                leading: Icon(
+                  Icons.add_rounded,
+                  color: context.tioColors.textSecondary,
+                ),
+                title: const Text('Add warm-up sets'),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: TioSpacing.lg,
+                  vertical: TioSpacing.xs,
+                ),
+                onTap: () => Navigator.of(context).pop<RoutineExerciseOption>(
+                  RoutineExerciseOption.warmupCalculator,
+                ),
+              ),
             if (lockedMessage != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -87,26 +141,33 @@ class RoutineExerciseOptionsSheet extends StatelessWidget {
               ),
             if (canReplaceExercise)
               ListTile(
-              key: const ValueKey('routine-exercise-option-replace'),
-              leading: const Icon(Icons.swap_horiz_rounded),
-              title: const Text('Replace Exercise'),
-              onTap: () => Navigator.of(context)
-                  .pop<RoutineExerciseOption>(RoutineExerciseOption.replace),
-            ),
+                key: const ValueKey('routine-exercise-option-replace'),
+                leading: const Icon(Icons.swap_horiz_rounded),
+                title: const Text('Replace Exercise'),
+                onTap: () => Navigator.of(context)
+                    .pop<RoutineExerciseOption>(RoutineExerciseOption.replace),
+              ),
+            if (canRemoveExercise)
+              Divider(
+                color: context.tioColors.outlineStrong.withValues(
+                  alpha: TioOpacity.opacity10,
+                ),
+                height: TioSize.dp1,
+              ),
             if (canRemoveExercise)
               ListTile(
-              key: const ValueKey('routine-exercise-option-remove'),
-              leading: Icon(
-                Icons.delete_outline_rounded,
-                color: context.tioColors.danger,
+                key: const ValueKey('routine-exercise-option-remove'),
+                leading: Icon(
+                  Icons.delete_outline_rounded,
+                  color: context.tioColors.danger,
+                ),
+                title: Text(
+                  'Remove Exercise',
+                  style: TextStyle(color: context.tioColors.danger),
+                ),
+                onTap: () => Navigator.of(context)
+                    .pop<RoutineExerciseOption>(RoutineExerciseOption.remove),
               ),
-              title: Text(
-                'Remove Exercise',
-                style: TextStyle(color: context.tioColors.danger),
-              ),
-              onTap: () => Navigator.of(context)
-                  .pop<RoutineExerciseOption>(RoutineExerciseOption.remove),
-            ),
           ],
         ),
       );

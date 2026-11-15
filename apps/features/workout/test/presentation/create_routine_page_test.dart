@@ -11,6 +11,92 @@ const _thinPickerCardHeight = TioSize.dp38 +
     2 * TioCardTokens.borderThin;
 
 void main() {
+  testWidgets('Create method picker generates Warm-up Sets before working Sets',
+      (tester) async {
+    final create = _Create();
+    final settings = WorkoutRuntimeSettingsController(
+      repository: _RuntimeSettingsRepository(),
+    );
+    addTearDown(settings.dispose);
+    final ids = [
+      '44444444-4444-4444-8444-444444444444',
+      '55555555-5555-4555-8555-555555555555',
+      '66666666-6666-4666-8666-666666666666',
+      '77777777-7777-4777-8777-777777777777',
+      '88888888-8888-4888-8888-888888888888',
+      '99999999-9999-4999-8999-999999999999',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    ].iterator;
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => TioTheme(child: child!),
+      home: CreateRoutinePage(
+        program: Program(
+          id: ProgramId('11111111-1111-4111-8111-111111111111'),
+          name: 'Program 1',
+        ),
+        initialName: 'Routine 1',
+        createRepository: create,
+        catalogRepository: _Catalog(),
+        weightUnit: WeightUnit.kg,
+        workoutRuntimeSettingsController: settings,
+        newUuid: () {
+          if (!ids.moveNext()) throw StateError('Unexpected UUID request');
+          return ids.current;
+        },
+      ),
+    ));
+
+    await tester.tap(find.byKey(const ValueKey('create-routine-add-exercise')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercise-row-ex_bench_press')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('exercises-add-selected')));
+    await tester.pumpAndSettle();
+
+    const entryId = '44444444-4444-4444-8444-444444444444';
+    const workingSetId = '55555555-5555-4555-8555-555555555555';
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('routine-set-weight-$workingSetId')),
+        matching: find.byType(EditableText),
+      ),
+      '100',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('routine-set-reps-$workingSetId')),
+        matching: find.byType(EditableText),
+      ),
+      '8',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('create-routine-options-$entryId')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('routine-exercise-option-warmup-methods')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('warmup-methods-done')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('create-routine-save')));
+    await tester.pumpAndSettle();
+    final sets = create.command!.entries.single.sets;
+    expect(sets, hasLength(4));
+    expect(
+      sets.take(3).map((set) => set.prescription.setType),
+      everyElement(RoutineSetType.warmUp),
+    );
+    expect(sets.take(3).map((set) => set.prescription.loadKg), [40, 60, 80]);
+    expect(sets.take(3).map((set) => set.prescription.reps), [5, 5, 3]);
+    expect(sets.last.id, workingSetId);
+    expect(sets.last.prescription.loadKg, 100);
+    expect(sets.last.prescription.reps, 8);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('picker creates an identified Set; blank targets may Save',
       (tester) async {
     final create = _Create();
@@ -1583,6 +1669,14 @@ Future<void> _selectRestWheelItem(WidgetTester tester, int index) async {
 
 final class _RuntimeSettingsRepository
     implements WorkoutRuntimeSettingsRepository {
+  WorkoutWarmupSettings warmupSettings = WorkoutWarmupSettings();
+  @override
+  Future<WorkoutWarmupSettings> readWarmupSettings() async => warmupSettings;
+  @override
+  Future<void> writeWarmupSettings(WorkoutWarmupSettings settings) async {
+    warmupSettings = settings;
+  }
+
   bool vibrationEnabled = false;
   bool rpeEnabled = false;
   bool smartSupersetScrollingEnabled = false;

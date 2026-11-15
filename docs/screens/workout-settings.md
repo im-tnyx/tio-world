@@ -8,7 +8,7 @@ Truth Boundary: Authoritative for Workout Settings ownership and behavior; runti
 **Surface:** Nested Phone Workout configuration
 **Route:** `/settings/workout`
 **Primary owner:** `apps/features/workout`
-**Status:** W10-A, W10-B, and W10-C are merged via PRs #753–#755. Smart Superset Scrolling is part of the active, unmerged Superset implementation slice. Other Workout Settings remain planned.
+**Status:** W10-A, W10-B, and W10-C are merged via PRs #753–#755. Smart Superset Scrolling is part of the active Superset slice. W10-D Warm-up Calculator is an owner-approved local implementation slice, not yet reviewed or merged. Other Workout Settings remain planned.
 
 ## Purpose
 
@@ -106,6 +106,46 @@ focused or a modal is open, and a failed scroll does not undo set logging.
 This approved behavior is in the active Superset source slice; its brief records
 validation and hosted-state limits. No hosted migration has been applied for
 this slice.
+
+## Warm-up Calculator — W10-D source slice
+
+Workout Settings opens a nested Warm-up Calculator screen with an enable switch,
+a Warmup Method picker, and Plate and Dumbbell rounding options. The picker
+shows Classic (Recommended: 40% × 5, 60% × 5, 80% × 3), Strength
+(40% × 5, 60% × 3, 80% × 2, 90% × 1), and Barbell Ramp
+(Bar × 5, 40% × 5, 60% × 3, 80% × 2). Users can add a named method with up to
+eight Percent, Fixed (kg), or Bar rules and edit each rule's reps. `Bar` means
+a standard 20 kg bar. A selected method is shared by Settings, Log Workout,
+and Routine Create/Edit on the same device for the same authenticated owner.
+The Warm-up Calculator navigation row is first in Workout Settings.
+The default increments are 5 kg for Plate and 1 kg for Dumbbell. Settings are
+device-local and authenticated-owner scoped; they do not sync to Supabase.
+Existing formula-only local settings migrate to Classic or a named Custom
+method, preserving a user's edited percentage/reps rules.
+
+In Save-only Log Workout, the Exercise options menu offers the calculator for
+a compatible Exercise before its Sets have progress. The sheet displays the
+selected method, accepts a working weight when a Percent rule needs it,
+previews the calculated Warm-up Sets, and uses the applicable Plate or Dumbbell
+rounding. The calculator header's settings gear opens the same Warm-up
+Calculator settings screen. `Insert warm-up sets` adds the accepted Sets in one
+draft mutation before working Sets.
+Existing Sets, their IDs, completed values, and saved Routine prescriptions
+are preserved. The 8-Set Exercise cap is enforced; a method with too many
+Sets cannot be inserted. This action is explicit and does not
+run automatically on opening a Workout.
+
+Routine Create/Edit Exercise options offer `Warm-up methods` for compatible
+weighted Exercises. Selecting a method and tapping Done computes its rules
+from the first working Set's positive load, then creates/replaces leading
+`warm_up` prescriptions in the local Routine draft. The existing working Sets
+keep their identities and values; replacing existing warm-up Sets asks for
+confirmation. Routine Save/Update uses the existing Set composition contract.
+There is no method field in the persisted Routine and no Supabase shape change.
+
+This slice does not change historical stats, the legacy online session path,
+Supabase schema, RLS, RPC or hosted state. Real-device
+visual and persistence acceptance remain required before claiming release.
 
 ## Target Content
 

@@ -1,3 +1,5 @@
+import '../models/workout_warmup_calculator.dart';
+
 /// Device-local Workout preferences. These values are not account data and
 /// must never be persisted through the Workout/Supabase repositories.
 abstract interface class WorkoutRuntimeSettingsRepository {
@@ -23,4 +25,8 @@ abstract interface class WorkoutRuntimeSettingsRepository {
   Future<bool> readSmartSupersetScrollingEnabled();
 
   Future<void> writeSmartSupersetScrollingEnabled(bool enabled);
+
+  Future<WorkoutWarmupSettings> readWarmupSettings();
+
+  Future<void> writeWarmupSettings(WorkoutWarmupSettings settings);
 }

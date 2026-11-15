@@ -20,10 +20,12 @@ RoutineCreateController _controller(
   // Create gives every picked Exercise its own Set ID before allocating
   // Routine/mutation IDs. Keep the test fixture's allocation order explicit.
   final ids = [
-    _entry1, _set1,
+    _entry1,
+    _set1,
     if (!saveAfterOneExercise) ...[_entry2, _set2],
     if (extraSetId != null) extraSetId,
-    _routineId, _mutation,
+    _routineId,
+    _mutation,
     if (retryAfterDefiniteFailure) ...[
       '88888888-8888-4888-8888-888888888888',
       '99999999-9999-4999-8999-999999999999',
@@ -41,10 +43,10 @@ RoutineCreateController _controller(
 }
 
 Exercise get _exercise => Exercise(
-  ref: ExerciseRef.catalog('ex_bench_press'),
-  displayName: 'Bench Press',
-  status: ExerciseStatus.active,
-);
+      ref: ExerciseRef.catalog('ex_bench_press'),
+      displayName: 'Bench Press',
+      status: ExerciseStatus.active,
+    );
 
 void main() {
   test('new Routine Exercises snapshot Default Rest Timer and explicit OFF',
@@ -89,13 +91,15 @@ void main() {
       ),
       isTrue,
     );
-    expect(draft.state.entries.first.sets.single.prescription.restSeconds, isNull);
+    expect(
+        draft.state.entries.first.sets.single.prescription.restSeconds, isNull);
     expect(draft.state.entries.last.sets.single.prescription.restSeconds, 90);
     expect(
       draft.addSet(firstId, SetPrescription(reps: 10, restSeconds: 90)),
       isNotNull,
     );
-    expect(draft.state.entries.first.sets.last.prescription.restSeconds, isNull);
+    expect(
+        draft.state.entries.first.sets.last.prescription.restSeconds, isNull);
 
     expect(await draft.save(), isTrue);
     expect(
@@ -111,7 +115,8 @@ void main() {
     expect(draft.getExerciseRestPreset(secondId).normalRestSeconds, 90);
   });
 
-  test('Replace keeps order, never carries old targets, and ignores same selection',
+  test(
+      'Replace keeps order, never carries old targets, and ignores same selection',
       () {
     var next = 0;
     final draft = RoutineCreateController(
@@ -127,8 +132,10 @@ void main() {
     final first = draft.addPickedExercise(_exercise)!;
     final originalSet = draft.state.entries.first.sets.single.id;
     final second = draft.addPickedExercise(_exercise)!;
-    expect(draft.editSet(first, originalSet,
-        SetPrescription(reps: 10, loadKg: 20)), isTrue);
+    expect(
+        draft.editSet(
+            first, originalSet, SetPrescription(reps: 10, loadKg: 20)),
+        isTrue);
     final replacement = Exercise(
       ref: ExerciseRef.catalog('ex_run_on_treadmill'),
       displayName: 'Run on Treadmill',
@@ -149,8 +156,7 @@ void main() {
     expect(next, allocated);
   });
 
-  test('at most 8 Sets per Exercise; a ninth does not allocate or mutate',
-      () {
+  test('at most 8 Sets per Exercise; a ninth does not allocate or mutate', () {
     var next = 0;
     final draft = RoutineCreateController(
       program: Program(id: ProgramId(_programId), name: 'Program 1'),
@@ -175,6 +181,92 @@ void main() {
     expect(draft.state.entries.last.sets, hasLength(1));
     expect(draft.addSet(separate, SetPrescription()), isNotNull);
     expect(draft.state.entries.last.sets, hasLength(2));
+  });
+
+  test('applying a method replaces Warm-up Sets and preserves working Sets',
+      () {
+    var next = 0;
+    final draft = RoutineCreateController(
+      program: Program(id: ProgramId(_programId), name: 'Program 1'),
+      initialName: 'Routine 1',
+      repository: _Creates(),
+      newUuid: () {
+        next++;
+        return 'a0000000-0000-4000-8000-${next.toString().padLeft(12, '0')}';
+      },
+    );
+    addTearDown(draft.dispose);
+    final entryId = draft.addPickedExercise(_exercise)!;
+    final workingSet = draft.state.entries.single.sets.single;
+    expect(
+      draft.editSet(
+        entryId,
+        workingSet.id,
+        SetPrescription(reps: 8, loadKg: 100),
+      ),
+      isTrue,
+    );
+    final previousWarmupId = draft.addSet(
+      entryId,
+      SetPrescription(
+        reps: 5,
+        setType: RoutineSetType.warmUp,
+        loadKg: 20,
+      ),
+    );
+    final calculated = WorkoutWarmupCalculator.calculateMethod(
+      method: WorkoutWarmupSettings().selectedMethod,
+      workingWeightKg: 100,
+      roundingKg: 5,
+    );
+
+    expect(draft.applyWarmupMethod(entryId, calculated), isTrue);
+    final sets = draft.state.entries.single.sets;
+    expect(sets, hasLength(4));
+    expect(sets.take(3).map((set) => set.prescription.setType),
+        everyElement(RoutineSetType.warmUp));
+    expect(sets.take(3).map((set) => set.prescription.loadKg), [40, 60, 80]);
+    expect(sets.first.id, previousWarmupId);
+    expect(sets.last.id, workingSet.id);
+    expect(sets.last.prescription.loadKg, 100);
+    expect(sets.last.prescription.reps, 8);
+    expect(
+      RoutineCompositionLimits.hasValidSetOrder(
+        sets.map((set) => set.prescription),
+      ),
+      isTrue,
+    );
+  });
+
+  test('method application refuses to exceed the existing Set cap', () {
+    var next = 0;
+    final draft = RoutineCreateController(
+      program: Program(id: ProgramId(_programId), name: 'Program 1'),
+      initialName: 'Routine 1',
+      repository: _Creates(),
+      newUuid: () {
+        next++;
+        return 'b0000000-0000-4000-8000-${next.toString().padLeft(12, '0')}';
+      },
+    );
+    addTearDown(draft.dispose);
+    final entryId = draft.addPickedExercise(_exercise)!;
+    for (var index = 1;
+        index < RoutineCompositionLimits.maxSetsPerExercise;
+        index++) {
+      draft.addSet(entryId, SetPrescription(reps: 8, loadKg: 100));
+    }
+    final before = draft.state.entries;
+    final calculated = WorkoutWarmupCalculator.calculateMethod(
+      method: WorkoutWarmupSettings().methods[1],
+      workingWeightKg: 100,
+      roundingKg: 5,
+    );
+    final allocated = next;
+
+    expect(draft.applyWarmupMethod(entryId, calculated), isFalse);
+    expect(draft.state.entries, same(before));
+    expect(next, allocated);
   });
 
   test('STEPS/TIME Custom cannot enter Create draft or replace a Set', () {
@@ -207,7 +299,8 @@ void main() {
     expect(repo.calls, 0);
   });
 
-  test('adding an Exercise auto-creates distinct Set 1 with valid prescription', () {
+  test('adding an Exercise auto-creates distinct Set 1 with valid prescription',
+      () {
     final c = _controller(_Creates());
     addTearDown(c.dispose);
     expect(c.addPickedExercise(_exercise), _entry1);
@@ -240,7 +333,8 @@ void main() {
     expect(saved.prescription.loadKg, isNull);
   });
 
-  test('two copies of same canonical Exercise have independent Set identities', () {
+  test('two copies of same canonical Exercise have independent Set identities',
+      () {
     final c = _controller(_Creates());
     addTearDown(c.dispose);
     c.addPickedExercise(_exercise);
@@ -289,7 +383,8 @@ void main() {
     expect(c.removeFromSuperset(second), isTrue);
     expect(c.state.entries.map((entry) => entry.id),
         [first, third, second, fourth]);
-    expect(c.state.entries.take(2).every((entry) => entry.supersetId == groupId),
+    expect(
+        c.state.entries.take(2).every((entry) => entry.supersetId == groupId),
         isTrue);
     expect(c.state.entries[2].supersetId, isNull);
     expect(c.removeFromSuperset(second), isFalse);
@@ -301,9 +396,11 @@ void main() {
     expect(c.moveExercise(0, 3), isTrue);
     expect(c.state.entries.map((entry) => entry.id),
         [fourth, first, second, third]);
-    expect(c.state.entries
-        .where((entry) => entry.supersetId == groupId)
-        .map((entry) => entry.id), [first, second, third]);
+    expect(
+        c.state.entries
+            .where((entry) => entry.supersetId == groupId)
+            .map((entry) => entry.id),
+        [first, second, third]);
 
     expect(c.removeFromSuperset(first), isTrue);
     expect(c.state.entries.firstWhere((entry) => entry.id == first).supersetId,
@@ -312,11 +409,19 @@ void main() {
         hasLength(2));
     expect(c.removeFromSuperset(second), isTrue);
     expect(c.state.supersets, isEmpty);
-    expect(c.state.entries
-        .where((entry) => entry.id == third || entry.id == second)
-        .every((entry) => entry.supersetId == null), isTrue);
-    expect(c.state.entries.firstWhere((entry) => entry.id == second)
-        .sets.single.prescription.restSeconds, 90);
+    expect(
+        c.state.entries
+            .where((entry) => entry.id == third || entry.id == second)
+            .every((entry) => entry.supersetId == null),
+        isTrue);
+    expect(
+        c.state.entries
+            .firstWhere((entry) => entry.id == second)
+            .sets
+            .single
+            .prescription
+            .restSeconds,
+        90);
   });
 
   test('Set Type and Rep Range preserve UUID/load/rest and mode', () {
@@ -340,15 +445,16 @@ void main() {
     expect(added.prescription.repsMax, 1);
 
     expect(c.changeRepetitionMode(_entry1, range: false), isTrue);
-    expect(c.state.entries.single.sets.every(
-      (s) => s.prescription.repsMax == null), isTrue);
+    expect(
+        c.state.entries.single.sets
+            .every((s) => s.prescription.repsMax == null),
+        isTrue);
     expect(c.state.entries.single.sets.first.prescription.setType,
-      RoutineSetType.warmUp);
+        RoutineSetType.warmUp);
     expect(c.state.entries.single.sets.map((s) => s.id), [_set1, _entry2]);
   });
 
-  test('removing the final Set removes its Exercise and cannot Save',
-      () async {
+  test('removing the final Set removes its Exercise and cannot Save', () async {
     final repo = _Creates();
     final c = _controller(repo);
     addTearDown(c.dispose);
@@ -433,7 +539,8 @@ void main() {
     addTearDown(draft.dispose);
     final custom = Exercise(
       ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
-      displayName: 'Custom', status: ExerciseStatus.active,
+      displayName: 'Custom',
+      status: ExerciseStatus.active,
       exerciseType: ExerciseType.weightReps,
     );
     expect(draft.addPickedExercise(custom), _entry1);
@@ -444,15 +551,18 @@ void main() {
   });
 
   for (final currentType in [
-    ExerciseType.duration, ExerciseType.distanceDuration,
+    ExerciseType.duration,
+    ExerciseType.distanceDuration,
   ]) {
-    test('Create fails closed when Custom weightReps became ${currentType.name}',
+    test(
+        'Create fails closed when Custom weightReps became ${currentType.name}',
         () async {
       final repo = _Creates();
       final ids = [_entry1, _set1, _routineId, _mutation].iterator;
       final draft = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'Program 1'),
-        initialName: 'Routine 1', repository: repo,
+        initialName: 'Routine 1',
+        repository: repo,
         userExercises: _StepExerciseRepository(exerciseType: currentType),
         newUuid: () {
           if (!ids.moveNext()) throw StateError('Unexpected UUID');
@@ -462,13 +572,20 @@ void main() {
       addTearDown(draft.dispose);
       final selected = Exercise(
         ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
-        displayName: 'My Lift', status: ExerciseStatus.active,
+        displayName: 'My Lift',
+        status: ExerciseStatus.active,
         exerciseType: ExerciseType.weightReps,
       );
       final entry = draft.addPickedExercise(selected)!;
-      expect(draft.editSet(entry, _set1, SetPrescription(
-        reps: 10, loadKg: 25,
-      )), isTrue);
+      expect(
+          draft.editSet(
+              entry,
+              _set1,
+              SetPrescription(
+                reps: 10,
+                loadKg: 25,
+              )),
+          isTrue);
       expect(await draft.save(), isFalse);
       expect(draft.state.status, RoutineCreateStatus.ready);
       expect(draft.state.message, contains('type changed'));
@@ -483,7 +600,8 @@ void main() {
     final ids = [_entry1, _set1, _routineId, _mutation].iterator;
     final draft = RoutineCreateController(
       program: Program(id: ProgramId(_programId), name: 'Program 1'),
-      initialName: 'Routine 1', repository: repo,
+      initialName: 'Routine 1',
+      repository: repo,
       userExercises: _StepExerciseRepository(
         exerciseType: ExerciseType.weightReps,
       ),
@@ -495,12 +613,19 @@ void main() {
     addTearDown(draft.dispose);
     final entry = draft.addPickedExercise(Exercise(
       ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
-      displayName: 'My Run', status: ExerciseStatus.active,
+      displayName: 'My Run',
+      status: ExerciseStatus.active,
       exerciseType: ExerciseType.distanceDuration,
     ))!;
-    expect(draft.editSet(entry, _set1, SetPrescription(
-      distanceMeters: 3000, durationSeconds: 900,
-    )), isTrue);
+    expect(
+        draft.editSet(
+            entry,
+            _set1,
+            SetPrescription(
+              distanceMeters: 3000,
+              durationSeconds: 900,
+            )),
+        isTrue);
     expect(await draft.save(), isFalse);
     expect(draft.state.message, contains('type changed'));
     expect(repo.calls, 0);
@@ -508,25 +633,31 @@ void main() {
         3000);
   });
 
-  test('unknown Create reconcile accepts a renamed committed Routine', () async {
+  test('unknown Create reconcile accepts a renamed committed Routine',
+      () async {
     final repo = _Creates()..error = StateError('lost ACK');
     final draft = _controller(repo, saveAfterOneExercise: true);
     addTearDown(draft.dispose);
     draft.addPickedExercise(_exercise);
     expect(await draft.save(), isFalse);
     final command = repo.command!;
-    expect(await draft.reconcileUnknown(
-      routines: _RenamedRoutineRepository(Routine(
-        id: command.routine.id, programId: command.routine.programId,
-        name: 'Renamed on another device',
-      )),
-      compositions: _CommittedCompositionRepository(
-        RoutineCompositionSnapshot(
-          routineId: command.routine.id, revision: 1,
-          lastMutationId: command.mutationId, entries: command.entries,
+    expect(
+        await draft.reconcileUnknown(
+          routines: _RenamedRoutineRepository(Routine(
+            id: command.routine.id,
+            programId: command.routine.programId,
+            name: 'Renamed on another device',
+          )),
+          compositions: _CommittedCompositionRepository(
+            RoutineCompositionSnapshot(
+              routineId: command.routine.id,
+              revision: 1,
+              lastMutationId: command.mutationId,
+              entries: command.entries,
+            ),
+          ),
         ),
-      ),
-    ), isTrue);
+        isTrue);
     expect(draft.state.status, RoutineCreateStatus.saved);
     expect(repo.calls, 1);
   });
@@ -542,21 +673,26 @@ void main() {
     final changedEntry = RoutineCompositionEntry(
       id: command.entries.single.id,
       exercise: command.entries.single.exercise,
-      sets: [RoutineCompositionSet(
-        id: command.entries.single.sets.single.id,
-        prescription: SetPrescription(reps: 16),
-      )],
+      sets: [
+        RoutineCompositionSet(
+          id: command.entries.single.sets.single.id,
+          prescription: SetPrescription(reps: 16),
+        )
+      ],
     );
-    expect(await draft.reconcileUnknown(
-      routines: _RenamedRoutineRepository(command.routine),
-      compositions: _CommittedCompositionRepository(
-        RoutineCompositionSnapshot(
-          routineId: command.routine.id, revision: 2,
-          lastMutationId: '90000000-0000-4000-8000-000000000001',
-          entries: [changedEntry],
+    expect(
+        await draft.reconcileUnknown(
+          routines: _RenamedRoutineRepository(command.routine),
+          compositions: _CommittedCompositionRepository(
+            RoutineCompositionSnapshot(
+              routineId: command.routine.id,
+              revision: 2,
+              lastMutationId: '90000000-0000-4000-8000-000000000001',
+              entries: [changedEntry],
+            ),
+          ),
         ),
-      ),
-    ), isTrue);
+        isTrue);
     expect(draft.state.status, RoutineCreateStatus.saved);
     expect(repo.calls, 1);
   });
@@ -585,13 +721,16 @@ void main() {
   });
 
   group('Warm-up Set Ordering Invariant', () {
-    test('adding Warm-up set inserts after warm-up group and before working sets', () {
+    test(
+        'adding Warm-up set inserts after warm-up group and before working sets',
+        () {
       var next = 0;
       final c = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'P1'),
         initialName: 'R1',
         repository: _Creates(),
-        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+        newUuid: () =>
+            "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
       );
       addTearDown(c.dispose);
       c.addPickedExercise(_exercise);
@@ -630,19 +769,21 @@ void main() {
       expect(sets[3].id, normalId2);
     });
 
-    test('changing Normal to Warm-up moves to end of Warm-up group and preserves ID/values', () {
+    test(
+        'changing Normal to Warm-up moves to end of Warm-up group and preserves ID/values',
+        () {
       var next = 0;
       final c = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'P1'),
         initialName: 'R1',
         repository: _Creates(),
-        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+        newUuid: () =>
+            "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
       );
       addTearDown(c.dispose);
       c.addPickedExercise(
         _exercise,
-        initialRestPreset:
-            const RoutineRestTimerPreset(normalRestSeconds: 90),
+        initialRestPreset: const RoutineRestTimerPreset(normalRestSeconds: 90),
       );
       final entryId = c.state.entries.single.id;
       final s1Id = c.state.entries.single.sets[0].id;
@@ -672,13 +813,15 @@ void main() {
       expect(sets[1].prescription.restSeconds, 90);
     });
 
-    test('changing Failure or Drop to Warm-up moves to end of Warm-up group', () {
+    test('changing Failure or Drop to Warm-up moves to end of Warm-up group',
+        () {
       var next = 0;
       final c = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'P1'),
         initialName: 'R1',
         repository: _Creates(),
-        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+        newUuid: () =>
+            "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
       );
       addTearDown(c.dispose);
       c.addPickedExercise(_exercise);
@@ -703,7 +846,8 @@ void main() {
         program: Program(id: ProgramId(_programId), name: 'P1'),
         initialName: 'R1',
         repository: _Creates(),
-        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+        newUuid: () =>
+            "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
       );
       addTearDown(c.dispose);
       c.addPickedExercise(_exercise);
@@ -728,13 +872,16 @@ void main() {
       expect(sets[1].prescription.reps, 15);
     });
 
-    test('reordering validates invariant and rejects invalid Warm-up-after-Normal', () {
+    test(
+        'reordering validates invariant and rejects invalid Warm-up-after-Normal',
+        () {
       var next = 0;
       final c = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'P1'),
         initialName: 'R1',
         repository: _Creates(),
-        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+        newUuid: () =>
+            "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
       );
       addTearDown(c.dispose);
       c.addPickedExercise(_exercise);
@@ -762,13 +909,16 @@ void main() {
       expect(sets.map((s) => s.id).toList(), [w2Id, w1Id, normalId]);
     });
 
-    test('editSet changing Normal to Warm-up repositions set to end of Warm-up group', () {
+    test(
+        'editSet changing Normal to Warm-up repositions set to end of Warm-up group',
+        () {
       var next = 0;
       final c = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'P1'),
         initialName: 'R1',
         repository: _Creates(),
-        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+        newUuid: () =>
+            "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
       );
       addTearDown(c.dispose);
       c.addPickedExercise(_exercise);
@@ -793,19 +943,23 @@ void main() {
         isTrue,
       );
       final sets = c.state.entries.single.sets;
-      expect(sets.map((s) => s.id).toList(), [warmUpId, workingSetId, normalId]);
+      expect(
+          sets.map((s) => s.id).toList(), [warmUpId, workingSetId, normalId]);
       expect(sets[1].prescription.setType, RoutineSetType.warmUp);
       expect(sets[1].prescription.reps, 12);
       expect(sets[1].prescription.loadKg, 30);
     });
 
-    test('editSet changing Warm-up to Normal repositions set after remaining Warm-up sets', () {
+    test(
+        'editSet changing Warm-up to Normal repositions set after remaining Warm-up sets',
+        () {
       var next = 0;
       final c = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'P1'),
         initialName: 'R1',
         repository: _Creates(),
-        newUuid: () => "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
+        newUuid: () =>
+            "00000000-0000-4000-8000-${(++next).toString().padLeft(12, '0')}",
       );
       addTearDown(c.dispose);
       c.addPickedExercise(_exercise);
@@ -835,7 +989,9 @@ void main() {
       expect(sets[1].prescription.loadKg, 50);
     });
 
-    test('configureExerciseRestTimer updates existing sets and addSet inherits preset', () {
+    test(
+        'configureExerciseRestTimer updates existing sets and addSet inherits preset',
+        () {
       var next = 0;
       final c = RoutineCreateController(
         program: Program(id: ProgramId(_programId), name: 'Program 1'),
@@ -987,21 +1143,30 @@ void main() {
       // silently turn their countdown on.
       final offNormalId = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
+        SetPrescription(
+            setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
       )!;
       final offZeroId = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 0),
+        SetPrescription(
+            setType: RoutineSetType.normal, reps: 10, restSeconds: 0),
       )!;
       final offNullId = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: null),
+        SetPrescription(
+            setType: RoutineSetType.normal, reps: 10, restSeconds: null),
       )!;
 
       var sets = c.state.entries.single.sets;
-      expect(sets.singleWhere((s) => s.id == offNormalId).prescription.restSeconds, isNull);
-      expect(sets.singleWhere((s) => s.id == offZeroId).prescription.restSeconds, isNull);
-      expect(sets.singleWhere((s) => s.id == offNullId).prescription.restSeconds, isNull);
+      expect(
+          sets.singleWhere((s) => s.id == offNormalId).prescription.restSeconds,
+          isNull);
+      expect(
+          sets.singleWhere((s) => s.id == offZeroId).prescription.restSeconds,
+          isNull);
+      expect(
+          sets.singleWhere((s) => s.id == offNullId).prescription.restSeconds,
+          isNull);
 
       // Now configure active preset: Normal = 90s, Warm-up = 30s
       c.configureExerciseRestTimer(
@@ -1013,21 +1178,39 @@ void main() {
       // Adding set with stale restSeconds (e.g. 15s) must be overridden by active preset
       final staleNormalId = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 15),
+        SetPrescription(
+            setType: RoutineSetType.normal, reps: 10, restSeconds: 15),
       )!;
       final staleWarmUpId = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.warmUp, reps: 15, restSeconds: 60),
+        SetPrescription(
+            setType: RoutineSetType.warmUp, reps: 15, restSeconds: 60),
       )!;
       final staleFailureId = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.failure, reps: 8, restSeconds: 20),
+        SetPrescription(
+            setType: RoutineSetType.failure, reps: 8, restSeconds: 20),
       )!;
 
       sets = c.state.entries.single.sets;
-      expect(sets.singleWhere((s) => s.id == staleNormalId).prescription.restSeconds, 90);
-      expect(sets.singleWhere((s) => s.id == staleWarmUpId).prescription.restSeconds, 30);
-      expect(sets.singleWhere((s) => s.id == staleFailureId).prescription.restSeconds, 90);
+      expect(
+          sets
+              .singleWhere((s) => s.id == staleNormalId)
+              .prescription
+              .restSeconds,
+          90);
+      expect(
+          sets
+              .singleWhere((s) => s.id == staleWarmUpId)
+              .prescription
+              .restSeconds,
+          30);
+      expect(
+          sets
+              .singleWhere((s) => s.id == staleFailureId)
+              .prescription
+              .restSeconds,
+          90);
 
       // Warm-up timer OFF while Normal is active (90s):
       // Warm-up set with stale restSeconds falls back to Normal preset (90s)
@@ -1038,10 +1221,16 @@ void main() {
       );
       final fallbackWarmUpId = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.warmUp, reps: 12, restSeconds: 50),
+        SetPrescription(
+            setType: RoutineSetType.warmUp, reps: 12, restSeconds: 50),
       )!;
       sets = c.state.entries.single.sets;
-      expect(sets.singleWhere((s) => s.id == fallbackWarmUpId).prescription.restSeconds, 90);
+      expect(
+          sets
+              .singleWhere((s) => s.id == fallbackWarmUpId)
+              .prescription
+              .restSeconds,
+          90);
     });
 
     test('configuring OFF clears legacy per-set rest values', () {
@@ -1059,31 +1248,37 @@ void main() {
 
       final set1Id = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
+        SetPrescription(
+            setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
       )!;
       final set2Id = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 60),
+        SetPrescription(
+            setType: RoutineSetType.normal, reps: 10, restSeconds: 60),
       )!;
       final set3Id = c.addSet(
         entryId,
-        SetPrescription(setType: RoutineSetType.warmUp, reps: 15, restSeconds: 20),
+        SetPrescription(
+            setType: RoutineSetType.warmUp, reps: 15, restSeconds: 20),
       )!;
 
       c.editSet(
         entryId,
         set1Id,
-        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
+        SetPrescription(
+            setType: RoutineSetType.normal, reps: 10, restSeconds: 45),
       );
       c.editSet(
         entryId,
         set2Id,
-        SetPrescription(setType: RoutineSetType.normal, reps: 10, restSeconds: 60),
+        SetPrescription(
+            setType: RoutineSetType.normal, reps: 10, restSeconds: 60),
       );
       c.editSet(
         entryId,
         set3Id,
-        SetPrescription(setType: RoutineSetType.warmUp, reps: 15, restSeconds: 20),
+        SetPrescription(
+            setType: RoutineSetType.warmUp, reps: 15, restSeconds: 20),
       );
 
       expect(c.getExerciseRestPreset(entryId).isOff, isTrue);
@@ -1097,9 +1292,12 @@ void main() {
       expect(c.getExerciseRestPreset(entryId).isOff, isTrue);
 
       final sets = c.state.entries.single.sets;
-      expect(sets.singleWhere((s) => s.id == set1Id).prescription.restSeconds, isNull);
-      expect(sets.singleWhere((s) => s.id == set2Id).prescription.restSeconds, isNull);
-      expect(sets.singleWhere((s) => s.id == set3Id).prescription.restSeconds, isNull);
+      expect(sets.singleWhere((s) => s.id == set1Id).prescription.restSeconds,
+          isNull);
+      expect(sets.singleWhere((s) => s.id == set2Id).prescription.restSeconds,
+          isNull);
+      expect(sets.singleWhere((s) => s.id == set3Id).prescription.restSeconds,
+          isNull);
     });
   });
 }
@@ -1125,12 +1323,13 @@ final class _StepExerciseRepository extends Fake
 
   @override
   Future<List<Exercise>> list({bool includeArchived = false}) async => [
-    Exercise(
-      ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
-      displayName: 'Custom Exercise', status: ExerciseStatus.active,
-      exerciseType: exerciseType,
-    ),
-  ];
+        Exercise(
+          ref: ExerciseRef.userCreated('90000000-0000-4000-8000-000000000001'),
+          displayName: 'Custom Exercise',
+          status: ExerciseStatus.active,
+          exerciseType: exerciseType,
+        ),
+      ];
 }
 
 final class _RenamedRoutineRepository extends Fake

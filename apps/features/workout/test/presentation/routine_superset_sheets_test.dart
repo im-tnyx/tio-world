@@ -24,6 +24,7 @@ void main() {
             onPressed: () => result = showRoutineExerciseOptionsSheet(
               context,
               isGrouped: true,
+              canUseWarmupCalculator: true,
             ),
             child: const Text('Open options'),
           ),
@@ -35,6 +36,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('routine-exercise-options-sheet')),
         findsOneWidget);
+    expect(find.byKey(const ValueKey('routine-exercise-option-warmup')),
+        findsOneWidget);
+    expect(
+      tester.getTopLeft(
+        find.byKey(const ValueKey('routine-exercise-option-warmup')),
+      ).dy,
+      lessThan(
+        tester.getTopLeft(
+          find.byKey(const ValueKey('routine-exercise-option-add-superset')),
+        ).dy,
+      ),
+    );
     expect(find.byKey(const ValueKey('routine-exercise-option-add-superset')),
         findsOneWidget);
     expect(

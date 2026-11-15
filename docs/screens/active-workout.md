@@ -1,14 +1,14 @@
 # Active Workout Screen
 
 Document Status: Canonical Live Doc
-Last Verified: 2026-11-13 (W10-A/B merged; W10-C local RPE visibility review-gated)
+Last Verified: 2026-11-15 (W10-D local source reviewed; Flutter/device validation pending)
 Owner: `apps/features/workout`
 Truth Boundary: Authoritative for Active Workout ownership and intended behavior; source/merge state and device acceptance are recorded separately.
 
 **Surface:** Nested Phone Workout execution flow
 **Route:** `/workout/active`
 **Primary owner:** `apps/features/workout`
-**Status:** The Active Workout route and account-bound local Save-only draft are merged source. Home Play opens an empty ad-hoc draft. Routine Detail `Start Routine` and direct Routine-row Play from Program Detail/expanded Library seed this draft through one guarded flow. W10-A initializes newly added Exercises in the Save-only Log Workout draft from the device-local Default Rest Timer. W10-B adds optional foreground Rest Timer vibration. W10-C introduces a separately reviewed device-local RPE column visibility setting. No distributed release or device acceptance is claimed.
+**Status:** The Active Workout route and account-bound local Save-only draft are merged source. Home Play opens an empty ad-hoc draft. Routine Detail `Start Routine` and direct Routine-row Play from Program Detail/expanded Library seed this draft through one guarded flow. W10-A initializes newly added Exercises in the Save-only Log Workout draft from the device-local Default Rest Timer. W10-B adds optional foreground Rest Timer vibration. W10-C introduces a separately reviewed device-local RPE column visibility setting. W10-D Warm-up Calculator is an owner-approved local source slice, pending Flutter/device validation and review. No distributed release or device acceptance is claimed.
 
 ## Purpose
 
@@ -41,6 +41,7 @@ Routine Start does not create a W7B server session. Saved history continues to u
 - Active-session state is independent from the selected navigation layout. If Workout or Library is hidden/reordered, a persistent shell/Home Resume entry must still reach this canonical session.
 - A mode/layout change during a live session preserves recorded input and cannot start a duplicate session. Any destructive discard remains an explicit Workout-owned confirmation.
 - Default Rest Timer changes apply only to newly added Exercises. Existing active draft values are not rewritten, and the selected per-Exercise value is recovered through existing `restPreset`/`hasRestOverride` fields.
+- The Exercise options sheet puts `Add warm-up sets` first when the calculator is available. It previews the selected named method's Percent, Fixed (kg), or standard 20 kg Bar rules with applicable Plate/Dumbbell rounding, and inserts the accepted `warm_up` Sets into the current Save-only Log Workout draft before working Sets, within the 8-Set cap. Percent rules require a positive working load. Existing Set identities and progress are preserved; progressed Exercises cannot accept a new calculated group.
 - RPE Tracking is an owner-scoped device-local display preference, separate from Set RPE. The existing Save-only draft DTO stores Set RPE in `routine_snapshot.exercises[].prescribed_sets[].performed_rpe`; hiding or restoring the column never rewrites those values.
 
 ## Acceptance Criteria

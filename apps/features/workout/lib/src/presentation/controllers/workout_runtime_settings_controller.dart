@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../domain/models/routine_rest_timer_preset.dart';
+import '../../domain/models/workout_warmup_calculator.dart';
 import '../../domain/repositories/workout_runtime_settings_repository.dart';
 
 /// Holds the current device-local Workout settings for one owner-scoped
@@ -41,6 +42,58 @@ final class WorkoutRuntimeSettingsController extends ChangeNotifier {
   bool _isSmartSupersetScrollingSaving = false;
   bool _smartSupersetScrollingEnabled = false;
   Object? _smartSupersetScrollingError;
+
+  Future<void>? _warmupLoadFuture;
+  bool _isWarmupLoaded = false;
+  bool _isWarmupLoading = false;
+  bool _isWarmupSaving = false;
+  WorkoutWarmupSettings? _warmupSettings;
+  Object? _warmupError;
+
+  bool get isWarmupLoading => _isWarmupLoading;
+  bool get isWarmupSaving => _isWarmupSaving;
+  bool get isWarmupReady => _isWarmupLoaded && _warmupError == null;
+  WorkoutWarmupSettings? get warmupSettings =>
+      isWarmupReady ? _warmupSettings : null;
+  Object? get warmupError => _warmupError;
+
+  Future<void> loadWarmupSettings() {
+    if (_isWarmupLoaded) return Future<void>.value();
+    return _warmupLoadFuture ??= _loadWarmupSettings();
+  }
+
+  Future<void> _loadWarmupSettings() async {
+    _isWarmupLoading = true;
+    _warmupError = null;
+    notifyListeners();
+    try {
+      _warmupSettings = await _repository.readWarmupSettings();
+      _isWarmupLoaded = true;
+    } catch (error) {
+      _warmupSettings = null;
+      _warmupError = error;
+    } finally {
+      _isWarmupLoading = false;
+      _warmupLoadFuture = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> setWarmupSettings(WorkoutWarmupSettings settings) async {
+    await loadWarmupSettings();
+    if (!isWarmupReady) {
+      throw StateError('Warm-up calculator settings are unavailable.');
+    }
+    _isWarmupSaving = true;
+    notifyListeners();
+    try {
+      await _repository.writeWarmupSettings(settings);
+      _warmupSettings = settings;
+    } finally {
+      _isWarmupSaving = false;
+      notifyListeners();
+    }
+  }
 
   bool get isRpeLoading => _isRpeLoading;
   bool get isRpeSaving => _isRpeSaving;

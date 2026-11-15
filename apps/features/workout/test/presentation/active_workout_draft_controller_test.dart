@@ -732,6 +732,55 @@ void main() {
     controller.dispose();
   });
 
+  test('calculator inserts durable warm-up sets before working set without replacing IDs',
+      () async {
+    final store = _Store();
+    var nextId = 100;
+    final controller = ActiveWorkoutDraftController(
+      store: store,
+      ownerId: owner,
+      clock: () => DateTime.utc(2026, 11, 15, 8),
+      newUuid: () => _id(nextId++),
+    );
+    addTearDown(controller.dispose);
+    expect(await controller.restoreOrStart(), isTrue);
+    expect(await controller.addExercises([_exercise('ex_bench', 'Bench')]), isTrue);
+    final exercise = controller.draft!.exercises.single;
+    final originalSetId = exercise.sets.single.id;
+    final generated = WorkoutWarmupCalculator.calculate(
+      workingWeightKg: 67,
+      formula: WorkoutWarmupSettings.defaultFormula,
+      roundingKg: 2.5,
+    );
+    expect(await controller.insertWarmupSets(exercise.id, generated), isTrue);
+    final sets = controller.draft!.exercises.single.sets;
+    expect(sets.length, 4);
+    expect(sets.last.id, originalSetId);
+    expect(sets.take(3).map((set) => set.prescription.setType),
+        everyElement(RoutineSetType.warmUp));
+    expect(sets.take(3).map((set) => set.prescription.loadKg).toList(),
+        [27.5, 40, 52.5]);
+    expect(store.saved!.exercises.single.sets.map((set) => set.id).toList(),
+        sets.map((set) => set.id).toList());
+
+    expect(await controller.insertWarmupSets(exercise.id, generated), isTrue);
+    expect(controller.draft!.exercises.single.sets.length, 7);
+    expect(await controller.insertWarmupSets(exercise.id, generated), isFalse);
+    expect(controller.draft!.exercises.single.sets.length, 7);
+
+    expect(await controller.toggleLogged(
+      exercise.id,
+      originalSetId,
+      reps: 5,
+      loadKg: 67,
+    ), isTrue);
+    expect(await controller.insertWarmupSets(
+      exercise.id,
+      [generated.first],
+    ), isFalse);
+    expect(controller.draft!.exercises.single.sets.length, 7);
+  });
+
   test('interrupted first write recovers the durable candidate on restore',
       () async {
     final store = _Store()..failAfterWrite = true;
