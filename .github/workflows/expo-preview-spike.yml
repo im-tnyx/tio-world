@@ -65,5 +65,5 @@ jobs:
           cd "$tmp/worktree/apps/app"
           flutter create --platforms=web --project-name=tio_app .
           flutter pub get
-          flutter build web --debug --no-pub
-          echo "Flutter Web compiled, but device/WebView parity is still NOT verified."
+          flutter build web --debug --wasm --no-pub
+          echo "Flutter WebAssembly build compiled, but Expo Go WebView compatibility and device parity are NOT verified."
