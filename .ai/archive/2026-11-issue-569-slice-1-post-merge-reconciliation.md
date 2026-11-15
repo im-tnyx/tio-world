@@ -1,6 +1,6 @@
 # GitHub #569: Slice 1 — Move Routine Post-Merge Reconciliation
 
-**Status:** In progress
+**Status:** Validated / merged via [PR #662](https://github.com/im-tnyx/tio-world/pull/662) on 2026-10-23; archived 2026-11-15
 **Primary owner:** `im-tnyx`
 **Affected platforms:** Documentation, task briefs, tracker governance
 
@@ -25,14 +25,14 @@
 **Planning owner:** GitHub #569 / Linear TNYX-81 and TNYX-267
 **Implementation owner:** `im-tnyx`
 **Review owner:** Connected reviewer `im-tio` / Codex
-**Implementation ownership state:** In Review ([PR #662](https://github.com/im-tnyx/tio-world/pull/662) opened; CI passed; P3 review findings resolved)
+**Implementation ownership state:** Complete / merged ([PR #662](https://github.com/im-tnyx/tio-world/pull/662)); independent `im-tio` APPROVED exact HEAD `1c4d5a5a68ca352a589d6a628f07d7ab059ac26b`.
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main@16dbb6dbee51035280bfa8dec97153273cd764be`
 **Branch:** `docs/issue-569-slice-1-post-merge-reconciliation`
 **HEAD SHA:** GitHub live tip is authoritative ([PR #662](https://github.com/im-tnyx/tio-world/pull/662))
 **Observed working-tree state:** Clean on branch; bounded documentation and task brief updates.
 **Observed uncommitted/dirty files:** None outside bounded task files.
-**PR / tracker:** GitHub #569 OPEN (reconciliation comment [#6371164064](https://github.com/im-tnyx/tio-world/issues/569#issuecomment-6371164064) posted); GitHub #567 OPEN; PR #657 MERGED; PR #660 MERGED; PR #661 MERGED (`16dbb6db`; post-merge CI `39989687126` SUCCESS); PR #662 OPEN; Linear TNYX-81 & TNYX-267 in Backlog.
+**PR / tracker:** GitHub #569 OPEN; GitHub #567 OPEN; PR #657, #660, #661, and #662 MERGED. Linear TNYX-81 and TNYX-267 remain broader Backlog items. Current hosted Move grant and build-gate status supersede this brief's dated 68/68 and default-OFF snapshots.
 **Current implementation state:** Documentation and task handoff reconciliation complete across canonical docs and task indexes. P3-1 and P3-2 review findings addressed.
 **Relevant execution surface:**
 - `docs/screens/routine-library.md`
@@ -42,10 +42,10 @@
 - `.ai/tasks/README.md`
 - `.ai/tasks/issue-569-slice-1-post-merge-reconciliation.md`
 **Validation completed at SHA:** Local `git diff --check` PASS (exit 0); PR #662 Docs Hygiene CI [run #39997741516](https://github.com/im-tnyx/tio-world/actions/runs/39997741516) SUCCESS; Commit attribution guard [run #39997741428](https://github.com/im-tnyx/tio-world/actions/runs/39997741428) SUCCESS; Codex code review COMPLETED with 0 findings.
-**Validation remaining:** Push P3 fixes, verify exact-head CI on PR #662, request reviewer recheck, stop at merge gate.
+**Validation remaining:** None for this documentation slice. The later approved hosted Move QA/security and public release gates remain open in current handoff/runbook.
 **Current blocker:** None. Linear CLI reports `No API key configured` (recorded limitation).
 **Open review finding IDs:** `PRRT_kwDOTOXwB86vt6au` (P3-1: resolved); `PRRT_kwDOTOXwB86vt6a3` (P3-2: resolved).
-**Next exact action:** Commit and push P3 corrections, reply to and resolve review threads, verify CI, stop before merge.
+**Next exact action:** Use the current Move build-mode brief and canonical docs; do not treat this historical review checkpoint as current hosted ACL or release truth.
 
 ## 1. Discovery
 

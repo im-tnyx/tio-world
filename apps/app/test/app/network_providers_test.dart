@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -141,12 +142,12 @@ void main() {
     }
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    expect(container.read(routineMoveReleaseEnabledProvider), isFalse);
+    expect(container.read(routineMoveReleaseEnabledProvider), !kReleaseMode);
     expect(container.read(routineMoveQaEnabledProvider), isFalse,
-        reason: 'ordinary debug/profile/release builds must not expose Move');
+        reason: 'the independent QA-only define remains off by default');
   });
 
-  test('Move release capability is OFF even with valid auth', () async {
+  test('Move build gate follows build mode even with valid auth', () async {
     const owner = '11111111-1111-4111-8111-111111111111';
     final c = _moveContainer(
       _MoveAuth(_moveUser(owner)),
@@ -157,11 +158,11 @@ void main() {
     await c.read(authSessionStateProvider.future);
     expect(c.read(routineMoveRepositoryProvider), isNotNull);
     expect(c.read(routineCreateMoveRepositoryProvider), isNotNull);
-    expect(c.read(routineMoveReleaseEnabledProvider), isFalse,
-        reason: 'backend + cross-mutation/refresh/device gates are not met');
+    expect(c.read(routineMoveReleaseEnabledProvider), !kReleaseMode,
+        reason: 'auth does not change the mode-based presentation default');
     c.invalidate(routineMoveReleaseEnabledProvider);
-    expect(c.read(routineMoveReleaseEnabledProvider), isFalse,
-        reason: 'provider refresh must not enable a release capability');
+    expect(c.read(routineMoveReleaseEnabledProvider), !kReleaseMode,
+        reason: 'provider refresh must preserve the build-mode default');
   });
 
   test('Routine Move stays dormant without an authenticated Supabase client', () {

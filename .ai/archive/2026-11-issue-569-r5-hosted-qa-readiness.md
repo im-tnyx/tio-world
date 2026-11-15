@@ -1,6 +1,6 @@
 # GitHub #569 R5 — Hosted Move authorization QA readiness and current-gate reconciliation
 
-**Status:** In review — [PR #677](https://github.com/im-tnyx/tio-world/pull/677) at merge gate; hosted HTTP QA NOT performed, DO NOT MERGE
+**Status:** Validated / merged via [PR #677](https://github.com/im-tnyx/tio-world/pull/677) on 2026-10-24; this docs-only slice is historical. Later owner-reported partial QA and remaining blockers are tracked in GitHub #569 and the current development runbook.
 **Owner:** Workout release QA / developer experience (documentation only)
 **Tracking:** [#569](https://github.com/im-tnyx/tio-world/issues/569), [TNYX-81](https://linear.app/tnyx/issue/TNYX-81/w4-programs-and-routines-canonical-content-composition-and-builders), [#675](https://github.com/im-tnyx/tio-world/issues/675)
 **Base:** protected `main@74f3ebd42a0a388eb817d86de75a1db8b518f335` (R4 PR #676 merged)
@@ -41,6 +41,6 @@
 ## Active handoff
 
 **Planning / implementation:** Connected assistant, docs-only owner of this slice; no concurrent feature implementation claimed.
-**Implementation state:** Draft PR #677 opened from `tnyx/569-r5-hosted-qa-readiness` against `main@74f3ebd4`, docs-only 3-path scope; reviewed P2 fixed. No local Windows worktree is mounted; GitHub API parent/ref/file audit is the available substitute.
-**Validation:** Supabase read-only migration/ACL/advisor evidence above; local Flutter and hosted HTTP JWT tests **not run**. PR checks to be read at exact HEAD after creation.
-**Next:** Verify final exact-head checks and review state, leave PR #677 **UNMERGED** for explicit owner instruction. Separate hosted HTTP/device QA requires controlled accounts/consent, evidence and release go/no-go.
+**Implementation state:** PR #677 merged the bounded runbook and `.ai/tasks` documentation update. The review-time 70/70 migration snapshot and "hosted HTTP not performed" statement are historical; current hosted metadata and owner-reported partial QA are recorded in the canonical runbook and GitHub #569.
+**Validation:** PR #677 exact head `968d1f252c304d77b5f0568d384569e342ffcbd4` passed Docs Hygiene, Commit attribution guard, and Attribution guard runner. Cursor review agents were `neutral` after usage-limit startup failures. Author-account self-review was not independent human/security approval. No local Flutter tests or hosted HTTP/JWT tests were part of this docs-only PR.
+**Next:** Continue only the separately authorized hosted QA/security and device acceptance gates; the current development-build default is tracked in `.ai/tasks/issue-569-normal-build-default-on.md`.

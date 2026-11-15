@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -414,18 +415,18 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
   });
 
-  // M3D3A: mount the actual app-composed Routine sheet, not a mocked card.
-  // A valid Auth/bootstrap/SDK owner and an available existing/New Move adapter
-  // must still NEVER expose Move before the explicit release capability flips.
+  // Mount the actual app-composed Routine sheet, not a mocked card.
+  // Explicit false remains an available override in debug/profile builds.
   for (final onProgramDetail in <bool>[false, true]) {
     testWidgets(
-        'Move release-OFF hides action on ${onProgramDetail ? 'Program Detail' : 'expanded Library'} with valid Move adapter',
+        'explicit Move OFF override hides action on ${onProgramDetail ? 'Program Detail' : 'expanded Library'} with valid Move adapter',
         (tester) async {
       final (container, router) = await _app(
         tester,
         AppMode.hybrid,
         withRoutineComposition: true,
         withDormantMoveAdapters: true,
+        withMoveReleaseDisabledForTest: true,
       );
       final move = container.read(routineMoveRepositoryProvider);
       expect(move, isNotNull);
@@ -465,12 +466,12 @@ void main() {
     });
   }
 
-  // M3D3B1: exercise the REAL dormant Move flow with a test-only release
-  // override. Production Move remains hard OFF. Neither a stale selector
-  // nor a new same-account login cycle may inherit its old write permission.
+  // Normal Flutter tests run in debug mode, so this exercises the existing
+  // Move flow through the default-on development gate. Neither a stale
+  // selector nor a new same-account login cycle may inherit write permission.
   for (final onProgramDetail in <bool>[false, true]) {
     testWidgets(
-        'enabled-test Move selector revokes on same-owner new login cycle on ${onProgramDetail ? 'Program Detail' : 'expanded Library'}',
+        'default development Move selector revokes on same-owner new login cycle on ${onProgramDetail ? 'Program Detail' : 'expanded Library'}',
         (tester) async {
       final gateway = _DormantRouteMoveGateway(owner: _moveTestOwner);
       final (container, router) = await _app(
@@ -478,11 +479,11 @@ void main() {
         AppMode.hybrid,
         withRoutineComposition: true,
         withDormantMoveAdapters: true,
-        withEnabledMoveForTest: true,
+        withDefaultMoveForTest: true,
         moveGateway: gateway,
       );
-      expect(container.read(routineMoveReleaseEnabledProvider), isTrue,
-          reason: 'true is a test-only override, not production');
+      expect(container.read(routineMoveReleaseEnabledProvider), !kReleaseMode,
+          reason: 'the normal debug test uses the mode-based default');
       expect(container.read(supabaseClientProvider)?.auth.currentUser?.id,
           _moveTestOwner);
       router.go(_libraryPath);
@@ -533,6 +534,7 @@ void main() {
         AppMode.hybrid,
         withRoutineComposition: true,
         withDormantMoveAdapters: true,
+        withMoveReleaseDisabledForTest: true,
         withMovePreviewForTest: true,
         moveGateway: gateway,
       );
@@ -587,8 +589,8 @@ void main() {
     });
   }
 
-  // #569 QA-only gated route. No host grant is present: the fake gateway
-  // rejects every attempted RPC, so the UI must not claim a confirmed Move.
+  // #569 QA-only route. The fake gateway rejects every attempted RPC
+  // regardless of hosted grants, so the UI must not claim a confirmed Move.
   // Both Program Detail and Library reuse the same protected command.
   for (final onProgramDetail in <bool>[false, true]) {
     for (final createNew in <bool>[false, true]) {
@@ -601,6 +603,7 @@ void main() {
           AppMode.hybrid,
           withRoutineComposition: true,
           withDormantMoveAdapters: true,
+          withMoveReleaseDisabledForTest: true,
           withMoveQaForTest: true,
           moveGateway: gateway,
         );
@@ -658,6 +661,7 @@ void main() {
         AppMode.hybrid,
         withRoutineComposition: true,
         withDormantMoveAdapters: true,
+        withMoveReleaseDisabledForTest: true,
         withMoveQaForTest: true,
         moveGateway: gateway,
       );
@@ -685,7 +689,8 @@ void main() {
     });
   }
 
-  // A ZERO-write preview takes precedence if both debug flags are set.
+  // A ZERO-write preview takes precedence even when the normal debug Move
+  // gate is enabled and the separate QA flag is also set.
   // Verify BOTH dispatch branches remain unreachable after confirmation.
   for (final createNew in <bool>[false, true]) {
     testWidgets(
@@ -697,6 +702,7 @@ void main() {
         AppMode.hybrid,
         withRoutineComposition: true,
         withDormantMoveAdapters: true,
+        withMoveReleaseDisabledForTest: true,
         withMoveQaForTest: true,
         withMovePreviewForTest: true,
         moveGateway: gateway,
@@ -1335,7 +1341,7 @@ void main() {
     expect(
         container.read(myProgramRoutineCreateReleaseEnabledProvider), isFalse);
     expect(container.read(myProgramRoutineCreateQaEnabledProvider), isTrue);
-    expect(container.read(routineMoveReleaseEnabledProvider), isFalse);
+    expect(container.read(routineMoveReleaseEnabledProvider), !kReleaseMode);
     router.go(_libraryPath);
     await tester.pumpAndSettle();
     final create = find.byKey(const ValueKey('library-create-routine'));
@@ -2933,6 +2939,8 @@ Future<(ProviderContainer, GoRouter)> _app(
   ActiveWorkoutDraftStore? activeDraftStore,
   bool withDormantMoveAdapters = false,
   bool withEnabledMoveForTest = false,
+  bool withDefaultMoveForTest = false,
+  bool withMoveReleaseDisabledForTest = false,
   bool withMovePreviewForTest = false,
   bool withMoveQaForTest = false,
   RoutineMoveGateway? moveGateway,
@@ -2972,10 +2980,15 @@ Future<(ProviderContainer, GoRouter)> _app(
       rejectFirstAttempt: rejectFirstRoutineTransaction);
 
   assert(!withEnabledMoveForTest || withDormantMoveAdapters);
+  assert(!withDefaultMoveForTest || withDormantMoveAdapters);
+  assert(!withMoveReleaseDisabledForTest || withDormantMoveAdapters);
   assert(!withMovePreviewForTest || withDormantMoveAdapters);
   assert(!withMoveQaForTest || withDormantMoveAdapters);
   final moveOwner =
-      withEnabledMoveForTest || withMovePreviewForTest || withMoveQaForTest
+      withEnabledMoveForTest ||
+              withDefaultMoveForTest ||
+              withMovePreviewForTest ||
+              withMoveQaForTest
           ? _moveTestOwner
           : withRoutineStartForTest
               ? _routineStartTestOwner
@@ -3015,6 +3028,9 @@ Future<(ProviderContainer, GoRouter)> _app(
       if (withEnabledMoveForTest) ...[
         routineMoveReleaseEnabledProvider.overrideWithValue(true),
       ],
+      if (withMoveReleaseDisabledForTest) ...[
+        routineMoveReleaseEnabledProvider.overrideWithValue(false),
+      ],
       if (withMovePreviewForTest) ...[
         routineMoveUiPreviewEnabledProvider.overrideWithValue(true),
       ],
@@ -3031,6 +3047,7 @@ Future<(ProviderContainer, GoRouter)> _app(
           ),
         ),
       if (withEnabledMoveForTest ||
+          withDefaultMoveForTest ||
           withMovePreviewForTest ||
           withMoveQaForTest) ...[
         _routineTestAuthStateProvider.overrideWith((ref) =>
@@ -3099,7 +3116,10 @@ Future<(ProviderContainer, GoRouter)> _app(
     ],
   );
   addTearDown(container.dispose);
-  if (withEnabledMoveForTest || withMovePreviewForTest || withMoveQaForTest) {
+  if (withEnabledMoveForTest ||
+      withDefaultMoveForTest ||
+      withMovePreviewForTest ||
+      withMoveQaForTest) {
     (container.read(appSessionBootstrapControllerProvider)
             as _ReadyAppSessionBootstrapController)
         .transitionTo(_moveTestOwner);
